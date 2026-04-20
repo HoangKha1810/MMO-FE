@@ -206,6 +206,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
   const [serviceSearch, setServiceSearch] = useState('');
   const [resolvedSidebarServices, setResolvedSidebarServices] = useState<LegacyServiceItem[]>(sidebarServices || []);
   const [themePulse, setThemePulse] = useState<'light' | 'dark' | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [supportOpen, setSupportOpen] = useState(
     pathname === '/terms' || pathname === '/privacy' || pathname === '/'
   );
@@ -327,6 +328,27 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
     router.push(keyword ? `${destination}?search=${encodeURIComponent(keyword)}` : destination);
   }
 
+  async function handleLogout() {
+    if (loggingOut) {
+      return;
+    }
+
+    setLoggingOut(true);
+
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } finally {
+      startPageTransition();
+      router.push('/auth/login');
+      router.refresh();
+      setSidebarOpen(false);
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <div className="site-shell h-dvh overflow-hidden">
       {themePulse ? <div className={cn('theme-transition-overlay', themePulse === 'dark' ? 'theme-transition-overlay-dark' : 'theme-transition-overlay-light')} /> : null}
@@ -377,9 +399,6 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="mt-3 max-w-[14rem] text-[11px] font-semibold uppercase leading-5 tracking-[0.16em] text-slate-500 dark:text-slate-400">
-                  MMO workspace được dựng lại theo kiểu control room, ưu tiên rõ module và thao tác nhanh.
-                </p>
               </div>
             </div>
 
@@ -617,13 +636,15 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
               ) : null}
 
               {currentUser.data ? (
-                <Link
-                  href="/api/auth/logout"
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
                   className="btn-kinetic flex items-center justify-center gap-2.5 rounded-[1.15rem] bg-[linear-gradient(135deg,rgba(239,68,68,0.14),rgba(190,24,93,0.14))] px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-red-500 transition-all hover:-translate-y-0.5 hover:bg-red-500 hover:text-white dark:bg-red-500/[0.08] dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
                 >
                   <LogOut className="h-4 w-4" />
-                  Đăng Xuất
-                </Link>
+                  {loggingOut ? 'Đang thoát...' : 'Đăng Xuất'}
+                </button>
               ) : (
                 <Link
                   href="/auth/login"
@@ -813,13 +834,15 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                       ) : null}
                       <DropdownMenuSeparator className="my-1" />
                       <DropdownMenuItem asChild>
-                        <Link
-                          href="/api/auth/logout"
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          disabled={loggingOut}
                           className="flex w-full items-center gap-3 rounded-xl bg-red-50 px-2 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-red-500 transition-all hover:bg-red-500 hover:text-white dark:bg-red-500/[0.08] dark:text-red-400"
                         >
                           <LogOut className="h-4 w-4" />
-                          <span>Đăng xuất</span>
-                        </Link>
+                          <span>{loggingOut ? 'Đang thoát...' : 'Đăng xuất'}</span>
+                        </button>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

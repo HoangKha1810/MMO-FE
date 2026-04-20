@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { buildBlockedIpPayload, getIpBlock, getRequestIp } from '@/lib/ip-security';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
+
+function createSessionCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge,
+    path: '/',
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -94,27 +103,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set('user_id', String(user.id), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24,
-      path: '/',
-    });
+    const sessionMaxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
 
     if (user.fa_enabled) {
-      cookieStore.set('2fa_pending', String(user.id), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 10,
-        path: '/',
-      });
-      return NextResponse.json({ success: true, require2fa: true });
+      const response = NextResponse.json({ success: true, require2fa: true });
+      response.cookies.delete('user_id');
+      response.cookies.set('2fa_pending', String(user.id), createSessionCookieOptions(60 * 10));
+      return response;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -127,6 +125,9 @@ export async function POST(req: NextRequest) {
         is_blue_tick: Boolean(user.is_blue_tick),
       },
     });
+    response.cookies.delete('2fa_pending');
+    response.cookies.set('user_id', String(user.id), createSessionCookieOptions(sessionMaxAge));
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

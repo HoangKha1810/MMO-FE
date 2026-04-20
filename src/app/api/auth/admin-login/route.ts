@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getRequestIp, getIpBlock, buildBlockedIpPayload } from '@/lib/ip-security';
+
+function createSessionCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge,
+    path: '/',
+  };
+}
 
 export async function POST(req: NextRequest) {
   const ip = getRequestIp(req);
@@ -31,30 +40,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Tài khoản admin không hoạt động' }, { status: 403 });
   }
 
-  const cookieStore = await cookies();
-  cookieStore.set('user_id', String(user.id), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 12,
-    path: '/',
-  });
-
   await db.users.update({
     where: { id: user.id },
     data: { last_ip: ip, last_login: new Date(), last_activity: new Date() },
   });
 
   if (user.fa_enabled) {
-    cookieStore.set('2fa_pending', String(user.id), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 10,
-      path: '/',
-    });
-    return NextResponse.json({ success: true, require2fa: true });
+    const response = NextResponse.json({ success: true, require2fa: true });
+    response.cookies.delete('user_id');
+    response.cookies.set('2fa_pending', String(user.id), createSessionCookieOptions(60 * 10));
+    return response;
   }
 
-  return NextResponse.json({ success: true, redirect: '/admin/dashboard' });
+  const response = NextResponse.json({ success: true, redirect: '/admin/dashboard' });
+  response.cookies.delete('2fa_pending');
+  response.cookies.set('user_id', String(user.id), createSessionCookieOptions(60 * 60 * 12));
+  return response;
 }

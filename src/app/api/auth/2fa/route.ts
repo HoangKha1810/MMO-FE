@@ -3,6 +3,16 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 
+function createSessionCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge,
+    path: '/',
+  };
+}
+
 function base32Decode(input: string) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   const clean = input.replace(/=+$/g, '').replace(/\s+/g, '').toUpperCase();
@@ -42,7 +52,7 @@ function verifyTotp(secretValue: string | null, code: string) {
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
-  const pendingUserId = Number(cookieStore.get('2fa_pending')?.value || cookieStore.get('user_id')?.value || 0);
+  const pendingUserId = Number(cookieStore.get('2fa_pending')?.value || 0);
   if (!pendingUserId) {
     return NextResponse.json({ success: false, message: 'Không có phiên 2FA' }, { status: 401 });
   }
@@ -70,19 +80,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Mã 2FA không đúng' }, { status: 401 });
   }
 
-  cookieStore.delete('2fa_pending');
-  cookieStore.set('user_id', String(user.id), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24,
-    path: '/',
-  });
-
   await db.users.update({
     where: { id: user.id },
     data: { failed_2fa_attempts: 0, last_activity: new Date() },
   }).catch(() => undefined);
 
-  return NextResponse.json({ success: true, message: 'Xác thực 2FA thành công' });
+  const response = NextResponse.json({ success: true, message: 'Xác thực 2FA thành công' });
+  response.cookies.delete('2fa_pending');
+  response.cookies.set('user_id', String(user.id), createSessionCookieOptions(60 * 60 * 24));
+  return response;
 }
