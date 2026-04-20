@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
@@ -15,6 +16,7 @@ import {
   MessageCircle,
   Music,
   Play,
+  RefreshCw,
   Search,
   Send,
   Share2,
@@ -25,6 +27,7 @@ import {
   UserPlus,
   Users,
   Video,
+  X,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
@@ -268,50 +271,43 @@ function ServiceCard({
   );
 }
 
-export default function SmmPage() {
+function SmmPageContent() {
   const currentUser = useSessionUser();
+  const searchParams = useSearchParams();
   const user = currentUser.data;
   const [services, setServices] = useState<SmmServiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [platformFilter, setPlatformFilter] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+  async function loadServices(forceRefresh = false) {
+    setLoading(true);
+    setSyncing(forceRefresh);
+    setError('');
 
-    async function loadServices() {
-      setLoading(true);
-      setError('');
+    try {
+      const response = await fetch(`/api/smm/services${forceRefresh ? '?refresh=1' : ''}`, { cache: 'no-store' });
+      const payload: ServicesResponse = await response.json();
 
-      try {
-        const response = await fetch('/api/smm/services', { cache: 'no-store' });
-        const payload: ServicesResponse = await response.json();
-
-        if (!response.ok || !payload.success || !payload.data) {
-          throw new Error(payload.message || 'Không thể tải danh sách dịch vụ SMM');
-        }
-
-        if (active) {
-          setServices(payload.data);
-        }
-      } catch (loadError) {
-        if (active) {
-          setError(loadError instanceof Error ? loadError.message : 'Không thể tải dịch vụ SMM');
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(payload.message || 'Không thể tải danh sách dịch vụ SMM');
       }
+
+      setServices(payload.data);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Không thể tải dịch vụ SMM');
+    } finally {
+      setLoading(false);
+      setSyncing(false);
     }
+  }
 
+  useEffect(() => {
     void loadServices();
-
-    return () => {
-      active = false;
-    };
   }, []);
 
   useEffect(() => {
@@ -323,16 +319,19 @@ export default function SmmPage() {
   }, []);
 
   useEffect(() => {
-    const keyword = new URLSearchParams(window.location.search).get('search');
-    if (keyword) {
-      setSearch(keyword);
-    }
-  }, []);
+    const keyword = searchParams.get('search') || '';
+    const platform = searchParams.get('platform') || '';
+
+    setSearch(keyword);
+    setPlatformFilter(platform);
+  }, [searchParams]);
 
   const sections = useMemo(() => {
     const term = search.trim().toLowerCase();
+    const activePlatform = platformFilter.trim().toLowerCase();
 
     return buildGroups(services)
+      .filter((section) => !activePlatform || section.platform.name.toLowerCase() === activePlatform)
       .map((section) => ({
         ...section,
         groups: section.groups.filter((group) => {
@@ -345,7 +344,7 @@ export default function SmmPage() {
         }),
       }))
       .filter((section) => section.groups.length > 0);
-  }, [favorites, favoritesOnly, search, services]);
+  }, [favorites, favoritesOnly, platformFilter, search, services]);
 
   const favoriteGroups = useMemo(() => {
     const groups = buildGroups(services).flatMap((section) => section.groups);
@@ -388,6 +387,57 @@ export default function SmmPage() {
             >
               <Star className={cn('h-5 w-5', favoritesOnly && 'fill-current')} />
             </button>
+            <button
+              type="button"
+              onClick={() => void loadServices(true)}
+              disabled={syncing || loading}
+              className="flex items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all hover:text-brand-blue active:scale-90 disabled:opacity-60 dark:bg-white/5"
+              aria-label="Đồng bộ dịch vụ SubMetaVip"
+            >
+              <RefreshCw className={cn('h-5 w-5', syncing && 'animate-spin text-brand-blue')} />
+            </button>
+          </div>
+
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            {platformConfig.filter((platform) => platform.name !== 'Khác').map((platform) => {
+              const active = platformFilter.toLowerCase() === platform.name.toLowerCase();
+              const PlatformIcon = platform.Icon;
+
+              return (
+                <button
+                  key={platform.name}
+                  type="button"
+                  onClick={() => setPlatformFilter(active ? '' : platform.name)}
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition-all',
+                    active
+                      ? 'border-brand-blue bg-brand-blue text-white shadow-lg shadow-brand-blue/20'
+                      : 'border-slate-200 bg-white text-slate-500 hover:border-brand-blue/40 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300'
+                  )}
+                >
+                  {platform.gif ? (
+                    <img src={`/assets/images/gif/${platform.gif}`} alt="" className="h-4 w-4 object-contain" />
+                  ) : (
+                    <PlatformIcon className={cn('h-4 w-4', active ? 'text-white' : platform.color)} />
+                  )}
+                  {platform.name}
+                </button>
+              );
+            })}
+            {platformFilter || search || favoritesOnly ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setPlatformFilter('');
+                  setSearch('');
+                  setFavoritesOnly(false);
+                }}
+                className="inline-flex shrink-0 items-center gap-2 rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-rose-500 transition-all hover:bg-rose-500 hover:text-white"
+              >
+                <X className="h-3.5 w-3.5" />
+                Xóa lọc
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -424,7 +474,7 @@ export default function SmmPage() {
             <div className="flex items-center justify-center py-24">
               <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-5 py-3 text-sm font-bold text-slate-500 dark:border-white/10 dark:text-slate-300">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Đang tải dịch vụ thật từ MySQL
+                Đang tải dịch vụ từ hệ thống
               </div>
             </div>
           ) : sections.length === 0 ? (
@@ -436,7 +486,7 @@ export default function SmmPage() {
                 Chưa có dịch vụ phù hợp
               </h2>
               <p className="max-w-sm text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                Không tìm thấy service theo từ khóa hiện tại. Dữ liệu đang đọc trực tiếp từ cache MySQL/API provider.
+                Không tìm thấy dịch vụ theo từ khóa hiện tại. Thử đổi nền tảng hoặc nhập từ khóa ngắn hơn.
               </p>
             </div>
           ) : (
@@ -488,5 +538,26 @@ export default function SmmPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function SmmPageFallback() {
+  return (
+    <AppShell>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-5 py-3 text-sm font-bold text-slate-500 dark:border-white/10 dark:text-slate-300">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Đang mở module SMM
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+export default function SmmPage() {
+  return (
+    <Suspense fallback={<SmmPageFallback />}>
+      <SmmPageContent />
+    </Suspense>
   );
 }

@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Box, Download, Package, ShoppingCart, Tag } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { ResourceDetailActions } from '@/components/resources/resource-detail-actions';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { getResourceDetail } from '@/lib/legacy-modules';
+import { listResourceReviews } from '@/lib/resource-actions';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -17,7 +18,10 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   if (!Number.isFinite(resourceId) || resourceId <= 0) notFound();
 
   const { raw, shell } = await getCurrentUserForShell();
-  const data = await getResourceDetail(resourceId, raw.id);
+  const [data, reviews] = await Promise.all([
+    getResourceDetail(resourceId, raw.id),
+    listResourceReviews(resourceId),
+  ]);
   if (!data) notFound();
 
   const { resource, related, orders } = data;
@@ -73,31 +77,16 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button disabled={toNumber(resource.stock) <= 0}>
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Mua / thêm giỏ
-              </Button>
-              <Link href="/user/resources/history" className="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-xs font-black uppercase dark:border-white/10">
-                Lịch sử mua
-              </Link>
+            <div className="mt-6">
+              <ResourceDetailActions
+                resourceId={resourceId}
+                stock={toNumber(resource.stock)}
+                orders={orders as Array<Record<string, unknown>>}
+                reviews={reviews}
+              />
             </div>
           </div>
         </section>
-
-        {orders.length > 0 ? (
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-slate-900">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Bạn đã mua tài nguyên này</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {orders.map((order) => (
-                <div key={String(order.id)} className="rounded-xl bg-slate-50 p-4 text-sm dark:bg-white/5">
-                  <div className="font-black text-slate-900 dark:text-white">Order #{String(order.id)}</div>
-                  <div className="mt-1 text-slate-500">{formatCurrency(toNumber(order.total_price))} · {String(order.status)}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         {related.length > 0 ? (
           <section className="space-y-4">

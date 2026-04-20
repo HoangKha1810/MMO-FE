@@ -81,7 +81,7 @@ export default function OpenGraphImage() {
                 textTransform: 'uppercase',
               }}
             >
-              MMO đa dịch vụ, UI mới và logic kế thừa từ source PHP cũ.
+              MMO đa dịch vụ, giao diện sắc hơn và luồng vận hành ổn định.
             </div>
             <div
               style={{
@@ -93,7 +93,7 @@ export default function OpenGraphImage() {
                 color: '#cbd5e1',
               }}
             >
-              SMM, Auto MXH, tài nguyên số, forum MMO, nạp tiền và cụm quản trị vận hành trên dữ liệu MySQL thật.
+              SMM, Auto MXH, tài nguyên số, forum MMO, nạp tiền và cụm quản trị cho vận hành hằng ngày.
             </div>
           </div>
 

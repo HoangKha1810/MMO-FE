@@ -184,16 +184,20 @@ export async function createSupportConversationMessage(input: {
   message: string;
   senderType: 'user' | 'support';
   supportUsername: string;
+  imageUrls?: string[];
 }) {
+  const imageUrls = input.imageUrls?.filter(Boolean) || [];
   const created = await db.$transaction(async (tx) => {
     await tx.$executeRawUnsafe(
       `
         INSERT INTO support_tiktok_messages (user_id, sender_type, message, image_url, image_urls, created_at)
-        VALUES (?, ?, ?, '', NULL, NOW())
+        VALUES (?, ?, ?, ?, ?, NOW())
       `,
       input.conversationUserId,
       input.senderType,
-      input.message
+      input.message,
+      imageUrls[0] || '',
+      imageUrls.length > 0 ? JSON.stringify(imageUrls) : null
     );
 
     const rows = await tx.$queryRawUnsafe<SupportMessageRow[]>(

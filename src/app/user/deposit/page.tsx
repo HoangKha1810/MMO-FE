@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
@@ -7,20 +8,20 @@ import { useSessionUser } from '@/hooks/use-session-user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDatabaseDateTime } from '@/lib/date-time';
 import {
   AlertCircle,
-  Building2,
   CheckCircle2,
-  Copy,
   CreditCard,
+  History,
   QrCode,
+  ReceiptText,
   Smartphone,
   Wallet,
 } from 'lucide-react';
 
 const paymentMethods = [
-  { id: 'sepay', label: 'SePay QR / Card', icon: QrCode, color: 'from-violet-500 to-indigo-500' },
-  { id: 'bank', label: 'Chuyển khoản ngân hàng', icon: Building2, color: 'from-blue-500 to-cyan-500' },
+  { id: 'sepay', label: 'Thanh Toán QR Code', icon: QrCode, color: 'from-emerald-500 to-cyan-500' },
   { id: 'momo', label: 'Ví MoMo', icon: Smartphone, color: 'from-pink-500 to-rose-500', disabled: true },
 ];
 
@@ -37,13 +38,16 @@ interface SePayPayment {
   order_id: string;
 }
 
-interface BankPayment {
-  account_name: string;
-  account_number: string;
+interface DepositTransaction {
+  id: number;
+  transaction_id: string;
   amount: number;
-  bank_name: string;
-  qr_url: string;
-  transaction_code: string;
+  balance_after: number;
+  content: string;
+  payment_method: string;
+  type: string;
+  status: string;
+  created_at: string;
 }
 
 function submitExternalForm(url: string, fields: Record<string, string>) {
@@ -73,7 +77,8 @@ export default function DepositPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DepositFeedback | null>(null);
   const [sepayPayment, setSepayPayment] = useState<SePayPayment | null>(null);
-  const [bankPayment, setBankPayment] = useState<BankPayment | null>(null);
+  const [recentDeposits, setRecentDeposits] = useState<DepositTransaction[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -83,31 +88,50 @@ export default function DepositPage() {
     }
 
     if (paymentStatus === 'success') {
-      setResult({ success: true, message: 'Thanh toán SePay đã hoàn tất. Hệ thống sẽ cộng tiền ngay khi IPN xác nhận.' });
+      setResult({ success: true, message: 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ cộng tiền ngay khi IPN xác nhận.' });
       return;
     }
 
     if (paymentStatus === 'cancel') {
-      setResult({ success: false, message: 'Bạn đã hủy giao dịch SePay trước khi thanh toán.' });
+      setResult({ success: false, message: 'Bạn đã hủy giao dịch QR Code trước khi thanh toán.' });
       return;
     }
 
     if (paymentStatus === 'error') {
-      setResult({ success: false, message: 'SePay trả về trạng thái lỗi. Vui lòng thử lại hoặc chọn ngân hàng.' });
+      setResult({ success: false, message: 'Cổng QR Code trả về trạng thái lỗi. Vui lòng thử lại hoặc liên hệ hỗ trợ.' });
     }
   }, []);
 
+  useEffect(() => {
+    void loadRecentDeposits();
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadRecentDeposits();
+        router.refresh();
+      }
+    }, 10000);
+
+    return () => window.clearInterval(timer);
+  }, [router]);
+
+  async function loadRecentDeposits() {
+    setHistoryLoading(true);
+    try {
+      const response = await fetch('/api/user/deposit?per_page=8', { cache: 'no-store' });
+      const payload = await response.json();
+      if (response.ok && payload.success && Array.isArray(payload.data)) {
+        setRecentDeposits(payload.data);
+      }
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
   const handleQuickAmount = (val: number) => {
     setAmount(String(val));
-  };
-
-  const copyText = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setResult({ success: true, message: `Đã sao chép: ${value}` });
-    } catch {
-      setResult({ success: false, message: 'Không thể sao chép vào clipboard.' });
-    }
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -120,7 +144,6 @@ export default function DepositPage() {
     setLoading(true);
     setResult(null);
     setSepayPayment(null);
-    setBankPayment(null);
 
     try {
       const res = await fetch('/api/user/deposit', {
@@ -138,10 +161,7 @@ export default function DepositPage() {
           setTimeout(() => submitExternalForm(payment.checkout_url, payment.fields), 250);
         }
 
-        if (data.method === 'bank' && data.bank) {
-          setBankPayment(data.bank as BankPayment);
-        }
-
+        await loadRecentDeposits();
         setTimeout(() => router.refresh(), 1500);
       }
     } catch {
@@ -164,7 +184,7 @@ export default function DepositPage() {
         </div>
 
         {/* Payment Methods */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {paymentMethods.map((pm) => (
             <button
               key={pm.id}
@@ -271,11 +291,11 @@ export default function DepositPage() {
             )}
 
             {sepayPayment ? (
-              <div className="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-4 text-sm">
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.25em] text-violet-500">
-                      SePay Checkout
+                    <div className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">
+                      Thanh Toán QR Code
                     </div>
                     <div className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                       Đơn {sepayPayment.order_id} đã sẵn sàng. Nếu không tự chuyển trang, bấm nút bên phải.
@@ -286,54 +306,8 @@ export default function DepositPage() {
                     onClick={() => submitExternalForm(sepayPayment.checkout_url, sepayPayment.fields)}
                   >
                     <CreditCard className="w-4 h-4" />
-                    Tới SePay
+                    Mở QR Code
                   </Button>
-                </div>
-              </div>
-            ) : null}
-
-            {bankPayment ? (
-              <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
-                <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950">
-                    <div className="relative aspect-square overflow-hidden rounded-xl bg-slate-100 dark:bg-white/5">
-                      <img
-                        src={bankPayment.qr_url}
-                        alt="VietQR"
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-500">
-                      Chuyển khoản thủ công
-                    </div>
-                    {[
-                      { label: 'Ngân hàng', value: bankPayment.bank_name },
-                      { label: 'Số tài khoản', value: bankPayment.account_number },
-                      { label: 'Chủ tài khoản', value: bankPayment.account_name },
-                      { label: 'Số tiền', value: `${new Intl.NumberFormat('vi-VN').format(bankPayment.amount)}đ` },
-                      { label: 'Nội dung CK', value: bankPayment.transaction_code },
-                    ].map((row) => (
-                      <div
-                        key={row.label}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-white/5"
-                      >
-                        <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
-                            {row.label}
-                          </div>
-                          <div className="mt-1 text-sm font-black text-slate-900 dark:text-white">
-                            {row.value}
-                          </div>
-                        </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => void copyText(row.value)}>
-                          <Copy className="w-4 h-4" />
-                          Copy
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             ) : null}
@@ -341,9 +315,67 @@ export default function DepositPage() {
             <Button onClick={handleSubmit} className="w-full" size="xl" disabled={loading || !amount} loading={loading} loadingText="Đang xử lý...">
               <>
                 <Wallet className="w-5 h-5" />
-                Nạp tiền ngay
+                Tạo QR thanh toán
               </>
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <History className="h-5 w-5" />
+              Lịch sử nạp gần đây
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => void loadRecentDeposits()} loading={historyLoading}>
+                Làm mới
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/user/history">Xem tất cả</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/user/orders">
+                  <ReceiptText className="h-4 w-4" />
+                  Đơn hàng
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {recentDeposits.length > 0 ? (
+              <div className="space-y-2">
+                {recentDeposits.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <div className="font-black text-slate-900 dark:text-white">
+                        {item.content || item.transaction_id}
+                      </div>
+                      <div className="mt-1 text-xs font-bold text-slate-400">
+                        {formatDatabaseDateTime(item.created_at)} · {item.payment_method === 'sepay_qr' ? 'Thanh Toán QR Code' : item.payment_method}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="font-mono text-base font-black text-emerald-500">
+                          {new Intl.NumberFormat('vi-VN').format(item.amount)}đ
+                        </div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          {item.status}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm font-bold text-slate-400 dark:border-white/10">
+                Chưa có giao dịch nạp tiền nào trong tài khoản này.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -355,7 +387,7 @@ export default function DepositPage() {
           <CardContent className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">1</span>
-              <p>Chọn SePay để thanh toán ngay bằng QR / Card, hoặc ngân hàng để lấy VietQR đúng cú pháp MySQL cũ</p>
+              <p>Chọn Thanh Toán QR Code để tạo giao dịch bảo mật qua cổng QR.</p>
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">2</span>
@@ -367,7 +399,7 @@ export default function DepositPage() {
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">4</span>
-              <p>Hoàn tất thanh toán. Với SePay, hệ thống chờ IPN xác nhận `ORDER_PAID` để cộng tiền tự động</p>
+              <p>Hoàn tất thanh toán. Hệ thống chờ IPN xác nhận `ORDER_PAID` để cộng tiền tự động</p>
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">5</span>

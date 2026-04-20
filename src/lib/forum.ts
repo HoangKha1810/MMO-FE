@@ -364,15 +364,23 @@ export async function getForumFolderDetails(forumId: number) {
   }
 }
 
-export async function getForumThreadDetails(threadId: number) {
+export async function getForumThreadDetails(threadId: number, viewerId?: number, viewerRole?: string | null) {
   try {
+    const isAdminViewer = String(viewerRole || '').toLowerCase() === 'admin';
+    const threadVisibilitySql = isAdminViewer
+      ? "AND t.status IN ('active', 'pending', 'rejected', 'hidden')"
+      : viewerId
+        ? "AND (t.status = 'active' OR t.user_id = ?)"
+        : "AND t.status = 'active'";
+    const threadVisibilityParams = !isAdminViewer && viewerId ? [viewerId] : [];
+
     const threadRows = await db.$queryRawUnsafe<ForumThreadSummary[]>(`
       ${threadSelectSql}
       WHERE t.id = ?
-        AND t.status = 'active'
+        ${threadVisibilitySql}
         AND COALESCE(t.is_deleted, 0) = 0
       LIMIT 1
-    `, threadId);
+    `, threadId, ...threadVisibilityParams);
 
     const thread = threadRows[0];
     if (!thread) {
@@ -380,6 +388,13 @@ export async function getForumThreadDetails(threadId: number) {
     }
 
     await db.$executeRawUnsafe('UPDATE forum_threads SET views = views + 1 WHERE id = ?', threadId).catch(() => null);
+
+    const postVisibilitySql = isAdminViewer
+      ? "AND p.status IN ('active', 'pending', 'rejected', 'hidden')"
+      : viewerId
+        ? "AND (p.status = 'active' OR p.user_id = ?)"
+        : "AND p.status = 'active'";
+    const postVisibilityParams = !isAdminViewer && viewerId ? [viewerId] : [];
 
     const posts = await db.$queryRawUnsafe<ForumPostSummary[]>(`
       SELECT
@@ -411,10 +426,10 @@ export async function getForumThreadDetails(threadId: number) {
       FROM forum_posts p
       LEFT JOIN users u ON u.id = p.user_id
       WHERE p.thread_id = ?
-        AND p.status = 'active'
+        ${postVisibilitySql}
         AND COALESCE(p.is_deleted, 0) = 0
       ORDER BY p.created_at ASC, p.id ASC
-    `, threadId);
+    `, threadId, ...postVisibilityParams);
 
     return {
       thread: normalizeThread({ ...thread, views: Number(thread.views || 0) + 1 }),

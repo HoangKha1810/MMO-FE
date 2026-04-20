@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { createFindJob } from '@/lib/legacy-modules';
+import { createOrUpdateFindJob, deleteFindJob } from '@/lib/find-job-actions';
 
 async function getUserId() {
   const cookieStore = await cookies();
@@ -15,24 +15,38 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const action = String(body.action || 'create').trim().toLowerCase();
+    const jobId = Number(body.job_id || body.id || 0);
+
+    if (action === 'delete') {
+      if (!jobId) {
+        return NextResponse.json({ success: false, message: 'Thiếu job ID' }, { status: 400 });
+      }
+      const data = await deleteFindJob(userId, jobId);
+      return NextResponse.json({ success: true, message: 'Đã đóng tin tuyển dụng', data });
+    }
+
     const title = String(body.title || '').trim();
     const description = String(body.description || '').trim();
     const category = String(body.category || 'general').trim();
 
-    if (title.length < 8 || description.length < 20) {
-      return NextResponse.json({ success: false, message: 'Tiêu đề hoặc mô tả quá ngắn' }, { status: 400 });
-    }
-
-    const job = await createFindJob(userId, {
+    const job = await createOrUpdateFindJob(userId, {
+      id: action === 'update' ? jobId : undefined,
       title,
       description,
       category,
-      price_min: Number(body.price_min || 0) || undefined,
-      price_max: Number(body.price_max || 0) || undefined,
-      deadline_days: Number(body.deadline_days || 0) || undefined,
+      priceMin: Number(body.price_min || 0) || undefined,
+      priceMax: Number(body.price_max || 0) || undefined,
+      deadlineDays: Number(body.deadline_days || 0) || undefined,
     });
 
-    return NextResponse.json({ success: true, data: job });
+    return NextResponse.json({
+      success: true,
+      message: action === 'update'
+        ? 'Đã cập nhật tin tuyển dụng, vui lòng chờ admin duyệt lại.'
+        : 'Đã tạo tin tuyển dụng, vui lòng chờ admin duyệt trước khi hiển thị công khai.',
+      data: job,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Không tạo được tin tuyển dụng';
     return NextResponse.json({ success: false, message }, { status: 500 });

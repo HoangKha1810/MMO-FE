@@ -6,11 +6,12 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
   BarChart3,
-  Bell,
+  BadgeDollarSign,
   ChevronRight,
   CreditCard,
   Database,
   FileText,
+  Headset,
   LayoutDashboard,
   Package,
   Search,
@@ -25,6 +26,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/layout/notification-bell';
 
 const adminNavItems = [
   {
@@ -38,12 +40,14 @@ const adminNavItems = [
   {
     section: 'Dịch vụ',
     items: [
+      { href: '/admin/pricing', label: 'Bảng Giá', icon: BadgeDollarSign },
       { href: '/admin/smm', label: 'SMM Dịch vụ', icon: Zap },
       { href: '/admin/automxh', label: 'Auto MXH', icon: Zap },
       { href: '/admin/resources', label: 'Tài nguyên MMO', icon: Package },
       { href: '/admin/card', label: 'Thẻ Cào', icon: CreditCard },
       { href: '/admin/game-market', label: 'Game Market', icon: ShoppingCart },
       { href: '/admin/find-job', label: 'Find Job', icon: FileText },
+      { href: '/admin/support-tiktok', label: 'Support TikTok', icon: Headset },
     ],
   },
   {
@@ -95,12 +99,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     setThemePulse(nextTheme);
     document.documentElement.classList.add('theme-switching');
     document.documentElement.style.colorScheme = nextTheme;
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        setTheme(nextTheme);
-      });
-    });
+    setTheme(nextTheme);
 
     if (themeTimerRef.current) {
       window.clearTimeout(themeTimerRef.current);
@@ -109,7 +108,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     themeTimerRef.current = window.setTimeout(() => {
       document.documentElement.classList.remove('theme-switching');
       setThemePulse(null);
-    }, 680);
+    }, 380);
   }
 
   return (
@@ -218,10 +217,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 {mounted && isDark ? <Moon className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" /> : <Sun className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" />}
               </span>
             </button>
-            <button type="button" className="surface-chip relative rounded-xl p-2.5 transition-all hover:-translate-y-0.5">
-              <Bell className="h-5 w-5 text-slate-500" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-            </button>
+            <NotificationBell className="h-10 w-10 shadow-[0_14px_40px_-24px_rgba(37,99,235,0.26)]" />
             <Link
               href="/user/home"
               className="btn-kinetic rounded-xl bg-[linear-gradient(135deg,#2563eb_0%,#1d4ed8_48%,#0ea5e9_100%)] px-4 py-2 text-xs font-bold uppercase text-white transition-all hover:-translate-y-0.5"

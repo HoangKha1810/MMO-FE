@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import type { AdminSectionConfig } from '@/lib/admin-page-config';
+import { formatDatabaseDateTime } from '@/lib/date-time';
 import { cn, formatNumber } from '@/lib/utils';
 
 interface AdminDataPageProps {
@@ -36,8 +37,8 @@ function formatCell(value: unknown) {
   if (typeof value === 'boolean') return value ? 'Có' : 'Không';
   if (typeof value === 'number') return formatNumber(value);
   if (typeof value === 'string') {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
-      return new Date(value).toLocaleString('vi-VN');
+    if (/^\d{4}-\d{2}-\d{2}(?:[ T])/.test(value)) {
+      return formatDatabaseDateTime(value);
     }
     return value.length > 120 ? `${value.slice(0, 120)}...` : value;
   }
@@ -157,6 +158,16 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   useEffect(() => {
     void loadData(1);
   }, [section.resource, status]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!editor && document.visibilityState === 'visible') {
+        void loadData(pagination?.page || 1);
+      }
+    }, 15000);
+
+    return () => window.clearInterval(timer);
+  }, [section.resource, status, search, editor, pagination?.page]);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
 
@@ -279,6 +290,19 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                   Tạo mới
                 </Button>
               ) : null}
+              {section.actions?.filter((action) => ['sync', 'check-new-deposits'].includes(action.key)).map((action) => (
+                <Button
+                  key={action.key}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => runAction(action.key)}
+                >
+                  <RefreshCw className={cn('mr-2 h-4 w-4', saving && 'animate-spin')} />
+                  {action.label}
+                </Button>
+              ))}
               <Button
                 type="button"
                 size="sm"

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, FilePenLine, Plus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { listUserFindJobs } from '@/lib/find-job';
 import { formatCurrency } from '@/lib/utils';
@@ -35,16 +35,24 @@ export default async function MyFindJobsPage() {
               Bạn chưa đăng tin nào.
             </div>
           ) : jobs.map((job) => (
-            <Link key={job.id} href={`/user/find-job/${job.id}`} className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-orange-400 dark:border-white/10 dark:bg-slate-900">
-              <div className="flex items-center justify-between gap-3">
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase text-slate-500 dark:bg-white/10">{job.status}</span>
-                {job.is_pinned ? <span className="text-[10px] font-black uppercase text-orange-500">Đang ghim</span> : null}
+            <div key={job.id} className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-orange-400 dark:border-white/10 dark:bg-slate-900">
+              <Link href={`/user/find-job/${job.id}`} className="block">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase text-slate-500 dark:bg-white/10">{job.status}</span>
+                  {job.is_pinned ? <span className="text-[10px] font-black uppercase text-orange-500">Đang ghim</span> : null}
+                </div>
+                <h2 className="mt-4 text-lg font-black uppercase text-slate-950 dark:text-white">{job.title}</h2>
+                <div className="mt-3 text-xs font-bold text-slate-400">
+                  {job.budget_min ? formatCurrency(job.budget_min) : '—'} - {job.budget_max ? formatCurrency(job.budget_max) : '—'}
+                </div>
+              </Link>
+              <div className="mt-4 flex gap-2">
+                <Link href={`/user/find-job/edit/${job.id}`} className="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black uppercase text-orange-600 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">
+                  <FilePenLine className="h-4 w-4" />
+                  Sửa bài
+                </Link>
               </div>
-              <h2 className="mt-4 text-lg font-black uppercase text-slate-950 dark:text-white">{job.title}</h2>
-              <div className="mt-3 text-xs font-bold text-slate-400">
-                {job.budget_min ? formatCurrency(job.budget_min) : '—'} - {job.budget_max ? formatCurrency(job.budget_max) : '—'}
-              </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>

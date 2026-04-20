@@ -75,7 +75,7 @@ export function buildSePayCheckout(input: BuildSePayCheckoutInput) {
   if (!config.merchantId || !config.secretKey) {
     return {
       success: false as const,
-      message: 'Thiếu cấu hình SePay merchant_id hoặc secret_key trong env PHP cũ',
+      message: 'Thiếu cấu hình SePay merchant_id hoặc secret_key',
     };
   }
 

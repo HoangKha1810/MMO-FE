@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, BriefcaseBusiness, Clock, Send, UserRound, WalletCards } from 'lucide-react';
+import { ArrowLeft, BriefcaseBusiness, Clock, UserRound, WalletCards } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
-import { LegacyActionForm } from '@/components/legacy/action-form';
+import { FindJobDetailActions } from '@/components/find-job/find-job-detail-actions';
 import { getFindJobDetail } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
@@ -15,7 +15,7 @@ export default async function FindJobDetailPage({ params }: { params: Promise<{ 
   if (!Number.isFinite(jobId) || jobId <= 0) notFound();
 
   const { raw, shell } = await getCurrentUserForShell();
-  const data = await getFindJobDetail(jobId);
+  const data = await getFindJobDetail(jobId, raw.id, String(raw.role || 'member'));
   if (!data) notFound();
 
   const job = data.job;
@@ -64,20 +64,9 @@ export default async function FindJobDetailPage({ params }: { params: Promise<{ 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
               <BriefcaseBusiness className="h-8 w-8 text-orange-500" />
               <h2 className="mt-4 text-lg font-black uppercase text-slate-950 dark:text-white">Ứng tuyển</h2>
-              {ownerId === raw.id ? (
-                <p className="mt-3 text-sm text-slate-400">Đây là tin của bạn. Người ứng tuyển sẽ hiện trong danh sách admin/legacy.</p>
-              ) : (
-                <div className="mt-4">
-                  <LegacyActionForm
-                    endpoint="/api/find-job/apply"
-                    submitLabel="Gửi ứng tuyển"
-                    defaults={{ job_id: jobId }}
-                    fields={[
-                      { name: 'job_id', label: 'Job ID', type: 'number', required: true },
-                    ]}
-                  />
-                </div>
-              )}
+              <div className="mt-4">
+                <FindJobDetailActions jobId={jobId} isOwner={ownerId === raw.id} />
+              </div>
             </div>
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-slate-900">

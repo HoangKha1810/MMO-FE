@@ -326,7 +326,7 @@ export default function AutoMxhOrderPage() {
                         Khu vực đặt hàng
                       </h2>
                       <p className="text-xs font-medium italic text-slate-500">
-                        {categoryName || 'Auto MXH'} xử lý tự động theo cấu hình MySQL cũ.
+                        {categoryName || 'Auto MXH'} xử lý tự động theo cấu hình dịch vụ hiện tại.
                       </p>
                     </div>
                   </div>

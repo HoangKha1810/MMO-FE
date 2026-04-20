@@ -23,17 +23,15 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
   const [loading, setLoading] = useState(!initialUser);
 
   useEffect(() => {
-    if (initialUser) {
-      setData(initialUser);
-      setLoading(false);
-      return;
-    }
-
     let active = true;
 
     async function loadUser() {
       try {
-        const response = await fetch('/api/user/me', { credentials: 'include' });
+        const response = await fetch('/api/user/me', {
+          cache: 'no-store',
+          credentials: 'include',
+          headers: { 'Cache-Control': 'no-store' },
+        });
         if (!response.ok) {
           if (active) {
             setLoading(false);
@@ -53,10 +51,21 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
       }
     }
 
+    if (initialUser) {
+      setData(initialUser);
+      setLoading(false);
+    }
+
     void loadUser();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadUser();
+      }
+    }, 10000);
 
     return () => {
       active = false;
+      window.clearInterval(timer);
     };
   }, [initialUser]);
 

@@ -20,12 +20,12 @@ export default async function CreateFindJobPage() {
           <BriefcaseBusiness className="h-8 w-8 text-orange-500" />
           <h1 className="mt-4 text-3xl font-black uppercase tracking-[-0.04em] text-slate-950 dark:text-white">Đăng tin tìm người làm MMO</h1>
           <p className="mt-2 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-300">
-            Tin mới sẽ vào database legacy. Nếu admin đang bật duyệt bài, tin sẽ có trạng thái chờ duyệt theo source cũ.
+            Tin mới sẽ vào trạng thái chờ duyệt. Admin duyệt xong mới hiển thị công khai trên Find Job MMO.
           </p>
           <div className="mt-6">
             <LegacyActionForm
               endpoint="/api/find-job/jobs"
-              submitLabel="Đăng tin"
+              submitLabel="Gửi duyệt tin"
               redirectTo="/user/find-job/my-jobs"
               fields={[
                 { name: 'title', label: 'Tiêu đề', required: true, placeholder: 'VD: Cần người chạy TikTok Ads...' },

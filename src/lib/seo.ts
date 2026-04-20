@@ -13,7 +13,7 @@ function normalizeOrigin(value?: string | null) {
 export const siteName = 'TRUNGTAMMMO.VN';
 export const siteShortName = 'TRUNGTAMMMO';
 export const siteDescription =
-  'TRUNGTAMMMO.VN là nền tảng MMO đa dịch vụ gồm SMM, Auto MXH, tài nguyên số, forum MMO, nạp tiền và cụm công cụ vận hành trên dữ liệu MySQL kế thừa.';
+  'TRUNGTAMMMO.VN là nền tảng MMO đa dịch vụ gồm SMM, Auto MXH, tài nguyên số, forum MMO, nạp tiền và cụm công cụ vận hành.';
 export const siteUrl = normalizeOrigin(
   process.env.NEXT_PUBLIC_BASE_URL ||
     process.env.API_DOMAIN ||
@@ -45,4 +45,3 @@ export function buildAbsoluteUrl(path = '/') {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return new URL(normalizedPath, siteUrl).toString();
 }
-

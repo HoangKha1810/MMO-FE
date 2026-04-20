@@ -4,6 +4,7 @@ import {
   createSupportConversationMessage,
   getSupportTiktokContext,
 } from '@/lib/support-tiktok';
+import { saveUploadedFile } from '@/lib/server-upload';
 
 function getClientIp(req: NextRequest) {
   return (
@@ -30,11 +31,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Module đang bảo trì' }, { status: 503 });
   }
 
-  const body = await req.json().catch(() => null);
-  const message = String(body?.message || '').trim();
-  const targetUserId = Number(body?.user_id || 0);
+  const contentType = req.headers.get('content-type') || '';
+  const body = contentType.includes('multipart/form-data')
+    ? await req.formData().catch(() => null)
+    : await req.json().catch(() => null);
+  const readValue = (key: string) => body instanceof FormData ? String(body.get(key) || '') : String(body?.[key] || '');
+  const message = readValue('message').trim();
+  const targetUserId = Number(readValue('user_id') || 0);
+  const imageUrls: string[] = [];
 
-  if (!message) {
+  if (body instanceof FormData) {
+    for (const key of ['attachment_file', 'image', 'file']) {
+      const file = body.get(key);
+      if (file instanceof File && file.size > 0) {
+        imageUrls.push(await saveUploadedFile({
+          file,
+          folder: ['support-tiktok', String(context.isSupport ? targetUserId || userId : userId)],
+          prefix: `support_${userId}`,
+          maxSize: 8 * 1024 * 1024,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+        }));
+      }
+    }
+  }
+
+  if (!message && imageUrls.length === 0) {
     return NextResponse.json(
       { success: false, message: 'Nội dung tin nhắn không được để trống' },
       { status: 400 }
@@ -58,9 +79,10 @@ export async function POST(req: NextRequest) {
   const conversationUserId = context.isSupport ? targetUserId : userId;
   const created = await createSupportConversationMessage({
     conversationUserId,
-    message,
+    message: message || '[Ảnh đính kèm]',
     senderType: context.isSupport ? 'support' : 'user',
     supportUsername: context.supportUsername,
+    imageUrls,
   });
 
   return NextResponse.json({

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, MessageSquarePlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { LegacyActionForm } from '@/components/legacy/action-form';
+import { listForumPrefixes } from '@/lib/forum-actions';
 import { listForumFoldersForPosting } from '@/lib/legacy-modules';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -9,7 +10,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function CreateForumThreadPage() {
   const { shell } = await getCurrentUserForShell();
-  const folders = await listForumFoldersForPosting();
+  const [folders, prefixes] = await Promise.all([
+    listForumFoldersForPosting(),
+    listForumPrefixes(),
+  ]);
 
   return (
     <AppShell user={shell}>
@@ -24,8 +28,8 @@ export default async function CreateForumThreadPage() {
           <div className="mt-6">
             <LegacyActionForm
               endpoint="/api/forum/thread"
-              submitLabel="Đăng thread"
-              redirectTo={(payload) => `/user/forum/thread/${String((payload.data as Record<string, unknown>)?.id || '')}`}
+              submitLabel="Gửi duyệt thread"
+              redirectTo="/user/forum/my-threads"
               fields={[
                 {
                   name: 'forum_id',
@@ -36,6 +40,15 @@ export default async function CreateForumThreadPage() {
                     label: `${String(folder.category_name || 'Forum')} / ${String(folder.name)}`,
                     value: Number(folder.id),
                   })),
+                },
+                {
+                  name: 'prefix_id',
+                  label: 'Prefix',
+                  type: 'select',
+                  options: [{ label: 'Không dùng prefix', value: '' }, ...prefixes.map((prefix) => ({
+                    label: String(prefix.name),
+                    value: Number(prefix.id),
+                  }))],
                 },
                 { name: 'title', label: 'Tiêu đề', required: true },
                 { name: 'content', label: 'Nội dung', type: 'textarea', required: true },

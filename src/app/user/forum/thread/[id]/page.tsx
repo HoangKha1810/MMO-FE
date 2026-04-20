@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, Clock, Eye, Lock, MessageSquare, Pin, ShieldCheck, Zap } from 'lucide-react';
+import { ChevronLeft, Clock, Eye, Lock, MessageSquare, Pin, ShieldCheck } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { ForumPostActions, ForumThreadInteractions } from '@/components/forum/forum-thread-interactions';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { getForumThreadDetails } from '@/lib/forum';
 import { cn, formatNumber } from '@/lib/utils';
@@ -55,16 +56,16 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
     notFound();
   }
 
-  const [{ shell }, data] = await Promise.all([
-    getCurrentUserForShell(),
-    getForumThreadDetails(threadId),
-  ]);
+  const { raw, shell } = await getCurrentUserForShell();
+  const data = await getForumThreadDetails(threadId, raw.id, String(raw.role || 'member'));
 
   if (!data) {
     notFound();
   }
 
   const { thread, posts } = data;
+  const threadStatus = String(thread.status || 'active').toLowerCase();
+  const replyLocked = Boolean(thread.is_locked) || threadStatus !== 'active';
 
   return (
     <AppShell user={shell}>
@@ -93,6 +94,11 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-950 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white dark:bg-white dark:text-slate-950">
                   <Lock className="h-3.5 w-3.5" />
                   Đã khóa
+                </span>
+              ) : null}
+              {threadStatus !== 'active' ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                  Chờ admin duyệt
                 </span>
               ) : null}
               <span className="rounded-full border border-slate-900/10 bg-white/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300">
@@ -161,6 +167,11 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                     <div className="p-5">
                       <div className="mb-4 flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <span>{formatDate(post.created_at)}</span>
+                        {String(post.status || 'active').toLowerCase() !== 'active' ? (
+                          <span className="rounded-full bg-orange-500/10 px-2 py-1 text-[10px] font-black text-orange-500">
+                            Chờ duyệt
+                          </span>
+                        ) : null}
                         <span>#{index + 1}</span>
                       </div>
                       <div
@@ -168,10 +179,7 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                         dangerouslySetInnerHTML={{ __html: post.content || '<p>Không có nội dung.</p>' }}
                       />
                       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 dark:border-white/5">
-                        <div className="inline-flex items-center gap-1.5 rounded-xl border border-brand-blue/15 bg-brand-blue/5 px-3 py-2 text-xs font-black text-brand-blue">
-                          <Zap className="h-4 w-4" />
-                          Glow Up {post.total_reactions > 0 ? `(${formatNumber(post.total_reactions)})` : ''}
-                        </div>
+                        <ForumPostActions postId={post.id} initialCount={post.total_reactions} />
                       </div>
                     </div>
                   </div>
@@ -198,6 +206,11 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                 </div>
               </div>
             </div>
+            <ForumThreadInteractions
+              threadId={threadId}
+              locked={replyLocked}
+              disabledMessage={threadStatus !== 'active' ? 'Thread đang chờ admin duyệt nên chưa thể phản hồi thêm.' : undefined}
+            />
           </aside>
         </div>
       </div>

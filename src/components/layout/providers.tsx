@@ -24,6 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultTheme="dark"
         enableSystem={false}
         enableColorScheme
+        disableTransitionOnChange
         storageKey="trungtammmo-theme"
       >
         {children}

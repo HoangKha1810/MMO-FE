@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { cleanForumHtml } from '@/lib/forum';
 import { toNumber } from '@/lib/utils';
 
@@ -12,6 +13,7 @@ const tableCache = new Map<string, boolean>();
 
 export function normalizeLegacyRow<T extends LegacyRow>(row: T): T {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => {
+    if (value instanceof Date) return [key, serializeDatabaseDateTime(value)];
     if (typeof value === 'bigint') return [key, Number(value)];
     if (value && typeof value === 'object' && 'toNumber' in value && typeof value.toNumber === 'function') {
       return [key, value.toNumber()];
@@ -163,7 +165,17 @@ export async function listResourceHistory(userId: number) {
   `, userId);
 }
 
-export async function getFindJobDetail(id: number) {
+function canViewModeratedJob(job: LegacyRow, viewerId?: number, viewerRole?: string | null) {
+  const status = String(job.status || '').toLowerCase();
+  if (['open', 'active', 'approved'].includes(status)) {
+    return true;
+  }
+
+  const ownerId = Number(job.user_id || job.posted_by || 0);
+  return Boolean(viewerId && ownerId === viewerId) || String(viewerRole || '').toLowerCase() === 'admin';
+}
+
+export async function getFindJobDetail(id: number, viewerId?: number, viewerRole?: string | null) {
   const table = await tableExists('find_job_jobs') ? 'find_job_jobs' : 'find_jobs';
 
   if (table === 'find_job_jobs') {
@@ -175,6 +187,7 @@ export async function getFindJobDetail(id: number) {
       LIMIT 1
     `, id);
     if (!job) return null;
+    if (!canViewModeratedJob(job, viewerId, viewerRole)) return null;
     const applications = await safeRows<LegacyRow>(`
       SELECT a.*, u.username, u.avatar
       FROM find_job_applications a
@@ -193,7 +206,8 @@ export async function getFindJobDetail(id: number) {
     WHERE j.id = ?
     LIMIT 1
   `, id);
-  return job ? { table, job, applications: [] } : null;
+  if (!job || !canViewModeratedJob(job, viewerId, viewerRole)) return null;
+  return { table, job, applications: [] };
 }
 
 export async function createFindJob(userId: number, input: { title: string; description: string; category: string; price_min?: number; price_max?: number; deadline_days?: number }) {
@@ -204,14 +218,14 @@ export async function createFindJob(userId: number, input: { title: string; desc
     const slug = `${input.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Date.now()}`;
     await db.$executeRawUnsafe(`
       INSERT INTO find_job_jobs (title, slug, description, category, budget_type, price_min, price_max, deadline_days, posted_by, posted_at, status, approval_status, updated_at)
-      VALUES (?, ?, ?, ?, 'fixed', ?, ?, ?, ?, ?, 'open', 'pending', ?)
+      VALUES (?, ?, ?, ?, 'fixed', ?, ?, ?, ?, ?, 'pending', 'pending', ?)
     `, input.title, slug, input.description, input.category, input.price_min || null, input.price_max || null, input.deadline_days || null, userId, now, now);
     return safeOne<LegacyRow>('SELECT * FROM find_job_jobs WHERE posted_by = ? ORDER BY id DESC LIMIT 1', userId);
   }
 
   await db.$executeRawUnsafe(`
     INSERT INTO find_jobs (user_id, title, description, budget_min, budget_max, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, 'open', ?, ?)
+    VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
   `, userId, input.title, input.description, input.price_min || null, input.price_max || null, now, now);
   return safeOne<LegacyRow>('SELECT * FROM find_jobs WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);
 }
@@ -358,14 +372,14 @@ export async function createForumThread(userId: number, input: { forum_id: numbe
   await db.$transaction(async (tx) => {
     await tx.$executeRawUnsafe(`
       INSERT INTO forum_threads (forum_id, user_id, title, slug, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'active', ?, ?)
+      VALUES (?, ?, ?, ?, 'pending', ?, ?)
     `, input.forum_id, userId, input.title, slug, now, now);
     const rows = await tx.$queryRawUnsafe<Array<{ id: number }>>('SELECT id FROM forum_threads WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);
     const threadId = Number(rows[0]?.id || 0);
     if (!threadId) throw new Error('Không tạo được thread');
     await tx.$executeRawUnsafe(`
       INSERT INTO forum_posts (thread_id, user_id, content, is_first_post, status, created_at, updated_at)
-      VALUES (?, ?, ?, 1, 'active', ?, ?)
+      VALUES (?, ?, ?, 1, 'pending', ?, ?)
     `, threadId, userId, input.content, now, now);
   });
 

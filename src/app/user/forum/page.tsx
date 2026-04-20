@@ -36,7 +36,7 @@ export default async function UserForumPage() {
                 Cộng đồng MMO, bài ghim nằm đúng chỗ
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
-                Thread được admin ghim sẽ nổi lên đầu luồng thảo luận. Giao diện vẫn bám dữ liệu forum legacy, nhưng sạch và có trọng tâm hơn.
+                Thread được admin ghim sẽ nổi lên đầu luồng thảo luận. Giao diện ưu tiên chủ đề quan trọng, nội dung mới và thao tác nhanh.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 {[
@@ -44,6 +44,8 @@ export default async function UserForumPage() {
                   ['/user/forum/search', 'Tìm kiếm'],
                   ['/user/forum/members', 'Members'],
                   ['/user/forum/my-threads', 'Bài của tôi'],
+                  ['/user/forum/posts', 'User posts'],
+                  ['/user/forum/notifications', 'Thông báo'],
                   ['/user/forum/activity', 'Hoạt động'],
                   ['/user/forum/ads', 'Ads'],
                   ['/user/forum/rules', 'Rules'],
@@ -110,7 +112,7 @@ export default async function UserForumPage() {
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
               <Zap className="h-3.5 w-3.5 text-emerald-500" />
-              Live DB
+              Đang cập nhật
             </div>
           </div>
           <ForumThreadList threads={threads} emptyText="Chưa có bài viết active." />

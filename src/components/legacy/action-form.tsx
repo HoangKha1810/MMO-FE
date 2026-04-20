@@ -14,6 +14,7 @@ interface Field {
   type?: 'text' | 'number' | 'textarea' | 'select';
   placeholder?: string;
   required?: boolean;
+  hidden?: boolean;
   options?: Array<{ label: string; value: string | number }>;
 }
 
@@ -65,6 +66,14 @@ export function LegacyActionForm({
   return (
     <form onSubmit={submit} className="space-y-4">
       {fields.map((field) => (
+        field.hidden ? (
+          <input
+            key={field.name}
+            type="hidden"
+            value={String(values[field.name] ?? '')}
+            onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
+          />
+        ) : (
         <label key={field.name} className="block space-y-2">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{field.label}</span>
           {field.type === 'textarea' ? (
@@ -98,6 +107,7 @@ export function LegacyActionForm({
             />
           )}
         </label>
+        )
       ))}
 
       <Button type="submit" disabled={loading} className="w-full" loading={loading} loadingText="Đang xử lý...">

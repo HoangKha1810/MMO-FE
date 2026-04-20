@@ -1,10 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0066FF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0052CC;stop-opacity:1" />
+    <linearGradient id="bg" x1="7" x2="58" y1="6" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb545"/>
+      <stop offset=".48" stop-color="#ff563f"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="14" x2="47" y1="11" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff7d6"/>
+      <stop offset=".45" stop-color="#fff"/>
+      <stop offset="1" stop-color="#b7d7ff"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="6" fill="url(#grad)"/>
-  <text x="16" y="22" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">H</text>
+  <rect width="64" height="64" rx="18" fill="#07101f"/>
+  <rect x="5" y="5" width="54" height="54" rx="16" fill="url(#bg)"/>
+  <path fill="rgba(255,255,255,.25)" d="M12 15c9-8 25-9 37-1-12-3-23-1-33 7-2 2-6-3-4-6Z"/>
+  <path fill="#07101f" d="M15 19h34v9H37v22H27V28H15z"/>
+  <path fill="url(#shine)" d="M18 16h34v9H40v22H30V25H18z"/>
+  <circle cx="50" cy="14" r="4" fill="#60a5fa"/>
+  <circle cx="14" cy="50" r="3.5" fill="#22c55e"/>
 </svg>

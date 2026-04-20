@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 
 export function PageLoader({
   title = 'Đang tải dữ liệu',
-  subtitle = 'Hệ thống đang chuẩn bị giao diện và đồng bộ dữ liệu từ MySQL.',
+  subtitle = 'Hệ thống đang chuẩn bị giao diện và đồng bộ dữ liệu mới nhất.',
   compact = false,
 }: {
   title?: string;

@@ -96,7 +96,7 @@ export default function UserAutomxhPage() {
           <div className="flex items-center justify-center py-24">
             <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-5 py-3 text-sm font-bold text-slate-500 dark:border-white/10 dark:text-slate-300">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Đang tải Auto MXH từ MySQL
+              Đang tải Auto MXH
             </div>
           </div>
         ) : sections.length === 0 ? (
@@ -108,7 +108,7 @@ export default function UserAutomxhPage() {
               Chưa có dịch vụ Auto MXH
             </h2>
             <p className="max-w-sm text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-              Dữ liệu đang đọc trực tiếp từ bảng Auto MXH trong MySQL.
+              Hiện chưa có dịch vụ phù hợp với bộ lọc đang chọn.
             </p>
           </div>
         ) : (

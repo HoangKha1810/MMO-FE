@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { createForumThread } from '@/lib/legacy-modules';
+import { createForumThreadWithPrefix } from '@/lib/forum-actions';
 
 async function getUserId() {
   const cookieStore = await cookies();
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const forumId = Number(body.forum_id || 0);
+    const prefixId = Number(body.prefix_id || 0) || undefined;
     const title = String(body.title || '').trim();
     const content = String(body.content || '').trim();
 
@@ -23,8 +24,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Vui lòng nhập đủ folder, tiêu đề và nội dung' }, { status: 400 });
     }
 
-    const thread = await createForumThread(userId, { forum_id: forumId, title, content });
-    return NextResponse.json({ success: true, data: thread });
+    const thread = await createForumThreadWithPrefix(userId, {
+      forumId,
+      prefixId,
+      title,
+      content,
+    });
+    return NextResponse.json({ success: true, message: 'Thread đã gửi lên, vui lòng chờ admin duyệt trước khi hiển thị công khai.', data: thread });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Không tạo được thread';
     return NextResponse.json({ success: false, message }, { status: 500 });

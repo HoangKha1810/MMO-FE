@@ -669,7 +669,7 @@ export function LandingPage() {
               </div>
             </div>
 
-            {/* Right — dashboard mockup */}
+            {/* Right — dashboard preview */}
             <div className="relative">
               <div className="absolute -inset-8 rounded-full bg-gradient-to-br from-brand-blue/8 to-violet-500/8 blur-[100px] animate-pulse-slow" />
               <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-10 shadow-2xl dark:border-white/[0.07] dark:bg-[#0c1529]">
@@ -685,7 +685,7 @@ export function LandingPage() {
                   </div>
                 </div>
 
-                {/* Mock rows */}
+                {/* Preview rows */}
                 <div className="space-y-3">
                   {[
                     { icon: Check, width: 'w-32', tail: 'w-12', opacity: '', color: 'bg-blue-500/10 text-blue-500' },

@@ -99,8 +99,8 @@
     scroll-behavior: smooth;
     background-color: hsl(var(--background));
     transition:
-      background-color 360ms cubic-bezier(0.22, 1, 0.36, 1),
-      color 280ms cubic-bezier(0.22, 1, 0.36, 1);
+      background-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   html,
@@ -123,9 +123,8 @@
     line-height: 1.72;
     text-rendering: optimizeLegibility;
     transition:
-      background-color 520ms cubic-bezier(0.22, 1, 0.36, 1),
-      color 420ms cubic-bezier(0.22, 1, 0.36, 1),
-      background-image 680ms cubic-bezier(0.22, 1, 0.36, 1);
+      background-color 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .dark body {
@@ -507,7 +506,7 @@
     position: absolute;
     inset: -20%;
     opacity: 0.16;
-    filter: blur(46px);
+    filter: blur(26px);
     transform: translate3d(calc(var(--card-tx) * 0.65), calc(var(--card-ty) * 0.5), 10px) scale(1.02);
     transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
     pointer-events: none;
@@ -553,7 +552,7 @@
     height: 16px;
     border-radius: 999px;
     background: radial-gradient(circle at center, rgba(15, 23, 42, 0.65), transparent 72%);
-    filter: blur(12px);
+    filter: blur(7px);
     opacity: 0.65;
     transform: translateZ(4px);
     pointer-events: none;
@@ -600,7 +599,7 @@
     width: 3.2rem;
     border-radius: 1rem;
     opacity: 0.28;
-    filter: blur(10px);
+    filter: blur(6px);
     transform: translateZ(12px);
   }
 
@@ -674,14 +673,14 @@
     background: var(--surface-0);
     border: 1px solid var(--surface-edge);
     box-shadow: var(--surface-shadow);
-    backdrop-filter: blur(18px) saturate(135%);
+    backdrop-filter: blur(10px) saturate(122%);
   }
 
   .surface-panel-strong {
     background: var(--surface-1);
     border: 1px solid var(--surface-edge);
     box-shadow: var(--surface-shadow-strong);
-    backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(132%);
   }
 
   .surface-card {
@@ -695,8 +694,7 @@
       transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
       box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
       border-color 320ms ease,
-      background-color 320ms ease,
-      filter 320ms ease;
+      background-color 260ms ease;
   }
 
   .surface-card::after {
@@ -713,7 +711,6 @@
     transform: translateY(-5px) scale(1.004);
     border-color: rgba(59, 130, 246, 0.2);
     box-shadow: 0 24px 60px -34px rgba(37, 99, 235, 0.22);
-    filter: saturate(1.03);
   }
 
   .surface-card:hover::after {
@@ -743,7 +740,7 @@
     background: rgba(255, 255, 255, 0.68);
     border: 1px solid rgba(148, 163, 184, 0.14);
     box-shadow: 0 12px 28px -20px rgba(15, 23, 42, 0.22);
-    backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(8px) saturate(126%);
   }
 
   .dark .surface-chip {
@@ -756,7 +753,7 @@
     position: relative;
     overflow: hidden;
     border: 1px solid transparent;
-    backdrop-filter: blur(14px);
+    backdrop-filter: blur(8px);
     font-family: var(--font-family-display);
     letter-spacing: -0.02em;
   }
@@ -885,12 +882,12 @@
     padding: 0 0.6rem;
     overflow: hidden;
     isolation: isolate;
-    backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(8px) saturate(130%);
     transition:
       transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 360ms cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 320ms ease,
-      background-color 320ms ease;
+      box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 220ms ease,
+      background-color 220ms ease;
   }
 
   .theme-switch-shell::before,
@@ -900,8 +897,8 @@
     inset: 0;
     pointer-events: none;
     transition:
-      opacity 360ms ease,
-      transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+      opacity 260ms ease,
+      transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .theme-switch-shell::before {
@@ -937,9 +934,8 @@
     box-shadow: 0 12px 26px -18px rgba(37, 99, 235, 0.82);
     transition:
       transform 480ms cubic-bezier(0.22, 1, 0.36, 1),
-      background 280ms ease,
-      box-shadow 280ms ease,
-      filter 280ms ease;
+      background-color 220ms ease,
+      box-shadow 220ms ease;
   }
 
   .theme-switch-thumb::before,
@@ -960,7 +956,7 @@
     inset: -10px;
     background: radial-gradient(circle, rgba(96, 165, 250, 0.28), transparent 58%);
     opacity: 0.6;
-    filter: blur(10px);
+    filter: blur(5px);
     z-index: -1;
   }
 
@@ -977,7 +973,6 @@
   .theme-switch-shell[data-mode="dark"] .theme-switch-thumb {
     background: linear-gradient(135deg, rgba(30, 64, 175, 0.96), rgba(99, 102, 241, 0.92));
     box-shadow: 0 16px 34px -20px rgba(59, 130, 246, 0.68);
-    filter: saturate(1.08);
   }
 
   .theme-switch-shell[data-mode="light"] .theme-switch-thumb {
@@ -989,9 +984,9 @@
     position: relative;
     z-index: 1;
     transition:
-      transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 320ms ease,
-      color 320ms ease;
+      transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 220ms ease,
+      color 220ms ease;
   }
 
   .theme-switch-shell[data-mode="dark"] .theme-switch-icon-sun {
@@ -1017,7 +1012,7 @@
   .theme-switch-thumb-icon {
     position: relative;
     z-index: 1;
-    animation: theme-icon-bloom 560ms cubic-bezier(0.22, 1, 0.36, 1);
+    animation: theme-icon-bloom 320ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .theme-transition-overlay {
@@ -1028,9 +1023,11 @@
     background:
       radial-gradient(circle at 50% 50%, var(--theme-flare), transparent 42%),
       linear-gradient(180deg, var(--theme-overlay-a), transparent 54%);
-    animation: theme-switch-flare 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: theme-switch-flare 360ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
     mix-blend-mode: normal;
-    backdrop-filter: blur(8px) saturate(112%);
+    transform: translateZ(0);
+    will-change: opacity, transform;
+    contain: paint;
   }
 
   .theme-transition-overlay::before,
@@ -1045,13 +1042,13 @@
     background:
       radial-gradient(circle at 20% 20%, var(--theme-overlay-b), transparent 22%),
       radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.1), transparent 20%);
-    animation: theme-ripple 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: theme-ripple 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
   .theme-transition-overlay::after {
     background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.08) 45%, transparent 78%);
-    animation: theme-sheen 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    opacity: 0.42;
+    animation: theme-sheen 360ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    opacity: 0.28;
   }
 
   .theme-transition-overlay-light {
@@ -1064,6 +1061,123 @@
     --theme-flare: rgba(59, 130, 246, 0.18);
     --theme-overlay-a: rgba(8, 12, 22, 0.2);
     --theme-overlay-b: rgba(59, 130, 246, 0.1);
+  }
+
+  .notification-trigger {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 180ms ease,
+      background-color 180ms ease,
+      box-shadow 220ms ease;
+  }
+
+  .notification-trigger::before,
+  .notification-trigger::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .notification-trigger::before {
+    background:
+      radial-gradient(circle at 28% 20%, rgba(96, 165, 250, 0.22), transparent 34%),
+      radial-gradient(circle at 74% 82%, rgba(16, 185, 129, 0.16), transparent 30%);
+    opacity: 0;
+    transform: scale(0.94);
+    transition:
+      opacity 220ms ease,
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .notification-trigger::after {
+    background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.28) 46%, transparent 74%);
+    opacity: 0;
+    transform: translateX(-120%);
+    transition:
+      opacity 180ms ease,
+      transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .notification-trigger:hover,
+  .notification-trigger:focus-visible,
+  .notification-trigger[data-open="true"] {
+    transform: translateY(-2px);
+    border-color: rgba(37, 99, 235, 0.28);
+    box-shadow: 0 18px 40px -26px rgba(37, 99, 235, 0.42);
+  }
+
+  .notification-trigger:hover::before,
+  .notification-trigger:focus-visible::before,
+  .notification-trigger[data-open="true"]::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .notification-trigger:hover::after,
+  .notification-trigger:focus-visible::after {
+    opacity: 1;
+    transform: translateX(120%);
+  }
+
+  .notification-trigger-icon {
+    position: relative;
+    z-index: 1;
+    transition:
+      color 180ms ease,
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .notification-trigger:hover .notification-trigger-icon,
+  .notification-trigger:focus-visible .notification-trigger-icon,
+  .notification-trigger[data-open="true"] .notification-trigger-icon {
+    transform: rotate(-10deg) scale(1.06);
+  }
+
+  .notification-trigger[data-has-unread="true"] .notification-trigger-icon {
+    animation: notification-bell-ring 2.4s ease-in-out infinite;
+  }
+
+  .notification-ping {
+    position: absolute;
+    right: 0.35rem;
+    top: 0.35rem;
+    z-index: 12;
+    height: 0.55rem;
+    width: 0.55rem;
+    border-radius: 999px;
+    background: rgb(239, 68, 68);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.42);
+    animation: notification-ping 1.8s ease-out infinite;
+  }
+
+  .notification-panel {
+    transform-origin: top right;
+    animation: notification-panel-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .notification-item {
+    border: 1px solid transparent;
+    transition:
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .notification-item:hover,
+  .notification-item:focus-visible {
+    transform: translateX(2px);
+    border-color: rgba(37, 99, 235, 0.18);
+    background: rgba(37, 99, 235, 0.06);
+  }
+
+  .dark .notification-item:hover,
+  .dark .notification-item:focus-visible {
+    border-color: rgba(96, 165, 250, 0.2);
+    background: rgba(37, 99, 235, 0.1);
   }
 
   .page-stack {
@@ -1120,23 +1234,19 @@
     z-index: 75;
     pointer-events: none;
     opacity: 0;
-    backdrop-filter: blur(0px);
     background:
       radial-gradient(circle at top center, rgba(59, 130, 246, 0.12), transparent 24%),
       linear-gradient(180deg, rgba(248, 250, 252, 0.06), transparent 40%);
-    transition:
-      opacity 260ms ease,
-      backdrop-filter 260ms ease;
+    transition: opacity 180ms ease;
   }
 
   .route-curtain-overlay-active {
-    opacity: 1;
-    backdrop-filter: blur(7px);
+    opacity: 0.62;
   }
 
   .route-stage {
-    animation: route-stage-enter 560ms cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: opacity, transform, filter;
+    animation: route-stage-enter 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
   }
 
   .route-loader-shell {
@@ -1345,15 +1455,15 @@
 }
 
 @keyframes theme-switch-flare {
-  0% { opacity: 0; transform: scale(0.985); }
-  18% { opacity: 0.52; }
-  100% { opacity: 0; transform: scale(1.04); }
+  0% { opacity: 0; transform: scale(0.995); }
+  24% { opacity: 0.34; }
+  100% { opacity: 0; transform: scale(1.015); }
 }
 
 @keyframes theme-ripple {
-  0% { opacity: 0; transform: scale(0.96); }
-  28% { opacity: 0.42; }
-  100% { opacity: 0; transform: scale(1.08); }
+  0% { opacity: 0; transform: scale(0.98); }
+  30% { opacity: 0.24; }
+  100% { opacity: 0; transform: scale(1.03); }
 }
 
 @keyframes theme-sheen {
@@ -1368,25 +1478,75 @@
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
+@keyframes notification-ping {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.42); transform: scale(0.92); }
+  70% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0); transform: scale(1); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(0.92); }
+}
+
+@keyframes notification-bell-ring {
+  0%, 72%, 100% { transform: rotate(0deg) scale(1); }
+  76% { transform: rotate(-10deg) scale(1.04); }
+  80% { transform: rotate(8deg) scale(1.04); }
+  84% { transform: rotate(-6deg) scale(1.04); }
+  88% { transform: rotate(4deg) scale(1.02); }
+}
+
+@keyframes notification-panel-in {
+  0% { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @keyframes route-stage-enter {
   0% {
     opacity: 0;
-    transform: translateY(18px) scale(0.992);
-    filter: blur(10px);
+    transform: translateY(8px) scale(0.998);
   }
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    filter: blur(0);
   }
 }
 
-html.theme-switching *,
-html.theme-switching *::before,
-html.theme-switching *::after {
-  transition-property: background-color, background-image, border-color, color, fill, stroke, box-shadow, filter, backdrop-filter;
-  transition-duration: 320ms;
+html.theme-switching body,
+html.theme-switching .site-shell,
+html.theme-switching .shell-sidebar-frame,
+html.theme-switching .shell-sidebar-frame::before,
+html.theme-switching .shell-brand-card,
+html.theme-switching .shell-topbar,
+html.theme-switching .shell-toolbar-cluster,
+html.theme-switching .shell-breadcrumb,
+html.theme-switching .dashboard-hero,
+html.theme-switching .dashboard-metric,
+html.theme-switching .dashboard-service-card,
+html.theme-switching .surface-panel,
+html.theme-switching .surface-panel-strong,
+html.theme-switching .surface-card,
+html.theme-switching .surface-chip,
+html.theme-switching .field-elevated,
+html.theme-switching .nav-link-shell {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 220ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition-overlay,
+  .theme-transition-overlay::before,
+  .theme-transition-overlay::after,
+  .notification-panel,
+  .notification-ping,
+  .notification-trigger[data-has-unread="true"] .notification-trigger-icon,
+  .route-stage,
+  .route-progress-bar::after {
+    animation: none !important;
+  }
+
+  .route-curtain-overlay,
+  html,
+  body {
+    transition: none !important;
+  }
 }
 
 .route-transitioning body {

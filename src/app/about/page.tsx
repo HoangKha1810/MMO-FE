@@ -4,7 +4,7 @@ import { LegalPage } from '@/components/marketing/legal-page';
 export const metadata: Metadata = {
   title: 'Giới thiệu',
   description:
-    'Giới thiệu kiến trúc mới của TRUNGTAMMMO.VN: giữ logic từ source PHP cũ, tách FE/BE rõ hơn và tối ưu trải nghiệm theo hướng product.',
+    'Giới thiệu TRUNGTAMMMO.VN: nền tảng MMO đa dịch vụ với trải nghiệm rõ ràng, tốc độ tốt hơn và cụm module vận hành đầy đủ.',
   alternates: {
     canonical: '/about',
   },
@@ -15,18 +15,18 @@ export default function AboutPage() {
     <LegalPage
       eyebrow="Giới thiệu"
       title="Kiến trúc mới, tinh thần cũ"
-      description="TRUNGTAMMMO được dựng lại theo hướng sản phẩm rõ ràng hơn: giữ nguyên logic vận hành từ source PHP cũ, nhưng tái cấu trúc trải nghiệm, dữ liệu và khả năng mở rộng để hệ thống bền hơn khi đi tiếp."
+      description="TRUNGTAMMMO được tổ chức lại theo hướng sản phẩm rõ ràng hơn: trải nghiệm mạch lạc, dữ liệu nhất quán và khả năng mở rộng tốt hơn khi hệ thống phát triển."
       accent="violet"
       stats={[
         { value: '10+', label: 'Module chính' },
-        { value: 'FE / BE', label: 'Kiến trúc tách lớp' },
-        { value: 'MySQL thật', label: 'Dữ liệu kế thừa' },
-        { value: 'Legacy-first', label: 'Giữ logic gốc' },
+        { value: 'Realtime', label: 'Cập nhật nhanh' },
+        { value: 'Product', label: 'Tư duy vận hành' },
+        { value: 'Stable', label: 'Giữ luồng xử lý' },
       ]}
       highlights={[
         {
           title: 'Không làm lại từ con số 0',
-          body: 'Dự án ưu tiên bám theo dữ liệu, rule và hành vi xử lý đã tồn tại ở source PHP thay vì thay đổi logic chỉ để “đẹp hơn”.',
+          body: 'Dự án ưu tiên giữ đúng rule vận hành, hành vi xử lý và trải nghiệm giao dịch đã quen thuộc, chỉ tinh gọn lại cách người dùng thao tác.',
         },
         {
           title: 'Thiết kế lại để dễ vận hành',
@@ -36,7 +36,7 @@ export default function AboutPage() {
       sections={[
         {
           title: 'Tư duy sản phẩm',
-          body: 'Thay vì tiếp tục chồng thêm tính năng lên một khối PHP MVC cũ, bản mới tách frontend và backend để giao diện mạch lạc hơn, backend có đường nâng cấp rõ hơn và những phần dễ hỏng được cô lập tốt hơn.',
+          body: 'Hệ thống được chia lớp rõ hơn để giao diện mạch lạc, backend có đường nâng cấp tốt hơn và những phần dễ hỏng được cô lập hợp lý hơn.',
         },
         {
           title: 'Phạm vi module',
@@ -48,7 +48,7 @@ export default function AboutPage() {
         },
         {
           title: 'Nguyên tắc migrate',
-          body: 'Những phần dùng dữ liệu thật được ưu tiên đọc trực tiếp từ MySQL kế thừa. Mock chỉ tồn tại tạm thời ở các khu vực chưa import đủ dữ liệu hoặc cần map lại schema an toàn hơn.',
+          body: 'Những phần nghiệp vụ quan trọng được kiểm tra kỹ trước khi hiển thị, giúp dữ liệu giữa các module nhất quán và hạn chế lệch trạng thái.',
         },
         {
           title: 'Hướng phát triển tiếp',

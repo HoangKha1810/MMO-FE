@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Headphones, Loader2, MessageCircle, RefreshCw, Search, SendHorizonal, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Headphones, ImageIcon, Loader2, MessageCircle, RefreshCw, Search, SendHorizonal, ShieldCheck, X } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,6 +27,8 @@ interface SupportMessage {
   sender_type: 'user' | 'support';
   sender_name: string;
   message: string;
+  image_url?: string;
+  image_urls?: string[];
   created_at: string;
 }
 
@@ -75,6 +77,7 @@ export function SupportTiktokPage() {
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   const activeConversation = useMemo(
@@ -186,7 +189,7 @@ export function SupportTiktokPage() {
     }
 
     const trimmed = draft.trim();
-    if (!trimmed) {
+    if (!trimmed && !attachment) {
       return;
     }
 
@@ -194,13 +197,18 @@ export function SupportTiktokPage() {
     setError('');
 
     try {
+      const formData = new FormData();
+      formData.set('message', trimmed);
+      if (meta.isSupport && activeUserId) {
+        formData.set('user_id', String(activeUserId));
+      }
+      if (attachment) {
+        formData.set('attachment_file', attachment);
+      }
+
       const response = await fetch('/api/support-tiktok/chat/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: trimmed,
-          user_id: meta.isSupport ? activeUserId : undefined,
-        }),
+        body: formData,
       });
       const payload = await response.json();
 
@@ -210,6 +218,7 @@ export function SupportTiktokPage() {
 
       setMessages((current) => [...current, payload.message as SupportMessage]);
       setDraft('');
+      setAttachment(null);
       if (meta.isSupport) {
         void loadConversations();
       }
@@ -287,15 +296,21 @@ export function SupportTiktokPage() {
                 Chat Support TikTok
               </h1>
               <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500 dark:text-slate-400">
-                Bám theo env PHP cũ với tài khoản support hiển thị là{' '}
+                Tài khoản hỗ trợ đang hiển thị là{' '}
                 <span className="font-black text-slate-900 dark:text-white">
                   @{meta?.supportUsername || '...'}
                 </span>
-                . Tin nhắn đang đọc trực tiếp từ bảng MySQL cũ `support_tiktok_messages`.
+                . Gửi nội dung cần hỗ trợ, TikTok ID hoặc mã đơn để được xử lý nhanh hơn.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/user/support-tiktok/orders"
+              className="btn-kinetic inline-flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-white"
+            >
+              Đơn TikTok
+            </a>
             <span
               className={cn(
                 'inline-flex items-center gap-2 rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em]',
@@ -308,7 +323,7 @@ export function SupportTiktokPage() {
               {meta?.maintenance ? 'Maintenance' : 'Active'}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:bg-white/5 dark:text-slate-300">
-              Order mode: {meta?.orderModuleAvailable ? 'Legacy full' : 'Chat only'}
+              Chế độ: {meta?.orderModuleAvailable ? 'Chat + đơn hàng' : 'Chat support'}
             </span>
           </div>
         </div>
@@ -340,8 +355,7 @@ export function SupportTiktokPage() {
                   Module đang bảo trì
                 </h2>
                 <p className="mt-2 max-w-xl text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Cấu hình MySQL cũ đang đặt dịch vụ Support TikTok ở trạng thái bảo trì. Tài khoản
-                  support hoặc admin vẫn có thể truy cập để kiểm tra dữ liệu.
+                  Dịch vụ Support TikTok đang tạm bảo trì. Tài khoản support hoặc admin vẫn có thể truy cập để kiểm tra và xử lý yêu cầu.
                 </p>
               </div>
             </CardContent>
@@ -505,6 +519,15 @@ export function SupportTiktokPage() {
                               )}
                             >
                               {message.message}
+                              {[
+                                ...(message.image_urls || []),
+                                ...(message.image_url ? [message.image_url] : []),
+                              ].filter(Boolean).map((image) => (
+                                <a key={image} href={`/${image}`} target="_blank" rel="noreferrer" className="mt-3 block overflow-hidden rounded-2xl border border-white/10 bg-black/10">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={`/${image}`} alt="Ảnh support" className="max-h-72 w-full object-cover" />
+                                </a>
+                              ))}
                             </div>
                             <div className={cn('text-[10px] font-mono text-slate-400', ownMessage && 'text-right')}>
                               {formatTime(message.created_at)}
@@ -539,6 +562,29 @@ export function SupportTiktokPage() {
                     <div className="mt-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
                       Enter để gửi, Shift + Enter để xuống dòng
                     </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <label className="btn-kinetic inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600 transition-all hover:border-brand-blue/30 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+                        <ImageIcon className="h-4 w-4" />
+                        Ảnh chat
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          className="hidden"
+                          onChange={(event) => setAttachment(event.target.files?.[0] || null)}
+                          disabled={(meta?.isSupport && !activeUserId) || sending}
+                        />
+                      </label>
+                      {attachment ? (
+                        <button
+                          type="button"
+                          onClick={() => setAttachment(null)}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-brand-blue/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-brand-blue"
+                        >
+                          {attachment.name}
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                   <Button
                     size="xl"
@@ -572,8 +618,8 @@ export function SupportTiktokPage() {
                     </div>
                     <div className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                       {meta?.orderModuleAvailable
-                        ? 'DB hiện có đủ schema cho order + chat.'
-                        : 'DB production hiện chạy đúng phần chat/inbox; order TikTok chưa bật vì thiếu bảng legacy.'}
+                        ? 'Hỗ trợ đầy đủ chat, đơn TikTok và quản lý từ phía admin.'
+                        : 'Hiện đang bật phần chat/inbox. Khi module đơn hàng sẵn sàng, hệ thống sẽ tự mở thêm phần đơn TikTok.'}
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">

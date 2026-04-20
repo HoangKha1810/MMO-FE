@@ -5,7 +5,7 @@ import { readPolicySections } from '@/lib/legal-content';
 export const metadata: Metadata = {
   title: 'Điều khoản sử dụng',
   description:
-    'Điều khoản sử dụng hệ thống TRUNGTAMMMO.VN, trình bày lại từ nội dung policy trong source PHP cũ để người dùng theo dõi rõ rule giao dịch và vận hành.',
+    'Điều khoản sử dụng hệ thống TRUNGTAMMMO.VN để người dùng theo dõi rõ rule giao dịch và vận hành.',
   alternates: {
     canonical: '/terms',
   },
@@ -18,13 +18,13 @@ export default async function TermsPage() {
     <LegalPage
       eyebrow="Điều khoản"
       title="Điều khoản sử dụng hệ thống"
-      description="Nội dung dưới đây được migrate từ thư mục `chinhsach/csdv` của source PHP cũ và trình bày lại bằng bố cục đọc dài tốt hơn, giúp người dùng nắm nhanh rule giao dịch, bảo hành và trách nhiệm sử dụng."
+      description="Nội dung dưới đây được trình bày lại bằng bố cục đọc dài tốt hơn, giúp người dùng nắm nhanh rule giao dịch, bảo hành và trách nhiệm sử dụng."
       accent="blue"
       stats={[
         { value: `${sections.length}+`, label: 'Điều khoản' },
         { value: 'Rule thật', label: 'Không viết lại màu mè' },
         { value: 'Giao dịch', label: 'Trọng tâm chính sách' },
-        { value: 'Legacy PHP', label: 'Nguồn nội dung' },
+        { value: 'Rõ ràng', label: 'Dễ đối chiếu' },
       ]}
       highlights={[
         {

@@ -673,7 +673,7 @@ export default function SmmOrderPage() {
 
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
             <ChevronRight className="h-3 w-3" />
-            Dữ liệu service và đơn hàng đang chạy qua MySQL/API provider thật.
+            Dịch vụ và đơn hàng được đồng bộ theo provider đang hoạt động.
           </div>
         </div>
       )}

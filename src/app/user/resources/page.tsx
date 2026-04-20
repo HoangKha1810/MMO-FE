@@ -99,7 +99,7 @@ export default function ResourcesPage() {
         <PageHero
           eyebrow="MMO Resources"
           title="Kho tài nguyên thật, trình bày lại gọn và sắc hơn."
-          description="Nguồn hàng đang đọc trực tiếp từ bảng mmo_resources. Mình giữ nguyên logic giỏ hàng và dữ liệu thật, chỉ nâng phần browsing để nhìn giống một storefront sản phẩm hơn."
+          description="Kho tài nguyên được trình bày lại theo kiểu storefront: dễ lọc, dễ xem tồn kho, dễ mua và theo dõi sau thanh toán."
           stats={[
             { label: 'Danh mục', value: String(categories.length || 0), hint: 'Nhóm sản phẩm đang hiển thị', tone: 'blue' },
             { label: 'Tài nguyên', value: String(resourceStats.total), hint: 'Sản phẩm đang bật bán', tone: 'emerald' },
@@ -108,7 +108,7 @@ export default function ResourcesPage() {
           ]}
           actions={
             <>
-              <Badge variant="info" className="rounded-full px-3 py-1.5">DB thật</Badge>
+              <Badge variant="info" className="rounded-full px-3 py-1.5">Kho đang mở</Badge>
               <Badge variant="muted" className="rounded-full px-3 py-1.5">Giữ nguyên flow mua hàng</Badge>
             </>
           }
@@ -176,7 +176,7 @@ export default function ResourcesPage() {
           {loadingPage ? (
             <div className="flex items-center justify-center py-20 text-slate-400">
               <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-              Đang tải tài nguyên từ MySQL
+              Đang tải tài nguyên
             </div>
           ) : resources.length === 0 ? (
             <EmptyState

@@ -84,6 +84,10 @@ let servicesCache:
     }
   | null = null;
 
+export function clearSmmServicesCache() {
+  servicesCache = null;
+}
+
 const platformKeywordMap: Array<{ platform: string; keywords: string[] }> = [
   { platform: 'Facebook', keywords: ['facebook', 'fb'] },
   { platform: 'TikTok', keywords: ['tiktok', 'tik tok', 'tt'] },
@@ -212,22 +216,48 @@ function getMarginPercent(multiplier: number): number {
 
 async function loadProviderConfig(providerId?: number | null): Promise<SmmProviderConfig> {
   const settings = await getLegacySettingsMap();
-  const defaultProviderId = providerId ?? getSmmDefaultProviderId(settings);
+  const explicitProviderId =
+    providerId !== undefined && providerId !== null ? Math.max(0, Math.trunc(toNumber(providerId, 0))) : null;
+  const defaultProviderId = getSmmDefaultProviderId(settings);
+  const preferredProviderName = normalizeWhitespace(
+    process.env.SMM_PROVIDER_NAME || settings.smm_provider_name || 'SubMetaVip'
+  );
   const priceMultiplier = getSmmPriceMultiplier(settings);
   const vatPercent = getVatPercent(settings);
 
   let provider =
-    defaultProviderId > 0
+    explicitProviderId && explicitProviderId > 0
       ? await db.api_providers.findFirst({
           where: {
-            id: defaultProviderId,
+            id: explicitProviderId,
             service_type: 'smm',
             status: 'active',
           },
         })
       : null;
 
-  if (!provider && defaultProviderId > 0) {
+  if (!provider && !explicitProviderId && preferredProviderName) {
+    provider = await db.api_providers.findFirst({
+      where: {
+        service_type: 'smm',
+        status: 'active',
+        name: { contains: preferredProviderName },
+      },
+      orderBy: { id: 'desc' },
+    });
+  }
+
+  if (!provider && !explicitProviderId && defaultProviderId > 0) {
+    provider = await db.api_providers.findFirst({
+      where: {
+        id: defaultProviderId,
+        service_type: 'smm',
+        status: 'active',
+      },
+    });
+  }
+
+  if (!provider) {
     provider = await db.api_providers.findFirst({
       where: {
         service_type: 'smm',
@@ -265,7 +295,7 @@ async function loadProviderConfig(providerId?: number | null): Promise<SmmProvid
   const apiKey = String(settings.smm_api_key || '');
 
   if (!apiUrl || !apiKey) {
-    throw new Error('Không tìm thấy cấu hình SMM trong MySQL cũ');
+    throw new Error('Không tìm thấy cấu hình SMM đang hoạt động');
   }
 
   const providerType = String(settings.smm_api_type || 'Standard') === 'BaoStar' ? 'BaoStar' : 'Standard';
@@ -503,10 +533,6 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
 
     const existing = existingMap.get(serviceId);
     if (existing) {
-      if (existing.is_deleted) {
-        continue;
-      }
-
       const oldRate = toNumber(existing.rate, 0);
       const changed = Math.abs(newRate - oldRate) > 0.00001;
       const isAutoMargin = Boolean(existing.is_auto_margin);
@@ -533,6 +559,7 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
           custom_price: customPrice > 0 ? customPrice : null,
           cached_at: new Date(),
           status: 'active',
+          is_deleted: false,
         },
       });
 
@@ -802,7 +829,7 @@ export async function createSmmProviderOrder(input: {
   const service = await findSmmService(input.serviceId, input.providerId);
 
   if (!service) {
-    throw new Error('Không tìm thấy dịch vụ SMM trong MySQL');
+    throw new Error('Không tìm thấy dịch vụ SMM');
   }
 
   const config = await loadProviderConfig(input.providerId ?? service.provider_id);

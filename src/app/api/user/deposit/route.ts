@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
+import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { buildSePayCheckout } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
 
-interface LegacyBankRow {
-  id: number;
-  name: string | null;
-  account_name: string | null;
-  account_number: string | null;
-  is_active: number | boolean;
-}
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const noStoreHeaders = {
+  'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+};
 
 function normalizeTransaction(row: {
   id: number;
@@ -27,11 +29,11 @@ function normalizeTransaction(row: {
     amount: toNumber(row.amount, 0),
     balance_after: toNumber(row.balance_after, 0),
     content: row.content || '',
-    payment_method: 'bank_transfer',
+    payment_method: row.content?.startsWith('SEP') ? 'sepay_qr' : 'legacy_deposit',
     bank: '',
     type: row.type,
     status: row.status,
-    created_at: row.created_at,
+    created_at: serializeDatabaseDateTime(row.created_at),
   };
 }
 
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
   const userId = parseInt(cookieStore.get('user_id')?.value || '0', 10);
 
   if (!userId) {
-    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
   }
 
   const { searchParams } = new URL(req.url);
@@ -96,9 +98,9 @@ export async function GET(req: NextRequest) {
         total_items: total,
         per_page: perPage,
       },
-    });
+    }, { headers: noStoreHeaders });
   } catch {
-    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500, headers: noStoreHeaders });
   }
 }
 
@@ -107,17 +109,24 @@ export async function POST(req: NextRequest) {
   const userId = parseInt(cookieStore.get('user_id')?.value || '0', 10);
 
   if (!userId) {
-    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
   }
 
   try {
-    const { amount, payment_method, bank_id, content } = await req.json();
+    const { amount, payment_method, content } = await req.json();
     const normalizedAmount = Math.round(toNumber(amount, 0));
     const requestedMethod = String(payment_method || 'sepay').trim().toLowerCase();
     const method = requestedMethod === 'bank_transfer' ? 'bank' : requestedMethod;
 
     if (!normalizedAmount || normalizedAmount < 10000) {
-      return NextResponse.json({ success: false, message: 'Số tiền nạp tối thiểu là 10,000đ' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Số tiền nạp tối thiểu là 10,000đ' }, { status: 400, headers: noStoreHeaders });
+    }
+
+    if (method === 'bank') {
+      return NextResponse.json(
+        { success: false, message: 'Chuyển khoản ngân hàng đã tắt. Vui lòng dùng Thanh Toán QR Code.' },
+        { status: 400, headers: noStoreHeaders }
+      );
     }
 
     if (method === 'sepay') {
@@ -163,13 +172,13 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
           { success: false, message: sepayCheckout.message },
-          { status: 500 }
+          { status: 500, headers: noStoreHeaders }
         );
       }
 
       return NextResponse.json({
         success: true,
-        message: 'Đã tạo yêu cầu thanh toán SePay',
+        message: 'Đã tạo yêu cầu Thanh Toán QR Code',
         method: 'sepay',
         data: normalizeTransaction(deposit),
         payment: {
@@ -178,7 +187,7 @@ export async function POST(req: NextRequest) {
           fields: sepayCheckout.fields,
           ipn_url: sepayCheckout.config.ipnUrl,
         },
-      });
+      }, { headers: noStoreHeaders });
     }
 
     if (method === 'momo') {
@@ -227,73 +236,7 @@ export async function POST(req: NextRequest) {
           note: transactionCode,
           description: `Nap tien vi ${user?.username || `User#${userId}`} (UID ${userId})`,
         },
-      });
-    }
-
-    if (method === 'bank') {
-      const bankId = Number(bank_id || 0);
-      const activeBanks = await db.$queryRawUnsafe<LegacyBankRow[]>(
-        `
-          SELECT id, name, account_name, account_number, is_active
-          FROM banks
-          WHERE is_active = 1
-            ${bankId > 0 ? 'AND id = ?' : ''}
-          ORDER BY id ASC
-          LIMIT 1
-        `,
-        ...(bankId > 0 ? [bankId] : [])
-      );
-
-      const bank = activeBanks[0];
-      if (!bank) {
-        return NextResponse.json(
-          { success: false, message: 'Không tìm thấy ngân hàng đang hoạt động' },
-          { status: 400 }
-        );
-      }
-
-      const transactionCode = `NAP${userId}T${Date.now()}`;
-      const deposit = await db.transactions.create({
-        data: {
-          user_id: userId,
-          amount: normalizedAmount,
-          balance_after: 0,
-          type: 'deposit',
-          status: 'pending',
-          content: transactionCode,
-        },
-        select: {
-          id: true,
-          amount: true,
-          balance_after: true,
-          content: true,
-          type: true,
-          status: true,
-          created_at: true,
-        },
-      });
-
-      const qrUrl = `https://img.vietqr.io/image/${encodeURIComponent(
-        String(bank.name || 'BANK')
-      )}-${encodeURIComponent(String(bank.account_number || ''))}-compact.png?amount=${normalizedAmount}&addInfo=${encodeURIComponent(
-        transactionCode
-      )}&accountName=${encodeURIComponent(String(bank.account_name || ''))}`;
-
-      return NextResponse.json({
-        success: true,
-        message: 'Đã tạo yêu cầu chuyển khoản ngân hàng',
-        method: 'bank',
-        data: normalizeTransaction(deposit),
-        bank: {
-          id: Number(bank.id),
-          bank_name: String(bank.name || ''),
-          account_name: String(bank.account_name || ''),
-          account_number: String(bank.account_number || ''),
-          amount: normalizedAmount,
-          transaction_code: transactionCode,
-          qr_url: qrUrl,
-        },
-      });
+      }, { headers: noStoreHeaders });
     }
 
     const deposit = await db.transactions.create({
@@ -320,11 +263,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Yêu cầu nạp tiền đã được tạo trong MySQL cũ',
+      message: 'Yêu cầu nạp tiền đã được tạo',
       data: normalizeTransaction(deposit),
-    });
+    }, { headers: noStoreHeaders });
   } catch (error) {
     console.error('Deposit error:', error);
-    return NextResponse.json({ success: false, message: 'Có lỗi xảy ra' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Có lỗi xảy ra' }, { status: 500, headers: noStoreHeaders });
   }
 }

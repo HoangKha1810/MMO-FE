@@ -21,10 +21,11 @@ export default async function SellerDashboardPage() {
               <div className="inline-flex rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Seller center</div>
               <h1 className="mt-4 text-4xl font-black uppercase tracking-[-0.06em] text-slate-950 dark:text-white md:text-5xl">Dashboard người bán</h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
-                Nối bảng game_market_items, game_market_orders và transactions withdraw của source cũ.
+                Quản lý sản phẩm, đơn mua và yêu cầu rút tiền của shop trong một dashboard riêng.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
+              <Link href="/user/game-market/sell" className="rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase text-white">Thêm sản phẩm</Link>
               <Link href="/user/seller/orders" className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black uppercase text-white dark:bg-white dark:text-slate-950">Đơn hàng</Link>
               <Link href="/user/seller/withdraw" className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-black uppercase text-white">Rút tiền</Link>
             </div>
@@ -53,7 +54,7 @@ export default async function SellerDashboardPage() {
               {dashboard.items.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm font-bold text-slate-400 dark:border-white/10">Chưa có sản phẩm seller.</div>
               ) : dashboard.items.slice(0, 12).map((item) => (
-                <div key={String(item.id)} className="rounded-2xl bg-slate-50 p-4 dark:bg-white/[0.03]">
+                <Link key={String(item.id)} href={`/user/game-market/edit/${String(item.id)}`} className="block rounded-2xl bg-slate-50 p-4 transition hover:border-brand-blue/30 dark:bg-white/[0.03]">
                   <div className="text-sm font-black uppercase text-slate-950 dark:text-white">{String(item.title)}</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold text-slate-400">
                     <span>{String(item.category)}</span>
@@ -61,7 +62,7 @@ export default async function SellerDashboardPage() {
                     <span>{String(item.status)}</span>
                     <span>Stock {String(item.stock || 0)}</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

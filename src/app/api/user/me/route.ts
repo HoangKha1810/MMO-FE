@@ -4,12 +4,21 @@ import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const noStoreHeaders = {
+  'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+};
+
 export async function GET() {
   const cookieStore = await cookies();
   const userId = Number(cookieStore.get('user_id')?.value || 0);
 
   if (!userId) {
-    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
   }
 
   try {
@@ -28,7 +37,7 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404, headers: noStoreHeaders });
     }
 
     return NextResponse.json({
@@ -38,8 +47,8 @@ export async function GET() {
         avatar: buildLegacyAssetUrl(user.avatar) || undefined,
         balance: toNumber(user.balance, 0),
       },
-    });
+    }, { headers: noStoreHeaders });
   } catch {
-    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500, headers: noStoreHeaders });
   }
 }

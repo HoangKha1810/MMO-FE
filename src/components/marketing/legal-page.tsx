@@ -123,7 +123,7 @@ export function LegalPage({
                   </div>
                 </div>
                 <p className="mt-4 text-sm leading-7 text-slate-500 dark:text-slate-300">
-                  Cụm trang này được trình bày lại theo hướng đọc dễ hơn, sạch hơn, nhưng vẫn giữ nội dung gốc migrate từ source PHP cũ.
+                  Cụm trang này được trình bày theo hướng đọc dễ hơn, sạch hơn và dễ tra cứu khi cần đối chiếu.
                 </p>
               </div>
 

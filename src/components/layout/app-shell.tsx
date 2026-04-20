@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import {
   Award,
   BarChart3,
-  Bell,
   BookOpen,
   Bot,
   Briefcase,
@@ -48,7 +47,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -58,6 +57,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { startPageTransition } from '@/components/layout/navigation-effects';
+import { NotificationBell } from '@/components/layout/notification-bell';
 import { useSessionUser, type SessionUser } from '@/hooks/use-session-user';
 import type { LegacyServiceItem } from '@/lib/legacy-settings';
 
@@ -66,6 +66,7 @@ const mainLinks = [
   { href: '/user/deposit', label: 'Nạp Tiền Hệ Thống', icon: Wallet },
   { href: '/user/statistics', label: 'Thông Tin Tài Khoản', icon: BarChart3 },
   { href: '/user/history', label: 'Lịch sử giao dịch All', icon: Layers3 },
+  { href: '/user/orders', label: 'Đơn Hàng', icon: ShoppingCart },
   { href: '/user/forum', label: 'Forum MMO', icon: MessageSquare },
   { href: '/user/social/inbox', label: 'Tin Nhắn', icon: MessageCircle },
   { href: '/user/find-job', label: 'Find Job MMO', icon: Briefcase },
@@ -79,8 +80,8 @@ const supportLinks = [
 ];
 
 const connectionLinks = [
-  { href: '/user/statistics', label: 'Cấp Bậc Thành Viên' },
-  { href: '/user/smm', label: 'Tài Liệu API' },
+  { href: '/rank', label: 'Cấp Bậc Thành Viên' },
+  { href: '/api', label: 'Tài Liệu API' },
 ];
 
 const serviceIconMap = {
@@ -109,14 +110,46 @@ const serviceIconMap = {
 } as const;
 
 const smmPlatformLinks = [
-  { href: '/user/smm#platform-Facebook', label: 'Facebook', icon: Globe, color: 'text-blue-500' },
-  { href: '/user/smm#platform-TikTok', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300' },
-  { href: '/user/smm#platform-Instagram', label: 'Instagram', icon: MessageCircle, color: 'text-pink-500' },
-  { href: '/user/smm#platform-YouTube', label: 'YouTube', icon: Video, color: 'text-red-500' },
-  { href: '/user/smm#platform-Telegram', label: 'Telegram', icon: Send, color: 'text-sky-500' },
-  { href: '/user/smm#platform-Shopee', label: 'Shopee', icon: ShoppingCart, color: 'text-orange-500' },
-  { href: '/user/smm#platform-Threads', label: 'Threads', icon: MessageCircle, color: 'text-slate-500' },
+  { href: '/user/smm?platform=Facebook', label: 'Facebook', icon: Globe, color: 'text-blue-500' },
+  { href: '/user/smm?platform=TikTok', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300' },
+  { href: '/user/smm?platform=Instagram', label: 'Instagram', icon: MessageCircle, color: 'text-pink-500' },
+  { href: '/user/smm?platform=YouTube', label: 'YouTube', icon: Video, color: 'text-red-500' },
+  { href: '/user/smm?platform=Telegram', label: 'Telegram', icon: Send, color: 'text-sky-500' },
+  { href: '/user/smm?platform=Shopee', label: 'Shopee', icon: ShoppingCart, color: 'text-orange-500' },
+  { href: '/user/smm?platform=Threads', label: 'Threads', icon: MessageCircle, color: 'text-slate-500' },
 ];
+
+type SidebarSmmService = {
+  id?: number;
+  service?: number;
+  name?: string;
+  category?: string;
+  platform?: string;
+  price_per_1k_vnd?: number;
+};
+
+type SidebarSmmCategory = {
+  category: string;
+  cleanName: string;
+  count: number;
+  minPrice: number;
+};
+
+type SidebarSmmSection = {
+  platform: string;
+  total: number;
+  categories: SidebarSmmCategory[];
+};
+
+const smmPlatformTags: Record<string, string[]> = {
+  Facebook: ['facebook', '[fb]', ' fb ', 'fb '],
+  TikTok: ['tiktok', 'tik tok', '[tt]'],
+  Instagram: ['instagram', '[ig]'],
+  YouTube: ['youtube', '[yt]'],
+  Telegram: ['telegram', '[tg]'],
+  Shopee: ['shopee', '[sp]'],
+  Threads: ['threads', '[threads]'],
+};
 
 const autoMxhPlatformLinks = [
   { href: '/user/automxh', label: 'Facebook', icon: Globe, color: 'text-blue-500' },
@@ -127,8 +160,8 @@ const autoMxhPlatformLinks = [
 ];
 
 const utilityLinks = [
-  { href: '/user/profile', label: '2FA Live Tool', icon: Shield },
-  { href: '/user/smm', label: 'GET UID FB', icon: Globe },
+  { href: '/two_factor_live', label: '2FA Live Tool', icon: Shield },
+  { href: '/get_uid_fb', label: 'GET UID FB', icon: Globe },
 ];
 
 interface AppShellProps {
@@ -195,6 +228,50 @@ function getSubLinkClass(active: boolean) {
   );
 }
 
+function cleanSmmCategoryName(category: string) {
+  return category.replace(/\[.*?\]\s*/g, '').replace(/\s+/g, ' ').trim() || category;
+}
+
+function isSidebarServiceInPlatform(service: SidebarSmmService, platform: string) {
+  const haystack = ` ${service.platform || ''} ${service.category || ''} ${service.name || ''} `.toLowerCase();
+  const tags = smmPlatformTags[platform] || [platform.toLowerCase()];
+  return tags.some((tag) => haystack.includes(tag.toLowerCase()));
+}
+
+function buildSidebarSmmSections(services: SidebarSmmService[]): SidebarSmmSection[] {
+  return smmPlatformLinks.map((platform) => {
+    const platformServices = services.filter((service) => isSidebarServiceInPlatform(service, platform.label));
+    const categories = new Map<string, { count: number; minPrice: number }>();
+
+    for (const service of platformServices) {
+      const category = String(service.category || service.name || '').trim();
+      if (!category) continue;
+
+      const current = categories.get(category) || { count: 0, minPrice: Number.POSITIVE_INFINITY };
+      current.count += 1;
+      const price = Number(service.price_per_1k_vnd || 0);
+      if (price > 0) {
+        current.minPrice = Math.min(current.minPrice, price);
+      }
+      categories.set(category, current);
+    }
+
+    return {
+      platform: platform.label,
+      total: platformServices.length,
+      categories: Array.from(categories.entries())
+        .map(([category, meta]) => ({
+          category,
+          cleanName: cleanSmmCategoryName(category),
+          count: meta.count,
+          minPrice: Number.isFinite(meta.minPrice) ? meta.minPrice : 0,
+        }))
+        .sort((a, b) => b.count - a.count || a.cleanName.localeCompare(b.cleanName, 'vi'))
+        .slice(0, 12),
+    };
+  });
+}
+
 export function AppShell({ children, user, isAdmin = false, sidebarServices }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -205,6 +282,9 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
   const [forumSearch, setForumSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
   const [resolvedSidebarServices, setResolvedSidebarServices] = useState<LegacyServiceItem[]>(sidebarServices || []);
+  const [smmSidebarSections, setSmmSidebarSections] = useState<SidebarSmmSection[]>([]);
+  const [smmSidebarLoading, setSmmSidebarLoading] = useState(false);
+  const [openSmmPlatform, setOpenSmmPlatform] = useState('');
   const [themePulse, setThemePulse] = useState<'light' | 'dark' | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [supportOpen, setSupportOpen] = useState(
@@ -227,16 +307,6 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
       document.documentElement.classList.remove('theme-switching');
     };
   }, []);
-
-  useEffect(() => {
-    if (!mounted || !resolvedTheme) {
-      return;
-    }
-
-    const isDarkTheme = resolvedTheme === 'dark';
-    document.documentElement.classList.toggle('dark', isDarkTheme);
-    document.documentElement.style.colorScheme = isDarkTheme ? 'dark' : 'light';
-  }, [mounted, resolvedTheme]);
 
   useEffect(() => {
     if (sidebarServices?.length) {
@@ -276,6 +346,15 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
     };
   }, [isAdmin, sidebarServices]);
 
+  const isDark = mounted ? resolvedTheme === 'dark' : true;
+  const isHome = pathname === '/user/home';
+  const isSmmArea = pathname.startsWith('/user/smm');
+  const isAutoMxhArea = pathname.startsWith('/user/automxh');
+  const activeSmmPlatform = mounted && typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('platform') || ''
+    : '';
+  const breadcrumbs = useMemo(() => formatBreadcrumb(pathname), [pathname]);
+
   useEffect(() => {
     if (pathname.startsWith('/terms') || pathname.startsWith('/privacy') || pathname === '/') {
       setSupportOpen(true);
@@ -286,11 +365,52 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
     }
   }, [pathname]);
 
-  const isDark = mounted ? resolvedTheme === 'dark' : true;
-  const isHome = pathname === '/user/home';
-  const isSmmArea = pathname.startsWith('/user/smm');
-  const isAutoMxhArea = pathname.startsWith('/user/automxh');
-  const breadcrumbs = useMemo(() => formatBreadcrumb(pathname), [pathname]);
+  useEffect(() => {
+    if (!isSmmArea || isAdmin || smmSidebarSections.length > 0 || smmSidebarLoading) {
+      return;
+    }
+
+    let active = true;
+    setSmmSidebarLoading(true);
+
+    async function loadSmmSidebarServices() {
+      try {
+        const response = await fetch('/api/smm/services', { cache: 'no-store' });
+        const payload = await response.json();
+        const services = Array.isArray(payload.data) ? payload.data as SidebarSmmService[] : [];
+        if (active) {
+          setSmmSidebarSections(buildSidebarSmmSections(services));
+        }
+      } catch {
+        if (active) {
+          setSmmSidebarSections([]);
+        }
+      } finally {
+        if (active) {
+          setSmmSidebarLoading(false);
+        }
+      }
+    }
+
+    void loadSmmSidebarServices();
+
+    return () => {
+      active = false;
+    };
+  }, [isAdmin, isSmmArea, smmSidebarLoading, smmSidebarSections.length]);
+
+  useEffect(() => {
+    if (!isSmmArea || !activeSmmPlatform) {
+      return;
+    }
+
+    const matchedPlatform = smmPlatformLinks.find(
+      (item) => item.label.toLowerCase() === activeSmmPlatform.toLowerCase()
+    );
+    if (matchedPlatform) {
+      setOpenSmmPlatform(matchedPlatform.label);
+    }
+  }, [activeSmmPlatform, isSmmArea]);
 
   function handleThemeToggle() {
     if (!mounted) {
@@ -301,12 +421,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
     setThemePulse(nextTheme);
     document.documentElement.classList.add('theme-switching');
     document.documentElement.style.colorScheme = nextTheme;
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        setTheme(nextTheme);
-      });
-    });
+    setTheme(nextTheme);
 
     if (themeTimerRef.current) {
       window.clearTimeout(themeTimerRef.current);
@@ -315,7 +430,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
     themeTimerRef.current = window.setTimeout(() => {
       document.documentElement.classList.remove('theme-switching');
       setThemePulse(null);
-    }, 680);
+    }, 380);
   }
 
   function submitSearch(event: React.FormEvent<HTMLFormElement>, target: 'forum' | 'service') {
@@ -487,19 +602,81 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                   <div className="px-3 pb-2 pt-6 text-[9px] font-black uppercase tracking-[0.32em] text-slate-400/70 dark:text-white/25">
                     Dịch Vụ SMM
                   </div>
-                  {smmPlatformLinks.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className={getNavLinkClass(false, 'justify-between')}
-                    >
-                      <div className="flex min-w-0 items-center space-x-3">
-                        <item.icon className={cn('h-4 w-4 shrink-0', item.color)} />
-                        <span className="truncate whitespace-nowrap text-sm font-bold">{item.label}</span>
-                      </div>
-                      <ChevronDown className="h-3.5 w-3.5 shrink-0 rotate-[-90deg] opacity-40" />
-                    </Link>
-                  ))}
+                  <div className="space-y-1">
+                    {smmPlatformLinks.map((item) => {
+                      const section = smmSidebarSections.find((entry) => entry.platform === item.label);
+                      const isPlatformOpen = openSmmPlatform === item.label;
+                      const active = activeSmmPlatform.toLowerCase() === item.label.toLowerCase();
+
+                      return (
+                        <div key={item.label}>
+                          <button
+                            type="button"
+                            onClick={() => setOpenSmmPlatform((current) => current === item.label ? '' : item.label)}
+                            className={getNavLinkClass(active, 'w-full justify-between')}
+                          >
+                            <div className="flex min-w-0 items-center space-x-3">
+                              <item.icon className={cn('h-4 w-4 shrink-0', item.color)} />
+                              <span className="truncate whitespace-nowrap text-sm font-bold">{item.label}</span>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              {section?.total ? (
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-400 dark:bg-white/5">
+                                  {section.total}
+                                </span>
+                              ) : null}
+                              <ChevronDown
+                                className={cn(
+                                  'h-3.5 w-3.5 text-slate-400 transition-transform duration-200',
+                                  isPlatformOpen ? 'rotate-180' : '-rotate-90'
+                                )}
+                              />
+                            </div>
+                          </button>
+
+                          {isPlatformOpen ? (
+                            <div className="ml-5 mt-1 space-y-1 border-l border-slate-200 pb-2 pl-3 dark:border-white/[0.06]">
+                              <Link
+                                href={item.href}
+                                className={cn(
+                                  'flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-xs font-black transition-all',
+                                  active
+                                    ? 'bg-brand-blue text-white shadow-sm shadow-brand-blue/20'
+                                    : 'bg-slate-100/80 text-slate-600 hover:bg-brand-blue/10 hover:text-brand-blue dark:bg-white/[0.04] dark:text-slate-200'
+                                )}
+                              >
+                                <span className="truncate">Tất cả {item.label}</span>
+                                <span className="text-[10px] opacity-70">{section?.categories.length || 0} mục</span>
+                              </Link>
+
+                              {smmSidebarLoading && !section ? (
+                                <div className="rounded-xl px-3 py-2 text-[11px] font-bold text-slate-400">
+                                  Đang tải dịch vụ con...
+                                </div>
+                              ) : section?.categories.length ? (
+                                section.categories.map((category) => (
+                                  <Link
+                                    key={category.category}
+                                    href={`/user/smm/order/${slugify(category.category)}`}
+                                    className="group/sub flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 transition-all hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.05] dark:hover:text-white"
+                                  >
+                                    <span className="truncate">{category.cleanName}</span>
+                                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-400 group-hover/sub:bg-brand-blue/10 group-hover/sub:text-brand-blue dark:bg-white/5">
+                                      {category.count}
+                                    </span>
+                                  </Link>
+                                ))
+                              ) : (
+                                <div className="rounded-xl px-3 py-2 text-[11px] font-bold text-slate-400">
+                                  Chưa có dịch vụ con đang active
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </>
               ) : null}
 
@@ -746,6 +923,9 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                 <Globe className="h-3.5 w-3.5 text-slate-400 group-hover:text-brand-blue dark:text-white/45" />
                 <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-600 dark:text-white/75">VI</span>
               </button>
+
+              {/* Notifications */}
+              <NotificationBell />
 
               {/* Cart */}
               <Link

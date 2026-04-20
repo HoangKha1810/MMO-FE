@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { formatDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { safeRows } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
@@ -41,7 +42,7 @@ export default async function UserHistoryPage() {
       title: String(item.content || `Giao dịch #${item.id}`),
       amount: toNumber(item.amount, 0),
       status: String(item.status),
-      created_at: new Date(String(item.created_at)),
+      created_at: serializeDatabaseDateTime(item.created_at),
     })),
     ...smmOrders.map((item) => ({
       id: `smm-${item.id}`,
@@ -49,7 +50,7 @@ export default async function UserHistoryPage() {
       title: String(item.service_name || `SMM #${item.id}`),
       amount: toNumber(item.price, 0),
       status: String(item.status || 'Pending'),
-      created_at: new Date(String(item.created_at)),
+      created_at: serializeDatabaseDateTime(item.created_at),
     })),
     ...cardOrders.map((item) => ({
       id: `card-${item.id}`,
@@ -57,7 +58,7 @@ export default async function UserHistoryPage() {
       title: `${String(item.telco || 'Card')} ${String(item.serial || '')}`,
       amount: toNumber(item.amount),
       status: String(item.status),
-      created_at: new Date(String(item.created_at)),
+      created_at: serializeDatabaseDateTime(item.created_at),
     })),
     ...autoOrders.map((item) => ({
       id: `auto-${item.id}`,
@@ -65,7 +66,7 @@ export default async function UserHistoryPage() {
       title: `Auto MXH #${item.product_id || item.variant_id || item.id}`,
       amount: toNumber(item.price),
       status: String(item.status),
-      created_at: new Date(String(item.created_at)),
+      created_at: serializeDatabaseDateTime(item.created_at),
     })),
     ...resourceOrders.map((item) => ({
       id: `resource-${item.id}`,
@@ -73,7 +74,7 @@ export default async function UserHistoryPage() {
       title: String(item.title || `Resource #${item.resource_id}`),
       amount: toNumber(item.total_price),
       status: String(item.status),
-      created_at: new Date(String(item.created_at)),
+      created_at: serializeDatabaseDateTime(item.created_at),
     })),
     ...gameOrders.map((item) => ({
       id: `game-${item.id}`,
@@ -81,9 +82,9 @@ export default async function UserHistoryPage() {
       title: String(item.title || `Game #${item.item_id}`),
       amount: toNumber(item.amount),
       status: String(item.status),
-      created_at: new Date(String(item.created_at)),
+      created_at: serializeDatabaseDateTime(item.created_at),
     })),
-  ].sort((a, b) => b.created_at.getTime() - a.created_at.getTime()).slice(0, 80);
+  ].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 80);
 
   const typeSummary = rows.reduce<Record<string, number>>((acc, row) => {
     acc[row.type] = (acc[row.type] || 0) + 1;
@@ -106,7 +107,7 @@ export default async function UserHistoryPage() {
         <PageHero
           eyebrow="Unified Ledger"
           title="Lịch sử giao dịch gom về một bảng, đọc nhanh hơn."
-          description="Trang này vẫn tổng hợp transactions, SMM, card, Auto MXH, tài nguyên và game order từ MySQL như cũ. Mình chỉ tổ chức lại để dễ quét theo loại, volume và thời gian."
+          description="Tất cả giao dịch, đơn dịch vụ, thẻ cào, tài nguyên và game order được gom lại để dễ quét theo loại, giá trị và thời gian."
           stats={[
             { label: 'Tổng dòng', value: String(rows.length), hint: 'Gộp tối đa 80 bản ghi gần nhất', tone: 'blue' },
             { label: 'Tổng volume', value: formatCurrency(totalVolume), hint: 'Cộng giá trị hiển thị trên bảng', tone: 'emerald' },
@@ -187,7 +188,7 @@ export default async function UserHistoryPage() {
                           </td>
                           <td className="px-5 py-4">
                             <div className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                              {row.created_at.toLocaleString('vi-VN')}
+                              {formatDatabaseDateTime(row.created_at)}
                             </div>
                           </td>
                         </tr>

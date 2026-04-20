@@ -1,10 +1,11 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const NAVIGATION_EVENT = 'trungtammmo:navigation-start';
+const NAVIGATION_FALLBACK_MS = 1800;
 
 function isModifiedClick(event: MouseEvent) {
   return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
@@ -22,11 +23,17 @@ export function startPageTransition() {
   window.dispatchEvent(new CustomEvent(NAVIGATION_EVENT));
 }
 
-export function NavigationEffects() {
+function NavigationEffectsInner() {
   const pathname = usePathname();
-  const lastPathRef = useRef(pathname);
+  const searchParams = useSearchParams();
+  const currentRoute = useMemo(() => {
+    const search = searchParams.toString();
+    return search ? `${pathname}?${search}` : pathname;
+  }, [pathname, searchParams]);
+  const lastRouteRef = useRef(currentRoute);
   const mountedRef = useRef(false);
   const finishTimerRef = useRef<number | null>(null);
+  const fallbackTimerRef = useRef<number | null>(null);
   const progressTimerRef = useRef<number | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -40,6 +47,11 @@ export function NavigationEffects() {
     if (progressTimerRef.current) {
       window.clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
+    }
+
+    if (fallbackTimerRef.current) {
+      window.clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
     }
   }
 
@@ -62,10 +74,25 @@ export function NavigationEffects() {
         return current + Math.max(3, (92 - current) * 0.14);
       });
     }, 120);
+
+    fallbackTimerRef.current = window.setTimeout(() => {
+      finishNavigation();
+    }, NAVIGATION_FALLBACK_MS);
   }
 
   function finishNavigation() {
-    clearTimers();
+    if (progressTimerRef.current) {
+      window.clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    if (fallbackTimerRef.current) {
+      window.clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    if (finishTimerRef.current) {
+      window.clearTimeout(finishTimerRef.current);
+      finishTimerRef.current = null;
+    }
     setIsNavigating(true);
     setProgress(100);
     markTransitioning(true);
@@ -144,15 +171,15 @@ export function NavigationEffects() {
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
-      lastPathRef.current = pathname;
+      lastRouteRef.current = currentRoute;
       return;
     }
 
-    if (lastPathRef.current !== pathname) {
-      lastPathRef.current = pathname;
+    if (lastRouteRef.current !== currentRoute) {
+      lastRouteRef.current = currentRoute;
       finishNavigation();
     }
-  }, [pathname]);
+  }, [currentRoute]);
 
   return (
     <>
@@ -166,6 +193,14 @@ export function NavigationEffects() {
       </div>
       <div className={cn('route-curtain-overlay', isNavigating && 'route-curtain-overlay-active')} />
     </>
+  );
+}
+
+export function NavigationEffects() {
+  return (
+    <Suspense fallback={null}>
+      <NavigationEffectsInner />
+    </Suspense>
   );
 }
 

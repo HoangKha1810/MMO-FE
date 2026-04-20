@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
+import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { isTrackableIp } from '@/lib/ip-security';
 import { toNumber } from '@/lib/utils';
@@ -267,8 +268,8 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     searchFields: ['title', 'description', 'status'],
     statusField: 'status',
     rawOrder: 'is_pinned DESC, updated_at DESC, id DESC',
-    createFields: ['user_id', 'title', 'description', 'budget_min', 'budget_max', 'status', 'is_pinned'],
-    updateFields: ['title', 'description', 'budget_min', 'budget_max', 'status', 'is_pinned'],
+    createFields: ['user_id', 'posted_by', 'title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'deadline_days', 'status', 'approval_status', 'is_pinned'],
+    updateFields: ['title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'deadline_days', 'status', 'approval_status', 'is_pinned'],
   },
   settings: {
     delegate: 'settings',
@@ -337,6 +338,83 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     defaultOrder: commonOrder,
     readonly: true,
   },
+  'tiktok-orders': {
+    table: 'tiktok_support_orders',
+    title: 'Support TikTok orders',
+    searchFields: ['region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'status'],
+    statusField: 'status',
+    rawOrder: 'updated_at DESC, id DESC',
+    createFields: ['user_id', 'region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'price', 'status', 'ngay_gia_han', 'ngay_het_han'],
+    updateFields: ['region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'price', 'status', 'ngay_gia_han', 'ngay_het_han'],
+  },
+  'tiktok-service-menus': {
+    table: 'tiktok_service_menus',
+    title: 'Support TikTok menus',
+    searchFields: ['name', 'slug', 'status'],
+    statusField: 'status',
+    rawOrder: 'display_order ASC, id ASC',
+    createFields: ['name', 'slug', 'display_order', 'status'],
+    updateFields: ['name', 'slug', 'display_order', 'status'],
+  },
+  'tiktok-region-services': {
+    table: 'tiktok_region_services',
+    title: 'Support TikTok region services',
+    searchFields: ['region_slug', 'name', 'service_key', 'description', 'status'],
+    statusField: 'status',
+    rawOrder: 'region_slug ASC, display_order ASC, id ASC',
+    createFields: ['region_slug', 'name', 'service_key', 'price', 'description', 'display_order', 'status'],
+    updateFields: ['region_slug', 'name', 'service_key', 'price', 'description', 'display_order', 'status'],
+  },
+  'admin-private-messages': {
+    table: 'admin_private_messages',
+    title: 'Admin private messages',
+    searchFields: ['message', 'status'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    createFields: ['admin_id', 'user_id', 'message', 'show_limit', 'shown_count', 'status'],
+    updateFields: ['message', 'show_limit', 'shown_count', 'status'],
+  },
+  'message-reports': {
+    table: 'message_reports',
+    title: 'Message reports',
+    searchFields: ['reason', 'status'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    updateFields: ['status'],
+  },
+  'accounting-extra': {
+    table: 'accounting_extra',
+    title: 'Accounting extra',
+    searchFields: ['type', 'note', 'status'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    createFields: ['type', 'amount', 'note', 'status'],
+    updateFields: ['type', 'amount', 'note', 'status'],
+  },
+  'interface-settings': {
+    table: 'interface_settings',
+    title: 'Interface settings',
+    searchFields: ['setting_key', 'setting_value'],
+    rawOrder: 'id DESC',
+    createFields: ['setting_key', 'setting_value'],
+    updateFields: ['setting_value'],
+  },
+  'mmo-api': {
+    table: 'mmo_api',
+    title: 'MMO API legacy',
+    searchFields: ['name', 'category', 'status'],
+    statusField: 'status',
+    rawOrder: 'updated_at DESC, id DESC',
+    updateFields: ['name', 'category', 'price', 'margin_percent', 'status'],
+  },
+  'mmo-resources-sales': {
+    table: 'mmo_resources_sales',
+    title: 'MMO resources sales legacy',
+    searchFields: ['status', 'buyer_email', 'note'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    updateFields: ['status', 'note'],
+  },
 };
 
 function getConfig(resource: string) {
@@ -349,7 +427,7 @@ function getConfig(resource: string) {
 
 function normalizeValue(value: unknown): unknown {
   if (value instanceof Date) {
-    return value.toISOString();
+    return serializeDatabaseDateTime(value);
   }
 
   if (typeof value === 'bigint') {
@@ -752,6 +830,32 @@ export async function runAdminAction(resource: string, input: Record<string, unk
     return { success: true, data: normalizeValue(result) };
   }
 
+  const moderationAction = action.replace(/^bulk-/, '');
+  if (
+    (resource === 'forum-threads' || resource === 'forum-posts' || resource === 'find-jobs') &&
+    (moderationAction === 'approve' || moderationAction === 'reject')
+  ) {
+    const directId = Number(input.id || 0);
+    const targetIds = directId ? [directId] : ids;
+    if (targetIds.length === 0) {
+      throw new Error('Chọn ít nhất một bài cần xử lý');
+    }
+
+    const approved = moderationAction === 'approve';
+    const results = [];
+    for (const targetId of targetIds) {
+      if (resource === 'forum-threads') {
+        results.push(await moderateForumThread(targetId, approved, adminId, req));
+      } else if (resource === 'forum-posts') {
+        results.push(await moderateForumPost(targetId, approved, adminId, req));
+      } else {
+        results.push(await moderateFindJob(targetId, approved, adminId, req));
+      }
+    }
+
+    return { success: true, affected: results.length, data: normalizeValue(results) };
+  }
+
   if ((resource === 'forum-threads' || resource === 'find-jobs') && (action === 'pin' || action === 'unpin')) {
     const id = Number(input.id || ids[0] || 0);
     if (!id) throw new Error('Thiếu ID bài viết cần ghim');
@@ -819,6 +923,204 @@ export async function runAdminAction(resource: string, input: Record<string, unk
   }
 
   throw new Error('Action chưa được hỗ trợ');
+}
+
+async function notifyModerationUser(input: {
+  userId: number;
+  adminId: number;
+  type: string;
+  message: string;
+  link: string;
+}) {
+  if (!input.userId) return;
+  await db.$executeRawUnsafe(
+    `
+      INSERT INTO notifications (user_id, from_user_id, type, message, link, is_read, created_at)
+      VALUES (?, ?, ?, ?, ?, 0, NOW())
+    `,
+    input.userId,
+    input.adminId,
+    input.type,
+    input.message,
+    input.link
+  ).catch(() => undefined);
+}
+
+async function moderateForumThread(id: number, approved: boolean, adminId: number, req: NextRequest) {
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    'SELECT id, user_id, title, status FROM `forum_threads` WHERE id = ? LIMIT 1',
+    id
+  );
+  const thread = rows[0];
+  if (!thread) throw new Error(`Không tìm thấy thread #${id}`);
+
+  const firstPostRows = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>(
+    'SELECT id FROM `forum_posts` WHERE thread_id = ? AND is_first_post = 1 ORDER BY id ASC LIMIT 1',
+    id
+  );
+  const firstPostId = Number(firstPostRows[0]?.id || 0);
+  const nextStatus = approved ? 'active' : 'rejected';
+  const wasActive = String(thread.status || '').toLowerCase() === 'active';
+
+  await db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      `
+        UPDATE forum_threads
+        SET status = ?, is_deleted = 0, updated_at = NOW(), last_post_id = COALESCE(?, last_post_id)
+        WHERE id = ?
+      `,
+      nextStatus,
+      firstPostId || null,
+      id
+    );
+    await tx.$executeRawUnsafe(
+      `
+        UPDATE forum_posts
+        SET status = ?, is_deleted = 0, updated_at = NOW()
+        WHERE thread_id = ? AND is_first_post = 1
+      `,
+      nextStatus,
+      id
+    );
+
+    if (approved && !wasActive) {
+      await tx.$executeRawUnsafe(
+        'UPDATE users SET post_count = COALESCE(post_count, 0) + 1, last_activity = NOW() WHERE id = ?',
+        Number(thread.user_id || 0)
+      ).catch(() => undefined);
+    }
+  });
+
+  await notifyModerationUser({
+    userId: Number(thread.user_id || 0),
+    adminId,
+    type: approved ? 'forum_thread_approved' : 'forum_thread_rejected',
+    message: approved
+      ? `Thread của bạn đã được duyệt: ${String(thread.title || `#${id}`)}`
+      : `Thread của bạn đã bị từ chối: ${String(thread.title || `#${id}`)}`,
+    link: approved ? `/user/forum/thread/${id}` : '/user/forum/my-threads',
+  });
+  await logAdminAction({ adminId, action: approved ? 'approve forum thread' : 'reject forum thread', target: `#${id}`, req });
+
+  const updated = await db.$queryRawUnsafe<Array<Record<string, unknown>>>('SELECT * FROM `forum_threads` WHERE id = ? LIMIT 1', id);
+  return updated[0] || { id, status: nextStatus };
+}
+
+async function moderateForumPost(id: number, approved: boolean, adminId: number, req: NextRequest) {
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    `
+      SELECT p.id, p.thread_id, p.user_id, p.is_first_post, p.status, t.title, t.user_id AS thread_owner_id
+      FROM forum_posts p
+      LEFT JOIN forum_threads t ON t.id = p.thread_id
+      WHERE p.id = ?
+      LIMIT 1
+    `,
+    id
+  );
+  const post = rows[0];
+  if (!post) throw new Error(`Không tìm thấy post #${id}`);
+
+  const threadId = Number(post.thread_id || 0);
+  const postUserId = Number(post.user_id || 0);
+  const threadOwnerId = Number(post.thread_owner_id || 0);
+  const isFirstPost = Number(post.is_first_post || 0) === 1;
+  const wasActive = String(post.status || '').toLowerCase() === 'active';
+  const nextStatus = approved ? 'active' : 'rejected';
+
+  await db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      'UPDATE forum_posts SET status = ?, is_deleted = 0, updated_at = NOW() WHERE id = ?',
+      nextStatus,
+      id
+    );
+
+    if (isFirstPost) {
+      await tx.$executeRawUnsafe(
+        'UPDATE forum_threads SET status = ?, is_deleted = 0, updated_at = NOW(), last_post_id = ? WHERE id = ?',
+        nextStatus,
+        id,
+        threadId
+      );
+    } else if (approved) {
+      await tx.$executeRawUnsafe(
+        'UPDATE forum_threads SET updated_at = NOW(), last_post_id = ? WHERE id = ?',
+        id,
+        threadId
+      );
+    }
+
+    if (approved && !wasActive) {
+      await tx.$executeRawUnsafe(
+        'UPDATE users SET post_count = COALESCE(post_count, 0) + 1, last_activity = NOW() WHERE id = ?',
+        postUserId
+      ).catch(() => undefined);
+    }
+  });
+
+  await notifyModerationUser({
+    userId: postUserId,
+    adminId,
+    type: approved ? 'forum_post_approved' : 'forum_post_rejected',
+    message: approved
+      ? `Bài viết của bạn đã được duyệt trong thread: ${String(post.title || `#${threadId}`)}`
+      : `Bài viết của bạn đã bị từ chối trong thread: ${String(post.title || `#${threadId}`)}`,
+    link: approved ? `/user/forum/thread/${threadId}#post-${id}` : '/user/forum/posts',
+  });
+
+  if (approved && !isFirstPost && threadOwnerId && threadOwnerId !== postUserId) {
+    await notifyModerationUser({
+      userId: threadOwnerId,
+      adminId,
+      type: 'reply',
+      message: `Có phản hồi mới đã được duyệt trong chủ đề của bạn: ${String(post.title || `#${threadId}`)}`,
+      link: `/user/forum/thread/${threadId}#post-${id}`,
+    });
+  }
+
+  await logAdminAction({ adminId, action: approved ? 'approve forum post' : 'reject forum post', target: `#${id}`, req });
+  const updated = await db.$queryRawUnsafe<Array<Record<string, unknown>>>('SELECT * FROM `forum_posts` WHERE id = ? LIMIT 1', id);
+  return updated[0] || { id, status: nextStatus };
+}
+
+async function moderateFindJob(id: number, approved: boolean, adminId: number, req: NextRequest) {
+  const table = await resolveFindJobTable();
+  await ensureFindJobPinColumn(table);
+  const columns = await getRawTableColumns(table);
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM \`${table}\` WHERE id = ? LIMIT 1`, id);
+  const job = rows[0];
+  if (!job) throw new Error(`Không tìm thấy Find Job #${id}`);
+
+  const ownerId = Number(job.posted_by || job.user_id || 0);
+  const patch: Record<string, unknown> = {
+    status: approved ? 'open' : 'rejected',
+    approval_status: approved ? 'approved' : 'rejected',
+    updated_at: new Date(),
+    approved_at: approved ? new Date() : null,
+    reviewed_at: new Date(),
+    reviewed_by: adminId,
+  };
+  const fields = Object.keys(patch).filter((field) => columns.has(field));
+  if (!fields.includes('status')) fields.unshift('status');
+
+  await db.$executeRawUnsafe(
+    `UPDATE \`${table}\` SET ${fields.map((field) => `\`${field}\` = ?`).join(', ')} WHERE id = ?`,
+    ...fields.map((field) => patch[field]),
+    id
+  );
+
+  await notifyModerationUser({
+    userId: ownerId,
+    adminId,
+    type: approved ? 'find_job_approved' : 'find_job_rejected',
+    message: approved
+      ? `Tin Find Job của bạn đã được duyệt: ${String(job.title || `#${id}`)}`
+      : `Tin Find Job của bạn đã bị từ chối: ${String(job.title || `#${id}`)}`,
+    link: approved ? `/user/find-job/${id}` : '/user/find-job/my-jobs',
+  });
+  await logAdminAction({ adminId, action: approved ? 'approve find job' : 'reject find job', target: `#${id}`, req });
+
+  const updated = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM \`${table}\` WHERE id = ? LIMIT 1`, id);
+  return updated[0] || { id, status: approved ? 'open' : 'rejected' };
 }
 
 async function runRegistrationIpAction(

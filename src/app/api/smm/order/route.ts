@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!service) {
-      return NextResponse.json({ success: false, message: 'Không tìm thấy dịch vụ SMM trong database cũ' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'Không tìm thấy dịch vụ SMM' }, { status: 404 });
     }
 
     if (service.is_comment_service) {

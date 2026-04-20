@@ -47,7 +47,7 @@ export default async function ForumCategoryPage({ params }: { params: Promise<{ 
                 {data.category.name}
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
-                {data.category.description || 'Danh mục forum được đọc trực tiếp từ database legacy.'}
+                {data.category.description || 'Khu vực thảo luận và cập nhật nội dung cộng đồng.'}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">

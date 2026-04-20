@@ -48,9 +48,9 @@ export default async function ResourceHistoryPage() {
                   </td>
                   <td className="px-5 py-4 font-mono font-black text-brand-blue">{formatCurrency(toNumber(order.total_price))}</td>
                   <td className="px-5 py-4">
-                    <span className="inline-flex items-center gap-1.5 text-slate-500">
+                    <a href={`/api/resources/download/${String(order.id)}`} className="inline-flex items-center gap-1.5 text-brand-blue hover:underline">
                       <Download className="h-4 w-4" /> {toNumber(order.download_count)} / {toNumber(order.max_downloads)}
-                    </span>
+                    </a>
                   </td>
                   <td className="px-5 py-4">{String(order.status)}</td>
                   <td className="px-5 py-4 text-slate-400">{new Date(String(order.created_at)).toLocaleString('vi-VN')}</td>

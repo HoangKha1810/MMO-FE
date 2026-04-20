@@ -42,11 +42,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg?v=3', type: 'image/svg+xml' },
+      { url: '/logo.gif?v=3', type: 'image/gif' },
     ],
-    shortcut: ['/favicon.ico'],
-    apple: [{ url: '/favicon.ico' }],
+    shortcut: ['/favicon.svg?v=3'],
+    apple: [{ url: '/logo.gif?v=3' }],
   },
   appleWebApp: {
     capable: true,
@@ -101,7 +101,7 @@ export default function RootLayout({
         '@id': `${siteUrl}/#organization`,
         name: siteName,
         url: siteUrl,
-        logo: buildAbsoluteUrl('/favicon.svg'),
+        logo: buildAbsoluteUrl('/logo.gif'),
       },
       {
         '@type': 'WebSite',
@@ -120,7 +120,9 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+        <link rel="shortcut icon" href="/favicon.svg?v=3" />
+        <link rel="apple-touch-icon" href="/logo.gif?v=3" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
