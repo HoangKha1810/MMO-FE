@@ -1,5 +1,15 @@
+import type { Metadata } from 'next';
 import { LegalPage } from '@/components/marketing/legal-page';
 import { readPolicySections } from '@/lib/legal-content';
+
+export const metadata: Metadata = {
+  title: 'Điều khoản sử dụng',
+  description:
+    'Điều khoản sử dụng hệ thống TRUNGTAMMMO.VN, trình bày lại từ nội dung policy trong source PHP cũ để người dùng theo dõi rõ rule giao dịch và vận hành.',
+  alternates: {
+    canonical: '/terms',
+  },
+};
 
 export default async function TermsPage() {
   const sections = await readPolicySections('csdv');

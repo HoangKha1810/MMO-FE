@@ -1,5 +1,15 @@
+import type { Metadata } from 'next';
 import { LegalPage } from '@/components/marketing/legal-page';
 import { readPolicySections } from '@/lib/legal-content';
+
+export const metadata: Metadata = {
+  title: 'Chính sách riêng tư',
+  description:
+    'Chính sách quyền riêng tư và vận hành dữ liệu của TRUNGTAMMMO.VN, được migrate từ source PHP cũ và trình bày lại theo cấu trúc dễ đọc hơn.',
+  alternates: {
+    canonical: '/privacy',
+  },
+};
 
 export default async function PrivacyPage() {
   const sections = await readPolicySections('csht');

@@ -1,4 +1,14 @@
+import type { Metadata } from 'next';
 import { LegalPage } from '@/components/marketing/legal-page';
+
+export const metadata: Metadata = {
+  title: 'Giới thiệu',
+  description:
+    'Giới thiệu kiến trúc mới của TRUNGTAMMMO.VN: giữ logic từ source PHP cũ, tách FE/BE rõ hơn và tối ưu trải nghiệm theo hướng product.',
+  alternates: {
+    canonical: '/about',
+  },
+};
 
 export default function AboutPage() {
   return (
