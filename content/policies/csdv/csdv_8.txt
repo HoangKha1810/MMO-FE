@@ -1,0 +1,87 @@
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+
+Văn bản này quy định Điều khoản sử dụng dịch vụ, Chính sách bảo mật thông tin và Chính sách xử lý dữ liệu cá nhân (sau đây gọi chung là "Điều khoản") áp dụng cho toàn bộ người dùng khi truy cập, đăng ký và sử dụng các dịch vụ, chức năng trên hệ thống website/ứng dụng (sau đây gọi chung là "Hệ Thống").
+
+Bằng việc truy cập hoặc sử dụng bất kỳ phần nào của Hệ Thống, bạn xác nhận đã đọc, hiểu và đồng ý hoàn toàn bị ràng buộc bởi các Điều khoản này. Nếu bạn không đồng ý với một phần hoặc toàn bộ các quy định này, vui lòng ngừng sử dụng dịch vụ ngay lập tức.
+
+ĐIỀU 1. GIẢI THÍCH TỪ NGỮ
+
+"Hệ Thống": là toàn bộ nền tảng Website/ứng dụng/diễn đàn/sàn giao dịch điện tử và các công cụ kỹ thuật liên quan do Chủ sở hữu vận hành.
+
+"Chủ sở hữu": là [TÊN CÔNG TY/CÁ NHÂN CHỦ QUẢN], đơn vị sở hữu và quản lý hợp pháp Hệ Thống.
+
+"Người dùng": là mọi cá nhân, tổ chức truy cập hoặc sử dụng bất kỳ chức năng nào của Hệ Thống.
+
+"Nền tảng gốc": là các đơn vị cung cấp dịch vụ gốc như OpenAI, Meta (Facebook, Instagram), Google (Youtube), TikTok, Microsoft... mà các dịch vụ trên Hệ Thống có liên quan hoặc kết nối tới.
+
+ĐIỀU 2. ĐIỀU KIỆN SỬ DỤNG VÀ ĐĂNG KÝ TÀI KHOẢN
+
+2.1. Năng lực: Người dùng phải có đầy đủ năng lực hành vi dân sự theo quy định pháp luật Việt Nam để thực hiện các giao dịch trên Hệ Thống.
+
+2.2. Tài khoản: Người dùng có trách nhiệm bảo mật thông tin đăng nhập, mật khẩu và các yếu tố xác thực (2FA, OTP). Mọi hoạt động phát sinh từ tài khoản được coi là hành vi của chính Người dùng đó.
+
+2.3. Cấm mạo danh: Nghiêm cấm sử dụng thông tin giả mạo hoặc thông tin của người khác để đăng ký tài khoản mà không có sự đồng ý hợp pháp.
+
+ĐIỀU 3. QUY ĐỊNH VỀ DỊCH VỤ VÀ GIAO DỊCH
+
+3.1. Tính trung gian: Hệ Thống cung cấp môi trường kỹ thuật kết nối. Trừ các dịch vụ do Hệ Thống trực tiếp cung cấp, chúng tôi không chịu trách nhiệm về nội dung, chất lượng hoặc cam kết của các bên thứ ba trên nền tảng.
+
+3.2. Thanh toán: Người dùng hiểu và đồng ý rằng các giao dịch nạp tiền để sử dụng dịch vụ là giao dịch không hoàn lại nếu Hệ Thống đã thực hiện đúng quy trình cung cấp dịch vụ. Một số dịch vụ có thể có chính sách hoàn tiền riêng được niêm yết rõ ràng.
+
+3.3. Thời gian xử lý: Thời gian hoàn thành đơn hàng có thể thay đổi tùy thuộc vào tình trạng của Nền tảng gốc và lưu lượng xử lý tại từng thời điểm.
+
+ĐIỀU 4. CÁC HÀNH VI BỊ NGHIÊM CẤM
+
+4.1. Lừa đảo: Nghiêm cấm sử dụng Hệ Thống để thực hiện các hành vi gian lận, lừa đảo chiếm đoạt tài sản.
+
+4.2. Phá hoại: Nghiêm cấm tấn công mạng, sử dụng mã độc, script độc hại hoặc các phương thức kỹ thuật nhằm phá hoại, làm chậm hoặc can thiệp trái phép vào dữ liệu hệ thống.
+
+4.3. Nội dung: Nghiêm cấm đăng tải, chia sẻ các thông tin:
+- Vi phạm pháp luật, chống phá nhà nước, kích động bạo lực.
+- Đồi trụy, khiêu dâm, trái thuần phong mỹ tục.
+- Xúc phạm danh dự, nhân phẩm của cá nhân/tổ chức khác.
+- Kinh doanh hàng hóa, dịch vụ bị pháp luật cấm.
+
+ĐIỀU 5. TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM
+
+5.1. Lỗi hệ thống gốc: Hệ Thống không chịu trách nhiệm đối với các gián đoạn dịch vụ, lỗi hoặc việc khóa/checkpoint/vô hiệu hóa tài khoản do thay đổi chính sách từ phía Nền tảng gốc (như Facebook, TikTok, OpenAI...).
+
+5.2. Sự cố kỹ thuật: Hệ Thống được miễn trách nhiệm trong các trường hợp bất khả kháng như: đứt cáp quang, sự cố điện lưới toàn quốc, tấn công DDoS quy mô lớn hoặc các lỗi từ nhà cung cấp hạ tầng thứ ba.
+
+5.3. Trách nhiệm bồi thường: Trong mọi trường hợp, giới hạn trách nhiệm bồi thường tối đa của Hệ Thống (nếu có) sẽ không vượt quá số tiền mà Người dùng đã thanh toán cho dịch vụ phát sinh tranh chấp.
+
+B. CHÍNH SÁCH BẢO MẬT VÀ XỬ LÝ DỮ LIỆU CÁ NHÂN (ND 13/2023)
+
+ĐIỀU 6. NGUYÊN TẮC BẢO VỆ DỮ LIỆU
+
+6.1. Tuân thủ pháp luật: Chúng tôi cam kết bảo vệ dữ liệu cá nhân của Người dùng theo Nghị định 13/2023/NĐ-CP của Chính phủ Việt Nam.
+
+6.2. Thu thập dữ liệu: Các thông tin thu thập bao gồm: Email, Số điện thoại, Địa chỉ IP, Lịch sử giao dịch và các thông tin cần thiết khác phục vụ việc cung cấp dịch vụ và bảo mật.
+
+6.3. Mục đích: Dữ liệu được sử dụng để:
+- Xác thực và quản trị tài khoản người dùng.
+- Thực hiện và quản lý đơn hàng.
+- Hỗ trợ giải quyết khiếu nại và CSKH.
+- Phòng chống gian lận và tuân thủ nghĩa vụ pháp luật.
+
+ĐIỀU 7. QUYỀN CỦA NGƯỜI DÙNG ĐỐI VỚI DỮ LIỆU
+
+Người dùng có quyền:
+- Yêu cầu truy cập, xem hoặc chỉnh sửa dữ liệu cá nhân của mình.
+- Yêu cầu xóa dữ liệu hoặc rút lại sự đồng ý cho phép xử lý dữ liệu (tương đương với việc xóa tài khoản).
+- Khiếu nại khi phát hiện dữ liệu bị sử dụng sai mục đích.
+
+C. CƠ CHẾ GIẢI QUYẾT TRANH CHẤP
+
+ĐIỀU 8. QUY TRÌNH KHIẾU NẠI
+
+8.1. Tiếp nhận: Mọi khiếu nại về dịch vụ phải được gửi qua hệ thống Ticket hoặc kênh hỗ trợ chính thức của Hệ Thống trong vòng [X] ngày kể từ khi phát sinh sự việc.
+
+8.2. Xử lý: Ban quản trị sẽ phản hồi và đưa ra phương án xử lý trong vòng [Y] ngày làm việc dựa trên dữ liệu ghi nhận hệ thống. Quyết định của Ban quản trị dựa trên các bằng chứng kỹ thuật là quyết định cuối cùng.
+
+ĐIỀU 9. LUẬT ÁP DỤNG
+
+Mọi tranh chấp phát sinh sẽ được giải quyết trước hết bằng thương lượng. Trường hợp không thể thương lượng, tranh chấp sẽ được giải quyết tại Tòa án có thẩm quyền theo quy định pháp luật nước Cộng hòa Xã hội Chủ nghĩa Việt Nam.
+
+---
+Văn bản này có hiệu lực kể từ ngày đăng tải và có giá trị ràng buộc tương đương một hợp đồng điện tử. Hệ Thống giữ quyền sửa đổi Điều khoản này bất kỳ lúc nào và sẽ thông báo công khai trên trang chủ.

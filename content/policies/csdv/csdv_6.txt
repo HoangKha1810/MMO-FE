@@ -1,0 +1,38 @@
+CHÍNH SÁCH VÀ ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+(ÁP DỤNG ĐỐI VỚI DỊCH VỤ TĂNG TƯƠNG TÁC MẠNG XÃ HỘI)
+
+Văn bản này quy định các điều khoản sử dụng dịch vụ, chính sách bảo mật thông tin và chính sách xử lý dữ liệu cá nhân áp dụng đối với toàn bộ người dùng khi truy cập, đăng ký tài khoản, nạp tiền, tạo đơn hàng và sử dụng dịch vụ tại hệ thống (sau đây gọi tắt là "Hệ Thống").
+
+Việc Người dùng đăng ký tài khoản, đăng nhập, nạp tiền hoặc tạo đơn hàng được hiểu là Người dùng đã đọc, hiểu và đồng ý bị ràng buộc bởi toàn bộ nội dung của Chính sách này.
+
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+
+ĐIỀU 1. GIẢI THÍCH THUẬT NGỮ
+1. "Hệ Thống": Là nền tảng website/ứng dụng cung cấp dịch vụ tăng tương tác.
+2. "Người dùng": Là khách hàng đăng ký và sử dụng dịch vụ trên Hệ Thống.
+3. "Dịch vụ Tương tác": Bao gồm các dịch vụ tăng Like, Follow, Sub, View, Comment, Share... trên các nền tảng mạng xã hội (Facebook, Instagram, TikTok, Youtube, v.v.).
+
+ĐIỀU 2. NGUYÊN TẮC HOẠT ĐỘNG
+1. Hệ Thống hoạt động theo cơ chế tự động dựa trên các tài nguyên có sẵn.
+2. Hệ Thống không chịu trách nhiệm đối với các thay đổi chính sách từ phía các nền tảng mạng xã hội (Facebook, TikTok, v.v.) dẫn đến việc tụt giảm tương tác hoặc khóa tài khoản của Người dùng.
+3. Người dùng cam kết không sử dụng dịch vụ cho các mục đích lừa đảo, vi phạm pháp luật hoặc xâm phạm quyền lợi của người khác.
+
+ĐIỀU 3. QUY ĐỊNH VỀ THANH TOÁN VÀ HOÀN TIỀN
+1. Người dùng nạp tiền vào tài khoản để sử dụng dịch vụ. Tiền đã nạp không thể rút lại tiền mặt, chỉ sử dụng để mua dịch vụ trên Hệ Thống.
+2. Hệ Thống chỉ hoàn tiền (vào số dư tài khoản) trong các trường hợp: Đơn hàng bị lỗi hệ thống, đơn hàng không chạy sau thời gian quy định mà không có thông báo.
+3. Không hoàn tiền nếu Người dùng nhập sai Link/ID, đặt nhầm server hoặc vi phạm điều khoản sử dụng.
+
+ĐIỀU 4. CHÍNH SÁCH BẢO HÀNH
+1. Bảo hành chỉ áp dụng cho các gói dịch vụ có ghi chữ "Bảo hành" (Refund/Refill).
+2. Thời gian và điều kiện bảo hành tùy thuộc vào từng server cụ thể được niêm yết trên Hệ Thống.
+
+B. CHÍNH SÁCH BẢO MẬT & XỬ LÝ DỮ LIỆU (ND 13/2023)
+
+ĐIỀU 5. THU THẬP VÀ BẢO MẬT
+1. Hệ Thống thu thập Email, Số điện thoại và Lịch sử đơn hàng nhằm mục đích hỗ trợ và bảo mật tài khoản.
+2. Chúng tôi cam kết bảo vệ dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP. Dữ liệu được mã hóa và không chia sẻ cho bên thứ ba, trừ khi có yêu cầu hợp pháp từ cơ quan Nhà nước.
+
+ĐIỀU 6. TRỰC TIẾP MIỄN TRỪ TRÁCH NHIỆM
+Người dùng tự chịu trách nhiệm về nội dung bài viết/tài khoản mà mình chạy tương tác. Hệ Thống có quyền từ chối cung cấp dịch vụ đối với các nội dung vi phạm pháp luật, chính trị, đồi trụy hoặc lừa đảo.
+
+HIỆU LỰC PHÁP LÝ: Văn bản này có giá trị như một hợp đồng điện tử giữa Hệ Thống và Người dùng. Việc Người dùng tiếp tục sử dụng dịch vụ đồng nghĩa với việc chấp nhận các bản cập nhật mới nhất của văn bản này.

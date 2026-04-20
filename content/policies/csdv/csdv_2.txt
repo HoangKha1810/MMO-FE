@@ -1,0 +1,541 @@
+BỘ ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ, CHÍNH SÁCH BẢO MẬT THÔNG TIN VÀ CHÍNH SÁCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+ÁP DỤNG CHO WEBSITE TRUNGTAMMMO
+
+(Ban hành và áp dụng thống nhất trên toàn bộ hệ thống TRUNGTAMMMO)
+
+CĂN CỨ PHÁP LÝ
+
+Căn cứ Bộ luật Dân sự số 91/2015/QH13;
+Căn cứ Luật Thương mại số 36/2005/QH11;
+Căn cứ Luật Công nghệ thông tin số 67/2006/QH11;
+Căn cứ Luật An ninh mạng số 24/2018/QH14;
+Căn cứ Luật Bảo vệ quyền lợi người tiêu dùng số 19/2023/QH15;
+Căn cứ Luật Giao dịch điện tử số 20/2023/QH15;
+Căn cứ Nghị định số 52/2013/NĐ-CP về thương mại điện tử (và các văn bản sửa đổi, bổ sung);
+Căn cứ Nghị định số 72/2013/NĐ-CP ngày 15/7/2013 về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng (và các văn bản sửa đổi, bổ sung);
+Căn cứ Nghị định số 13/2023/NĐ-CP ngày 17/4/2023 về bảo vệ dữ liệu cá nhân;
+Căn cứ các quy định pháp luật hiện hành có liên quan tại Việt Nam.
+
+TRUNGTAMMMO công bố Bộ Điều khoản và Chính sách này nhằm quy định về điều kiện sử dụng dịch vụ, chính sách bảo mật thông tin, chính sách xử lý dữ liệu cá nhân, quyền và nghĩa vụ của các bên, giới hạn trách nhiệm, cơ chế giải quyết tranh chấp và các điều khoản pháp lý khác.
+
+Người dùng khi truy cập, đăng ký tài khoản, đăng nhập hoặc sử dụng bất kỳ dịch vụ nào trên TRUNGTAMMMO được hiểu là đã đọc, hiểu và đồng ý bị ràng buộc bởi toàn bộ nội dung của Bộ Điều khoản và Chính sách này.
+
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+
+ĐIỀU 1. PHẠM VI ÁP DỤNG VÀ ĐỐI TƯỢNG ÁP DỤNG
+
+Bộ Điều khoản này áp dụng đối với:
+a) Tất cả cá nhân, tổ chức truy cập, đăng ký, đăng nhập hoặc sử dụng dịch vụ trên website TRUNGTAMMMO;
+b) Các giao dịch đăng bán, mua bán, trao đổi tài khoản số, dịch vụ số, vật phẩm số và sản phẩm kỹ thuật số thông qua TRUNGTAMMMO;
+c) Các hoạt động liên quan đến thanh toán trung gian, hỗ trợ giao dịch, xử lý khiếu nại, tranh chấp, hoàn tiền và xử lý vi phạm trên nền tảng.
+
+Người dùng có trách nhiệm tuân thủ đầy đủ quy định pháp luật Việt Nam và Bộ Điều khoản này trong suốt quá trình sử dụng dịch vụ.
+
+Trong trường hợp có sự khác biệt giữa Bộ Điều khoản này và các thông báo/chính sách riêng lẻ trên từng tính năng của TRUNGTAMMMO, quy định cụ thể theo từng tính năng sẽ được ưu tiên áp dụng.
+
+ĐIỀU 2. GIẢI THÍCH THUẬT NGỮ
+
+Trong Bộ Điều khoản này, các thuật ngữ dưới đây được hiểu như sau:
+
+TRUNGTAMMMO: Là nền tảng trung gian thương mại điện tử hoạt động dưới hình thức website, cung cấp môi trường kỹ thuật để người dùng đăng tin, tìm kiếm, trao đổi và giao dịch các sản phẩm kỹ thuật số.
+
+Đơn vị vận hành TRUNGTAMMMO: Là tổ chức/cá nhân sở hữu và quản lý toàn bộ hệ thống TRUNGTAMMMO, có quyền ban hành và thực thi chính sách hoạt động trên nền tảng.
+
+Người dùng: Là cá nhân hoặc tổ chức truy cập hoặc sử dụng dịch vụ của TRUNGTAMMMO, bao gồm cả người bán và người mua.
+
+Người bán: Là cá nhân hoặc tổ chức đăng tải thông tin bán tài khoản số, dịch vụ số, vật phẩm số hoặc sản phẩm kỹ thuật số trên TRUNGTAMMMO.
+
+Người mua: Là cá nhân hoặc tổ chức thực hiện việc mua hàng hóa, dịch vụ thông qua TRUNGTAMMMO.
+
+Tài khoản số: Là tài khoản truy cập/đăng nhập vào các hệ thống trực tuyến (bao gồm nhưng không giới hạn: mạng xã hội, nền tảng quảng cáo, game, email, dịch vụ phần mềm, website, hệ thống cloud).
+
+Sản phẩm kỹ thuật số: Bao gồm nhưng không giới hạn tài khoản số, dữ liệu số, quyền truy cập, vật phẩm số, mã kích hoạt, key bản quyền, file dữ liệu, gói dịch vụ số.
+
+Dịch vụ số: Là các dịch vụ được cung cấp dưới dạng điện tử, bao gồm hỗ trợ kỹ thuật, cài đặt, vận hành, quảng cáo, tối ưu hệ thống, tăng tương tác hoặc các dịch vụ khác được phép giao dịch theo pháp luật.
+
+Giao dịch: Là việc người mua và người bán thực hiện thỏa thuận mua bán thông qua TRUNGTAMMMO, kèm theo việc thanh toán trung gian.
+
+Thanh toán trung gian: Là cơ chế TRUNGTAMMMO tiếp nhận và tạm giữ khoản thanh toán từ người mua nhằm bảo đảm nghĩa vụ giao hàng của người bán trước khi giải ngân.
+
+Nội dung đăng bán: Là toàn bộ thông tin, hình ảnh, mô tả, giá bán, cam kết, điều kiện giao hàng do người bán cung cấp khi đăng tin.
+
+Dữ liệu cá nhân: Là thông tin dưới dạng ký hiệu, chữ viết, số, hình ảnh, âm thanh hoặc dạng tương tự gắn liền với một cá nhân hoặc giúp xác định một cá nhân theo Nghị định 13/2023/NĐ-CP.
+
+Dữ liệu cá nhân nhạy cảm: Là dữ liệu cá nhân thuộc nhóm nhạy cảm theo quy định tại Nghị định 13/2023/NĐ-CP.
+
+Vi phạm: Là hành vi vi phạm quy định pháp luật Việt Nam, vi phạm Bộ Điều khoản này hoặc vi phạm các quy định quản trị nội bộ do TRUNGTAMMMO ban hành.
+
+ĐIỀU 3. TƯ CÁCH PHÁP LÝ VÀ VAI TRÒ CỦA TRUNGTAMMMO
+
+TRUNGTAMMMO là nền tảng trung gian thương mại điện tử, cung cấp hạ tầng kỹ thuật và công cụ hỗ trợ giao dịch cho người bán và người mua.
+
+TRUNGTAMMMO không phải là bên bán, không phải là bên mua, không sở hữu sản phẩm, không trực tiếp tham gia giao dịch mua bán giữa người bán và người mua, trừ trường hợp có thỏa thuận riêng bằng văn bản.
+
+TRUNGTAMMMO không cam kết, không bảo đảm và không chịu trách nhiệm đối với:
+a) Tính hợp pháp, nguồn gốc, quyền sở hữu của sản phẩm do người bán đăng tải;
+b) Giá trị sử dụng thực tế của tài khoản số hoặc sản phẩm kỹ thuật số;
+c) Việc tài khoản bị khóa, hạn chế, vô hiệu hóa bởi nền tảng gốc;
+d) Các tranh chấp phát sinh giữa người bán và người mua.
+
+Người bán và người mua là các chủ thể độc lập, tự chịu trách nhiệm trước pháp luật về hành vi giao dịch của mình, bao gồm nhưng không giới hạn: nghĩa vụ thuế, nghĩa vụ bồi thường, trách nhiệm dân sự/hành chính/hình sự (nếu có).
+
+ĐIỀU 4. ĐIỀU KIỆN ĐĂNG KÝ TÀI KHOẢN VÀ SỬ DỤNG DỊCH VỤ
+
+Người dùng phải đáp ứng các điều kiện sau:
+a) Có đầy đủ năng lực hành vi dân sự theo quy định pháp luật Việt Nam;
+b) Trường hợp người dùng là tổ chức thì người đăng ký phải là người đại diện hợp pháp hoặc người được ủy quyền hợp pháp;
+c) Cam kết sử dụng nền tảng đúng mục đích, không phục vụ hoạt động trái pháp luật.
+
+Khi đăng ký tài khoản, người dùng phải cung cấp đầy đủ, trung thực và chính xác các thông tin theo yêu cầu của hệ thống.
+
+Người dùng có nghĩa vụ cập nhật thông tin kịp thời khi có thay đổi. TRUNGTAMMMO có quyền từ chối hỗ trợ hoặc từ chối xử lý khiếu nại nếu thông tin người dùng không chính xác hoặc không thể xác minh.
+
+Mỗi người dùng chỉ được đăng ký và sử dụng một (01) tài khoản, trừ trường hợp TRUNGTAMMMO có chấp thuận bằng văn bản hoặc có cơ chế riêng theo từng gói dịch vụ.
+
+Người dùng chịu trách nhiệm bảo mật thông tin đăng nhập, mật khẩu, mã OTP và các yếu tố xác thực khác.
+
+Mọi hoạt động phát sinh từ tài khoản của người dùng được hiểu là do chính người dùng thực hiện, trừ trường hợp chứng minh được tài khoản bị chiếm đoạt do lỗi kỹ thuật thuộc về TRUNGTAMMMO.
+
+ĐIỀU 5. NGUYÊN TẮC ĐĂNG TIN VÀ THỰC HIỆN GIAO DỊCH
+
+Người bán khi đăng tin phải cung cấp đầy đủ thông tin liên quan đến sản phẩm/dịch vụ, bao gồm tối thiểu:
+a) Mô tả chi tiết sản phẩm/dịch vụ;
+b) Giá bán và các chi phí liên quan (nếu có);
+c) Hình thức bàn giao, thời gian bàn giao;
+d) Chính sách bảo hành (nếu có);
+đ) Điều kiện sử dụng và rủi ro có thể phát sinh;
+e) Cam kết quyền sở hữu/quyền giao dịch hợp pháp đối với sản phẩm.
+
+Nội dung đăng tin phải rõ ràng, minh bạch, không gây hiểu nhầm, không che giấu thông tin quan trọng, không sử dụng hình ảnh sai lệch hoặc vi phạm quyền sở hữu trí tuệ.
+
+Người bán chịu trách nhiệm toàn bộ đối với nội dung đăng tải và hậu quả pháp lý phát sinh.
+
+Người mua có trách nhiệm đọc kỹ mô tả, điều kiện giao dịch và xác minh trước khi thanh toán.
+
+Giao dịch chỉ được coi là hợp lệ khi người mua thanh toán thành công qua hệ thống thanh toán của TRUNGTAMMMO và đơn hàng được ghi nhận trên hệ thống.
+
+ĐIỀU 6. NGHĨA VỤ CỦA NGƯỜI BÁN
+
+Người bán cam kết và bảo đảm:
+a) Có quyền hợp pháp đối với tài khoản số/sản phẩm kỹ thuật số/dịch vụ số đăng bán;
+b) Sản phẩm đăng bán không thuộc tài sản bị chiếm đoạt, không có nguồn gốc bất hợp pháp, không có dấu hiệu vi phạm pháp luật;
+c) Việc mua bán không vi phạm quy định của nền tảng gốc (mạng xã hội, game, dịch vụ số, hệ thống quảng cáo);
+d) Không đăng bán sản phẩm thuộc danh mục bị cấm theo pháp luật Việt Nam;
+đ) Không sử dụng thông tin giả mạo hoặc thông tin của người khác để đăng ký tài khoản/sản phẩm;
+e) Giao sản phẩm đúng mô tả, đúng thời gian, đúng phương thức đã cam kết.
+
+Người bán chịu hoàn toàn trách nhiệm pháp lý đối với:
+a) Nguồn gốc và quyền sở hữu hợp pháp của sản phẩm;
+b) Tính trung thực của nội dung đăng bán;
+c) Việc sản phẩm bị khiếu nại, bị báo cáo, bị khóa hoặc bị thu hồi bởi nền tảng gốc;
+d) Tranh chấp phát sinh với người mua hoặc bên thứ ba;
+đ) Khiếu nại, điều tra từ cơ quan nhà nước hoặc chủ sở hữu nền tảng gốc.
+
+Người bán có nghĩa vụ phối hợp cung cấp thông tin, chứng từ khi TRUNGTAMMMO yêu cầu để phục vụ việc xác minh, xử lý tranh chấp hoặc thực hiện nghĩa vụ theo yêu cầu cơ quan có thẩm quyền.
+
+ĐIỀU 7. NGHĨA VỤ CỦA NGƯỜI MUA
+
+Người mua có nghĩa vụ:
+a) Cung cấp thông tin nhận hàng chính xác;
+b) Thanh toán đúng và đủ theo giá niêm yết;
+c) Thực hiện kiểm tra sản phẩm ngay khi nhận bàn giao;
+d) Không lợi dụng chính sách hoàn tiền, khiếu nại để gian lận hoặc gây thiệt hại cho người bán;
+đ) Tuân thủ quy định pháp luật về sử dụng tài khoản số, dịch vụ số sau khi mua.
+
+Người mua tự chịu rủi ro pháp lý phát sinh từ việc sử dụng sản phẩm/dịch vụ mua trên TRUNGTAMMMO, bao gồm nhưng không giới hạn việc bị nền tảng gốc khóa tài khoản do vi phạm chính sách của nền tảng gốc.
+
+ĐIỀU 8. CÁC HÀNH VI BỊ NGHIÊM CẤM
+
+Người dùng bị nghiêm cấm thực hiện các hành vi sau đây (bao gồm nhưng không giới hạn):
+
+Giao dịch, thanh toán ngoài hệ thống TRUNGTAMMMO nhằm né tránh phí dịch vụ hoặc tránh cơ chế bảo vệ giao dịch.
+
+Đăng bán hoặc mua bán tài khoản có nguồn gốc bất hợp pháp, bao gồm:
+a) Tài khoản bị hack, chiếm đoạt, brute-force, phishing;
+b) Tài khoản liên quan hành vi gian lận, lừa đảo, rửa tiền;
+c) Tài khoản được tạo bằng thông tin giả mạo hoặc sử dụng danh tính người khác.
+
+Đăng bán tài khoản kèm theo email/mật khẩu hoặc thông tin đăng nhập nhạy cảm mà có dấu hiệu xâm phạm dữ liệu cá nhân, quyền riêng tư hoặc trái quy định pháp luật.
+
+Đăng bán tài khoản đã xác minh danh tính (KYC), tài khoản chứa thông tin cá nhân của bên thứ ba hoặc dữ liệu cá nhân nhạy cảm mà không có căn cứ hợp pháp chứng minh quyền giao dịch.
+
+Đăng bán, cung cấp, phát tán:
+a) Phần mềm độc hại (malware), virus, trojan;
+b) Công cụ xâm nhập trái phép;
+c) Công cụ dò quét, brute-force, đánh cắp dữ liệu;
+d) Công cụ tấn công mạng, DDoS, khai thác lỗ hổng.
+
+Gian lận xác nhận hoàn tất đơn hàng, gian lận giao dịch, lợi dụng hệ thống khiếu nại để chiếm đoạt tiền hoặc tài sản.
+
+Đăng giá sai sự thật, ưu đãi giả, cố ý bỏ đơn, không giao hàng nhằm thao túng thị trường hoặc gây thiệt hại cho người khác.
+
+Đăng tin chứa nội dung vi phạm pháp luật, trái đạo đức xã hội, bao gồm:
+a) Nội dung kích động bạo lực, thù hằn, chống phá Nhà nước;
+b) Nội dung khiêu dâm, mại dâm;
+c) Nội dung quảng bá cờ bạc, cá độ, xổ số trái phép;
+d) Nội dung xâm phạm quyền sở hữu trí tuệ.
+
+Chia sẻ tài khoản trái phép, kinh doanh hàng hóa ngẫu nhiên (random box) hoặc hình thức có dấu hiệu cờ bạc, may rủi trái quy định pháp luật.
+
+Sử dụng hệ thống TRUNGTAMMMO để rửa tiền, che giấu nguồn gốc tài sản hoặc các hành vi trái pháp luật khác.
+
+ĐIỀU 9. CƠ CHẾ XỬ LÝ VI PHẠM
+
+Khi phát hiện hoặc có cơ sở nghi ngờ người dùng vi phạm, TRUNGTAMMMO có quyền áp dụng một hoặc nhiều biện pháp sau:
+a) Gỡ bỏ tin đăng, khóa tin đăng;
+b) Tạm ngưng hoặc chấm dứt tài khoản;
+c) Hạn chế tính năng đăng tin hoặc giao dịch;
+d) Tạm giữ thanh toán, đóng băng số dư hoặc phong tỏa giao dịch;
+đ) Hoàn tiền cho người mua theo kết luận xử lý tranh chấp;
+e) Từ chối cung cấp dịch vụ trong tương lai.
+
+Thời hạn đóng băng thanh toán tối đa là 180 (một trăm tám mươi) ngày hoặc dài hơn nếu có yêu cầu của cơ quan có thẩm quyền hoặc phát sinh tranh chấp chưa được giải quyết.
+
+TRUNGTAMMMO có quyền cung cấp thông tin người dùng cho cơ quan nhà nước có thẩm quyền theo yêu cầu hợp pháp, phù hợp với Luật An ninh mạng và các quy định pháp luật liên quan.
+
+TRUNGTAMMMO không có nghĩa vụ bồi thường cho người dùng đối với các thiệt hại phát sinh từ việc xử lý vi phạm nếu việc xử lý dựa trên dấu hiệu vi phạm hợp lý hoặc theo yêu cầu pháp luật.
+
+ĐIỀU 10. CHÍNH SÁCH THANH TOÁN TRUNG GIAN
+
+Toàn bộ giao dịch mua bán trên TRUNGTAMMMO bắt buộc thực hiện thông qua hệ thống thanh toán trung gian do TRUNGTAMMMO cung cấp hoặc tích hợp.
+
+Số tiền thanh toán sẽ được TRUNGTAMMMO tạm giữ cho đến khi:
+a) Người mua xác nhận đã nhận đúng sản phẩm/dịch vụ và xác nhận hoàn tất đơn hàng; hoặc
+b) Hết thời hạn khiếu nại theo quy định nội bộ; hoặc
+c) Có quyết định xử lý tranh chấp cuối cùng.
+
+TRUNGTAMMMO có quyền thu phí dịch vụ theo biểu phí công bố trên hệ thống tại từng thời điểm.
+
+TRUNGTAMMMO có quyền thay đổi phương thức thanh toán, đơn vị cung cấp dịch vụ thanh toán hoặc cổng thanh toán mà không cần thông báo trước trong trường hợp cần thiết nhằm bảo đảm an toàn hệ thống.
+
+ĐIỀU 11. CHÍNH SÁCH HOÀN TIỀN VÀ XỬ LÝ KHIẾU NẠI GIAO DỊCH
+
+Các trường hợp được xem xét hoàn tiền bao gồm:
+a) Người bán không giao hàng theo thời hạn cam kết;
+b) Người bán giao sai sản phẩm hoặc sai nội dung mô tả trọng yếu;
+c) Sản phẩm/dịch vụ không đúng điều kiện cơ bản đã công bố;
+d) Các trường hợp khác do TRUNGTAMMMO xác định dựa trên chứng cứ hợp lệ.
+
+Các trường hợp không được hoàn tiền bao gồm:
+a) Người mua đã xác nhận hoàn tất đơn hàng;
+b) Người mua tự ý thay đổi thông tin sản phẩm, thay đổi mật khẩu, can thiệp hệ thống dẫn đến lỗi;
+c) Sản phẩm bị nền tảng gốc khóa do hành vi sử dụng của người mua sau khi nhận bàn giao;
+d) Giao dịch có dấu hiệu vi phạm pháp luật hoặc vi phạm chính sách nền tảng.
+
+TRUNGTAMMMO chỉ đóng vai trò hỗ trợ trung gian và xử lý dựa trên dữ liệu hệ thống, bằng chứng do các bên cung cấp. TRUNGTAMMMO không chịu trách nhiệm như bên bảo hiểm hay bên bảo lãnh cho bất kỳ giao dịch nào.
+
+Quyết định xử lý tranh chấp của TRUNGTAMMMO có giá trị áp dụng nội bộ trên nền tảng và không làm mất quyền khởi kiện của các bên theo quy định pháp luật.
+
+ĐIỀU 12. TẠM NGƯNG VÀ CHẤM DỨT CUNG CẤP DỊCH VỤ
+
+TRUNGTAMMMO có quyền tạm ngưng hoặc chấm dứt cung cấp dịch vụ trong các trường hợp:
+a) Bảo trì hệ thống định kỳ hoặc khẩn cấp;
+b) Có sự cố kỹ thuật, tấn công mạng, lỗi bảo mật;
+c) Có yêu cầu của cơ quan nhà nước có thẩm quyền;
+d) Người dùng vi phạm chính sách hoặc có dấu hiệu gian lận;
+đ) Các trường hợp bất khả kháng theo quy định pháp luật.
+
+TRUNGTAMMMO có quyền chấm dứt tài khoản người dùng mà không cần báo trước nếu người dùng có hành vi vi phạm nghiêm trọng hoặc tái phạm nhiều lần.
+
+Khi chấm dứt tài khoản, TRUNGTAMMMO có quyền:
+a) Đóng băng số dư để phục vụ xử lý khiếu nại;
+b) Từ chối giải ngân cho đến khi xác minh xong;
+c) Lưu trữ dữ liệu theo thời hạn pháp luật quy định.
+
+B. CHÍNH SÁCH BẢO MẬT THÔNG TIN
+
+ĐIỀU 13. NGUYÊN TẮC BẢO MẬT THÔNG TIN
+
+TRUNGTAMMMO cam kết thực hiện các biện pháp cần thiết nhằm bảo mật thông tin người dùng theo quy định pháp luật Việt Nam và theo tiêu chuẩn kỹ thuật phù hợp với điều kiện vận hành.
+
+TRUNGTAMMMO chỉ thu thập và xử lý thông tin người dùng trong phạm vi cần thiết để cung cấp dịch vụ và tuân thủ nghĩa vụ pháp lý.
+
+TRUNGTAMMMO không bán, không trao đổi, không cho thuê thông tin người dùng dưới mọi hình thức.
+
+ĐIỀU 14. LOẠI THÔNG TIN THU THẬP
+
+TRUNGTAMMMO có thể thu thập các nhóm thông tin sau:
+
+Thông tin định danh và liên hệ:
+a) Họ tên (nếu có);
+b) Email;
+c) Số điện thoại;
+d) Thông tin xác minh khác phục vụ chống gian lận.
+
+Thông tin tài khoản:
+a) Tên đăng nhập;
+b) Mã định danh tài khoản;
+c) Lịch sử đăng nhập, lịch sử thay đổi thông tin.
+
+Thông tin giao dịch:
+a) Lịch sử đơn hàng;
+b) Số tiền giao dịch;
+c) Thông tin thanh toán, trạng thái giải ngân;
+d) Khiếu nại và trao đổi giữa các bên.
+
+Dữ liệu kỹ thuật:
+a) Địa chỉ IP;
+b) Cookie và dữ liệu phiên đăng nhập;
+c) Thiết bị, trình duyệt, hệ điều hành;
+d) Nhật ký hệ thống (log), dữ liệu chống gian lận.
+
+ĐIỀU 15. MỤC ĐÍCH SỬ DỤNG THÔNG TIN
+
+Thông tin người dùng được sử dụng cho các mục đích sau:
+
+Quản lý tài khoản và xác thực người dùng.
+
+Cung cấp và vận hành dịch vụ trung gian giao dịch.
+
+Hỗ trợ thanh toán, đối soát, giải ngân và phòng chống gian lận.
+
+Xử lý khiếu nại, tranh chấp và hỗ trợ khách hàng.
+
+Cải tiến chất lượng dịch vụ, nâng cấp hệ thống.
+
+Thực hiện nghĩa vụ theo quy định pháp luật hoặc theo yêu cầu của cơ quan nhà nước có thẩm quyền.
+
+ĐIỀU 16. THỜI GIAN LƯU TRỮ THÔNG TIN
+
+TRUNGTAMMMO lưu trữ thông tin người dùng trong suốt thời gian tài khoản tồn tại và/hoặc trong thời hạn cần thiết để thực hiện mục đích xử lý dữ liệu.
+
+Trường hợp người dùng yêu cầu xóa dữ liệu, TRUNGTAMMMO sẽ xem xét xử lý theo quy định pháp luật, trừ các dữ liệu bắt buộc lưu trữ theo quy định pháp luật hoặc phục vụ điều tra, tranh chấp.
+
+Dữ liệu có thể tiếp tục được lưu trữ sau khi chấm dứt tài khoản nhằm phục vụ:
+a) Giải quyết tranh chấp;
+b) Thực hiện nghĩa vụ báo cáo, kiểm toán, nghĩa vụ thuế;
+c) Cung cấp cho cơ quan có thẩm quyền theo yêu cầu hợp pháp.
+
+ĐIỀU 17. CHIA SẺ THÔNG TIN VỚI BÊN THỨ BA
+
+TRUNGTAMMMO chỉ chia sẻ thông tin người dùng trong các trường hợp sau:
+a) Có sự đồng ý của người dùng theo quy định pháp luật;
+b) Phục vụ thanh toán, đối soát với đối tác cổng thanh toán hoặc ngân hàng;
+c) Theo yêu cầu hợp pháp của cơ quan nhà nước có thẩm quyền;
+d) Theo quyết định của tòa án hoặc cơ quan tiến hành tố tụng;
+đ) Khi cần thiết để bảo vệ quyền và lợi ích hợp pháp của TRUNGTAMMMO trước hành vi vi phạm pháp luật.
+
+Việc chia sẻ thông tin chỉ thực hiện trong phạm vi tối thiểu cần thiết.
+
+TRUNGTAMMMO yêu cầu bên thứ ba nhận thông tin phải cam kết bảo mật và chỉ sử dụng đúng mục đích.
+
+ĐIỀU 18. QUYỀN CỦA NGƯỜI DÙNG ĐỐI VỚI THÔNG TIN
+
+Người dùng có quyền:
+
+Yêu cầu truy cập, xem, chỉnh sửa thông tin tài khoản.
+
+Yêu cầu hạn chế xử lý hoặc xóa dữ liệu cá nhân theo quy định pháp luật.
+
+Rút lại sự đồng ý cho phép xử lý dữ liệu (nếu có), trừ trường hợp pháp luật cho phép tiếp tục xử lý.
+
+Khiếu nại hoặc yêu cầu giải trình khi nghi ngờ dữ liệu bị xử lý trái phép.
+
+C. CHÍNH SÁCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+
+ĐIỀU 19. CƠ SỞ PHÁP LÝ VÀ NGUYÊN TẮC XỬ LÝ DỮ LIỆU
+
+TRUNGTAMMMO thực hiện xử lý dữ liệu cá nhân theo đúng quy định tại Nghị định 13/2023/NĐ-CP và các văn bản pháp luật liên quan.
+
+Việc xử lý dữ liệu cá nhân tuân thủ các nguyên tắc:
+a) Có mục đích cụ thể, rõ ràng;
+b) Thu thập tối thiểu cần thiết;
+c) Bảo đảm tính chính xác, đầy đủ;
+d) Áp dụng biện pháp bảo mật phù hợp;
+đ) Chỉ lưu trữ trong thời hạn phù hợp;
+e) Tôn trọng quyền của chủ thể dữ liệu.
+
+ĐIỀU 20. PHÂN LOẠI DỮ LIỆU CÁ NHÂN ĐƯỢC XỬ LÝ
+
+Dữ liệu cá nhân cơ bản có thể bao gồm:
+a) Họ tên, email, số điện thoại;
+b) Địa chỉ IP, dữ liệu truy cập;
+c) Thông tin tài khoản và lịch sử giao dịch.
+
+Dữ liệu cá nhân nhạy cảm có thể bao gồm (nếu phát sinh trong giao dịch):
+a) Thông tin tài chính liên quan thanh toán;
+b) Dữ liệu xác minh danh tính (nếu người dùng cung cấp);
+c) Dữ liệu đăng nhập có tính bảo mật cao (nếu phát sinh theo yêu cầu xử lý tranh chấp).
+
+TRUNGTAMMMO không khuyến khích và không yêu cầu người dùng cung cấp dữ liệu cá nhân nhạy cảm nếu không cần thiết.
+
+ĐIỀU 21. MỤC ĐÍCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+
+Dữ liệu cá nhân được xử lý nhằm:
+
+Xác minh danh tính người dùng và phòng chống gian lận.
+
+Quản lý tài khoản, duy trì hoạt động giao dịch.
+
+Thực hiện thanh toán trung gian và giải ngân.
+
+Hỗ trợ giải quyết khiếu nại, tranh chấp.
+
+Đáp ứng yêu cầu của cơ quan nhà nước có thẩm quyền theo quy định pháp luật.
+
+ĐIỀU 22. SỰ ĐỒNG Ý CỦA CHỦ THỂ DỮ LIỆU
+
+Người dùng khi đăng ký tài khoản và sử dụng dịch vụ được hiểu là đã đồng ý cho TRUNGTAMMMO xử lý dữ liệu cá nhân theo nội dung Bộ Chính sách này.
+
+TRUNGTAMMMO có thể yêu cầu người dùng xác nhận đồng ý bằng thao tác cụ thể trên hệ thống trong các trường hợp:
+a) Thu thập dữ liệu nhạy cảm;
+b) Chia sẻ dữ liệu cho bên thứ ba không thuộc trường hợp bắt buộc;
+c) Thực hiện hoạt động tiếp thị, quảng cáo.
+
+Người dùng có quyền rút lại sự đồng ý. Việc rút lại sự đồng ý có thể dẫn đến việc TRUNGTAMMMO không thể tiếp tục cung cấp một phần hoặc toàn bộ dịch vụ.
+
+ĐIỀU 23. BIỆN PHÁP BẢO VỆ DỮ LIỆU CÁ NHÂN
+
+TRUNGTAMMMO áp dụng các biện pháp kỹ thuật và quản trị phù hợp, bao gồm:
+a) Mã hóa, phân quyền truy cập dữ liệu;
+b) Giới hạn nhân sự được phép truy cập;
+c) Lưu nhật ký truy cập và kiểm soát hệ thống;
+d) Biện pháp phòng chống tấn công mạng;
+đ) Kiểm tra an toàn thông tin định kỳ.
+
+Người dùng có trách nhiệm bảo vệ thiết bị, mật khẩu và không chia sẻ thông tin đăng nhập cho bất kỳ bên thứ ba nào.
+
+ĐIỀU 24. CHUYỂN DỮ LIỆU RA NƯỚC NGOÀI
+
+Trong trường hợp TRUNGTAMMMO sử dụng dịch vụ lưu trữ, máy chủ hoặc nền tảng công nghệ đặt tại nước ngoài, việc chuyển dữ liệu ra nước ngoài sẽ được thực hiện theo quy định của Nghị định 13/2023/NĐ-CP và pháp luật liên quan.
+
+TRUNGTAMMMO có quyền sử dụng các nền tảng cloud quốc tế nhằm tối ưu vận hành, nhưng phải áp dụng biện pháp bảo mật phù hợp và chỉ chuyển dữ liệu trong phạm vi cần thiết.
+
+ĐIỀU 25. CUNG CẤP DỮ LIỆU THEO YÊU CẦU PHÁP LUẬT
+
+TRUNGTAMMMO có quyền cung cấp dữ liệu người dùng trong các trường hợp:
+a) Có yêu cầu bằng văn bản từ cơ quan nhà nước có thẩm quyền;
+b) Có quyết định của tòa án hoặc cơ quan tiến hành tố tụng;
+c) Phục vụ điều tra hành vi vi phạm pháp luật, gian lận, lừa đảo, chiếm đoạt tài sản.
+
+Việc cung cấp dữ liệu chỉ thực hiện trong phạm vi cần thiết và phù hợp với Luật An ninh mạng, Nghị định 13/2023/NĐ-CP và các quy định liên quan.
+
+D. QUYỀN & TRÁCH NHIỆM CÁC BÊN
+
+ĐIỀU 26. QUYỀN VÀ NGHĨA VỤ CỦA TRUNGTAMMMO
+
+Quyền của TRUNGTAMMMO:
+a) Quyết định cơ chế vận hành, chính sách đăng tin, chính sách giao dịch;
+b) Yêu cầu người dùng cung cấp thông tin xác minh khi cần thiết;
+c) Tạm ngưng, khóa hoặc chấm dứt tài khoản khi phát hiện vi phạm;
+d) Thu phí dịch vụ theo biểu phí công bố;
+đ) Đóng băng giao dịch, số dư để phục vụ điều tra gian lận hoặc xử lý tranh chấp;
+e) Gỡ bỏ nội dung vi phạm mà không cần báo trước;
+g) Từ chối cung cấp dịch vụ đối với người dùng có dấu hiệu rủi ro.
+
+Nghĩa vụ của TRUNGTAMMMO:
+a) Cung cấp nền tảng kỹ thuật để người dùng thực hiện giao dịch;
+b) Bảo mật dữ liệu theo quy định pháp luật;
+c) Tiếp nhận và xử lý khiếu nại theo quy trình công bố;
+d) Lưu trữ dữ liệu theo thời hạn phù hợp;
+đ) Hỗ trợ cơ quan nhà nước có thẩm quyền theo yêu cầu hợp pháp.
+
+ĐIỀU 27. QUYỀN VÀ NGHĨA VỤ CỦA NGƯỜI DÙNG
+
+Người dùng có quyền:
+a) Đăng ký tài khoản và sử dụng dịch vụ theo đúng chính sách;
+b) Được hỗ trợ khiếu nại theo cơ chế nội bộ;
+c) Yêu cầu chỉnh sửa hoặc xóa dữ liệu theo quy định pháp luật;
+d) Được bảo vệ thông tin theo chính sách bảo mật.
+
+Người dùng có nghĩa vụ:
+a) Cung cấp thông tin chính xác;
+b) Không thực hiện hành vi bị cấm;
+c) Tuân thủ pháp luật và điều khoản nền tảng;
+d) Chịu trách nhiệm về nội dung đăng tải;
+đ) Tự bảo vệ quyền lợi bằng cách lưu giữ bằng chứng giao dịch.
+
+ĐIỀU 28. NGHĨA VỤ BỒI THƯỜNG THIỆT HẠI
+
+Người bán phải bồi thường toàn bộ thiệt hại cho người mua và/hoặc TRUNGTAMMMO nếu hành vi vi phạm của người bán gây thiệt hại.
+
+Người mua phải bồi thường thiệt hại cho người bán và/hoặc TRUNGTAMMMO nếu lợi dụng chính sách khiếu nại để gian lận, chiếm đoạt tài sản hoặc gây thiệt hại.
+
+TRUNGTAMMMO có quyền yêu cầu người vi phạm thanh toán toàn bộ chi phí phát sinh, bao gồm chi phí xử lý tranh chấp, chi phí luật sư, chi phí điều tra, thiệt hại uy tín.
+
+E. ĐIỀU KHOẢN MIỄN TRỪ & GIỚI HẠN TRÁCH NHIỆM
+
+ĐIỀU 29. TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM
+
+TRUNGTAMMMO chỉ là nền tảng trung gian cung cấp môi trường kỹ thuật.
+
+TRUNGTAMMMO không chịu trách nhiệm đối với:
+a) Chất lượng, giá trị sử dụng hoặc tính phù hợp của sản phẩm;
+b) Việc tài khoản bị khóa, thu hồi, hạn chế bởi nền tảng gốc;
+c) Tranh chấp, thiệt hại, khiếu nại phát sinh giữa người bán và người mua;
+d) Thiệt hại phát sinh do hành vi gian lận từ người dùng;
+đ) Thiệt hại do lỗi thiết bị, đường truyền, nhà mạng hoặc lỗi bên thứ ba.
+
+TRUNGTAMMMO không chịu trách nhiệm đối với mọi thỏa thuận ngoài hệ thống, bao gồm việc thanh toán riêng, giao dịch riêng giữa người mua và người bán.
+
+ĐIỀU 30. GIỚI HẠN TRÁCH NHIỆM BỒI THƯỜNG
+
+Trong mọi trường hợp, trách nhiệm bồi thường của TRUNGTAMMMO (nếu có) sẽ được giới hạn trong phạm vi phí dịch vụ mà TRUNGTAMMMO thực tế thu từ giao dịch phát sinh tranh chấp.
+
+TRUNGTAMMMO không chịu trách nhiệm bồi thường thiệt hại gián tiếp, thiệt hại do mất lợi nhuận, mất cơ hội kinh doanh hoặc thiệt hại uy tín của người dùng.
+
+ĐIỀU 31. SỰ KIỆN BẤT KHẢ KHÁNG
+
+Bất khả kháng bao gồm nhưng không giới hạn: thiên tai, hỏa hoạn, chiến tranh, dịch bệnh, tấn công mạng, sự cố hạ tầng, thay đổi chính sách pháp luật, yêu cầu từ cơ quan nhà nước.
+
+TRUNGTAMMMO không chịu trách nhiệm đối với việc gián đoạn dịch vụ do sự kiện bất khả kháng.
+
+F. CƠ CHẾ GIẢI QUYẾT TRANH CHẤP
+
+ĐIỀU 32. NGUYÊN TẮC GIẢI QUYẾT TRANH CHẤP
+
+Tranh chấp phát sinh được ưu tiên giải quyết bằng thương lượng và hòa giải.
+
+TRUNGTAMMMO có thể đóng vai trò hỗ trợ trung gian, tiếp nhận chứng cứ và đưa ra kết luận xử lý nội bộ trên nền tảng.
+
+Việc TRUNGTAMMMO hỗ trợ giải quyết tranh chấp không đồng nghĩa TRUNGTAMMMO là bên chịu trách nhiệm pháp lý thay cho người bán hoặc người mua.
+
+ĐIỀU 33. QUY TRÌNH KHIẾU NẠI
+
+Người dùng có quyền gửi khiếu nại thông qua kênh hỗ trợ chính thức của TRUNGTAMMMO.
+
+Khiếu nại phải kèm theo:
+a) Mã đơn hàng;
+b) Nội dung khiếu nại cụ thể;
+c) Chứng cứ giao dịch: hình ảnh, video, tin nhắn, log, biên bản bàn giao.
+
+TRUNGTAMMMO có quyền từ chối xử lý khiếu nại nếu:
+a) Khiếu nại không đủ chứng cứ;
+b) Khiếu nại vượt quá thời hạn;
+c) Người khiếu nại vi phạm điều khoản hoặc có dấu hiệu gian lận.
+
+Thời hạn xử lý khiếu nại do TRUNGTAMMMO quy định tùy theo tính chất vụ việc và có thể kéo dài nếu cần xác minh.
+
+ĐIỀU 34. GIẢI QUYẾT TẠI CƠ QUAN CÓ THẨM QUYỀN
+
+Trường hợp các bên không đạt được thỏa thuận, mỗi bên có quyền khởi kiện tại Tòa án nhân dân có thẩm quyền theo quy định pháp luật Việt Nam.
+
+Luật áp dụng để giải quyết tranh chấp là pháp luật Việt Nam.
+
+G. ĐIỀU KHOẢN CHUNG – HIỆU LỰC
+
+ĐIỀU 35. ĐIỀU KHOẢN SỬA ĐỔI VÀ CẬP NHẬT CHÍNH SÁCH
+
+TRUNGTAMMMO có quyền sửa đổi, bổ sung, cập nhật Bộ Điều khoản và Chính sách này bất kỳ thời điểm nào.
+
+Phiên bản cập nhật sẽ được công bố công khai trên website TRUNGTAMMMO và có hiệu lực kể từ thời điểm công bố, trừ khi có quy định khác.
+
+Việc người dùng tiếp tục sử dụng dịch vụ sau thời điểm chính sách cập nhật được hiểu là người dùng đã đồng ý với nội dung sửa đổi.
+
+ĐIỀU 36. HIỆU LỰC ÁP DỤNG
+
+Bộ Điều khoản và Chính sách này có hiệu lực kể từ ngày công bố trên website TRUNGTAMMMO.
+
+Bộ Điều khoản này là thỏa thuận điện tử có giá trị ràng buộc giữa TRUNGTAMMMO và người dùng theo Luật Giao dịch điện tử.
+
+Trường hợp một hoặc một số điều khoản bị vô hiệu theo quyết định của cơ quan có thẩm quyền, các điều khoản còn lại vẫn giữ nguyên hiệu lực.
+
+ĐIỀU 37. TUYÊN BỐ PHÁP LÝ QUAN TRỌNG
+
+TRUNGTAMMMO là nền tảng trung gian thương mại điện tử, cung cấp môi trường kỹ thuật và công cụ hỗ trợ giao dịch.
+
+Người bán là bên duy nhất chịu trách nhiệm trước pháp luật về nguồn gốc, quyền sở hữu, nội dung và tính hợp pháp của sản phẩm/dịch vụ đăng bán.
+
+Người mua có nghĩa vụ tự đánh giá, tự chịu trách nhiệm đối với quyết định mua hàng và việc sử dụng sản phẩm sau giao dịch.
+
+TRUNGTAMMMO có quyền phối hợp và cung cấp thông tin cho cơ quan nhà nước có thẩm quyền khi có yêu cầu hợp pháp hoặc khi phát hiện hành vi có dấu hiệu vi phạm pháp luật.

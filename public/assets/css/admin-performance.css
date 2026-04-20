@@ -1,0 +1,119 @@
+/* Admin Panel Performance Optimizations */
+
+/* GPU Acceleration for smooth animations */
+.stat-card,
+.modal-overlay,
+.sidebar-nav a,
+button,
+[class*="transition"],
+[class*="hover:"] {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize table rendering */
+table {
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+/* Reduce paint on scroll */
+.overflow-y-auto,
+.overflow-x-auto {
+    contain: layout style paint;
+}
+
+/* Optimize modal animations */
+.modal-enter {
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-leave {
+    animation: modalFadeOut 0.15s ease-in;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateZ(0);
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateZ(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95) translateZ(0);
+    }
+}
+
+/* Lazy load images */
+img[loading="lazy"] {
+    content-visibility: auto;
+}
+
+/* Optimize grid layouts */
+.grid {
+    contain: layout;
+}
+
+/* Reduce repaints on hover */
+.hover-lift {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px) translateZ(0);
+}
+
+/* Optimize scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Reduce animation on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Optimize font rendering */
+body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Contain layout shifts */
+.stat-number {
+    font-variant-numeric: tabular-nums;
+}

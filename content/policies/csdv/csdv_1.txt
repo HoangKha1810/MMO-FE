@@ -1,0 +1,249 @@
+CHÍNH SÁCH & ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+(DỊCH VỤ FIND JOB TRÊN WEBSITE)
+
+Văn bản này quy định Điều khoản sử dụng dịch vụ, Chính sách bảo mật thông tin và Chính sách xử lý dữ liệu cá nhân áp dụng cho toàn bộ người dùng khi truy cập, đăng ký tài khoản, sử dụng các chức năng, dịch vụ và tiện ích trên Website/Ứng dụng do TRUNGTAMMMO vận hành.
+
+Người dùng khi truy cập hoặc sử dụng Website được hiểu là đã đọc, hiểu và đồng ý bị ràng buộc bởi toàn bộ nội dung của văn bản này.
+
+Văn bản được xây dựng phù hợp với pháp luật Việt Nam hiện hành, bao gồm nhưng không giới hạn:
+
+Bộ luật Dân sự 2015;
+Luật Thương mại 2005;
+Luật Giao dịch điện tử 2023;
+Luật An ninh mạng 2018;
+Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân;
+Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng (và các văn bản sửa đổi, bổ sung);
+Các văn bản pháp luật liên quan khác.
+
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+
+ĐIỀU 1. GIẢI THÍCH TỪ NGỮ
+
+Trong phạm vi văn bản này, các thuật ngữ dưới đây được hiểu như sau:
+
+"Website" hoặc "Hệ thống" là nền tảng số (website/ứng dụng) do TRUNGTAMMMO vận hành, cung cấp các tính năng đăng tin việc làm, kết nối người thuê và người nhận việc, cung cấp dịch vụ trung gian thanh toán và các dịch vụ liên quan.
+
+"Nhà cung cấp dịch vụ" hoặc "Chúng tôi" là TRUNGTAMMMO, đơn vị sở hữu, quản lý và vận hành Website.
+
+"Người dùng" là mọi cá nhân/tổ chức truy cập hoặc sử dụng Website, bao gồm Người dùng A và Người dùng B.
+
+"Người dùng A" là cá nhân/tổ chức đăng nhu cầu công việc, đăng kèo, đăng dự án hoặc giao nhiệm vụ cần thực hiện trên Website.
+
+"Người dùng B" là cá nhân/tổ chức có kỹ năng chuyên môn, nhận công việc/kèo từ Người dùng A và thực hiện theo thỏa thuận.
+
+"Dịch vụ Find Job" là dịch vụ cho phép Người dùng A đăng tin giao việc và Người dùng B tìm kiếm, nhận việc, trao đổi và thực hiện công việc thông qua Website.
+
+"Giao dịch" là quá trình thỏa thuận, thực hiện công việc và thanh toán giữa Người dùng A và Người dùng B, có thể thực hiện trực tiếp hoặc thông qua cơ chế trung gian của Website.
+
+"Dịch vụ trung gian giao dịch tự động" là dịch vụ do Website cung cấp, trong đó Website tiếp nhận/giữ tiền thanh toán từ Người dùng A và giải ngân cho Người dùng B sau khi công việc hoàn thành theo điều kiện xác nhận của Hệ thống.
+
+"Hoa hồng" hoặc "Phí dịch vụ" là khoản phí mà Website thu từ Người dùng A và/hoặc Người dùng B theo chính sách từng thời kỳ.
+
+"Tài khoản" là tài khoản điện tử của Người dùng được tạo trên Website để sử dụng các chức năng.
+
+"Ví điện tử nội bộ" là hệ thống số ghi nhận số dư tiền của Người dùng B trên Website, phát sinh từ thu nhập giao dịch hoặc hoàn tiền.
+
+ĐIỀU 2. PHẠM VI ÁP DỤNG
+
+Văn bản này áp dụng cho toàn bộ Người dùng A và Người dùng B sử dụng Website.
+
+Trường hợp Người dùng sử dụng các dịch vụ bổ sung (quảng cáo tin tuyển dụng, dịch vụ trung gian, dịch vụ bảo đảm giao dịch, dịch vụ ưu tiên hiển thị, dịch vụ xác minh tài khoản, dịch vụ trả phí khác), Người dùng đồng thời phải tuân thủ các quy định bổ sung của từng dịch vụ.
+
+Trường hợp điều khoản riêng của từng dịch vụ có nội dung khác với văn bản này thì điều khoản riêng sẽ được ưu tiên áp dụng đối với dịch vụ đó, trừ khi trái quy định pháp luật.
+
+ĐIỀU 3. NGUYÊN TẮC HOẠT ĐỘNG CỦA DỊCH VỤ FIND JOB
+
+Website là nền tảng trung gian kết nối, tạo môi trường để Người dùng A đăng tin giao việc và Người dùng B nhận việc.
+
+Website không phải là người sử dụng lao động, không phải công ty tuyển dụng, không phải bên thuê nhân sự, không phải bên nhận thầu và không trực tiếp tham gia vào nội dung công việc giữa Người dùng A và Người dùng B, trừ trường hợp Website cung cấp dịch vụ trung gian giao dịch tự động theo Điều 7 văn bản này.
+
+Mọi thỏa thuận giữa Người dùng A và Người dùng B về nội dung công việc, thời hạn, chất lượng, phương thức thực hiện, giá trị thanh toán, nghĩa vụ thuế, trách nhiệm phát sinh và tranh chấp là trách nhiệm của hai bên.
+
+Website có quyền thu phí hoa hồng, phí dịch vụ hoặc khoản chênh lệch theo chính sách công khai trên Website tại từng thời điểm.
+
+ĐIỀU 4. ĐIỀU KIỆN ĐĂNG KÝ VÀ SỬ DỤNG TÀI KHOẢN
+
+Người dùng phải cung cấp thông tin trung thực, đầy đủ và hợp pháp khi đăng ký tài khoản.
+
+Người dùng phải có năng lực hành vi dân sự phù hợp theo quy định pháp luật Việt Nam để thực hiện giao dịch dân sự, thương mại trên Website.
+
+Người dùng chịu trách nhiệm bảo mật thông tin tài khoản, mật khẩu, mã xác thực và toàn bộ hoạt động phát sinh từ tài khoản của mình.
+
+Website có quyền yêu cầu Người dùng xác minh danh tính (KYC) theo các phương thức phù hợp, bao gồm nhưng không giới hạn: số điện thoại, email, giấy tờ tùy thân, xác minh ngân hàng hoặc xác minh theo yêu cầu pháp luật.
+
+Website có quyền từ chối đăng ký hoặc khóa tài khoản nếu phát hiện thông tin sai lệch, giả mạo, trùng lặp, có dấu hiệu lừa đảo hoặc vi phạm điều khoản.
+
+ĐIỀU 5. QUY ĐỊNH VỀ ĐĂNG TIN, ĐĂNG KÈO VÀ NHẬN VIỆC
+
+Đối với Người dùng A:
+a) Nội dung đăng việc phải rõ ràng, minh bạch, không mập mờ, không có yếu tố lừa đảo.
+b) Không đăng công việc trái pháp luật, trái đạo đức xã hội, vi phạm quyền sở hữu trí tuệ hoặc xâm phạm quyền riêng tư.
+c) Không đăng các công việc liên quan đến rửa tiền, đánh bạc, cá độ, lừa đảo, chiếm đoạt tài sản, mua bán dữ liệu cá nhân trái phép hoặc các hành vi bị cấm.
+
+Đối với Người dùng B:
+a) Chỉ nhận việc khi có đủ năng lực chuyên môn và điều kiện thực hiện.
+b) Cam kết thực hiện đúng yêu cầu công việc và thỏa thuận với Người dùng A.
+c) Không sử dụng Website để dụ dỗ, lừa đảo, chiếm đoạt tiền hoặc dữ liệu của Người dùng khác.
+
+Website có quyền kiểm duyệt, ẩn, xóa tin đăng hoặc đình chỉ giao dịch nếu phát hiện nội dung vi phạm, có dấu hiệu lừa đảo hoặc bị khiếu nại hợp lý.
+
+ĐIỀU 6. QUY ĐỊNH VỀ PHÍ DỊCH VỤ VÀ HOA HỒNG
+
+Website có quyền thu phí hoa hồng hoặc phí dịch vụ dựa trên:
+a) Tỷ lệ phần trăm giá trị giao dịch;
+b) Phí cố định theo từng gói dịch vụ;
+c) Khoản chênh lệch giữa mức giá Người dùng A thanh toán và mức giá Người dùng B nhận được (nếu có).
+
+Mức phí được công khai tại Website hoặc tại trang dịch vụ trước thời điểm phát sinh giao dịch.
+
+Người dùng đồng ý rằng việc sử dụng Website đồng nghĩa chấp nhận cơ chế thu phí nêu trên.
+
+Website có quyền thay đổi chính sách phí theo từng thời kỳ và sẽ thông báo trước hoặc công bố công khai tại Website.
+
+ĐIỀU 7. DỊCH VỤ TRUNG GIAN GIAO DỊCH TỰ ĐỘNG (ESCROW)
+
+Website cung cấp tùy chọn "Giao dịch trung gian" nhằm giảm rủi ro tranh chấp và bảo vệ quyền lợi các bên.
+
+Khi Người dùng A đăng ký dịch vụ trung gian:
+a) Người dùng A chuyển tiền thanh toán vào hệ thống theo hướng dẫn của Website.
+b) Website giữ khoản tiền này trong trạng thái ký quỹ/đóng băng.
+c) Người dùng B thực hiện công việc theo thỏa thuận.
+d) Sau khi công việc hoàn tất và được xác nhận theo quy trình, Website sẽ giải ngân cho Người dùng B sau khi trừ phí dịch vụ.
+
+Điều kiện xác nhận hoàn tất công việc bao gồm nhưng không giới hạn:
+a) Người dùng A nhấn xác nhận hoàn thành trên Website;
+b) Hết thời hạn khiếu nại theo quy định của Website mà Người dùng A không có phản hồi;
+c) Kết quả kiểm tra hoặc đánh giá theo cơ chế tự động của Website (nếu có).
+
+Website không chịu trách nhiệm về chất lượng công việc, nội dung sản phẩm, nghĩa vụ thuế hoặc trách nhiệm phát sinh giữa hai bên sau khi hoàn tất giải ngân.
+
+Trường hợp phát sinh tranh chấp:
+a) Website có quyền tạm khóa khoản tiền trong ký quỹ để phục vụ quá trình xử lý khiếu nại;
+b) Website có quyền yêu cầu hai bên cung cấp chứng cứ;
+c) Website có quyền đưa ra quyết định xử lý dựa trên nguyên tắc trung lập theo quy định tại Điều 29 văn bản này.
+
+ĐIỀU 8. QUY ĐỊNH VỀ THANH TOÁN VÀ RÚT TIỀN
+
+Người dùng B chỉ được rút tiền khi:
+a) Giao dịch đã hoàn tất theo hệ thống;
+b) Số dư ví nội bộ đủ điều kiện rút;
+c) Không có tranh chấp hoặc khiếu nại đang xử lý;
+d) Hoàn tất xác minh danh tính theo yêu cầu của Website.
+
+Người dùng B phải cung cấp thông tin tài khoản ngân hàng chính chủ để nhận tiền.
+
+Website có quyền áp dụng hạn mức rút tiền, thời gian xử lý, phí rút tiền và quy trình kiểm tra chống gian lận.
+
+Website không chịu trách nhiệm nếu Người dùng cung cấp sai thông tin nhận tiền hoặc giao dịch bị lỗi do ngân hàng/đơn vị thanh toán.
+
+Website có quyền tạm giữ hoặc từ chối giao dịch rút tiền nếu phát hiện dấu hiệu bất thường, nghi ngờ gian lận, rửa tiền, lừa đảo hoặc theo yêu cầu của cơ quan nhà nước có thẩm quyền.
+
+ĐIỀU 9. CẤM LỢI DỤNG WEBSITE
+
+Người dùng bị nghiêm cấm thực hiện các hành vi sau:
+
+Giả mạo danh tính hoặc cung cấp thông tin sai lệch.
+Lừa đảo, chiếm đoạt tài sản, dụ dỗ thanh toán ngoài hệ thống nhằm trốn phí hoặc gian lận.
+Mua bán, trao đổi dữ liệu cá nhân trái phép.
+Đăng tải nội dung vi phạm pháp luật, kích động bạo lực, thù hằn, khiêu dâm, phản động hoặc thông tin sai sự thật.
+Tấn công hệ thống, phá hoại dữ liệu, sử dụng bot, tool, phần mềm thứ ba để can thiệp hoạt động Website.
+Lợi dụng Website để tuyển dụng đa cấp, tín dụng đen, vay nóng hoặc hoạt động bị pháp luật cấm.
+Vi phạm quyền sở hữu trí tuệ, sao chép trái phép nội dung, dữ liệu hoặc thương hiệu của Website.
+
+ĐIỀU 10. TẠM NGƯNG, KHÓA HOẶC CHẤM DỨT TÀI KHOẢN
+
+Website có quyền tạm ngưng, khóa hoặc chấm dứt tài khoản Người dùng trong các trường hợp:
+a) Vi phạm điều khoản sử dụng;
+b) Có khiếu nại hợp lý từ bên thứ ba;
+c) Có dấu hiệu gian lận, lừa đảo, rửa tiền;
+d) Có yêu cầu từ cơ quan nhà nước có thẩm quyền;
+e) Không hoạt động trong thời gian dài theo chính sách hệ thống.
+
+Khi tài khoản bị khóa:
+a) Website có quyền tạm giữ số dư ví nội bộ cho đến khi xác minh hoàn tất;
+b) Website có quyền từ chối thanh toán/rút tiền nếu có dấu hiệu bất hợp pháp.
+
+Website không có nghĩa vụ bồi thường thiệt hại phát sinh do việc khóa tài khoản trong trường hợp Người dùng vi phạm.
+
+ĐIỀU 11. QUYỀN SỞ HỮU TRÍ TUỆ
+
+Toàn bộ hệ thống, giao diện, mã nguồn, logo, dữ liệu, nội dung hiển thị và các tài sản số thuộc quyền sở hữu của Website hoặc đối tác hợp pháp.
+Người dùng không được sao chép, chỉnh sửa, tái phân phối, khai thác thương mại bất kỳ nội dung nào của Website nếu không có văn bản chấp thuận.
+Người dùng chịu trách nhiệm về quyền sở hữu trí tuệ đối với sản phẩm, nội dung, dữ liệu mà mình đăng tải.
+
+B. CHÍNH SÁCH BẢO MẬT THÔNG TIN
+
+ĐIỀU 12. NGUYÊN TẮC BẢO MẬT
+
+Website cam kết áp dụng các biện pháp kỹ thuật và quản trị hợp lý nhằm bảo mật thông tin Người dùng.
+Việc thu thập, lưu trữ, sử dụng và xử lý thông tin được thực hiện theo nguyên tắc:
+a) Minh bạch;
+b) Đúng mục đích;
+c) Giới hạn phạm vi cần thiết;
+d) Bảo mật và an toàn thông tin;
+e) Tuân thủ quy định pháp luật Việt Nam.
+
+ĐIỀU 13. THÔNG TIN THU THẬP
+
+Website có thể thu thập các nhóm thông tin sau:
+Thông tin tài khoản: họ tên, số điện thoại, email, mật khẩu mã hóa, ảnh đại diện, địa chỉ, ngày sinh.
+Thông tin xác minh danh tính (nếu có): CCCD/CMND/Hộ chiếu, ảnh chụp, video xác minh, thông tin ngân hàng.
+Thông tin giao dịch: lịch sử đăng tin, lịch sử nhận việc, giá trị thanh toán, lịch sử rút tiền.
+Thông tin kỹ thuật: địa chỉ IP, loại thiết bị, trình duyệt, hệ điều hành, cookie, lịch sử truy cập.
+Nội dung trao đổi giữa Người dùng trên hệ thống (tin nhắn, file đính kèm) nhằm phục vụ kiểm soát gian lận và giải quyết tranh chấp.
+
+ĐIỀU 14. MỤC ĐÍCH SỬ DỤNG THÔNG TIN
+
+Website sử dụng thông tin để:
+Cung cấp và vận hành dịch vụ Find Job.
+Xác thực tài khoản, xác minh danh tính, phòng chống gian lận.
+Xử lý thanh toán, ký quỹ, rút tiền, hoàn tiền.
+Cải tiến chất lượng dịch vụ, phân tích hành vi người dùng nhằm nâng cao trải nghiệm.
+Giải quyết tranh chấp, khiếu nại và hỗ trợ khách hàng.
+Thực hiện nghĩa vụ pháp lý theo quy định của pháp luật hoặc theo yêu cầu cơ quan nhà nước có thẩm quyền.
+Gửi thông báo, cảnh báo, thay đổi chính sách, chương trình ưu đãi (nếu Người dùng đồng ý nhận).
+
+ĐIỀU 15. THỜI HẠN LƯU TRỮ THÔNG TIN
+
+Thông tin Người dùng được lưu trữ trong thời gian cần thiết để phục vụ mục đích cung cấp dịch vụ hoặc theo quy định pháp luật.
+
+ĐIỀU 16. CHIA SẺ THÔNG TIN
+
+Website cam kết không bán hoặc trao đổi thông tin cá nhân của Người dùng trái phép.
+Website có thể chia sẻ thông tin trong các trường hợp sau:
+a) Có sự đồng ý của Người dùng;
+b) Chia sẻ với đối tác thanh toán, ngân hàng, đơn vị trung gian để thực hiện giao dịch;
+c) Chia sẻ với đơn vị cung cấp dịch vụ kỹ thuật (hosting, lưu trữ, email, bảo mật) theo hợp đồng bảo mật;
+d) Chia sẻ theo yêu cầu hợp pháp từ cơ quan nhà nước có thẩm quyền;
+e) Chia sẻ để bảo vệ quyền và lợi ích hợp pháp của Website trong tranh chấp.
+
+ĐIỀU 17. BIỆN PHÁP BẢO MẬT
+
+Website áp dụng các biện pháp gồm nhưng không giới hạn:
+Mã hóa mật khẩu và dữ liệu nhạy cảm.
+Cơ chế xác thực đa lớp, phát hiện đăng nhập bất thường.
+Phân quyền truy cập nội bộ.
+Giám sát, ghi log hệ thống để phát hiện hành vi bất thường.
+Cơ chế sao lưu dữ liệu định kỳ.
+
+ĐIỀU 18. COOKIE VÀ CÔNG NGHỆ THEO DÕI
+
+Website sử dụng cookie để nhận diện phiên đăng nhập và cá nhân hóa trải nghiệm.
+
+C. CHÍNH SÁCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+
+ĐIỀU 19. CƠ SỞ PHÁP LÝ VÀ NGUYÊN TẮC XỬ LÝ
+
+Website xử lý dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP và các quy định pháp luật liên quan.
+
+ĐIỀU 20. PHÂN LOẠI DỮ LIỆU CÁ NHÂN
+
+Dữ liệu cá nhân cơ bản: họ tên, số điện thoại, email, địa chỉ, ảnh đại diện, tài khoản ngân hàng.
+Dữ liệu cá nhân nhạy cảm (nếu phát sinh): giấy tờ tùy thân, dữ liệu tài chính, dữ liệu xác thực sinh trắc học (nếu có), dữ liệu liên quan hành vi giao dịch.
+
+ĐIỀU 21. TRÁCH NHIỆM BẢO VỆ DỮ LIỆU
+
+Người dùng chịu trách nhiệm về tính chính xác của dữ liệu cung cấp và không sử dụng dữ liệu của người khác trái phép.
+
+HIỆU LỰC: Văn bản này có hiệu lực kể từ ngày 01/10/2024.
+TRUNGTAMMMO - Kết nối giá trị, tạo nguồn thu nhập.

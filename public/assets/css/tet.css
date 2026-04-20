@@ -1,0 +1,208 @@
+/**
+ * Global Lunar New Year Theme (Tet Mode) - HTBMMO
+ */
+
+:root {
+    --tet-red: #b11313;
+    --tet-red-dark: #8b0000;
+    --tet-gold: #ffd700;
+    --tet-gold-light: #fff0a0;
+}
+
+/* Base Body Background Overrides */
+body.tet-theme {
+    background-color: #fffaf0 !important;
+    /* Cream white for light mode */
+}
+
+body.tet-theme.dark {
+    background-color: #1a0505 !important;
+    /* Very deep red/black for dark mode */
+}
+
+/* Override Tailwind Brand Colors */
+/* Keep background and border overrides but remove global brand-blue text color change */
+.tet-theme .bg-brand-blue {
+    background-color: var(--tet-red) !important;
+}
+
+.tet-theme .border-brand-blue {
+    border-color: var(--tet-red) !important;
+}
+
+.tet-theme .from-brand-blue {
+    --tw-gradient-from: var(--tet-red) !important;
+}
+
+.tet-theme .to-brand-blue {
+    --tw-gradient-to: var(--tet-red-dark) !important;
+}
+
+/* Dashboard Card Enhancements */
+.tet-theme .bg-white,
+.tet-theme .dark .bg-slate-900 {
+    border-color: rgba(177, 19, 19, 0.15) !important;
+}
+
+.tet-theme.dark .bg-white\/5 {
+    background-color: rgba(177, 19, 19, 0.05) !important;
+}
+
+/* Featured Service Cards Background Hover */
+.tet-theme .group:hover {
+    border-color: var(--tet-red) !important;
+}
+
+/* Sidebar & Navigation */
+.tet-theme aside {
+    border-right-color: rgba(177, 19, 19, 0.1) !important;
+    background-image: radial-gradient(var(--tet-gold) 0.5px, transparent 0.5px);
+    background-size: 20px 20px;
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+.tet-theme.dark aside {
+    background-color: rgba(26, 5, 5, 0.98);
+    background-image: radial-gradient(rgba(255, 215, 0, 0.05) 0.5px, transparent 0.5px);
+}
+
+/* Primary Buttons */
+.tet-theme button.bg-brand-blue,
+.tet-theme a.bg-brand-blue {
+    background: linear-gradient(135deg, var(--tet-red) 0%, var(--tet-red-dark) 100%) !important;
+    box-shadow: 0 4px 15px rgba(177, 19, 19, 0.3) !important;
+}
+
+.tet-theme button.bg-brand-blue:hover,
+.tet-theme a.bg-brand-blue:hover {
+    box-shadow: 0 6px 20px rgba(177, 19, 19, 0.4) !important;
+    transform: translateY(-1px);
+}
+
+/* Badge & Indicators */
+.tet-theme .bg-blue-500 {
+    background-color: var(--tet-red) !important;
+}
+
+/* Custom Scrollbar for Tet */
+.tet-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--tet-red) !important;
+    opacity: 0.5;
+}
+
+/* Global Festive Background Texture */
+.tet-theme::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(177, 19, 19, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Glassmorphism with Red Tint */
+.tet-theme .bg-white\/80,
+.tet-theme .dark .bg-slate-900\/80 {
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(177, 19, 19, 0.1) !important;
+}
+
+.tet-theme.dark .bg-slate-900\/80 {
+    background-color: rgba(26, 5, 5, 0.8) !important;
+    border: 1px solid rgba(255, 215, 0, 0.1) !important;
+}
+
+/* Premium Typography for Tet */
+.tet-theme h1,
+.tet-theme h2,
+.tet-theme h3 {
+    letter-spacing: -0.02em;
+}
+
+/* Animations for festive elements */
+@keyframes bloom {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.tet-theme .tet-banner {
+    animation: swaying 3.5s ease-in-out infinite alternate, bloom 1s ease-out;
+}
+
+/* Keeping Nav Icons as is to maintain original color */
+
+/* Card Glow */
+.tet-theme .rounded-2xl {
+    box-shadow: 0 4px 20px rgba(177, 19, 19, 0.05) !important;
+    transition: all 0.3s ease;
+}
+
+.tet-theme .rounded-2xl:hover {
+    box-shadow: 0 10px 30px rgba(177, 19, 19, 0.12) !important;
+    border-color: rgba(177, 19, 19, 0.3) !important;
+}
+
+/* --- Exhaustive Hover & Active State Overrides --- */
+
+/* Active & Hover Menu Item Backgrounds */
+.tet-theme .bg-brand-blue\/10,
+.tet-theme .bg-brand-blue\/5,
+.tet-theme .hover\:bg-brand-blue\/5:hover,
+.tet-theme .hover\:bg-brand-blue\/10:hover,
+.tet-theme .active-menu-item,
+.tet-theme .nav-link-active {
+    background-color: rgba(177, 19, 19, 0.1) !important;
+    color: var(--tet-red) !important;
+}
+
+/* Ensure text and icons inside active items are also red */
+.tet-theme .active-menu-item *,
+.tet-theme .nav-link-active *,
+.tet-theme .bg-brand-blue\/10 * {
+    color: var(--tet-red) !important;
+}
+
+/* Sidebar Specific Backgrounds */
+.tet-theme aside .group:hover {
+    background-color: rgba(177, 19, 19, 0.05) !important;
+}
+
+/* Handle all Tailwind Opacity variations for brand-blue background */
+.tet-theme [class*="bg-brand-blue"] {
+    background-color: var(--tet-red) !important;
+}
+
+/* Except for those specifically intended to be transparent/tinted */
+.tet-theme [class*="bg-brand-blue/"] {
+    background-color: rgba(177, 19, 19, 0.1) !important;
+}
+
+/* Ring & Border Focus */
+.tet-theme .ring-brand-blue,
+.tet-theme .focus\:ring-brand-blue:focus,
+.tet-theme .focus\:border-brand-blue:focus {
+    --tw-ring-color: var(--tet-red) !important;
+    border-color: var(--tet-red) !important;
+}
+
+/* Turn text red only on hover for groups and links */
+.tet-theme .group:hover .group-hover\:text-brand-blue,
+.tet-theme a:hover .text-brand-blue,
+.tet-theme .hover\:text-brand-blue:hover {
+    color: var(--tet-red) !important;
+}
+
+/* Sidebar active indicator if it uses a border */
+.tet-theme .border-brand-blue {
+    border-color: var(--tet-red) !important;
+}

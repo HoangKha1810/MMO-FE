@@ -1,0 +1,428 @@
+CHÍNH SÁCH VÀ ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+(DỊCH VỤ AUTO MẠNG XÃ HỘI)
+
+Văn bản này quy định các điều khoản sử dụng dịch vụ, chính sách bảo mật thông tin và chính sách xử lý dữ liệu cá nhân áp dụng đối với toàn bộ người dùng khi truy cập, đăng ký tài khoản, nạp tiền, tạo đơn hàng và sử dụng bất kỳ dịch vụ nào tại hệ thống.
+
+Việc Người dùng thực hiện một trong các hành vi sau: (i) đăng ký tài khoản; (ii) đăng nhập; (iii) nạp tiền; (iv) tạo đơn hàng; (v) sử dụng dịch vụ; được hiểu là Người dùng đã đọc, hiểu và đồng ý chịu sự ràng buộc toàn bộ nội dung của Chính sách và Điều khoản này.
+
+Chính sách này được xây dựng phù hợp với quy định pháp luật Việt Nam hiện hành, bao gồm nhưng không giới hạn: Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, Luật An ninh mạng 2018, Nghị định 72/2013/NĐ-CP (và các văn bản sửa đổi, bổ sung), Luật Giao dịch điện tử 2023 và các quy định liên quan khác.
+
+============================================================
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+
+ĐIỀU 1. GIẢI THÍCH THUẬT NGỮ
+
+1.1. “Hệ thống” là nền tảng phần mềm/website/ứng dụng do Nhà cung cấp quản lý, vận hành và cung cấp dịch vụ Auto Mạng Xã Hội cho Người dùng.
+
+1.2. “Nhà cung cấp” là đơn vị sở hữu và vận hành Hệ thống, cung cấp các dịch vụ kỹ thuật tự động/bán tự động theo danh mục công bố trên Hệ thống tại từng thời điểm.
+
+1.3. “Người dùng” là cá nhân hoặc tổ chức đăng ký tài khoản, truy cập, nạp tiền, tạo đơn hàng hoặc sử dụng bất kỳ dịch vụ nào trên Hệ thống.
+
+1.4. “Dịch vụ” là các dịch vụ auto/bán auto mạng xã hội, dịch vụ kỹ thuật xử lý tài khoản, tương tác, bảo vệ, khôi phục, báo cáo (report), xác minh, thay đổi thông tin, hoặc các dịch vụ liên quan khác theo danh mục được Hệ thống công bố tại từng thời điểm.
+
+1.5. “Đơn hàng” là yêu cầu sử dụng dịch vụ do Người dùng khởi tạo và gửi lên Hệ thống, có ghi nhận đầy đủ thông tin loại dịch vụ, chi phí, thời gian xử lý và trạng thái thực hiện.
+
+1.6. “Dữ liệu cá nhân” được hiểu theo quy định tại Nghị định 13/2023/NĐ-CP, bao gồm dữ liệu cá nhân cơ bản và dữ liệu cá nhân nhạy cảm.
+
+1.7. “Dịch vụ Report” là dịch vụ hỗ trợ thực hiện thao tác báo cáo (report) đối với tài khoản, nội dung hoặc thực thể mạng xã hội theo yêu cầu Người dùng, được xử lý nhanh theo cơ chế tự động/bán tự động.
+
+1.8. “Nền tảng bên thứ ba” là các nền tảng mạng xã hội hoặc dịch vụ số khác như Facebook/Meta, Instagram, TikTok, Google, YouTube và các nền tảng tương tự.
+
+ĐIỀU 2. PHẠM VI ÁP DỤNG VÀ HIỆU LỰC
+
+2.1. Chính sách này áp dụng đối với toàn bộ Người dùng khi sử dụng bất kỳ dịch vụ nào trên Hệ thống, không phân biệt loại dịch vụ, hình thức thanh toán, thời điểm đăng ký hoặc địa điểm truy cập.
+
+2.2. Chính sách này có hiệu lực kể từ thời điểm được công bố trên Hệ thống và thay thế cho mọi nội dung, thỏa thuận, trao đổi trước đó (nếu có) liên quan đến việc sử dụng dịch vụ.
+
+2.3. Trường hợp Người dùng không đồng ý với bất kỳ điều khoản nào, Người dùng có trách nhiệm dừng ngay việc truy cập và sử dụng Hệ thống.
+
+ĐIỀU 3. ĐIỀU KIỆN ĐĂNG KÝ VÀ SỬ DỤNG TÀI KHOẢN
+
+3.1. Người dùng phải cung cấp thông tin đăng ký tối thiểu theo yêu cầu của Hệ thống và chịu trách nhiệm về tính chính xác, trung thực của thông tin đã cung cấp.
+
+3.2. Người dùng có trách nhiệm bảo mật thông tin đăng nhập, mật khẩu, email, số điện thoại và các yếu tố xác thực liên quan đến tài khoản Hệ thống.
+
+3.3. Người dùng chịu trách nhiệm đối với toàn bộ hoạt động phát sinh từ tài khoản của mình, kể cả trong trường hợp tài khoản bị truy cập trái phép do lỗi chủ quan của Người dùng.
+
+3.4. Nhà cung cấp có quyền từ chối đăng ký, tạm khóa hoặc chấm dứt tài khoản nếu phát hiện dấu hiệu gian lận, vi phạm pháp luật hoặc vi phạm Chính sách này.
+
+ĐIỀU 4. MÔ TẢ DỊCH VỤ VÀ DANH MỤC DỊCH VỤ
+
+4.1. Hệ thống cung cấp các dịch vụ Auto Mạng Xã Hội, được thực hiện theo cơ chế tự động hoặc bán tự động, bao gồm nhưng không giới hạn các nhóm dịch vụ sau:
+
+a) Nhóm dịch vụ xóa và xử lý thực thể mạng xã hội:
+
+Xóa tài khoản Profile thường;
+
+Xóa tài khoản Profile chuyên nghiệp;
+
+Xóa tài khoản Facebook Locked;
+
+Xóa tài khoản Facebook không ảnh đại diện;
+
+Xóa Fanpage Facebook;
+
+Xóa Group Facebook;
+
+Xóa bài viết Facebook.
+
+b) Nhóm dịch vụ xác minh và hỗ trợ tích xanh:
+
+Lên Tick Xanh Profile Facebook KBH;
+
+Lên Tick Xanh Profile Facebook BH;
+
+Lên Tick Xanh Profile Facebook Chính Chủ KBH;
+
+Lên Tick Xanh Profile Facebook Chính Chủ BH;
+
+Kích hoạt Meta Verify.
+
+c) Nhóm dịch vụ tương tác và tối ưu tài khoản:
+
+Auto tương tác Friend;
+
+Lọc bạn bè Facebook;
+
+Chọc bạn bè Facebook.
+
+d) Nhóm dịch vụ bảo vệ và xác thực:
+
+Verify bảo vệ tài khoản Facebook.
+
+e) Nhóm dịch vụ mở khóa và khôi phục:
+
+Mở khóa Facebook dạng két chính chủ;
+
+Mở khóa Facebook dạng két không chính chủ;
+
+Mở khóa Facebook đình chỉ lần đầu;
+
+Mở khóa Facebook đình chỉ lần 2 trở lên;
+
+Mở khóa Facebook FAQ vô hiệu hóa;
+
+Lấy lại Facebook bị hack.
+
+f) Nhóm dịch vụ thay đổi thông tin và bảo mật:
+
+Change mail Facebook;
+
+Change số điện thoại Facebook;
+
+Kick full thiết bị Facebook;
+
+Đổi mật khẩu Facebook;
+
+Đổi 2FA Facebook;
+
+Đổi ngày tháng năm sinh Facebook bị giới hạn;
+
+Đổi tên.
+
+g) Nhóm dịch vụ FAQ và các dịch vụ kỹ thuật khác:
+
+Tự sát FAQ Facebook;
+
+Nhạc STR;
+
+Các dịch vụ kỹ thuật mạng xã hội khác theo cập nhật của Hệ thống tại từng thời điểm.
+
+4.2. Danh mục dịch vụ có thể thay đổi tùy theo chính sách nền tảng bên thứ ba, nhu cầu thị trường và khả năng vận hành. Nhà cung cấp có quyền bổ sung, điều chỉnh hoặc ngừng cung cấp một phần hoặc toàn bộ dịch vụ mà không cần báo trước.
+
+4.3. Nhà cung cấp không cam kết tuyệt đối về kết quả của bất kỳ dịch vụ nào trong trường hợp nền tảng bên thứ ba thay đổi thuật toán, chính sách hoặc cơ chế xử lý.
+
+ĐIỀU 5. CƠ CHẾ TẠO ĐƠN VÀ THỰC HIỆN DỊCH VỤ
+
+5.1. Người dùng tạo đơn hàng trực tiếp trên Hệ thống theo các trường thông tin được yêu cầu.
+
+5.2. Đơn hàng chỉ được hệ thống tiếp nhận xử lý sau khi Người dùng đã thanh toán đủ phí dịch vụ theo mức giá niêm yết tại thời điểm tạo đơn.
+
+5.3. Thời gian xử lý dịch vụ phụ thuộc vào từng loại dịch vụ, trạng thái hệ thống và tình trạng nền tảng bên thứ ba. Thời gian dự kiến hiển thị trên Hệ thống chỉ mang tính tham khảo.
+
+5.4. Người dùng có nghĩa vụ kiểm tra đúng loại dịch vụ trước khi tạo đơn. Mọi sai sót do Người dùng lựa chọn sai dịch vụ, nhập sai dữ liệu hoặc cung cấp thiếu thông tin thì Người dùng tự chịu trách nhiệm.
+
+ĐIỀU 6. QUY ĐỊNH RIÊNG ĐỐI VỚI DỊCH VỤ REPORT (KHÔNG YÊU CẦU BẰNG CHỨNG)
+
+6.1. Dịch vụ Report là dịch vụ xử lý nhanh, hỗ trợ thao tác báo cáo (report) tài khoản, trang, nhóm, bài viết hoặc nội dung mạng xã hội theo yêu cầu của Người dùng.
+
+6.2. Người dùng xác nhận và đồng ý rằng: nhằm đảm bảo tốc độ xử lý và tối ưu vận hành, Nhà cung cấp KHÔNG yêu cầu Người dùng cung cấp bất kỳ tài liệu, bằng chứng, hồ sơ chứng minh quyền sở hữu, giấy ủy quyền hoặc giấy tờ pháp lý nào khi sử dụng Dịch vụ Report.
+
+6.3. Điều kiện duy nhất để sử dụng Dịch vụ Report là:
+a) Người dùng lựa chọn đúng dịch vụ Report trên Hệ thống;
+b) Người dùng hoàn tất thanh toán phí dịch vụ (nếu có);
+c) Người dùng tích chọn xác nhận “Đồng ý với Chính sách và Điều khoản sử dụng dịch vụ” trước khi tạo đơn.
+
+6.4. Việc Người dùng tích chọn “Đồng ý” theo khoản 6.3 được hiểu là Người dùng đã cam kết, đảm bảo và chịu trách nhiệm rằng:
+a) yêu cầu report được thực hiện nhằm mục đích hợp pháp;
+b) nội dung report do Người dùng yêu cầu không vi phạm pháp luật, không xâm phạm quyền và lợi ích hợp pháp của bất kỳ bên thứ ba nào;
+c) Người dùng tự chịu toàn bộ trách nhiệm nếu yêu cầu report phát sinh khiếu nại, tranh chấp, tố cáo, điều tra hoặc xử lý của cơ quan có thẩm quyền.
+
+6.5. Nhà cung cấp không chịu trách nhiệm xác minh, thẩm định tính đúng/sai của yêu cầu report do Người dùng đưa ra và không chịu trách nhiệm đối với bất kỳ hậu quả pháp lý nào phát sinh từ việc Người dùng sử dụng Dịch vụ Report sai mục đích.
+
+6.6. Trường hợp Người dùng cố tình sử dụng Dịch vụ Report nhằm mục đích xâm hại tài khoản, mạo danh, gây thiệt hại, vu khống, quấy rối, cạnh tranh không lành mạnh hoặc hành vi trái pháp luật, Người dùng tự chịu hoàn toàn trách nhiệm trước pháp luật Việt Nam và bồi thường toàn bộ thiệt hại (nếu có) cho bên bị ảnh hưởng và/hoặc Nhà cung cấp.
+
+6.7. Nhà cung cấp có quyền từ chối xử lý, tạm dừng hoặc hủy đơn Report nếu phát hiện dấu hiệu bất thường, gian lận hoặc yêu cầu có nguy cơ gây rủi ro pháp lý cho Hệ thống, mà không cần giải trình chi tiết.
+
+ĐIỀU 7. NGHIÊM CẤM TUYỆT ĐỐI
+
+7.1. Người dùng bị nghiêm cấm sử dụng Hệ thống và dịch vụ vào các mục đích sau:
+a) lừa đảo, chiếm đoạt tài sản;
+b) rửa tiền, trung gian thanh toán trái phép;
+c) tổ chức đánh bạc, cá độ, giao dịch trái phép;
+d) tống tiền, đe dọa, cưỡng ép cá nhân hoặc tổ chức;
+e) mạo danh, giả mạo cá nhân/tổ chức;
+f) xâm phạm dữ liệu, xâm nhập hệ thống, phá hoại, phát tán mã độc;
+g) spam, thao túng hệ thống, gây nghẽn hệ thống;
+h) xâm phạm quyền riêng tư, danh dự, nhân phẩm, uy tín của cá nhân/tổ chức;
+i) thực hiện hành vi vi phạm quyền sở hữu trí tuệ;
+j) mua bán, trao đổi dữ liệu cá nhân trái phép;
+k) các hành vi bị cấm theo Luật An ninh mạng, Nghị định 72/2013/NĐ-CP và các văn bản pháp luật liên quan;
+l) bất kỳ hành vi nào vi phạm pháp luật Việt Nam hiện hành.
+
+7.2. Trong mọi trường hợp vi phạm, Người dùng tự chịu trách nhiệm trước pháp luật. Nhà cung cấp không đồng phạm, không liên đới trách nhiệm đối với hành vi vi phạm do Người dùng thực hiện.
+
+ĐIỀU 8. PHÍ DỊCH VỤ, THANH TOÁN VÀ NẠP TIỀN
+
+8.1. Phí dịch vụ được niêm yết công khai trên Hệ thống tại thời điểm Người dùng tạo đơn.
+
+8.2. Người dùng đồng ý rằng toàn bộ số tiền đã nạp vào Hệ thống được quy đổi thành số dư sử dụng dịch vụ và KHÔNG được hoàn lại dưới mọi hình thức, trừ trường hợp đặc biệt do Nhà cung cấp quyết định bằng văn bản.
+
+8.3. Người dùng có trách nhiệm tự kiểm tra thông tin trước khi nạp tiền. Mọi giao dịch nạp tiền đều được ghi nhận theo dữ liệu hệ thống và là căn cứ giải quyết khiếu nại.
+
+8.4. Nhà cung cấp có quyền điều chỉnh bảng giá dịch vụ tùy từng thời điểm và không có nghĩa vụ bồi hoàn phần chênh lệch đối với các giao dịch đã phát sinh trước đó.
+
+ĐIỀU 9. CHÍNH SÁCH BẢO HÀNH VÀ HOÀN TIỀN
+
+9.1. Dịch vụ chỉ được bảo hành trong trường hợp dịch vụ đó có ghi rõ nội dung “bảo hành” trên Hệ thống tại thời điểm tạo đơn.
+
+9.2. Thời gian bảo hành và điều kiện bảo hành được quy định riêng theo từng loại dịch vụ.
+
+9.3. Nhà cung cấp KHÔNG hoàn tiền trong các trường hợp sau:
+a) Người dùng thay đổi ý định, không còn nhu cầu sử dụng;
+b) Người dùng cung cấp sai thông tin hoặc nhập sai dữ liệu;
+c) tài khoản bị hạn chế/khóa do hành vi, nội dung, lịch sử vi phạm của Người dùng;
+d) lỗi phát sinh từ nền tảng bên thứ ba (Facebook/Meta hoặc nền tảng liên quan);
+e) dịch vụ đã thực hiện hoặc đã bắt đầu xử lý;
+f) trường hợp bất khả kháng hoặc thay đổi chính sách nền tảng bên thứ ba.
+
+============================================================
+B. CHÍNH SÁCH BẢO MẬT THÔNG TIN
+
+ĐIỀU 10. NGUYÊN TẮC BẢO MẬT
+
+10.1. Nhà cung cấp cam kết thực hiện các biện pháp quản lý và kỹ thuật hợp lý nhằm bảo vệ thông tin tài khoản và dữ liệu Người dùng theo quy định pháp luật Việt Nam.
+
+10.2. Nhà cung cấp không bán, không trao đổi, không chia sẻ thông tin Người dùng cho bất kỳ bên thứ ba nào vì mục đích thương mại trái phép.
+
+10.3. Người dùng có trách nhiệm tự bảo mật thông tin đăng nhập, mật khẩu, email, mã xác thực, 2FA và các dữ liệu liên quan. Nhà cung cấp không chịu trách nhiệm đối với mọi thiệt hại phát sinh do lỗi bảo mật từ phía Người dùng.
+
+ĐIỀU 11. THU THẬP THÔNG TIN
+
+11.1. Nhà cung cấp có thể thu thập các thông tin sau:
+a) thông tin đăng ký tài khoản (email, số điện thoại, tên hiển thị);
+b) thông tin giao dịch, lịch sử nạp tiền, lịch sử đơn hàng;
+c) thông tin kỹ thuật: IP, thiết bị, trình duyệt, nhật ký truy cập;
+d) dữ liệu cần thiết để thực hiện dịch vụ theo yêu cầu Người dùng.
+
+11.2. Việc thu thập thông tin nhằm mục đích:
+a) cung cấp và vận hành dịch vụ;
+b) quản lý giao dịch và đối soát thanh toán;
+c) phát hiện gian lận, bảo vệ hệ thống;
+d) hỗ trợ xử lý khiếu nại;
+e) tuân thủ yêu cầu pháp luật.
+
+ĐIỀU 12. LƯU TRỮ VÀ BẢO VỆ THÔNG TIN
+
+12.1. Dữ liệu Người dùng được lưu trữ theo thời hạn phù hợp với mục đích cung cấp dịch vụ và quy định pháp luật.
+
+12.2. Nhà cung cấp có thể áp dụng các biện pháp như mã hóa, phân quyền truy cập, ghi log hệ thống, kiểm soát nội bộ và các cơ chế bảo mật khác.
+
+12.3. Nhà cung cấp có quyền xóa hoặc ẩn thông tin nếu phát hiện dữ liệu không còn cần thiết hoặc nhằm tuân thủ yêu cầu pháp luật.
+
+ĐIỀU 13. CUNG CẤP THÔNG TIN THEO YÊU CẦU PHÁP LUẬT
+
+13.1. Nhà cung cấp có quyền cung cấp dữ liệu, thông tin liên quan Người dùng cho cơ quan Nhà nước có thẩm quyền khi có yêu cầu hợp pháp theo quy định pháp luật.
+
+13.2. Người dùng đồng ý rằng việc cung cấp dữ liệu theo khoản 13.1 không được xem là hành vi vi phạm nghĩa vụ bảo mật của Nhà cung cấp.
+
+============================================================
+C. CHÍNH SÁCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+
+ĐIỀU 14. CĂN CỨ PHÁP LÝ VÀ PHẠM VI ÁP DỤNG
+
+14.1. Chính sách xử lý dữ liệu cá nhân được xây dựng theo Nghị định 13/2023/NĐ-CP và các quy định pháp luật có liên quan.
+
+14.2. Khi sử dụng Hệ thống, Người dùng đồng ý để Nhà cung cấp thu thập, lưu trữ, xử lý dữ liệu cá nhân trong phạm vi cần thiết nhằm cung cấp dịch vụ.
+
+ĐIỀU 15. LOẠI DỮ LIỆU CÁ NHÂN ĐƯỢC XỬ LÝ
+
+15.1. Dữ liệu cá nhân cơ bản có thể bao gồm:
+a) họ tên, số điện thoại, email;
+b) thông tin đăng nhập;
+c) lịch sử giao dịch và đơn hàng.
+
+15.2. Dữ liệu cá nhân nhạy cảm có thể phát sinh trong quá trình thực hiện dịch vụ, bao gồm nhưng không giới hạn:
+a) thông tin xác thực tài khoản mạng xã hội;
+b) mã bảo mật, mã 2FA, token truy cập (nếu Người dùng cung cấp);
+c) dữ liệu liên quan đến tài khoản nền tảng bên thứ ba.
+
+15.3. Người dùng đồng ý rằng việc cung cấp dữ liệu nhạy cảm là hoàn toàn tự nguyện và nhằm phục vụ yêu cầu xử lý dịch vụ.
+
+ĐIỀU 16. MỤC ĐÍCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+
+Dữ liệu cá nhân được xử lý nhằm:
+a) xác thực, vận hành tài khoản hệ thống;
+b) xử lý đơn hàng và cung cấp dịch vụ;
+c) chăm sóc khách hàng, hỗ trợ kỹ thuật;
+d) phòng chống gian lận, bảo vệ hệ thống;
+e) tuân thủ nghĩa vụ pháp luật.
+
+ĐIỀU 17. THỜI GIAN XỬ LÝ VÀ LƯU TRỮ
+
+17.1. Dữ liệu cá nhân được lưu trữ trong thời gian cần thiết để thực hiện dịch vụ hoặc theo yêu cầu pháp luật.
+
+17.2. Nhà cung cấp có quyền xóa dữ liệu khi:
+a) mục đích xử lý đã hoàn thành;
+b) Người dùng chấm dứt sử dụng dịch vụ;
+c) có yêu cầu từ cơ quan Nhà nước có thẩm quyền;
+d) dữ liệu gây rủi ro pháp lý cho Hệ thống.
+
+ĐIỀU 18. CAM KẾT KHÔNG CHIA SẺ DỮ LIỆU TRÁI PHÉP
+
+18.1. Nhà cung cấp cam kết không chia sẻ dữ liệu cá nhân cho bên thứ ba, trừ các trường hợp:
+a) có sự đồng ý của Người dùng theo quy định pháp luật;
+b) theo yêu cầu hợp pháp của cơ quan Nhà nước có thẩm quyền;
+c) để bảo vệ quyền lợi hợp pháp của Nhà cung cấp trong tranh chấp hoặc điều tra gian lận;
+d) phục vụ việc vận hành hệ thống (đối tác kỹ thuật, hạ tầng), trong phạm vi cần thiết và có ràng buộc bảo mật.
+
+18.2. Người dùng đồng ý rằng việc xử lý dữ liệu cá nhân theo Chính sách này là sự chấp thuận hợp pháp theo Nghị định 13/2023/NĐ-CP.
+
+ĐIỀU 19. QUYỀN CỦA CHỦ THỂ DỮ LIỆU
+
+Người dùng có các quyền theo Nghị định 13/2023/NĐ-CP, bao gồm:
+a) quyền được biết;
+b) quyền đồng ý;
+c) quyền truy cập, chỉnh sửa;
+d) quyền rút lại sự đồng ý;
+e) quyền xóa dữ liệu;
+f) quyền hạn chế xử lý;
+g) quyền yêu cầu cung cấp dữ liệu;
+h) quyền khiếu nại, tố cáo theo quy định pháp luật.
+
+============================================================
+D. QUYỀN VÀ TRÁCH NHIỆM CÁC BÊN
+
+ĐIỀU 20. QUYỀN VÀ NGHĨA VỤ CỦA NGƯỜI DÙNG
+
+20.1. Người dùng có quyền:
+a) lựa chọn và sử dụng dịch vụ theo danh mục cung cấp;
+b) được hỗ trợ kỹ thuật theo cơ chế Hệ thống;
+c) gửi khiếu nại về đơn hàng theo quy định tại Điều 25.
+
+20.2. Người dùng có nghĩa vụ:
+a) đảm bảo mình là chủ sở hữu hợp pháp hoặc có quyền sử dụng hợp pháp đối với tài khoản/nội dung yêu cầu xử lý;
+b) chịu trách nhiệm hoàn toàn về dữ liệu cung cấp và mục đích sử dụng dịch vụ;
+c) tuân thủ pháp luật Việt Nam, pháp luật quốc tế liên quan và chính sách của nền tảng bên thứ ba;
+d) không sử dụng dịch vụ để gây thiệt hại hoặc xâm phạm quyền lợi hợp pháp của bên thứ ba;
+e) tự chịu mọi hậu quả pháp lý phát sinh do hành vi sử dụng sai mục đích.
+
+ĐIỀU 21. QUYỀN VÀ NGHĨA VỤ CỦA NHÀ CUNG CẤP
+
+21.1. Nhà cung cấp có quyền:
+a) từ chối hoặc hủy đơn hàng có dấu hiệu vi phạm;
+b) tạm khóa hoặc chấm dứt tài khoản Người dùng mà không cần báo trước;
+c) cập nhật, thay đổi bảng giá, điều khoản, chính sách bất kỳ thời điểm nào;
+d) ngừng cung cấp dịch vụ để bảo vệ an toàn pháp lý và an toàn hệ thống;
+e) lưu trữ dữ liệu giao dịch làm căn cứ giải quyết tranh chấp.
+
+21.2. Nhà cung cấp có nghĩa vụ:
+a) cung cấp dịch vụ theo mô tả tại thời điểm Người dùng tạo đơn;
+b) bảo mật thông tin Người dùng theo Chính sách này;
+c) duy trì hệ thống vận hành ổn định trong khả năng kỹ thuật cho phép.
+
+============================================================
+E. ĐIỀU KHOẢN MIỄN TRỪ VÀ GIỚI HẠN TRÁCH NHIỆM
+
+ĐIỀU 22. TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM
+
+22.1. Nhà cung cấp không phải là Facebook/Meta hoặc bất kỳ nền tảng bên thứ ba nào và không phải đại diện pháp lý của Người dùng.
+
+22.2. Nhà cung cấp không chịu trách nhiệm đối với:
+a) tranh chấp giữa Người dùng và nền tảng bên thứ ba;
+b) mọi hậu quả pháp lý phát sinh từ hành vi của Người dùng;
+c) trường hợp tài khoản bị checkpoint, hạn chế, khóa lại sau khi dịch vụ hoàn tất;
+d) việc thay đổi chính sách, thuật toán hoặc cơ chế xử lý của nền tảng bên thứ ba.
+
+ĐIỀU 23. GIỚI HẠN TRÁCH NHIỆM
+
+23.1. Nhà cung cấp chỉ chịu trách nhiệm trong phạm vi thực hiện đúng quy trình hệ thống và đúng loại dịch vụ theo đơn hàng.
+
+23.2. Ngay khi dịch vụ hoàn tất hoặc trạng thái đơn hàng được xác nhận hoàn thành, mọi rủi ro phát sinh sau đó không thuộc trách nhiệm của Nhà cung cấp.
+
+23.3. Trong mọi trường hợp, tổng trách nhiệm bồi thường (nếu có) của Nhà cung cấp không vượt quá số tiền phí dịch vụ mà Người dùng đã thanh toán cho đơn hàng liên quan.
+
+ĐIỀU 24. TRƯỜNG HỢP BẤT KHẢ KHÁNG
+
+24.1. Bất khả kháng bao gồm nhưng không giới hạn: sự cố hạ tầng mạng, tấn công mạng, lỗi máy chủ, thiên tai, hỏa hoạn, dịch bệnh, chiến tranh, thay đổi chính sách nền tảng, yêu cầu từ cơ quan Nhà nước có thẩm quyền.
+
+24.2. Trong trường hợp bất khả kháng, Nhà cung cấp được miễn trách nhiệm do không thể thực hiện hoặc chậm thực hiện nghĩa vụ.
+
+============================================================
+F. CƠ CHẾ GIẢI QUYẾT KHIẾU NẠI VÀ TRANH CHẤP
+
+ĐIỀU 25. CƠ CHẾ TIẾP NHẬN VÀ XỬ LÝ KHIẾU NẠI
+
+25.1. Người dùng có quyền khiếu nại liên quan đến đơn hàng trong thời hạn 03 (ba) ngày kể từ thời điểm đơn hàng hiển thị trạng thái hoàn tất.
+
+25.2. Khiếu nại sau thời hạn nêu trên có thể bị từ chối xử lý.
+
+25.3. Nhà cung cấp có quyền yêu cầu Người dùng cung cấp thông tin giao dịch, mã đơn hàng, thông tin liên quan để đối soát.
+
+25.4. Quyết định xử lý của Nhà cung cấp dựa trên dữ liệu hệ thống là căn cứ cuối cùng để giải quyết khiếu nại.
+
+ĐIỀU 26. GIẢI QUYẾT TRANH CHẤP
+
+26.1. Mọi tranh chấp phát sinh được ưu tiên giải quyết bằng thương lượng.
+
+26.2. Trường hợp không thể thương lượng, tranh chấp sẽ được giải quyết tại Tòa án có thẩm quyền tại Việt Nam theo quy định pháp luật.
+
+============================================================
+G. ĐIỀU KHOẢN CHUNG – HIỆU LỰC
+
+ĐIỀU 27. CẬP NHẬT VÀ SỬA ĐỔI CHÍNH SÁCH
+
+27.1. Nhà cung cấp có quyền sửa đổi, cập nhật Chính sách và Điều khoản này bất kỳ thời điểm nào.
+
+27.2. Phiên bản cập nhật có hiệu lực ngay khi công bố trên Hệ thống.
+
+27.3. Người dùng tiếp tục sử dụng dịch vụ sau khi Chính sách được cập nhật được xem là đã đồng ý toàn bộ nội dung sửa đổi.
+
+ĐIỀU 28. CHẤM DỨT VÀ TẠM NGƯNG DỊCH VỤ
+
+28.1. Nhà cung cấp có quyền tạm ngưng hoặc chấm dứt cung cấp dịch vụ đối với Người dùng trong các trường hợp:
+a) Người dùng vi phạm điều khoản cấm;
+b) có dấu hiệu gian lận hoặc gây rủi ro pháp lý;
+c) có yêu cầu từ cơ quan Nhà nước có thẩm quyền;
+d) hệ thống cần bảo trì hoặc nâng cấp.
+
+28.2. Việc tạm ngưng/chấm dứt dịch vụ không làm phát sinh nghĩa vụ hoàn tiền.
+
+ĐIỀU 29. LUẬT ÁP DỤNG
+
+29.1. Chính sách này được điều chỉnh và giải thích theo pháp luật Việt Nam.
+
+29.2. Các vấn đề chưa được quy định tại văn bản này sẽ áp dụng theo quy định pháp luật Việt Nam hiện hành.
+
+ĐIỀU 30. HIỆU LỰC THI HÀNH
+
+30.1. Chính sách và Điều khoản này có hiệu lực kể từ thời điểm công bố trên Hệ thống.
+
+30.2. Nếu bất kỳ điều khoản nào bị tuyên vô hiệu theo quyết định của cơ quan có thẩm quyền, các điều khoản còn lại vẫn giữ nguyên hiệu lực.
+
+30.3. Người dùng xác nhận rằng việc tích chọn “Đồng ý Chính sách” trước khi tạo đơn hàng là hành vi chấp thuận và xác lập giao dịch điện tử có giá trị pháp lý theo quy định pháp luật.
+
+============================================================
+KẾT THÚC VĂN BẢN
+
+Nếu Người dùng không đồng ý với bất kỳ điều khoản nào trong văn bản này, vui lòng không sử dụng dịch vụ. Việc tiếp tục sử dụng dịch vụ được hiểu là Người dùng đã chấp thuận toàn bộ Chính sách và Điều khoản sử dụng dịch vụ.

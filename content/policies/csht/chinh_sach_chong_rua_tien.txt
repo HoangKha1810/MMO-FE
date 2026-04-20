@@ -1,0 +1,88 @@
+TRUNGTAMMMO.VN
+CHÍNH SÁCH CHỐNG RỬA TIỀN, ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ VÀ CÁC CHÍNH SÁCH LIÊN QUAN
+(Phiên bản có hiệu lực từ ngày 21 tháng 02 năm 2026)
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+Điều 1. Phạm vi áp dụng
+1.1. Văn bản này áp dụng cho mọi cá nhân, tổ chức (sau đây gọi chung là “Người dùng”) truy cập, đăng ký, sử dụng Nền tảng TRUNGTAMMMO.VN và các ứng dụng, dịch vụ liên quan (sau đây gọi là “Nền tảng”), do đơn vị vận hành Nền tảng (sau đây gọi là “Chúng tôi” hoặc “Bên Cung Cấp”) cung cấp.
+1.2. Việc Người dùng truy cập hoặc sử dụng bất kỳ tính năng nào của Nền tảng, bao gồm nhắn tin, chuyển tiền nội bộ, giao dịch mua bán trao đổi, đổi thẻ cào lấy tiền tài khoản, đăng tin tuyển dụng, nhận việc làm, mua tương tác mạng xã hội, vận hành auto MXH, diễn đàn, chia sẻ kiến thức, đồng nghĩa với việc Người dùng đã đọc, hiểu, chấp nhận và cam kết tuân thủ toàn bộ nội dung văn bản này.
+Điều 2. Định nghĩa thuật ngữ
+2.1. “Tài khoản”: Tài khoản Người dùng tạo trên Nền tảng để sử dụng Dịch vụ.
+2.2. “Dịch vụ”: Toàn bộ các chức năng do Nền tảng cung cấp, bao gồm nhưng không giới hạn nhắn tin, chuyển tiền P2P, giao dịch mua bán, đổi thẻ cào, tuyển dụng, mua tương tác, diễn đàn MMO.
+2.3. “Giao dịch tài chính”: Bất kỳ hành vi chuyển tiền, nạp tiền, rút tiền, đổi thẻ cào, mua bán hàng hóa/dịch vụ trên Nền tảng.
+2.4. “Dữ liệu cá nhân”: Thông tin theo quy định tại Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân.
+2.5. “Hoạt động rửa tiền”: Hành vi theo định nghĩa tại Điều 3 Luật Phòng, chống rửa tiền số 14/2022/QH15.
+2.6. “Giao dịch đáng ngờ”: Giao dịch có dấu hiệu theo quy định tại Điều 25 Luật Phòng, chống rửa tiền số 14/2022/QH15, bao gồm nhưng không giới hạn giá trị lớn bất thường, tần suất cao, nguồn gốc không rõ ràng, liên quan đến cá nhân/tổ chức trong danh sách đen, hoặc có dấu hiệu cấu trúc để tránh báo cáo.
+2.7. “Xác minh danh tính khách hàng (KYC)”: Quy trình xác minh theo Nghị định 19/2023/NĐ-CP, bao gồm xác định danh tính (CDD) và xác minh nâng cao (EDD) đối với trường hợp rủi ro cao.
+2.8. “Báo cáo giao dịch đáng ngờ (SAR)”: Báo cáo theo quy định tại Điều 26 Luật Phòng, chống rửa tiền số 14/2022/QH15 gửi Cục Phòng, chống rửa tiền thuộc Ngân hàng Nhà nước Việt Nam.
+Điều 3. Điều kiện sử dụng
+Người dùng phải từ đủ 18 tuổi, có năng lực hành vi dân sự đầy đủ và không bị cấm theo quy định pháp luật. Người dùng chịu trách nhiệm toàn bộ về tính chính xác, hợp pháp của thông tin cung cấp khi đăng ký.
+Điều 4. Tài khoản và bảo mật
+Người dùng phải bảo mật thông tin đăng nhập. Mọi hoạt động phát sinh từ Tài khoản đều được coi là hành vi của Người dùng.
+Điều 5. Chính sách chống rửa tiền (AML)
+5.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Phòng, chống rửa tiền số 14/2022/QH15, Nghị định 19/2023/NĐ-CP hướng dẫn thi hành Luật Phòng, chống rửa tiền, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Luật An ninh mạng số 24/2018/QH14, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+5.2. Người dùng tuyệt đối cam kết không sử dụng Nền tảng để thực hiện hoặc hỗ trợ bất kỳ hoạt động rửa tiền, tài trợ khủng bố, gian lận tài chính, đánh bạc bất hợp pháp, chuyển tiền bất hợp pháp, trốn thuế, hoặc bất kỳ hành vi vi phạm pháp luật nào khác, bao gồm việc sử dụng Dịch vụ để che giấu nguồn gốc tài sản bất hợp pháp theo Điều 4 Luật Phòng, chống rửa tiền số 14/2022/QH15.
+5.3. Để sử dụng các tính năng Giao dịch tài chính (chuyển tiền, đổi thẻ cào, mua bán có giá trị), Người dùng bắt buộc phải hoàn tất quy trình Xác minh Danh tính Khách hàng (KYC) theo tiêu chuẩn của Chúng tôi và quy định tại Nghị định 19/2023/NĐ-CP. Quy trình này bao gồm:
+5.3.1. Cung cấp bản sao giấy tờ tùy thân hợp pháp (CCCD/CMND/Hộ chiếu);
+5.3.2. Thông tin cá nhân cơ bản (họ tên, ngày sinh, địa chỉ, số điện thoại, email);
+5.3.3. Thông tin tài chính (nguồn thu nhập, mục đích sử dụng Dịch vụ);
+5.3.4. Các tài liệu bổ sung khi được yêu cầu, đặc biệt trong trường hợp áp dụng Xác minh Nâng cao (EDD) đối với Người dùng có rủi ro cao, chẳng hạn như Người dùng từ khu vực địa lý rủi ro cao theo danh sách của Ngân hàng Nhà nước Việt Nam hoặc có lịch sử giao dịch bất thường.
+5.4. Nền tảng áp dụng hệ thống giám sát giao dịch tự động và thủ công để phát hiện Giao dịch đáng ngờ theo các tiêu chí tại Điều 25 Luật Phòng, chống rửa tiền số 14/2022/QH15, bao gồm:
+5.4.1. Giao dịch có giá trị vượt ngưỡng báo cáo (trên 300 triệu đồng hoặc tương đương theo quy định hiện hành);
+5.4.2. Giao dịch lặp lại với tần suất cao trong thời gian ngắn mà không có lý do kinh tế hợp lý;
+5.4.3. Giao dịch liên quan đến tài khoản mới mở hoặc tài khoản không hoạt động lâu dài;
+5.4.4. Giao dịch từ/đến các quốc gia/vùng lãnh thổ trong danh sách rủi ro cao về rửa tiền theo khuyến nghị của FATF (Financial Action Task Force);
+5.4.5. Giao dịch có dấu hiệu cấu trúc (chia nhỏ để tránh ngưỡng báo cáo);
+5.4.6. Giao dịch liên quan đến cá nhân/tổ chức trong danh sách đen của cơ quan nhà nước hoặc tổ chức quốc tế.
+5.5. Khi phát hiện Giao dịch đáng ngờ hoặc vi phạm chính sách AML, Chúng tôi có quyền:
+5.5.1. Tạm ngưng hoặc khóa Tài khoản ngay lập tức mà không cần thông báo trước;
+5.5.2. Yêu cầu Người dùng cung cấp thêm thông tin, tài liệu giải trình trong thời hạn 03 ngày làm việc;
+5.5.3. Báo cáo SAR cho Cục Phòng, chống rửa tiền – Ngân hàng Nhà nước Việt Nam theo quy định tại Điều 26 Luật Phòng, chống rửa tiền số 14/2022/QH15, mà không cần thông báo trước cho Người dùng;
+5.5.4. Hợp tác toàn diện với cơ quan nhà nước có thẩm quyền, bao gồm cung cấp dữ liệu theo yêu cầu pháp luật mà không vi phạm quy định bảo vệ dữ liệu cá nhân tại Nghị định 13/2023/NĐ-CP;
+5.5.5. Chấm dứt vĩnh viễn Tài khoản và từ chối cung cấp Dịch vụ nếu vi phạm được xác định.
+5.6. Chúng tôi thực hiện các biện pháp phòng ngừa AML nội bộ, bao gồm:
+5.6.1. Đào tạo định kỳ cho nhân viên về nhận biết và xử lý Giao dịch đáng ngờ;
+5.6.2. Lưu trữ hồ sơ KYC và giao dịch ít nhất 05 năm theo quy định tại Điều 28 Luật Phòng, chống rửa tiền số 14/2022/QH15;
+5.6.3. Áp dụng công nghệ sàng lọc danh sách đen và giám sát thời gian thực.
+5.7. Chúng tôi không chịu bất kỳ trách nhiệm nào đối với thiệt hại phát sinh từ việc tạm ngưng, khóa Tài khoản, báo cáo SAR hoặc các hành động khác thực hiện theo quy định pháp luật về phòng, chống rửa tiền. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại phát sinh từ vi phạm chính sách AML của Người dùng.
+B. CHÍNH SÁCH BẢO MẬT THÔNG TIN
+Điều 6. Mục đích thu thập thông tin
+Chúng tôi thu thập thông tin để cung cấp Dịch vụ, xác minh danh tính, phòng chống rửa tiền, gian lận và tuân thủ pháp luật.
+Điều 7. Phạm vi thông tin thu thập
+Bao gồm thông tin đăng ký, thông tin thiết bị, lịch sử giao dịch, dữ liệu KYC và thông tin khác Người dùng tự nguyện cung cấp.
+C. CHÍNH SÁCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+Điều 8. Nguyên tắc xử lý dữ liệu cá nhân
+Việc xử lý dữ liệu cá nhân tuân thủ các nguyên tắc tại Điều 5 Nghị định 13/2023/NĐ-CP: hợp pháp, minh bạch, mục đích hạn chế, bảo mật, chính xác, cập nhật, an toàn và trách nhiệm giải trình.
+Điều 9. Quyền của Chủ thể dữ liệu
+Người dùng có quyền yêu cầu truy cập, sửa chữa, xóa, rút lại sự đồng ý, khiếu nại theo quy định tại Chương IV Nghị định 13/2023/NĐ-CP.
+Điều 10. Cam kết bảo vệ dữ liệu
+Chúng tôi không bán, cho thuê hoặc tiết lộ dữ liệu cá nhân cho bên thứ ba trừ trường hợp: (i) có sự đồng ý của Người dùng; (ii) theo yêu cầu của cơ quan nhà nước có thẩm quyền; (iii) để thực hiện hợp đồng với Người dùng.
+D. QUYỀN & TRÁCH NHIỆM CÁC BÊN
+Điều 11. Quyền và nghĩa vụ của Người dùng
+11.1. Người dùng có quyền sử dụng Dịch vụ theo đúng chức năng.
+11.2. Người dùng có nghĩa vụ: cung cấp thông tin chính xác, tuân thủ pháp luật Việt Nam, không vi phạm quyền sở hữu trí tuệ, không sử dụng Dịch vụ cho mục đích bất hợp pháp, hợp tác cung cấp thông tin khi Chúng tôi yêu cầu theo quy định AML.
+Điều 12. Quyền và nghĩa vụ của Bên Cung Cấp
+12.1. Chúng tôi có quyền từ chối, tạm ngưng hoặc chấm dứt cung cấp Dịch vụ đối với Người dùng vi phạm.
+12.2. Chúng tôi có nghĩa vụ vận hành Nền tảng ổn định, bảo vệ dữ liệu cá nhân và thực hiện các biện pháp AML theo pháp luật.
+E. ĐIỀU KHOẢN MIỄN TRỪ & GIỚI HẠN TRÁCH NHIỆM
+Điều 13. Giới hạn trách nhiệm
+13.1. Nền tảng cung cấp “như hiện có”, không bảo đảm không gián đoạn, không lỗi.
+13.2. Chúng tôi không chịu trách nhiệm về nội dung Người dùng đăng tải, các giao dịch giữa Người dùng với nhau, thiệt hại gián tiếp, mất mát lợi nhuận.
+13.3. Tổng trách nhiệm của Chúng tôi không vượt quá số tiền Người dùng đã trả cho Dịch vụ trong 03 tháng gần nhất.
+Điều 14. Miễn trừ trách nhiệm
+Chúng tôi được miễn trừ trách nhiệm trong trường hợp sự cố do thiên tai, chiến tranh, hành vi của cơ quan nhà nước, vi phạm của Người dùng hoặc sự cố nằm ngoài khả năng kiểm soát hợp lý.
+F. CƠ CHẾ GIẢI QUYẾT TRANH CHẤP
+Điều 15. Giải quyết khiếu nại
+15.1. Khiếu nại được gửi về địa chỉ email hỗ trợ chính thức của Nền tảng.
+15.2. Thời hạn giải quyết khiếu nại là 15 ngày làm việc kể từ ngày nhận được khiếu nại hợp lệ.
+15.3. Các tranh chấp phát sinh sẽ được giải quyết thông qua thương lượng. Trường hợp không thỏa thuận được, tranh chấp sẽ được đưa ra Tòa án nhân dân có thẩm quyền tại thành phố Hồ Chí Minh theo pháp luật Việt Nam.
+G. ĐIỀU KHOẢN CHUNG – HIỆU LỰC
+Điều 16. Cập nhật văn bản
+Chúng tôi có quyền sửa đổi, bổ sung văn bản này bất kỳ lúc nào. Phiên bản mới sẽ được công bố trên Nền tảng và có hiệu lực sau 07 ngày kể từ ngày công bố. Việc Người dùng tiếp tục sử dụng Nền tảng sau khi có thay đổi đồng nghĩa với việc chấp nhận phiên bản mới.
+Điều 17. Hiệu lực và luật áp dụng
+17.1. Văn bản này có hiệu lực từ ngày 21 tháng 02 năm 2026 và thay thế toàn bộ các phiên bản trước đó.
+17.2. Văn bản này được điều chỉnh bởi pháp luật Việt Nam.
+17.3. Nếu bất kỳ điều khoản nào bị vô hiệu, các điều khoản còn lại vẫn giữ nguyên hiệu lực.
+Điều 18. Liên hệ
+Mọi thắc mắc liên quan vui lòng liên hệ qua email hỗ trợ chính thức hoặc địa chỉ trụ sở của Bên Cung Cấp.
+Bằng việc sử dụng Nền tảng TRUNGTAMMMO.VN, Người dùng xác nhận đã đọc, hiểu và đồng ý hoàn toàn với toàn bộ nội dung văn bản này.
+TRUNGTAMMMO.VN

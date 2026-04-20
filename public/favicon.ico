@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTBMMO Favicon</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#0066FF">
+</head>
+<body>
+    <h1>HTBMMO - Favicon Test</h1>
+    <p>This file helps browsers discover the favicon. You can close this tab.</p>
+</body>
+</html>

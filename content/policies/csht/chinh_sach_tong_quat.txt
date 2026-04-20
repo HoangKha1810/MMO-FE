@@ -1,0 +1,663 @@
+ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ VÀ CÁC CHÍNH SÁCH LIÊN QUAN
+(Phiên bản có hiệu lực từ ngày 21 tháng 02 năm 2026)
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+Điều 1. Phạm vi áp dụng
+1.1. Văn bản này áp dụng cho mọi cá nhân, tổ chức (sau đây gọi chung là “Người dùng”) truy cập, đăng ký, sử dụng Nền tảng TRUNGTAMMMO.VN và các ứng dụng, dịch vụ liên quan (sau đây gọi là “Nền tảng”), do đơn vị vận hành Nền tảng (sau đây gọi là “Chúng tôi” hoặc “Bên Cung Cấp”) cung cấp.
+1.2. Việc Người dùng truy cập hoặc sử dụng bất kỳ tính năng nào của Nền tảng, bao gồm nhắn tin, chuyển tiền nội bộ, giao dịch mua bán trao đổi, đổi thẻ cào lấy tiền tài khoản, đăng tin tuyển dụng, nhận việc làm, mua tương tác mạng xã hội, vận hành auto MXH, chia sẻ kiến thức, diễn đàn chat MMO, mua bán game, mua bán vật phẩm online, đồng nghĩa với việc Người dùng đã đọc, hiểu, chấp nhận và cam kết tuân thủ toàn bộ nội dung văn bản này.
+Điều 2. Định nghĩa thuật ngữ
+2.1. “Tài khoản”: Tài khoản Người dùng tạo trên Nền tảng để sử dụng Dịch vụ.
+2.2. “Dịch vụ”: Toàn bộ các chức năng do Nền tảng cung cấp, bao gồm nhưng không giới hạn nhắn tin, chuyển tiền P2P, giao dịch mua bán, đổi thẻ cào, tuyển dụng, mua tương tác, vận hành auto MXH, diễn đàn MMO, mua bán game và vật phẩm online.
+2.3. “Giao dịch tài chính”: Bất kỳ hành vi chuyển tiền, nạp tiền, rút tiền, đổi thẻ cào, mua bán hàng hóa/dịch vụ trên Nền tảng.
+2.4. “Dữ liệu cá nhân”: Thông tin theo quy định tại Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, bao gồm dữ liệu cá nhân cơ bản và dữ liệu cá nhân nhạy cảm.
+2.5. “Hoạt động bất hợp pháp”: Bất kỳ hành vi vi phạm pháp luật Việt Nam, bao gồm rửa tiền, gian lận, vi phạm quyền sở hữu trí tuệ, theo Luật An ninh mạng số 24/2018/QH14 và các quy định liên quan.
+2.6. “Hàng hóa/Dịch vụ bị cấm”: Hàng hóa hoặc dịch vụ bị cấm kinh doanh, giao dịch theo pháp luật Việt Nam, bao gồm nhưng không giới hạn các loại được quy định tại Luật Phòng, chống ma túy số 73/2021/QH15, Luật Phòng, chống khủng bố số 28/2013/QH13, Luật Quản lý vũ khí, vật liệu nổ và công cụ hỗ trợ số 14/2017/QH14, Luật Quảng cáo số 16/2012/QH13 (sửa đổi, bổ sung năm 2018), và các văn bản pháp luật liên quan khác.
+2.7. “Giao dịch trung gian (Escrow)”: Dịch vụ do Chúng tôi cung cấp để giữ tiền tạm thời trong quá trình giao dịch mua bán giữa Người dùng, đảm bảo thực hiện nghĩa vụ theo Điều 326 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020).
+2.8. “Thẻ cào”: Thẻ nạp tiền điện tử hoặc mã thẻ của các nhà mạng viễn thông hoặc nhà cung cấp dịch vụ khác, được sử dụng để đổi lấy tiền tài khoản trên Nền tảng.
+2.9. “Nạp tiền”: Hành vi chuyển tiền từ nguồn bên ngoài vào Tài khoản trên Nền tảng để sử dụng Dịch vụ.
+2.10. “Rút tiền”: Hành vi chuyển tiền từ số dư Tài khoản trên Nền tảng về tài khoản ngân hàng hoặc ví điện tử của Người dùng.
+2.11. “Hoàn tiền”: Hành vi trả lại số tiền cho Người dùng từ số dư Tài khoản hoặc giao dịch, theo các điều kiện quy định trong văn bản này.
+2.12. “Hủy giao dịch”: Hành vi chấm dứt một giao dịch đang diễn ra hoặc đã khởi tạo trên Nền tảng trước khi hoàn tất, dẫn đến việc khôi phục trạng thái ban đầu (hoàn tiền, hủy chuyển khoản, v.v.).
+2.13. “Lừa đảo”: Hành vi gian lận theo định nghĩa tại Điều 174 Bộ luật Hình sự số 100/2015/QH13 (sửa đổi, bổ sung năm 2017), bao gồm nhưng không giới hạn lừa dối để chiếm đoạt tài sản, phishing, gian lận thanh toán, giao dịch giả mạo, sử dụng thông tin sai lệch để lợi dụng Dịch vụ.
+2.14. “Gian lận”: Hành vi gian lận theo định nghĩa tại Điều 174 Bộ luật Hình sự số 100/2015/QH13 (sửa đổi, bổ sung năm 2017), bao gồm nhưng không giới hạn lừa dối để chiếm đoạt tài sản, phishing, gian lận thanh toán, giao dịch giả mạo, sử dụng thông tin sai lệch để lợi dụng Dịch vụ.
+2.15. “Spam”: Hành vi gửi thông tin lặp lại, không mong muốn hoặc quảng cáo không được phép, bao gồm nhưng không giới hạn spam tin nhắn, spam bài đăng, spam bình luận, theo Nghị định 72/2013/NĐ-CP và Luật An ninh mạng số 24/2018/QH14.
+2.16. “Lạm dụng hệ thống”: Hành vi khai thác lỗ hổng, sử dụng công cụ tự động để lạm dụng tính năng, làm gián đoạn hoạt động, hoặc vi phạm quy tắc sử dụng, theo Luật An ninh mạng số 24/2018/QH14 và Nghị định 72/2013/NĐ-CP.
+2.17. “Xác minh danh tính khách hàng (KYC)”: Quy trình xác minh theo Nghị định 19/2023/NĐ-CP, bao gồm xác định danh tính (CDD) và xác minh nâng cao (EDD) đối với trường hợp rủi ro cao.
+2.18. “Cookie”: Tệp dữ liệu nhỏ lưu trên thiết bị của Người dùng để theo dõi hoạt động truy cập, theo Nghị định 13/2023/NĐ-CP và Luật An ninh mạng số 24/2018/QH14.
+2.19. “Theo dõi truy cập”: Sử dụng công nghệ (bao gồm cookie, pixel, beacon) để thu thập dữ liệu hành vi Người dùng trên Nền tảng, theo Nghị định 72/2013/NĐ-CP và Nghị định 13/2023/NĐ-CP.
+2.20. “Khiếu nại”: Yêu cầu của Người dùng liên quan đến chất lượng Dịch vụ, tranh chấp giao dịch, vi phạm bảo mật dữ liệu, hoặc các vấn đề khác phát sinh từ việc sử dụng Nền tảng.
+2.21. “Tranh chấp”: Bất kỳ xung đột lợi ích giữa Người dùng với nhau hoặc giữa Người dùng và Bên Cung Cấp, bao gồm tranh chấp hợp đồng, tranh chấp quyền lợi tiêu dùng theo Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12 (sửa đổi, bổ sung năm 2013).
+2.22. “Miễn trừ trách nhiệm”: Việc Bên Cung Cấp được miễn trách nhiệm pháp lý đối với các thiệt hại cụ thể theo quy định pháp luật và văn bản này.
+2.23. “Giới hạn trách nhiệm pháp lý”: Giới hạn mức độ chịu trách nhiệm của Bên Cung Cấp đối với thiệt hại phát sinh, theo Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020).
+2.24. “Khóa Tài khoản”: Hành động tạm thời hoặc vĩnh viễn ngăn chặn truy cập vào Tài khoản của Người dùng do vi phạm.
+2.25. “Đình chỉ Tài khoản”: Hành động tạm thời hạn chế một phần hoặc toàn bộ tính năng của Tài khoản trong thời gian xác định.
+2.26. “Chấm dứt cung cấp Dịch vụ”: Hành động vĩnh viễn ngừng cung cấp Dịch vụ cho Người dùng, có thể kèm theo xóa Tài khoản và dữ liệu liên quan.
+2.27. “Hỗ trợ khách hàng (CSKH)”: Các hoạt động tư vấn, giải đáp thắc mắc, xử lý yêu cầu, khiếu nại của Người dùng liên quan đến Dịch vụ, theo Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12 (sửa đổi, bổ sung năm 2013).
+2.28. “Tuân thủ pháp luật Việt Nam”: Cam kết thực hiện và tuân thủ các quy định pháp luật hiện hành của nước Cộng hòa xã hội chủ nghĩa Việt Nam, bao gồm các luật, nghị định và văn bản dưới luật liên quan đến hoạt động của Nền tảng.
+2.29. “Bảo mật hệ thống”: Các biện pháp kỹ thuật và tổ chức để bảo vệ hệ thống khỏi truy cập, sử dụng, tiết lộ, thay đổi hoặc phá hủy trái phép, theo Nghị định 13/2023/NĐ-CP và Luật An ninh mạng số 24/2018/QH14.
+2.30. “An ninh mạng”: Các hoạt động bảo vệ không gian mạng khỏi các mối đe dọa, tấn công, xâm phạm theo định nghĩa tại Điều 3 Luật An ninh mạng số 24/2018/QH14.
+Điều 3. Điều kiện sử dụng
+3.1. Người dùng phải từ đủ 18 tuổi, có năng lực hành vi dân sự đầy đủ theo quy định tại Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020) và không bị cấm theo quy định pháp luật.
+3.2. Người dùng chịu trách nhiệm toàn bộ về tính chính xác, hợp pháp của thông tin cung cấp khi đăng ký và sử dụng Dịch vụ.
+3.3. Người dùng cam kết sử dụng Dịch vụ cho mục đích hợp pháp, không vi phạm các quy định pháp luật Việt Nam.
+Điều 4. Tài khoản và bảo mật
+4.1. Người dùng phải bảo mật thông tin đăng nhập, mật khẩu và các thông tin xác thực khác.
+4.2. Mọi hoạt động phát sinh từ Tài khoản đều được coi là hành vi của Người dùng, trừ trường hợp chứng minh được truy cập trái phép do lỗi của Bên Cung Cấp.
+4.3. Người dùng phải thông báo ngay cho Chúng tôi nếu phát hiện truy cập trái phép hoặc rủi ro bảo mật.
+Điều 5. Chính sách chống rửa tiền (AML)
+5.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Phòng, chống rửa tiền số 14/2022/QH15, Nghị định 19/2023/NĐ-CP hướng dẫn thi hành Luật Phòng, chống rửa tiền, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Luật An ninh mạng số 24/2018/QH14, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+5.2. Người dùng tuyệt đối cam kết không sử dụng Nền tảng để thực hiện hoặc hỗ trợ bất kỳ hoạt động rửa tiền, tài trợ khủng bố, gian lận, đánh bạc, chuyển tiền bất hợp pháp hoặc bất kỳ hành vi vi phạm pháp luật nào.
+5.3. Để sử dụng các tính năng Giao dịch tài chính (chuyển tiền, đổi thẻ cào, mua bán có giá trị), Người dùng bắt buộc phải hoàn tất quy trình Xác minh Danh tính Khách hàng (KYC) theo tiêu chuẩn của Chúng tôi và quy định tại Nghị định 19/2023/NĐ-CP. Quy trình này bao gồm:
+5.3.1. Cung cấp bản sao giấy tờ tùy thân hợp pháp (CCCD/CMND/Hộ chiếu);
+5.3.2. Thông tin cá nhân cơ bản (họ tên, ngày sinh, địa chỉ, số điện thoại, email);
+5.3.3. Thông tin tài chính (nguồn thu nhập, mục đích sử dụng Dịch vụ);
+5.3.4. Các tài liệu bổ sung khi được yêu cầu, đặc biệt trong trường hợp áp dụng Xác minh Nâng cao (EDD) đối với Người dùng có rủi ro cao, chẳng hạn như Người dùng từ khu vực địa lý rủi ro cao theo danh sách của Ngân hàng Nhà nước Việt Nam hoặc có lịch sử giao dịch bất thường.
+5.4. Nền tảng áp dụng hệ thống giám sát giao dịch tự động và thủ công để phát hiện Giao dịch đáng ngờ theo các tiêu chí tại Điều 25 Luật Phòng, chống rửa tiền số 14/2022/QH15, bao gồm:
+5.4.1. Giao dịch có giá trị vượt ngưỡng báo cáo (trên 300 triệu đồng hoặc tương đương theo quy định hiện hành);
+5.4.2. Giao dịch lặp lại với tần suất cao trong thời gian ngắn mà không có lý do kinh tế hợp lý;
+5.4.3. Giao dịch liên quan đến tài khoản mới mở hoặc tài khoản không hoạt động lâu dài;
+5.4.4. Giao dịch từ/đến các quốc gia/vùng lãnh thổ trong danh sách rủi ro cao về rửa tiền theo khuyến nghị của FATF (Financial Action Task Force);
+5.4.5. Giao dịch có dấu hiệu cấu trúc (chia nhỏ để tránh ngưỡng báo cáo);
+5.4.6. Giao dịch liên quan đến cá nhân/tổ chức trong danh sách đen của cơ quan nhà nước hoặc tổ chức quốc tế.
+5.5. Khi phát hiện Giao dịch đáng ngờ hoặc vi phạm chính sách AML, Chúng tôi có quyền:
+5.5.1. Tạm ngưng hoặc khóa Tài khoản ngay lập tức mà không cần thông báo trước;
+5.5.2. Yêu cầu Người dùng cung cấp thêm thông tin, tài liệu giải trình trong thời hạn 03 ngày làm việc;
+5.5.3. Báo cáo SAR cho Cục Phòng, chống rửa tiền – Ngân hàng Nhà nước Việt Nam theo quy định tại Điều 26 Luật Phòng, chống rửa tiền số 14/2022/QH15, mà không cần thông báo trước cho Người dùng;
+5.5.4. Hợp tác toàn diện với cơ quan nhà nước có thẩm quyền, bao gồm cung cấp dữ liệu theo yêu cầu pháp luật mà không vi phạm quy định bảo vệ dữ liệu cá nhân tại Nghị định 13/2023/NĐ-CP;
+5.5.5. Chấm dứt vĩnh viễn Tài khoản và từ chối cung cấp Dịch vụ nếu vi phạm được xác định.
+5.6. Chúng tôi thực hiện các biện pháp phòng ngừa AML nội bộ, bao gồm:
+5.6.1. Đào tạo định kỳ cho nhân viên về nhận biết và xử lý Giao dịch đáng ngờ;
+5.6.2. Lưu trữ hồ sơ KYC và giao dịch ít nhất 05 năm theo quy định tại Điều 28 Luật Phòng, chống rửa tiền số 14/2022/QH15;
+5.6.3. Áp dụng công nghệ sàng lọc danh sách đen và giám sát thời gian thực.
+5.7. Chúng tôi không chịu bất kỳ trách nhiệm nào đối với thiệt hại phát sinh từ việc tạm ngưng, khóa Tài khoản, báo cáo SAR hoặc các hành động khác thực hiện theo quy định pháp luật về phòng, chống rửa tiền. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại phát sinh từ vi phạm chính sách AML của Người dùng.
+Điều 7. Giao dịch trung gian (Escrow)
+7.1. Nền tảng cung cấp Dịch vụ Escrow để hỗ trợ giao dịch mua bán an toàn giữa Người dùng, tuân thủ Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020), Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), và các quy định liên quan đến giao dịch điện tử.
+7.2. Quy trình Escrow:
+7.2.1. Người mua (Bên Mua) và Người bán (Bên Bán) thỏa thuận sử dụng Escrow qua Nền tảng trước khi thực hiện giao dịch.
+7.2.2. Bên Mua chuyển tiền vào Tài khoản Escrow do Chúng tôi quản lý. Tiền sẽ được giữ tạm thời cho đến khi giao dịch hoàn tất.
+7.2.3. Bên Bán xác nhận giao hàng hóa/dịch vụ (bao gồm game, vật phẩm online, tương tác MXH, v.v.) và cung cấp bằng chứng giao hàng cho Chúng tôi.
+7.2.4. Bên Mua xác nhận nhận hàng hóa/dịch vụ và hài lòng trong thời hạn quy định (mặc định 03 ngày làm việc, trừ khi các bên thỏa thuận khác).
+7.2.5. Sau xác nhận của Bên Mua hoặc hết thời hạn khiếu nại mà không có tranh chấp, Chúng tôi sẽ giải phóng tiền cho Bên Bán sau khi trừ phí dịch vụ (nếu áp dụng).
+7.2.6. Nếu có tranh chấp, Chúng tôi sẽ tạm giữ tiền và hỗ trợ giải quyết theo cơ chế tại Phần F.
+7.3. Phí Escrow: Chúng tôi có quyền thu phí dịch vụ Escrow theo bảng phí công bố trên Nền tảng, không vượt quá mức hợp lý theo quy định pháp luật. Phí sẽ được khấu trừ từ số tiền giải phóng.
+7.4. Cam kết của Người dùng:
+7.4.1. Các bên phải cung cấp thông tin chính xác, bằng chứng hợp pháp về giao dịch, và hợp tác với Chúng tôi trong quá trình Escrow.
+7.4.2. Không sử dụng Escrow cho giao dịch bất hợp pháp, gian lận hoặc vi phạm quyền sở hữu trí tuệ.
+7.5. Trách nhiệm của Chúng tôi: Chúng tôi chỉ đóng vai trò trung gian giữ tiền, không chịu trách nhiệm về chất lượng hàng hóa/dịch vụ, tranh chấp nội dung giao dịch, hoặc thiệt hại phát sinh từ hành vi của Người dùng.
+7.6. Hủy Escrow: Các bên có thể hủy Escrow trước khi giao hàng nếu cả hai đồng ý bằng văn bản qua Nền tảng. Chúng tôi sẽ hoàn tiền cho Bên Mua sau khi trừ phí xử lý (nếu áp dụng).
+7.7. Trường hợp bất khả kháng: Theo Điều 156 Bộ luật Dân sự số 91/2015/QH13, Chúng tôi được miễn trừ trách nhiệm nếu sự cố nằm ngoài kiểm soát (thiên tai, chiến tranh, sự cố kỹ thuật do bên thứ ba).
+Điều 8. Mua bán sản phẩm/dịch vụ trên hệ thống
+8.1. Nền tảng cung cấp môi trường để Người dùng thực hiện giao dịch mua bán Sản phẩm/Dịch vụ theo quy định tại Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020), Luật Thương mại số 36/2005/QH11 (sửa đổi, bổ sung năm 2017), Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12 (sửa đổi, bổ sung năm 2013), và Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018).
+8.2. Quy trình mua bán:
+8.2.1. Người bán (Bên Bán) đăng tải thông tin Sản phẩm/Dịch vụ chính xác, đầy đủ, bao gồm mô tả, giá cả, điều kiện giao hàng, bảo hành (nếu áp dụng), và bằng chứng quyền sở hữu hợp pháp.
+8.2.2. Người mua (Bên Mua) xác nhận thông tin, thỏa thuận điều khoản giao dịch qua Nền tảng, và thực hiện thanh toán qua chuyển tiền nội bộ hoặc Escrow (nếu áp dụng).
+8.2.3. Bên Bán phải giao Sản phẩm/Dịch vụ đúng hạn, đúng chất lượng, và cung cấp bằng chứng giao hàng (ảnh chụp, mã theo dõi, hoặc xác nhận điện tử).
+8.2.4. Bên Mua có quyền kiểm tra và xác nhận nhận hàng trong thời hạn 03 ngày làm việc kể từ ngày nhận, hoặc khiếu nại nếu có sai sót.
+8.2.5. Hoàn tất giao dịch: Sau xác nhận của Bên Mua, Chúng tôi sẽ hỗ trợ giải phóng thanh toán cho Bên Bán (nếu sử dụng Escrow).
+8.3. Cam kết của Người dùng:
+8.3.1. Bên Bán cam kết Sản phẩm/Dịch vụ hợp pháp, không vi phạm quyền sở hữu trí tuệ, không phải hàng cấm theo pháp luật Việt Nam (ví dụ: hàng giả mạo, nội dung khiêu dâm, vũ khí).
+8.3.2. Bên Mua cam kết thanh toán đầy đủ, không gian lận, và hợp tác cung cấp thông tin nếu có tranh chấp.
+8.3.3. Cả hai bên phải tuân thủ quy định thuế, phí theo Luật Quản lý thuế số 38/2019/QH14, và báo cáo giao dịch nếu vượt ngưỡng quy định.
+8.4. Các loại Sản phẩm/Dịch vụ được phép: Bao gồm game, vật phẩm online, tương tác MXH, thẻ cào, việc làm, kiến thức chia sẻ, nhưng không giới hạn nếu hợp pháp. Các loại bị cấm: Hàng hóa vi phạm pháp luật, dịch vụ đánh bạc bất hợp pháp, nội dung vi phạm an ninh mạng.
+8.5. Bảo hành và hoàn tiền:
+8.5.1. Bên Bán phải cung cấp chính sách bảo hành rõ ràng cho Sản phẩm/Dịch vụ (nếu áp dụng), tuân thủ Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12.
+8.5.2. Bên Mua có quyền yêu cầu hoàn tiền nếu Sản phẩm/Dịch vụ không đúng mô tả, hỏng hóc, hoặc không giao hàng, trong thời hạn 07 ngày kể từ ngày giao dịch. Chúng tôi sẽ hỗ trợ trung gian giải quyết, nhưng không chịu trách nhiệm trực tiếp.
+8.6. Phí dịch vụ: Chúng tôi có quyền thu phí giao dịch mua bán theo bảng phí công bố, khấu trừ từ thanh toán.
+8.7. Trách nhiệm của Chúng tôi: Chúng tôi chỉ cung cấp nền tảng trung gian, không chịu trách nhiệm về chất lượng Sản phẩm/Dịch vụ, tranh chấp giữa Người dùng, hoặc thiệt hại phát sinh từ giao dịch.
+8.8. Vi phạm: Nếu phát hiện giao dịch vi phạm, Chúng tôi có quyền tạm ngưng, hủy giao dịch, khóa Tài khoản, và báo cáo cơ quan nhà nước theo quy định pháp luật.
+Điều 9. Đổi thẻ cào / nạp thẻ / quy đổi thẻ
+9.1. Nền tảng cung cấp Dịch vụ đổi thẻ cào, nạp thẻ và quy đổi thẻ sang tiền tài khoản theo quy định tại Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), Nghị định 101/2012/NĐ-CP về thanh toán không dùng tiền mặt (sửa đổi, bổ sung), và các quy định pháp luật liên quan đến dịch vụ viễn thông và thanh toán điện tử.
+9.2. Quy trình đổi / nạp / quy đổi thẻ:
+9.2.1. Người dùng cung cấp thông tin thẻ cào chính xác, bao gồm mã thẻ, số serial, nhà mạng, và mệnh giá.
+9.2.2. Chúng tôi xác nhận thông tin và thực hiện quy đổi sang tiền tài khoản sau khi kiểm tra tính hợp lệ của thẻ. Thời gian xử lý không vượt quá 24 giờ làm việc, trừ trường hợp hệ thống gặp sự cố kỹ thuật.
+9.2.3. Tỷ lệ quy đổi được công bố rõ ràng trên Nền tảng, có thể thay đổi theo chính sách của nhà mạng hoặc Chúng tôi, với thông báo trước ít nhất 07 ngày.
+9.2.4. Người dùng chỉ được quy đổi thẻ cào hợp pháp, chưa sử dụng, và không thuộc diện bị khóa hoặc vô hiệu hóa.
+9.3. Trường hợp sai mệnh giá:
+9.3.1. Nếu Người dùng cung cấp thông tin thẻ cào sai mệnh giá (ví dụ: khai báo mệnh giá cao hơn thực tế), Chúng tôi sẽ áp dụng mức trừ 50% giá trị thực tế của thẻ sau khi xác nhận.
+9.3.2. Việc trừ 50% nhằm bù đắp chi phí xử lý, kiểm tra và rủi ro liên quan đến thông tin sai lệch, theo nguyên tắc bồi thường thiệt hại tại Điều 584 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020).
+9.3.3. Người dùng không được khiếu nại hoặc yêu cầu hoàn trả phần trừ nếu sai sót do lỗi của Người dùng.
+9.4. Cam kết của Người dùng:
+9.4.1. Đảm bảo thẻ cào là hợp pháp, không phải từ nguồn bất hợp pháp, và chịu trách nhiệm toàn bộ nếu thẻ bị vô hiệu hóa sau quy đổi.
+9.4.2. Không sử dụng Dịch vụ để rửa tiền hoặc gian lận theo Luật Phòng, chống rửa tiền số 14/2022/QH15.
+9.4.3. Hợp tác cung cấp thêm thông tin nếu Chúng tôi yêu cầu để xác minh.
+9.5. Phí dịch vụ: Chúng tôi có quyền thu phí quy đổi theo bảng phí công bố, khấu trừ trực tiếp từ giá trị thẻ.
+9.6. Trách nhiệm của Chúng tôi: Chúng tôi cam kết xử lý nhanh chóng, bảo mật thông tin thẻ theo Nghị định 13/2023/NĐ-CP, nhưng không chịu trách nhiệm nếu thẻ bị vô hiệu hóa do lỗi của nhà mạng hoặc Người dùng.
+9.7. Hủy hoặc từ chối: Chúng tôi có quyền từ chối quy đổi nếu phát hiện dấu hiệu vi phạm, và báo cáo cơ quan nhà nước nếu cần thiết.
+9.8. Hoàn tiền: Không áp dụng hoàn tiền sau khi quy đổi thành công, trừ trường hợp lỗi hệ thống do Chúng tôi gây ra, với thời hạn khiếu nại 03 ngày làm việc.
+Điều 10. Xử lý thẻ sai mệnh giá, sai seri, thẻ lỗi
+10.1. Nền tảng áp dụng chính sách xử lý thẻ cào sai mệnh giá, sai seri, thẻ lỗi trong quá trình đổi thẻ cào, nạp thẻ hoặc quy đổi thẻ sang tiền tài khoản, tuân thủ Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), Nghị định 101/2012/NĐ-CP về thanh toán không dùng tiền mặt (sửa đổi, bổ sung), và các quy định pháp luật liên quan đến dịch vụ viễn thông và thanh toán điện tử.
+10.2. Quy trình xử lý chung:
+10.2.1. Người dùng phải cung cấp thông tin thẻ cào chính xác, đầy đủ (mã thẻ, số seri, nhà mạng, mệnh giá) trước khi yêu cầu quy đổi.
+10.2.2. Chúng tôi thực hiện kiểm tra tính hợp lệ của thẻ qua hệ thống tự động và thủ công, phối hợp với nhà mạng hoặc nhà cung cấp dịch vụ. Thời gian xử lý không vượt quá 24 giờ làm việc.
+10.2.3. Nếu phát hiện sai sót, Chúng tôi sẽ thông báo cho Người dùng qua email hoặc thông báo trên Nền tảng trong vòng 03 ngày làm việc kể từ ngày nhận yêu cầu.
+10.2.4. Người dùng có quyền cung cấp thông tin bổ sung hoặc sửa chữa trong thời hạn 03 ngày làm việc kể từ ngày nhận thông báo, nếu áp dụng.
+10.3. Xử lý thẻ sai mệnh giá:
+10.3.1. Nếu mệnh giá thực tế thấp hơn mệnh giá khai báo, Chúng tôi sẽ áp dụng mức trừ 50% giá trị thực tế của thẻ sau khi xác nhận, nhằm bù đắp chi phí xử lý, kiểm tra và rủi ro liên quan đến thông tin sai lệch, theo nguyên tắc bồi thường thiệt hại tại Điều 584 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020).
+10.3.2. Nếu mệnh giá thực tế cao hơn mệnh giá khai báo, Chúng tôi sẽ quy đổi theo mệnh giá thực tế mà không bổ sung thêm giá trị.
+10.3.3. Người dùng không được khiếu nại hoặc yêu cầu hoàn trả phần trừ nếu sai sót do lỗi của Người dùng.
+10.4. Xử lý thẻ sai seri:
+10.4.1. Nếu số seri không khớp hoặc không hợp lệ (ví dụ: seri sai định dạng, trùng lặp hoặc không tồn tại trong hệ thống nhà mạng), Chúng tôi sẽ từ chối quy đổi và thông báo lý do cho Người dùng.
+10.4.2. Người dùng có thể yêu cầu sửa seri một lần duy nhất trong thời hạn 03 ngày làm việc, với bằng chứng hợp pháp (ảnh thẻ cào gốc hoặc xác nhận từ nhà mạng). Nếu sửa không thành công, yêu cầu quy đổi sẽ bị hủy vĩnh viễn mà không hoàn trả bất kỳ giá trị nào.
+10.4.3. Chúng tôi không chịu trách nhiệm nếu sai seri dẫn đến thẻ bị vô hiệu hóa do lỗi của Người dùng.
+10.5. Xử lý thẻ lỗi:
+10.5.1. Nếu thẻ bị lỗi (hỏng, hết hạn, đã sử dụng, bị khóa hoặc không thể xác thực), Chúng tôi sẽ từ chối quy đổi và thông báo lý do cụ thể, kèm bằng chứng từ hệ thống kiểm tra.
+10.5.2. Không áp dụng hoàn tiền hoặc bồi thường cho thẻ lỗi, trừ trường hợp lỗi do hệ thống của Chúng tôi gây ra (xác định qua kiểm tra nội bộ).
+10.5.3. Người dùng phải liên hệ nhà mạng hoặc nhà cung cấp thẻ để giải quyết lỗi gốc; Chúng tôi chỉ hỗ trợ xác nhận thông tin nếu được yêu cầu.
+10.5.4. Nếu phát hiện thẻ lỗi do gian lận (ví dụ: thẻ giả mạo), Chúng tôi có quyền khóa Tài khoản Người dùng, báo cáo cho cơ quan nhà nước có thẩm quyền theo Luật Phòng, chống rửa tiền số 14/2022/QH15 và Luật An ninh mạng số 24/2018/QH14.
+10.6. Cam kết của Người dùng:
+10.6.1. Đảm bảo thông tin thẻ cào chính xác, hợp pháp và chịu trách nhiệm toàn bộ về sai sót dẫn đến xử lý theo chính sách này.
+10.6.2. Không sử dụng Dịch vụ để quy đổi thẻ từ nguồn bất hợp pháp hoặc vi phạm quy định của nhà mạng.
+10.6.3. Hợp tác cung cấp bằng chứng khi Chúng tôi yêu cầu để xử lý khiếu nại.
+10.7. Phí xử lý: Chúng tôi có quyền thu phí bổ sung cho việc kiểm tra và xử lý thẻ sai sót theo bảng phí công bố trên Nền tảng.
+10.8. Trách nhiệm của Chúng tôi: Chúng tôi cam kết xử lý công bằng, minh bạch, bảo mật thông tin theo Nghị định 13/2023/NĐ-CP, nhưng không chịu trách nhiệm về thiệt hại phát sinh từ sai sót của Người dùng hoặc nhà cung cấp thẻ.
+10.9. Khiếu nại: Người dùng có thể khiếu nại kết quả xử lý theo cơ chế tại Phần F, với thời hạn 07 ngày làm việc kể từ ngày nhận thông báo.
+Điều 11. Thanh toán và nạp tiền
+11.1. Nền tảng cung cấp các phương thức thanh toán và nạp tiền tuân thủ Nghị định 101/2012/NĐ-CP về thanh toán không dùng tiền mặt (sửa đổi, bổ sung), Luật Phòng, chống rửa tiền số 14/2022/QH15, và các quy định pháp luật liên quan đến giao dịch điện tử và thanh toán trung gian.
+11.2. Phương thức nạp tiền:
+11.2.1. Người dùng có thể nạp tiền vào Tài khoản qua các kênh hợp pháp: chuyển khoản ngân hàng, ví điện tử (theo danh sách công bố trên Nền tảng), đổi thẻ cào, hoặc các phương thức khác được Chúng tôi hỗ trợ.
+11.2.2. Mọi giao dịch nạp tiền phải sử dụng tài khoản ngân hàng hoặc ví điện tử mang tên chính chủ, đã xác minh danh tính (KYC) theo yêu cầu của Chúng tôi và quy định tại Nghị định 19/2023/NĐ-CP.
+11.2.3. Thời gian xử lý nạp tiền không vượt quá 24 giờ làm việc, trừ trường hợp kiểm tra AML hoặc sự cố kỹ thuật.
+11.2.4. Giới hạn nạp tiền: Tối thiểu 10.000 VND mỗi lần, tối đa 500.000.000 VND mỗi ngày (có thể thay đổi theo thông báo), tuân thủ ngưỡng báo cáo theo Luật Phòng, chống rửa tiền số 14/2022/QH15.
+11.3. Phương thức thanh toán:
+11.3.1. Thanh toán nội bộ: Sử dụng số dư Tài khoản để thanh toán cho giao dịch mua bán, dịch vụ trên Nền tảng, bao gồm chuyển tiền P2P, mua vật phẩm online, mua tương tác MXH.
+11.3.2. Thanh toán qua cổng trung gian: Chúng tôi hợp tác với các đơn vị thanh toán được cấp phép (ví dụ: VNPAY, Momo) để xử lý thanh toán, đảm bảo an toàn theo Nghị định 101/2012/NĐ-CP.
+11.3.3. Xác nhận thanh toán: Mọi giao dịch thanh toán được ghi nhận tự động, với biên nhận điện tử gửi qua email hoặc thông báo trên Nền tảng.
+11.4. Phí thanh toán và nạp tiền:
+11.4.1. Phí nạp tiền: Theo bảng phí công bố trên Nền tảng (ví dụ: 1-2% giá trị nạp, tùy phương thức), khấu trừ trực tiếp từ số tiền nạp.
+11.4.2. Phí thanh toán: Có thể áp dụng phí giao dịch (ví dụ: 0.5-1% giá trị thanh toán cho chuyển tiền P2P), công bố rõ ràng trước khi xác nhận.
+11.4.3. Không thu phí ẩn; mọi phí được thông báo minh bạch trước khi thực hiện giao dịch.
+11.5. Cam kết của Người dùng:
+11.5.1. Đảm bảo nguồn tiền nạp hợp pháp, không từ hoạt động bất hợp pháp, và hợp tác cung cấp chứng từ nếu Chúng tôi yêu cầu theo quy định AML.
+11.5.2. Chịu trách nhiệm về tính chính xác của thông tin thanh toán, và không thực hiện giao dịch gian lận.
+11.5.3. Tuân thủ quy định thuế theo Luật Quản lý thuế số 38/2019/QH14 đối với giao dịch tài chính.
+11.6. Trách nhiệm của Chúng tôi:
+11.6.1. Đảm bảo hệ thống thanh toán an toàn, bảo mật dữ liệu theo Nghị định 13/2023/NĐ-CP.
+11.6.2. Xử lý hoàn tiền trong trường hợp lỗi hệ thống do Chúng tôi gây ra, trong thời hạn 07 ngày làm việc.
+11.6.3. Báo cáo giao dịch đáng ngờ cho cơ quan nhà nước theo Luật Phòng, chống rửa tiền số 14/2022/QH15.
+11.7. Hoàn tiền và hủy giao dịch:
+11.7.1. Không hoàn tiền cho nạp tiền thành công, trừ trường hợp lỗi kỹ thuật hoặc theo quyết định của Chúng tôi.
+11.7.2. Hủy giao dịch thanh toán chỉ áp dụng trước khi xác nhận, với phí hủy nếu áp dụng.
+11.8. Vi phạm: Nếu phát hiện giao dịch vi phạm, Chúng tôi có quyền tạm ngưng, hủy giao dịch, khóa Tài khoản, và báo cáo cơ quan nhà nước.
+11.9. Xử lý nạp sai nội dung:
+11.9.1. Nếu Người dùng nạp sai nội dung (bao gồm sai mã giao dịch, sai nội dung chuyển khoản, sai tài khoản nguồn hoặc thông tin khác dẫn đến khó khăn trong xác minh), Chúng tôi sẽ áp dụng mức trừ 50% giá trị nạp thực tế sau khi xác nhận và xử lý.
+11.9.2. Mức trừ 50% nhằm bù đắp chi phí lao động hỗ trợ kiểm tra và xác minh thủ công, chi phí thời gian xử lý kéo dài (có thể lên đến nhiều ngày làm việc), rủi ro gian lận tiềm ẩn yêu cầu kiểm tra bổ sung theo quy định AML, và chi phí hệ thống liên quan đến việc tra cứu, đối chiếu dữ liệu từ các nguồn bên thứ ba (như ngân hàng hoặc ví điện tử), theo nguyên tắc bồi thường thiệt hại tại Điều 584 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020).
+11.9.3. Người dùng không được khiếu nại hoặc yêu cầu hoàn trả phần trừ nếu sai sót do lỗi của Người dùng. Chúng tôi sẽ thông báo lý do trừ phí chi tiết qua email hoặc thông báo trên Nền tảng.
+11.9.4. Để tránh trừ phí, Người dùng phải tuân thủ hướng dẫn nạp tiền chính xác được công bố trên Nền tảng.
+Điều 12. Rút tiền và thời gian xử lý rút tiền
+12.1. Nền tảng cung cấp Dịch vụ rút tiền tuân thủ Nghị định 101/2012/NĐ-CP về thanh toán không dùng tiền mặt (sửa đổi, bổ sung), Luật Phòng, chống rửa tiền số 14/2022/QH15, và các quy định pháp luật liên quan đến giao dịch điện tử và thanh toán trung gian.
+12.2. Điều kiện rút tiền:
+12.2.1. Người dùng phải hoàn tất KYC theo Nghị định 19/2023/NĐ-CP, bao gồm cung cấp thông tin tài khoản ngân hàng hoặc ví điện tử hợp pháp mang tên chính chủ.
+12.2.2. Số dư Tài khoản phải đủ để rút (tối thiểu 100.000 VND mỗi lần, trừ phí nếu áp dụng).
+12.2.3. Không áp dụng rút tiền nếu Tài khoản đang bị tạm ngưng do vi phạm hoặc kiểm tra AML.
+12.2.4. Giới hạn rút tiền: Tối đa 500.000.000 VND mỗi ngày (có thể thay đổi theo thông báo), tuân thủ ngưỡng báo cáo theo Luật Phòng, chống rửa tiền số 14/2022/QH15.
+12.3. Phương thức rút tiền:
+12.3.1. Rút về tài khoản ngân hàng hoặc ví điện tử được hỗ trợ (danh sách công bố trên Nền tảng).
+12.3.2. Mọi yêu cầu rút tiền phải được xác nhận qua mã OTP hoặc phương thức bảo mật khác.
+12.4. Thời gian xử lý rút tiền:
+12.4.1. Rút tiền từ đổi thẻ cào về tài khoản: Xử lý trong vòng vài phút đến vài tiếng, tùy thuộc vào thời gian xác nhận từ nhà mạng và hệ thống ngân hàng, trong giờ làm việc (từ 08:00 đến 17:00 hàng ngày, trừ ngày lễ).
+12.4.2. Rút tiền từ bán vật phẩm hoặc giao dịch mua bán: Xử lý sau 03 ngày làm việc kể từ ngày kết thúc giao dịch thành công, nhằm đảm bảo thời gian kiểm tra tranh chấp, xác minh tính hợp pháp và tuân thủ quy định AML.
+12.4.3. Thời gian xử lý chung có thể kéo dài thêm nếu yêu cầu kiểm tra bổ sung từ cơ quan nhà nước hoặc sự cố kỹ thuật, với thông báo cho Người dùng trong vòng 24 giờ.
+12.5. Phí rút tiền:
+12.5.1. Theo bảng phí công bố trên Nền tảng (ví dụ: 1-2% giá trị rút, tùy phương thức), khấu trừ trực tiếp từ số tiền rút.
+12.5.2. Không thu phí ẩn; mọi phí được thông báo minh bạch trước khi xác nhận yêu cầu rút.
+12.6. Cam kết của Người dùng:
+12.6.1. Đảm bảo thông tin tài khoản nhận tiền chính xác, hợp pháp và chịu trách nhiệm nếu sai sót dẫn đến mất mát.
+12.6.2. Hợp tác cung cấp chứng từ nếu Chúng tôi yêu cầu theo quy định AML hoặc kiểm tra tranh chấp.
+12.6.3. Tuân thủ quy định thuế theo Luật Quản lý thuế số 38/2019/QH14 đối với khoản tiền rút.
+12.7. Trách nhiệm của Chúng tôi:
+12.7.1. Đảm bảo xử lý rút tiền an toàn, bảo mật dữ liệu theo Nghị định 13/2023/NĐ-CP.
+12.7.2. Thông báo kết quả rút tiền qua email hoặc thông báo trên Nền tảng.
+12.7.3. Báo cáo giao dịch đáng ngờ cho cơ quan nhà nước theo Luật Phòng, chống rửa tiền số 14/2022/QH15.
+12.8. Hủy hoặc từ chối rút tiền:
+12.8.1. Chúng tôi có quyền từ chối hoặc hủy yêu cầu rút nếu phát hiện vi phạm, gian lận hoặc yêu cầu từ cơ quan nhà nước.
+12.8.2. Không hoàn trả phí nếu hủy do lỗi của Người dùng.
+12.9. Khiếu nại: Người dùng có thể khiếu nại về thời gian xử lý hoặc kết quả rút tiền theo cơ chế tại Phần F, với thời hạn 07 ngày làm việc kể từ ngày yêu cầu.
+Điều 13. Hoàn tiền (Refund)
+13.1. Nền tảng áp dụng chính sách hoàn tiền tuân thủ Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12 (sửa đổi, bổ sung năm 2013), Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020), Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), và các quy định pháp luật liên quan đến giao dịch tài chính và bảo vệ người tiêu dùng.
+13.2. Các trường hợp áp dụng hoàn tiền:
+13.2.1. Hoàn tiền cho giao dịch mua bán sản phẩm/dịch vụ: Nếu sản phẩm/dịch vụ (bao gồm game, vật phẩm online, tương tác MXH, việc làm) không đúng mô tả, hỏng hóc hoặc không giao hàng theo thỏa thuận, Bên Mua có quyền yêu cầu hoàn tiền toàn bộ hoặc một phần trong thời hạn 07 ngày làm việc kể từ ngày nhận hàng hoặc kết thúc giao dịch.
+13.2.2. Hoàn tiền cho đổi thẻ cào hoặc nạp thẻ: Áp dụng nếu thẻ cào bị lỗi do hệ thống của Chúng tôi (không phải lỗi của Người dùng hoặc nhà mạng), với hoàn tiền toàn bộ giá trị thẻ trong thời hạn 03 ngày làm việc sau khi xác nhận. Không hoàn tiền cho thẻ đã quy đổi thành công hoặc sai sót do Người dùng (ví dụ: sai mệnh giá, sai seri).
+13.2.3. Hoàn tiền cho nạp tiền: Không áp dụng hoàn tiền cho nạp tiền thành công, trừ trường hợp lỗi kỹ thuật do Chúng tôi gây ra (ví dụ: hệ thống ghi nhận sai số tiền), với hoàn tiền toàn bộ trong thời hạn 07 ngày làm việc. Đối với nạp sai nội dung, áp dụng trừ 50% theo chính sách liên quan.
+13.2.4. Hoàn tiền cho giao dịch Escrow: Nếu giao dịch bị hủy do lỗi của Bên Bán hoặc tranh chấp được giải quyết có lợi cho Bên Mua, Chúng tôi sẽ hoàn tiền toàn bộ (trừ phí dịch vụ nếu áp dụng) trong thời hạn 03 ngày làm việc sau khi xác nhận.
+13.2.5. Hoàn tiền cho các dịch vụ khác (tuyển dụng, mua tương tác, vận hành auto MXH): Áp dụng nếu dịch vụ không được cung cấp hoặc không đạt chất lượng theo thỏa thuận, với hoàn tiền một phần hoặc toàn bộ dựa trên đánh giá của Chúng tôi, trong thời hạn 07 ngày làm việc.
+13.3. Điều kiện hoàn tiền:
+13.3.1. Người dùng phải cung cấp bằng chứng hợp lệ (ảnh chụp, biên nhận giao dịch, mô tả chi tiết lỗi) và gửi yêu cầu hoàn tiền qua email hỗ trợ hoặc form trên Nền tảng.
+13.3.2. Yêu cầu phải được gửi trong thời hạn quy định tại khoản 13.2, tính từ ngày phát sinh sự cố.
+13.3.3. Không áp dụng hoàn tiền nếu sự cố do lỗi của Người dùng, vi phạm chính sách (ví dụ: gian lận, sử dụng Dịch vụ bất hợp pháp), hoặc trường hợp bất khả kháng theo Điều 156 Bộ luật Dân sự số 91/2015/QH13.
+13.3.4. Hoàn tiền chỉ thực hiện về Tài khoản gốc hoặc tài khoản ngân hàng/ví điện tử đã xác minh, sau khi trừ phí xử lý (nếu áp dụng, theo bảng phí công bố).
+13.4. Thời gian xử lý hoàn tiền:
+13.4.1. Thời gian kiểm tra yêu cầu: Không vượt quá 07 ngày làm việc kể từ ngày nhận yêu cầu hợp lệ.
+13.4.2. Thời gian hoàn tiền: Trong vòng 03-05 ngày làm việc sau khi phê duyệt, tùy thuộc vào phương thức thanh toán (ngân hàng, ví điện tử).
+13.4.3. Thời gian có thể kéo dài nếu cần xác minh thêm từ bên thứ ba (nhà mạng, ngân hàng) hoặc theo yêu cầu pháp luật.
+13.5. Cam kết của Người dùng:
+13.5.1. Cung cấp thông tin chính xác, bằng chứng đầy đủ và hợp tác trong quá trình xử lý hoàn tiền.
+13.5.2. Không lạm dụng chính sách hoàn tiền để gian lận hoặc vi phạm pháp luật.
+13.6. Trách nhiệm của Chúng tôi:
+13.6.1. Xử lý yêu cầu hoàn tiền công bằng, minh bạch và kịp thời.
+13.6.2. Thông báo kết quả qua email hoặc thông báo trên Nền tảng.
+13.6.3. Không chịu trách nhiệm về thiệt hại gián tiếp hoặc mất mát lợi nhuận phát sinh từ quá trình hoàn tiền.
+13.7. Vi phạm: Nếu phát hiện yêu cầu hoàn tiền gian lận, Chúng tôi có quyền từ chối, khóa Tài khoản và báo cáo cơ quan nhà nước theo Luật Phòng, chống rửa tiền số 14/2022/QH15.
+13.8. Các trường hợp không hoàn tiền: Bao gồm nạp tiền thành công, giao dịch đã hoàn tất mà không có tranh chấp, hoặc vi phạm chính sách AML.
+Điều 14. Hủy giao dịch
+14.1. Nền tảng áp dụng chính sách hủy giao dịch tuân thủ Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020), Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12 (sửa đổi, bổ sung năm 2013), và các quy định pháp luật liên quan đến hợp đồng điện tử và giao dịch tài chính.
+14.2. Các trường hợp được hủy giao dịch:
+14.2.1. Hủy trước khi hoàn tất: Người dùng có quyền hủy giao dịch mua bán, chuyển tiền nội bộ, đổi thẻ cào, hoặc các giao dịch khác trước khi xác nhận cuối cùng hoặc trước khi hàng hóa/dịch vụ được giao (nếu áp dụng), với sự đồng ý của bên kia nếu liên quan đến giao dịch giữa Người dùng.
+14.2.2. Hủy do lỗi hệ thống: Nếu giao dịch bị lỗi do hệ thống của Chúng tôi (ví dụ: ghi nhận sai số tiền, gián đoạn kỹ thuật), Chúng tôi sẽ hủy và hoàn tiền toàn bộ trong thời hạn 03 ngày làm việc sau khi xác nhận.
+14.2.3. Hủy do gian lận hoặc vi phạm: Chúng tôi có quyền hủy bất kỳ giao dịch nào nếu phát hiện dấu hiệu gian lận, rửa tiền theo Luật Phòng, chống rửa tiền số 14/2022/QH15, hoặc vi phạm chính sách (ví dụ: giao dịch bất hợp pháp, lạm dụng Dịch vụ).
+14.2.4. Hủy trong giao dịch Escrow: Nếu các bên đồng ý hủy trước khi giao hàng/dịch vụ, Chúng tôi sẽ hủy và hoàn tiền (trừ phí dịch vụ nếu áp dụng) theo chính sách Escrow.
+14.2.5. Hủy do tranh chấp: Nếu có tranh chấp được giải quyết theo cơ chế tại Phần F, Chúng tôi có quyền hủy giao dịch và hoàn tiền dựa trên kết quả.
+14.3. Quy trình hủy giao dịch:
+14.3.1. Người dùng gửi yêu cầu hủy qua email hỗ trợ hoặc form trên Nền tảng, kèm lý do và bằng chứng (nếu cần).
+14.3.2. Chúng tôi kiểm tra và xác nhận trong thời hạn 03 ngày làm việc, thông báo kết quả cho Người dùng.
+14.3.3. Nếu hủy thành công, hoàn tiền sẽ được thực hiện theo chính sách hoàn tiền, trừ phí hủy (nếu áp dụng).
+14.3.4. Thời hạn yêu cầu hủy: Không vượt quá 24 giờ kể từ khi khởi tạo giao dịch đối với chuyển tiền nội bộ hoặc đổi thẻ cào; 03 ngày làm việc đối với mua bán vật phẩm hoặc dịch vụ.
+14.4. Phí hủy giao dịch:
+14.4.1. Phí hủy: Theo bảng phí công bố trên Nền tảng (ví dụ: 1-2% giá trị giao dịch, tối thiểu 10.000 VND), nhằm bù đắp chi phí xử lý, kiểm tra và rủi ro liên quan.
+14.4.2. Không thu phí nếu hủy do lỗi của Chúng tôi hoặc theo yêu cầu pháp luật.
+14.5. Cam kết của Người dùng:
+14.5.1. Không lạm dụng quyền hủy để gian lận hoặc gây thiệt hại cho bên khác.
+14.5.2. Hợp tác cung cấp thông tin nếu Chúng tôi yêu cầu để xác minh hủy.
+14.5.3. Chịu trách nhiệm bồi thường thiệt hại nếu hủy không có lý do chính đáng theo Điều 428 Bộ luật Dân sự số 91/2015/QH13.
+14.6. Trách nhiệm của Chúng tôi:
+14.6.1. Xử lý yêu cầu hủy kịp thời, minh bạch và công bằng.
+14.6.2. Bảo mật thông tin liên quan đến hủy giao dịch theo Nghị định 13/2023/NĐ-CP.
+14.6.3. Không chịu trách nhiệm về thiệt hại gián tiếp phát sinh từ hủy giao dịch do lỗi của Người dùng.
+14.7. Các trường hợp không được hủy: Bao gồm giao dịch đã hoàn tất (hàng hóa/dịch vụ đã giao, tiền đã chuyển), trừ trường hợp tranh chấp được chứng minh hoặc theo lệnh của cơ quan nhà nước.
+14.8. Hậu quả vi phạm: Nếu hủy lạm dụng, Chúng tôi có quyền khóa Tài khoản và báo cáo cơ quan nhà nước.
+Điều 15. Phòng chống lừa đảo (Anti-Fraud)
+15.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Phòng, chống rửa tiền số 14/2022/QH15, Nghị định 19/2023/NĐ-CP hướng dẫn thi hành Luật Phòng, chống rửa tiền, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Luật An ninh mạng số 24/2018/QH14, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+15.2. Người dùng tuyệt đối cam kết không sử dụng Nền tảng để thực hiện hoặc hỗ trợ bất kỳ hoạt động lừa đảo, gian lận tài chính, đánh bạc bất hợp pháp, chuyển tiền bất hợp pháp, trốn thuế, hoặc bất kỳ hành vi vi phạm pháp luật nào khác, bao gồm việc sử dụng Dịch vụ để che giấu nguồn gốc tài sản bất hợp pháp theo Điều 4 Luật Phòng, chống rửa tiền số 14/2022/QH15.
+15.3. Để sử dụng các tính năng Giao dịch tài chính (chuyển tiền, đổi thẻ cào, mua bán có giá trị), Người dùng bắt buộc phải hoàn tất quy trình Xác minh Danh tính Khách hàng (KYC) theo tiêu chuẩn của Chúng tôi và quy định tại Nghị định 19/2023/NĐ-CP. Quy trình này bao gồm:
+15.3.1. Cung cấp bản sao giấy tờ tùy thân hợp pháp (CCCD/CMND/Hộ chiếu);
+15.3.2. Thông tin cá nhân cơ bản (họ tên, ngày sinh, địa chỉ, số điện thoại, email);
+15.3.3. Thông tin tài chính (nguồn thu nhập, mục đích sử dụng Dịch vụ);
+15.3.4. Các tài liệu bổ sung khi được yêu cầu, đặc biệt trong trường hợp áp dụng Xác minh Nâng cao (EDD) đối với Người dùng có rủi ro cao, chẳng hạn như Người dùng từ khu vực địa lý rủi ro cao theo danh sách của Ngân hàng Nhà nước Việt Nam hoặc có lịch sử giao dịch bất thường.
+15.4. Nền tảng áp dụng hệ thống giám sát giao dịch tự động và thủ công để phát hiện Giao dịch đáng ngờ theo các tiêu chí tại Điều 25 Luật Phòng, chống rửa tiền số 14/2022/QH15, bao gồm:
+15.4.1. Giao dịch có giá trị vượt ngưỡng báo cáo (trên 300 triệu đồng hoặc tương đương theo quy định hiện hành);
+15.4.2. Giao dịch lặp lại với tần suất cao trong thời gian ngắn mà không có lý do kinh tế hợp lý;
+15.4.3. Giao dịch liên quan đến tài khoản mới mở hoặc tài khoản không hoạt động lâu dài;
+15.4.4. Giao dịch từ/đến các quốc gia/vùng lãnh thổ trong danh sách rủi ro cao về rửa tiền theo khuyến nghị của FATF (Financial Action Task Force);
+15.4.5. Giao dịch có dấu hiệu cấu trúc (chia nhỏ để tránh ngưỡng báo cáo);
+15.4.6. Giao dịch liên quan đến cá nhân/tổ chức trong danh sách đen của cơ quan nhà nước hoặc tổ chức quốc tế.
+15.5. Khi phát hiện Giao dịch đáng ngờ hoặc vi phạm chính sách chống lừa đảo, Chúng tôi có quyền:
+15.5.1. Tạm ngưng hoặc khóa Tài khoản ngay lập tức mà không cần thông báo trước;
+15.5.2. Yêu cầu Người dùng cung cấp thêm thông tin, tài liệu giải trình trong thời hạn 03 ngày làm việc;
+15.5.3. Báo cáo SAR cho Cục Phòng, chống rửa tiền – Ngân hàng Nhà nước Việt Nam theo quy định tại Điều 26 Luật Phòng, chống rửa tiền số 14/2022/QH15, mà không cần thông báo trước cho Người dùng;
+15.5.4. Hợp tác toàn diện với cơ quan nhà nước có thẩm quyền, bao gồm cung cấp dữ liệu theo yêu cầu pháp luật mà không vi phạm quy định bảo vệ dữ liệu cá nhân tại Nghị định 13/2023/NĐ-CP;
+15.5.5. Chấm dứt vĩnh viễn Tài khoản và từ chối cung cấp Dịch vụ nếu vi phạm được xác định;
+15.5.6. Thu hồi hoặc phong tỏa số dư, hoàn tiền cho nạn nhân nếu xác định gian lận.
+15.6. Chúng tôi thực hiện các biện pháp phòng ngừa lừa đảo nội bộ, bao gồm:
+15.6.1. Đào tạo định kỳ cho nhân viên về nhận biết và xử lý Giao dịch đáng ngờ;
+15.6.2. Lưu trữ hồ sơ KYC và giao dịch ít nhất 05 năm theo quy định tại Điều 28 Luật Phòng, chống rửa tiền số 14/2022/QH15;
+15.6.3. Áp dụng công nghệ sàng lọc danh sách đen và giám sát thời gian thực.
+15.7. Chúng tôi không chịu bất kỳ trách nhiệm nào đối với thiệt hại phát sinh từ việc tạm ngưng, khóa Tài khoản, báo cáo SAR hoặc các hành động khác thực hiện theo quy định pháp luật về phòng, chống lừa đảo. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại phát sinh từ vi phạm chính sách phòng chống lừa đảo của Người dùng.
+Điều 16. Phòng chống gian lận (Anti-Cheat / Anti-Abuse)
+16.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Phòng, chống rửa tiền số 14/2022/QH15, Nghị định 19/2023/NĐ-CP hướng dẫn thi hành Luật Phòng, chống rửa tiền, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Luật An ninh mạng số 24/2018/QH14, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+16.2. Người dùng tuyệt đối cam kết không sử dụng Nền tảng để thực hiện hoặc hỗ trợ bất kỳ hoạt động gian lận, cheat/abuse, gian lận tài chính, đánh bạc bất hợp pháp, chuyển tiền bất hợp pháp, trốn thuế, hoặc bất kỳ hành vi vi phạm pháp luật nào khác, bao gồm việc sử dụng Dịch vụ để che giấu nguồn gốc tài sản bất hợp pháp theo Điều 4 Luật Phòng, chống rửa tiền số 14/2022/QH15.
+16.3. Để sử dụng các tính năng Giao dịch tài chính (chuyển tiền, đổi thẻ cào, mua bán có giá trị), Người dùng bắt buộc phải hoàn tất quy trình Xác minh Danh tính Khách hàng (KYC) theo tiêu chuẩn của Chúng tôi và quy định tại Nghị định 19/2023/NĐ-CP. Quy trình này bao gồm:
+16.3.1. Cung cấp bản sao giấy tờ tùy thân hợp pháp (CCCD/CMND/Hộ chiếu);
+16.3.2. Thông tin cá nhân cơ bản (họ tên, ngày sinh, địa chỉ, số điện thoại, email);
+16.3.3. Thông tin tài chính (nguồn thu nhập, mục đích sử dụng Dịch vụ);
+16.3.4. Các tài liệu bổ sung khi được yêu cầu, đặc biệt trong trường hợp áp dụng Xác minh Nâng cao (EDD) đối với Người dùng có rủi ro cao, chẳng hạn như Người dùng từ khu vực địa lý rủi ro cao theo danh sách của Ngân hàng Nhà nước Việt Nam hoặc có lịch sử giao dịch bất thường.
+16.4. Nền tảng áp dụng hệ thống giám sát giao dịch tự động và thủ công để phát hiện Giao dịch đáng ngờ theo các tiêu chí tại Điều 25 Luật Phòng, chống rửa tiền số 14/2022/QH15, bao gồm:
+16.4.1. Giao dịch có giá trị vượt ngưỡng báo cáo (trên 300 triệu đồng hoặc tương đương theo quy định hiện hành);
+16.4.2. Giao dịch lặp lại với tần suất cao trong thời gian ngắn mà không có lý do kinh tế hợp lý;
+16.4.3. Giao dịch liên quan đến tài khoản mới mở hoặc tài khoản không hoạt động lâu dài;
+16.4.4. Giao dịch từ/đến các quốc gia/vùng lãnh thổ trong danh sách rủi ro cao về rửa tiền theo khuyến nghị của FATF (Financial Action Task Force);
+16.4.5. Giao dịch có dấu hiệu cấu trúc (chia nhỏ để tránh ngưỡng báo cáo);
+16.4.6. Giao dịch liên quan đến cá nhân/tổ chức trong danh sách đen của cơ quan nhà nước hoặc tổ chức quốc tế;
+16.4.7. Hành vi cheat/abuse như sử dụng công cụ tự động để thao túng tương tác, gian lận thanh toán, hoặc khai thác lỗ hổng hệ thống.
+16.5. Khi phát hiện Giao dịch đáng ngờ hoặc vi phạm chính sách phòng chống gian lận, Chúng tôi có quyền:
+16.5.1. Tạm ngưng hoặc khóa Tài khoản ngay lập tức mà không cần thông báo trước;
+16.5.2. Yêu cầu Người dùng cung cấp thêm thông tin, tài liệu giải trình trong thời hạn 03 ngày làm việc;
+16.5.3. Báo cáo SAR cho Cục Phòng, chống rửa tiền – Ngân hàng Nhà nước Việt Nam theo quy định tại Điều 26 Luật Phòng, chống rửa tiền số 14/2022/QH15, mà không cần thông báo trước cho Người dùng;
+16.5.4. Hợp tác toàn diện với cơ quan nhà nước có thẩm quyền, bao gồm cung cấp dữ liệu theo yêu cầu pháp luật mà không vi phạm quy định bảo vệ dữ liệu cá nhân tại Nghị định 13/2023/NĐ-CP;
+16.5.5. Chấm dứt vĩnh viễn Tài khoản và từ chối cung cấp Dịch vụ nếu vi phạm được xác định;
+16.5.6. Thu hồi hoặc phong tỏa số dư, hoàn tiền cho nạn nhân nếu xác định gian lận.
+16.6. Chúng tôi thực hiện các biện pháp phòng ngừa gian lận nội bộ, bao gồm:
+16.6.1. Đào tạo định kỳ cho nhân viên về nhận biết và xử lý Giao dịch đáng ngờ và hành vi cheat/abuse;
+16.6.2. Lưu trữ hồ sơ KYC và giao dịch ít nhất 05 năm theo quy định tại Điều 28 Luật Phòng, chống rửa tiền số 14/2022/QH15;
+16.6.3. Áp dụng công nghệ sàng lọc danh sách đen, giám sát thời gian thực và phát hiện cheat/abuse qua phân tích hành vi.
+16.7. Chúng tôi không chịu bất kỳ trách nhiệm nào đối với thiệt hại phát sinh từ việc tạm ngưng, khóa Tài khoản, báo cáo SAR hoặc các hành động khác thực hiện theo quy định pháp luật về phòng, chống gian lận. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại phát sinh từ vi phạm chính sách phòng chống gian lận của Người dùng.
+Điều 17. Chống spam và lạm dụng hệ thống
+17.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật An ninh mạng số 24/2018/QH14, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Luật Phòng, chống rửa tiền số 14/2022/QH15, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+17.2. Người dùng tuyệt đối cam kết không sử dụng Nền tảng để thực hiện hoặc hỗ trợ bất kỳ hoạt động spam hoặc lạm dụng hệ thống, bao gồm gửi tin nhắn lặp lại không mong muốn, spam bài đăng, sử dụng công cụ tự động để thao túng tương tác, khai thác lỗ hổng hệ thống, hoặc bất kỳ hành vi vi phạm pháp luật nào khác, theo Điều 4 Luật An ninh mạng số 24/2018/QH14.
+17.3. Để sử dụng các tính năng có nguy cơ lạm dụng (nhắn tin, đăng bài, vận hành auto MXH), Người dùng bắt buộc phải hoàn tất quy trình Xác minh Danh tính Khách hàng (KYC) theo tiêu chuẩn của Chúng tôi và quy định tại Nghị định 19/2023/NĐ-CP. Quy trình này bao gồm:
+17.3.1. Cung cấp bản sao giấy tờ tùy thân hợp pháp (CCCD/CMND/Hộ chiếu);
+17.3.2. Thông tin cá nhân cơ bản (họ tên, ngày sinh, địa chỉ, số điện thoại, email);
+17.3.3. Thông tin sử dụng (mục đích sử dụng Dịch vụ);
+17.3.4. Các tài liệu bổ sung khi được yêu cầu, đặc biệt trong trường hợp áp dụng Xác minh Nâng cao (EDD) đối với Người dùng có rủi ro cao, chẳng hạn như tần suất sử dụng cao bất thường hoặc có lịch sử vi phạm.
+17.4. Nền tảng áp dụng hệ thống giám sát tự động và thủ công để phát hiện spam và lạm dụng hệ thống theo các tiêu chí tại Luật An ninh mạng số 24/2018/QH14 và Nghị định 72/2013/NĐ-CP, bao gồm:
+17.4.1. Gửi tin nhắn hoặc bài đăng lặp lại với tần suất cao trong thời gian ngắn;
+17.4.2. Sử dụng công cụ tự động để tạo nội dung hàng loạt hoặc thao túng tương tác;
+17.4.3. Khai thác lỗ hổng hệ thống để truy cập trái phép hoặc làm gián đoạn dịch vụ;
+17.4.4. Đăng tải nội dung quảng cáo không được phép hoặc liên kết độc hại;
+17.4.5. Hành vi quấy rối, xúc phạm hoặc spam cá nhân/tổ chức khác;
+17.4.6. Lạm dụng tính năng vận hành auto MXH để vi phạm quy định của nền tảng MXH bên thứ ba.
+17.5. Khi phát hiện spam hoặc lạm dụng hệ thống, Chúng tôi có quyền:
+17.5.1. Tạm ngưng hoặc khóa Tài khoản ngay lập tức mà không cần thông báo trước;
+17.5.2. Yêu cầu Người dùng cung cấp thêm thông tin, tài liệu giải trình trong thời hạn 03 ngày làm việc;
+17.5.3. Xóa hoặc ẩn nội dung vi phạm mà không cần thông báo;
+17.5.4. Hợp tác toàn diện với cơ quan nhà nước có thẩm quyền, bao gồm cung cấp dữ liệu theo yêu cầu pháp luật mà không vi phạm quy định bảo vệ dữ liệu cá nhân tại Nghị định 13/2023/NĐ-CP;
+17.5.5. Chấm dứt vĩnh viễn Tài khoản và từ chối cung cấp Dịch vụ nếu vi phạm được xác định;
+17.5.6. Báo cáo cho cơ quan chức năng nếu hành vi vi phạm pháp luật hình sự hoặc an ninh mạng.
+17.6. Chúng tôi thực hiện các biện pháp phòng ngừa spam và lạm dụng nội bộ, bao gồm:
+17.6.1. Đào tạo định kỳ cho nhân viên về nhận biết và xử lý hành vi spam và lạm dụng;
+17.6.2. Lưu trữ hồ sơ hoạt động ít nhất 05 năm theo quy định tại Luật An ninh mạng số 24/2018/QH14;
+17.6.3. Áp dụng công nghệ lọc nội dung tự động và giám sát thời gian thực.
+17.7. Chúng tôi không chịu bất kỳ trách nhiệm nào đối với thiệt hại phát sinh từ việc tạm ngưng, khóa Tài khoản hoặc các hành động khác thực hiện theo quy định pháp luật về phòng, chống spam và lạm dụng. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại phát sinh từ vi phạm chính sách chống spam và lạm dụng của Người dùng.
+Điều 18. Xác minh danh tính khách hàng (KYC)
+18.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Phòng, chống rửa tiền số 14/2022/QH15, Nghị định 19/2023/NĐ-CP hướng dẫn thi hành Luật Phòng, chống rửa tiền, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Luật An ninh mạng số 24/2018/QH14, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+18.2. Người dùng tuyệt đối cam kết cung cấp thông tin chính xác, hợp pháp và hợp tác thực hiện quy trình KYC khi sử dụng các tính năng liên quan đến Giao dịch tài chính hoặc các hoạt động có rủi ro cao.
+18.3. Quy trình KYC cơ bản (CDD):
+18.3.1. Người dùng phải cung cấp bản sao giấy tờ tùy thân hợp pháp (CCCD/CMND/Hộ chiếu);
+18.3.2. Thông tin cá nhân cơ bản (họ tên, ngày sinh, địa chỉ thường trú, số điện thoại, email);
+18.3.3. Xác thực thông tin qua phương thức điện tử (mã OTP, hình ảnh selfie với giấy tờ tùy thân hoặc các biện pháp tương đương).
+18.4. Quy trình KYC nâng cao (EDD): Áp dụng cho trường hợp rủi ro cao, bao gồm:
+18.4.1. Thông tin tài chính (nguồn thu nhập, mục đích sử dụng Dịch vụ, lịch sử giao dịch);
+18.4.2. Tài liệu bổ sung (hóa đơn điện nước, sao kê ngân hàng, giấy phép kinh doanh nếu là tổ chức);
+18.4.3. Phỏng vấn hoặc xác minh trực tiếp nếu cần thiết.
+18.5. Thời hạn thực hiện KYC: Người dùng phải hoàn tất KYC trước khi thực hiện Giao dịch tài chính hoặc trong thời hạn 07 ngày làm việc kể từ khi được yêu cầu.
+18.6. Hậu quả không hoàn tất KYC: Chúng tôi có quyền:
+18.6.1. Tạm ngưng Tài khoản và các giao dịch liên quan;
+18.6.2. Từ chối cung cấp Dịch vụ có rủi ro cao;
+18.6.3. Báo cáo cho cơ quan nhà nước có thẩm quyền nếu có dấu hiệu vi phạm.
+18.7. Cập nhật KYC: Người dùng phải cập nhật thông tin KYC khi có thay đổi hoặc theo yêu cầu định kỳ của Chúng tôi.
+18.8. Chúng tôi không chịu bất kỳ trách nhiệm nào đối với thiệt hại phát sinh từ việc tạm ngưng hoặc từ chối Dịch vụ do không hoàn tất KYC. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại phát sinh từ việc cung cấp thông tin sai lệch trong quy trình KYC.
+Điều 19. Bảo mật thông tin (Privacy)
+19.1. Nguyên tắc bảo mật thông tin: Việc bảo mật thông tin tuân thủ các nguyên tắc tại Nghị định 13/2023/NĐ-CP: hợp pháp, minh bạch, mục đích hạn chế, bảo mật, chính xác, cập nhật, an toàn và trách nhiệm giải trình. Chúng tôi áp dụng các biện pháp kỹ thuật và tổ chức để bảo vệ thông tin khỏi truy cập, sử dụng, tiết lộ, thay đổi hoặc phá hủy trái phép.
+19.2. Mục đích thu thập thông tin: Chúng tôi thu thập thông tin để:
+19.2.1. Cung cấp, duy trì và cải thiện Dịch vụ, bao gồm xác minh danh tính và xử lý giao dịch.
+19.2.2. Phòng chống gian lận, rửa tiền và tuân thủ pháp luật.
+19.2.3. Phân tích dữ liệu tổng hợp để nâng cao chất lượng Nền tảng.
+19.2.4. Gửi thông báo, cập nhật và hỗ trợ Người dùng.
+19.3. Phạm vi thông tin thu thập:
+19.3.1. Thông tin đăng ký: Họ tên, email, số điện thoại, địa chỉ.
+19.3.2. Thông tin thiết bị: Địa chỉ IP, loại thiết bị, trình duyệt, hệ điều hành.
+19.3.3. Lịch sử giao dịch: Chi tiết nạp/rút tiền, mua bán, chuyển tiền.
+19.3.4. Dữ liệu KYC: Bản sao giấy tờ tùy thân, thông tin tài chính.
+19.3.5. Thông tin khác: Nội dung nhắn tin, bài đăng, dữ liệu tự nguyện cung cấp.
+19.4. Lưu trữ và thời hạn lưu trữ:
+19.4.1. Thông tin được lưu trữ tại máy chủ an toàn tại Việt Nam hoặc quốc tế với biện pháp bảo mật phù hợp.
+19.4.2. Thời hạn lưu trữ: Ít nhất 05 năm đối với dữ liệu giao dịch theo Luật Kế toán số 88/2003/QH11 (sửa đổi, bổ sung), hoặc lâu hơn nếu yêu cầu pháp luật.
+19.5. Cam kết không chia sẻ dữ liệu trái phép: Chúng tôi không chia sẻ, bán hoặc cho thuê thông tin cho bên thứ ba, trừ trường hợp:
+19.5.1. Có sự đồng ý rõ ràng của Người dùng.
+19.5.2. Theo yêu cầu pháp luật từ cơ quan nhà nước có thẩm quyền.
+19.5.3. Để thực hiện hợp đồng với Người dùng, với bên thứ ba đáng tin cậy tuân thủ bảo mật tương đương.
+19.6. Biện pháp bảo mật:
+19.6.1. Áp dụng mã hóa dữ liệu, tường lửa, kiểm soát truy cập.
+19.6.2. Đào tạo nhân viên về bảo mật.
+19.6.3. Kiểm tra định kỳ hệ thống an ninh.
+19.7. Thông báo sự cố dữ liệu: Trong trường hợp xảy ra sự cố dữ liệu, Chúng tôi sẽ thông báo cho Người dùng và cơ quan nhà nước có thẩm quyền theo quy định tại Nghị định 13/2023/NĐ-CP.
+Điều 20. Lưu trữ và xử lý dữ liệu người dùng
+20.1. Nguyên tắc xử lý dữ liệu cá nhân: Việc xử lý dữ liệu cá nhân tuân thủ các nguyên tắc tại Điều 5 Nghị định 13/2023/NĐ-CP: hợp pháp, minh bạch, mục đích hạn chế, bảo mật, chính xác, cập nhật, an toàn và trách nhiệm giải trình.
+20.2. Quyền của chủ thể dữ liệu: Người dùng có quyền:
+20.2.1. Yêu cầu truy cập, sửa chữa, xóa dữ liệu cá nhân theo Chương IV Nghị định 13/2023/NĐ-CP.
+20.2.2. Rút lại sự đồng ý xử lý dữ liệu, có thể dẫn đến hạn chế Dịch vụ.
+20.2.3. Khiếu nại về việc xử lý dữ liệu.
+20.3. Cam kết xử lý dữ liệu cá nhân:
+20.3.1. Chúng tôi chỉ xử lý dữ liệu cá nhân cho mục đích đã thông báo.
+20.3.2. Không xử lý dữ liệu cá nhân nhạy cảm mà không có sự đồng ý.
+20.3.3. Áp dụng biện pháp bảo mật dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP.
+20.4. Trường hợp cung cấp dữ liệu theo yêu cầu pháp luật: Chúng tôi cung cấp dữ liệu cá nhân theo yêu cầu của cơ quan nhà nước có thẩm quyền, mà không cần sự đồng ý của Người dùng, theo Luật An ninh mạng số 24/2018/QH14 và Nghị định 13/2023/NĐ-CP.
+20.5. Xử lý dữ liệu trong trường hợp đặc biệt: Trong trường hợp sự kiện bất khả kháng hoặc yêu cầu pháp luật, Chúng tôi có quyền xử lý dữ liệu để bảo vệ an ninh hệ thống hoặc tuân thủ pháp luật. Chúng tôi sẽ thông báo cho Người dùng về việc xử lý dữ liệu trong trường hợp này trong thời hạn hợp lý.
+Điều 21. Cookie và theo dõi truy cập
+21.1. Chúng tôi sử dụng cookie và công nghệ theo dõi tương tự (pixel, beacon) để thu thập dữ liệu truy cập, theo Nghị định 13/2023/NĐ-CP và Luật An ninh mạng số 24/2018/QH14.
+21.2. Loại cookie:
+21.2.1. Cookie cần thiết: Để vận hành Nền tảng, xác thực Người dùng.
+21.2.2. Cookie phân tích: Để theo dõi hành vi sử dụng, cải thiện Dịch vụ.
+21.2.3. Cookie quảng cáo: Để hiển thị nội dung phù hợp (nếu áp dụng).
+21.3. Theo dõi truy cập: Thu thập dữ liệu như thời gian truy cập, trang xem, thiết bị sử dụng để phân tích tổng hợp.
+21.4. Người dùng có quyền quản lý cookie qua cài đặt trình duyệt, nhưng từ chối cookie có thể hạn chế Dịch vụ.
+Điều 22. Giải quyết khiếu nại
+22.1. Quy trình tiếp nhận và xử lý khiếu nại: Khiếu nại được gửi về địa chỉ email hỗ trợ chính thức của Nền tảng hoặc qua form khiếu nại trên Nền tảng. Khiếu nại phải kèm theo: mã giao dịch (nếu có), mô tả sự việc, bằng chứng hỗ trợ (ảnh chụp, tài liệu). Thời hạn tiếp nhận và xử lý khiếu nại là 15 ngày làm việc kể từ ngày nhận được khiếu nại hợp lệ. Thời hạn có thể kéo dài nếu cần xác minh thêm từ bên thứ ba.
+22.2. Các loại khiếu nại: Bao gồm tranh chấp giao dịch, vi phạm bảo mật, lỗi hệ thống, hoặc các vấn đề khác. Chúng tôi sẽ điều tra, thu thập bằng chứng từ các bên liên quan và đưa ra quyết định công bằng dựa trên chứng cứ.
+22.3. Quyết định xử lý: Có thể bao gồm hoàn tiền, bồi thường, tạm ngưng Tài khoản, hoặc từ chối khiếu nại nếu không đủ cơ sở. Quyết định của Chúng tôi là cuối cùng trong phạm vi nội bộ, trừ khi tranh chấp được đưa ra cơ quan nhà nước có thẩm quyền.
+22.4. Hợp tác với cơ quan nhà nước: Nếu khiếu nại liên quan đến vi phạm pháp luật, Chúng tôi có quyền chuyển hồ sơ cho cơ quan nhà nước có thẩm quyền mà không cần thông báo trước cho Người dùng.
+Điều 23. Giải quyết tranh chấp
+23.1. Các tranh chấp phát sinh sẽ được giải quyết thông qua thương lượng giữa các bên. Thời hạn thương lượng: 30 ngày kể từ ngày một bên thông báo tranh chấp cho bên kia.
+23.2. Trường hợp thương lượng không thành, tranh chấp sẽ được đưa ra Tòa án nhân dân có thẩm quyền tại thành phố Hồ Chí Minh theo pháp luật Việt Nam.
+23.3. Trong quá trình giải quyết tranh chấp, Chúng tôi có quyền tạm ngưng các giao dịch liên quan để bảo vệ quyền lợi các bên.
+Điều 24. Miễn trừ và giới hạn trách nhiệm
+24.1. Giới hạn trách nhiệm: Nền tảng cung cấp “như hiện có”, không bảo đảm không gián đoạn, không lỗi. Chúng tôi không chịu trách nhiệm về nội dung Người dùng đăng tải, các giao dịch giữa Người dùng với nhau, thiệt hại gián tiếp, mất mát lợi nhuận. Tổng trách nhiệm của Chúng tôi không vượt quá số tiền Người dùng đã trả cho Dịch vụ trong 03 tháng gần nhất.
+24.2. Miễn trừ trách nhiệm: Chúng tôi được miễn trừ trách nhiệm trong trường hợp sự cố do thiên tai, chiến tranh, hành vi của cơ quan nhà nước, vi phạm của Người dùng hoặc sự cố nằm ngoài khả năng kiểm soát hợp lý. Chúng tôi được miễn trừ trách nhiệm đối với thiệt hại phát sinh từ Sự kiện bất khả kháng, theo Điều 156 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020). Chúng tôi được miễn trừ trách nhiệm đối với thiệt hại gián tiếp, thiệt hại do mất lợi nhuận, mất cơ hội kinh doanh, thiệt hại uy tín, theo Điều 361 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020). Chúng tôi được miễn trừ trách nhiệm trong trường hợp thiệt hại phát sinh từ hành vi vi phạm của Người dùng, bao gồm sử dụng Dịch vụ cho mục đích bất hợp pháp hoặc vi phạm văn bản này. Chúng tôi được miễn trừ trách nhiệm đối với thiệt hại phát sinh từ lỗi của bên thứ ba, bao gồm nhà cung cấp hạ tầng kỹ thuật, ngân hàng, ví điện tử, hoặc nền tảng MXH bên ngoài.
+Điều 25. Khóa Tài khoản / đình chỉ Tài khoản / chấm dứt cung cấp Dịch vụ
+25.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật An ninh mạng số 24/2018/QH14, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), Luật Phòng, chống rửa tiền số 14/2022/QH15, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+25.2. Chúng tôi có quyền khóa, đình chỉ Tài khoản hoặc chấm dứt cung cấp Dịch vụ nếu phát hiện Người dùng vi phạm, bao gồm nhưng không giới hạn:
+25.2.1. Vi phạm văn bản này hoặc chính sách liên quan (spam, gian lận, lạm dụng hệ thống);
+25.2.2. Thực hiện Hoạt động bất hợp pháp (rửa tiền, lừa đảo, vi phạm quyền sở hữu trí tuệ);
+25.2.3. Không hoàn tất KYC hoặc cung cấp thông tin sai lệch;
+25.2.4. Có dấu hiệu Giao dịch đáng ngờ theo Luật Phòng, chống rửa tiền số 14/2022/QH15;
+25.2.5. Gây hại đến Nền tảng hoặc Người dùng khác (tấn công hệ thống, quấy rối);
+25.2.6. Yêu cầu từ cơ quan nhà nước có thẩm quyền.
+25.3. Quy trình khóa/đình chỉ/chấm dứt:
+25.3.1. Chúng tôi có quyền thực hiện mà không cần thông báo trước nếu vi phạm nghiêm trọng hoặc rủi ro cao.
+25.3.2. Thông báo lý do qua email hoặc thông báo trên Nền tảng (nếu áp dụng).
+25.3.3. Người dùng có quyền khiếu nại trong 07 ngày làm việc kể từ ngày nhận thông báo.
+25.3.4. Khi chấm dứt, số dư (nếu có) sẽ được xử lý theo chính sách hoàn tiền, trừ trường hợp tạm giữ để phục vụ điều tra.
+25.4. Hậu quả:
+25.4.1. Mất quyền truy cập Dịch vụ;
+25.4.2. Xóa dữ liệu liên quan (trừ dữ liệu lưu trữ theo pháp luật);
+25.4.3. Báo cáo cho cơ quan nhà nước nếu vi phạm pháp luật.
+25.5. Khôi phục Tài khoản: Chỉ áp dụng nếu vi phạm không nghiêm trọng và Người dùng cung cấp giải trình hợp lý trong thời hạn khiếu nại.
+25.6. Chúng tôi không chịu trách nhiệm đối với thiệt hại phát sinh từ việc khóa/đình chỉ/chấm dứt theo quy định pháp luật hoặc văn bản này. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại từ vi phạm của Người dùng.
+Điều 26. Bảo vệ người tiêu dùng
+26.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12 (sửa đổi, bổ sung năm 2013), Nghị định 99/2011/NĐ-CP hướng dẫn thi hành luật bảo vệ quyền lợi người tiêu dùng (sửa đổi, bổ sung), Luật An ninh mạng số 24/2018/QH14, Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, Nghị định 72/2013/NĐ-CP, và các văn bản pháp luật liên quan khác.
+26.2. Quyền của Người tiêu dùng:
+26.2.1. Được cung cấp thông tin đầy đủ, chính xác về hàng hóa/dịch vụ trước khi giao dịch, theo Điều 8 Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12.
+26.2.2. Được bảo vệ thông tin cá nhân và bí mật giao dịch theo Nghị định 13/2023/NĐ-CP.
+26.2.3. Được khiếu nại, tố cáo và yêu cầu bồi thường thiệt hại nếu hàng hóa/dịch vụ không đúng chất lượng, theo Điều 21 Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12.
+26.2.4. Được hoàn tiền hoặc thay thế nếu giao dịch vi phạm, theo chính sách hoàn tiền của Nền tảng.
+26.2.5. Được hỗ trợ giải quyết tranh chấp thông qua cơ chế nội bộ hoặc cơ quan nhà nước có thẩm quyền.
+26.3. Nghĩa vụ của Bên Cung Cấp đối với Người tiêu dùng:
+26.3.1. Cung cấp thông tin minh bạch về hàng hóa/dịch vụ, phí dịch vụ, điều khoản sử dụng.
+26.3.2. Áp dụng biện pháp bảo mật thanh toán và dữ liệu theo quy định pháp luật.
+26.3.3. Xử lý khiếu nại kịp thời, công bằng theo thời hạn quy định.
+26.3.4. Không sử dụng thông tin cá nhân cho mục đích trái phép.
+26.3.5. Báo cáo và hợp tác với cơ quan nhà nước để bảo vệ quyền lợi Người tiêu dùng.
+26.4. Hành vi bị cấm đối với Người tiêu dùng:
+26.4.1. Gian lận, lạm dụng chính sách hoàn tiền hoặc khiếu nại.
+26.4.2. Sử dụng Dịch vụ cho mục đích bất hợp pháp.
+26.4.3. Cung cấp thông tin sai lệch dẫn đến thiệt hại cho bên khác.
+26.5. Chúng tôi không chịu trách nhiệm đối với thiệt hại phát sinh từ hành vi vi phạm của Người tiêu dùng. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại từ vi phạm của mình.
+Điều 27. Hỗ trợ khách hàng (CSKH)
+27.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12 (sửa đổi, bổ sung năm 2013), Nghị định 99/2011/NĐ-CP hướng dẫn thi hành luật bảo vệ quyền lợi người tiêu dùng (sửa đổi, bổ sung), Luật An ninh mạng số 24/2018/QH14, Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, Nghị định 72/2013/NĐ-CP, và các văn bản pháp luật liên quan khác.
+27.2. Kênh hỗ trợ: Người dùng có thể liên hệ CSKH qua email hỗ trợ chính thức, form liên hệ trên Nền tảng, hoặc các kênh khác được công bố. Thời gian hỗ trợ: 24/7 cho các vấn đề khẩn cấp, 08:00 - 17:00 giờ làm việc cho các yêu cầu thông thường.
+27.3. Phạm vi hỗ trợ: Bao gồm tư vấn sử dụng Dịch vụ, hướng dẫn kỹ thuật, xử lý lỗi hệ thống, hỗ trợ xác minh giao dịch, và xử lý khiếu nại theo Điều 21 Luật Bảo vệ quyền lợi người tiêu dùng số 59/2010/QH12.
+27.4. Thời hạn xử lý: Yêu cầu hỗ trợ được xác nhận trong 03 ngày làm việc và xử lý trong 15 ngày làm việc, có thể kéo dài nếu cần xác minh thêm.
+27.5. Cam kết: Chúng tôi cam kết xử lý hỗ trợ công bằng, minh bạch, bảo mật thông tin theo Nghị định 13/2023/NĐ-CP, và hợp tác với cơ quan nhà nước nếu cần.
+27.6. Hạn chế: Không hỗ trợ cho hành vi vi phạm pháp luật hoặc lạm dụng Dịch vụ. Người dùng đồng ý bồi thường nếu yêu cầu hỗ trợ gian lận gây thiệt hại.
+Điều 28. Tuân thủ pháp luật Việt Nam
+28.1. Nền tảng cam kết tuân thủ nghiêm ngặt các quy định pháp luật Việt Nam hiện hành, bao gồm nhưng không giới hạn Luật An ninh mạng số 24/2018/QH14, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, Luật Phòng, chống rửa tiền số 14/2022/QH15, Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), và các văn bản pháp luật liên quan khác.
+28.2. Người dùng tuyệt đối cam kết tuân thủ pháp luật Việt Nam trong mọi hoạt động trên Nền tảng, bao gồm không thực hiện hoặc hỗ trợ bất kỳ Hoạt động bất hợp pháp nào, theo quy định tại Điều 16 Luật An ninh mạng số 24/2018/QH14.
+28.3. Các biện pháp đảm bảo tuân thủ:
+28.3.1. Áp dụng KYC cho các hoạt động có rủi ro cao, theo Nghị định 19/2023/NĐ-CP;
+28.3.2. Giám sát và báo cáo Giao dịch đáng ngờ theo Luật Phòng, chống rửa tiền số 14/2022/QH15;
+28.3.3. Kiểm duyệt Nội dung để ngăn chặn thông tin vi phạm theo Nghị định 72/2013/NĐ-CP;
+28.3.4. Hợp tác với cơ quan nhà nước có thẩm quyền, cung cấp dữ liệu theo yêu cầu pháp luật mà không vi phạm Nghị định 13/2023/NĐ-CP;
+28.3.5. Đào tạo định kỳ cho nhân viên về tuân thủ pháp luật và an ninh mạng.
+28.4. Xử lý vi phạm: Khi phát hiện vi phạm pháp luật Việt Nam, Chúng tôi có quyền:
+28.4.1. Tạm ngưng hoặc khóa Tài khoản ngay lập tức;
+28.4.2. Yêu cầu Người dùng cung cấp giải trình trong thời hạn 03 ngày làm việc;
+28.4.3. Báo cáo cho cơ quan nhà nước có thẩm quyền mà không cần thông báo trước cho Người dùng;
+28.4.4. Chấm dứt vĩnh viễn Tài khoản và từ chối cung cấp Dịch vụ.
+28.5. Chúng tôi không chịu trách nhiệm đối với thiệt hại phát sinh từ việc xử lý vi phạm theo pháp luật Việt Nam. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại từ vi phạm của mình.
+Điều 29. Bảo mật hệ thống và an ninh mạng
+29.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật An ninh mạng số 24/2018/QH14, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, Luật Phòng, chống rửa tiền số 14/2022/QH15, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+29.2. Biện pháp bảo mật hệ thống:
+29.2.1. Áp dụng công nghệ mã hóa dữ liệu (SSL/TLS) cho mọi kết nối và giao dịch;
+29.2.2. Triển khai hệ thống tường lửa, phát hiện xâm nhập (IDS/IPS) và chống DDoS;
+29.2.3. Thực hiện kiểm toán an ninh định kỳ và kiểm tra lỗ hổng theo tiêu chuẩn quốc tế;
+29.2.4. Lưu trữ dữ liệu tại máy chủ an toàn với sao lưu dự phòng;
+29.2.5. Đào tạo nhân viên về an ninh mạng và bảo mật thông tin.
+29.3. Biện pháp an ninh mạng:
+29.3.1. Giám sát thời gian thực hoạt động hệ thống để phát hiện và ứng phó Sự cố an ninh mạng theo Điều 28 Luật An ninh mạng số 24/2018/QH14;
+29.3.2. Hợp tác với cơ quan nhà nước có thẩm quyền trong việc phòng ngừa, phát hiện và xử lý hành vi vi phạm an ninh mạng theo Điều 29 Luật An ninh mạng số 24/2018/QH14;
+29.3.3. Báo cáo kịp thời cho Cục An ninh mạng và phòng, chống tội phạm công nghệ cao (A05) nếu phát hiện vi phạm nghiêm trọng;
+29.3.4. Áp dụng KYC để xác minh danh tính Người dùng trước khi thực hiện giao dịch có rủi ro cao.
+29.4. Cam kết của Người dùng:
+29.4.1. Không thực hiện hành vi tấn công, xâm nhập, khai thác lỗ hổng hệ thống;
+29.4.2. Thông báo ngay cho Chúng tôi nếu phát hiện dấu hiệu Sự cố an ninh mạng;
+29.4.3. Sử dụng thiết bị và kết nối an toàn khi truy cập Nền tảng.
+29.5. Xử lý Sự cố an ninh mạng:
+29.5.1. Tạm ngưng Dịch vụ liên quan để khắc phục;
+29.5.2. Thông báo cho Người dùng bị ảnh hưởng trong thời hạn 24 giờ;
+29.5.3. Báo cáo cho cơ quan nhà nước theo quy định tại Điều 30 Luật An ninh mạng số 24/2018/QH14.
+29.6. Chúng tôi không chịu trách nhiệm đối với thiệt hại phát sinh từ hành vi vi phạm an ninh mạng của Người dùng hoặc bên thứ ba ngoài khả năng kiểm soát hợp lý. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại từ vi phạm của mình.
+Điều 30. Bảo mật thanh toán
+30.1. Nền tảng cam kết tuân thủ nghiêm ngặt Nghị định 101/2012/NĐ-CP về thanh toán không dùng tiền mặt (sửa đổi, bổ sung), Luật Phòng, chống rửa tiền số 14/2022/QH15, Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018), Luật An ninh mạng số 24/2018/QH14, Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân và các văn bản pháp luật liên quan đến thanh toán điện tử.
+30.2. Tất cả dữ liệu thanh toán được truyền tải qua giao thức mã hóa SSL/TLS tiêu chuẩn công nghiệp.
+30.3. Chúng tôi không lưu trữ đầy đủ thông tin thẻ tín dụng/thẻ ghi nợ. Thông tin thẻ chỉ được xử lý qua cổng thanh toán được cấp phép và tuân thủ tiêu chuẩn bảo mật PCI DSS (nếu áp dụng) hoặc tiêu chuẩn tương đương theo quy định của Ngân hàng Nhà nước Việt Nam.
+30.4. Dữ liệu thanh toán chỉ được sử dụng cho mục đích thực hiện giao dịch, đối soát, hoàn tiền và tuân thủ pháp luật.
+30.5. Các biện pháp bảo mật thanh toán bao gồm:
+30.5.1. Xác thực hai yếu tố (2FA/OTP) bắt buộc cho mọi giao dịch tài chính;
+30.5.2. Giám sát thời gian thực các giao dịch để phát hiện gian lận;
+30.5.3. Giới hạn số lần thử và giá trị giao dịch trong ngày;
+30.5.4. Hệ thống chống DDoS và bảo vệ lớp mạng cho cổng thanh toán.
+30.6. Người dùng cam kết:
+30.6.1. Không chia sẻ thông tin thanh toán với bên thứ ba;
+30.6.2. Sử dụng thiết bị và kết nối an toàn khi thực hiện thanh toán;
+30.6.3. Thông báo ngay cho Chúng tôi nếu phát hiện giao dịch bất thường.
+30.7. Khi phát hiện rủi ro bảo mật thanh toán, Chúng tôi có quyền:
+30.7.1. Tạm ngưng giao dịch và yêu cầu xác minh bổ sung;
+30.7.2. Khóa tính năng thanh toán của Tài khoản;
+30.7.3. Báo cáo cho Ngân hàng Nhà nước Việt Nam và cơ quan có thẩm quyền theo quy định.
+30.8. Chúng tôi không chịu trách nhiệm đối với thiệt hại phát sinh từ việc Người dùng vi phạm quy định bảo mật thanh toán hoặc sử dụng thiết bị/kết nối không an toàn.
+Điều 31. Giới hạn trách nhiệm pháp lý
+31.1. Giới hạn trách nhiệm: Nền tảng cung cấp “như hiện có”, không bảo đảm không gián đoạn, không lỗi. Chúng tôi không chịu trách nhiệm về nội dung Người dùng đăng tải, các giao dịch giữa Người dùng với nhau, thiệt hại gián tiếp, mất mát lợi nhuận. Tổng trách nhiệm của Chúng tôi không vượt quá số tiền Người dùng đã trả cho Dịch vụ trong 03 tháng gần nhất.
+31.2. Miễn trừ trách nhiệm: Chúng tôi được miễn trừ trách nhiệm trong trường hợp sự cố do thiên tai, chiến tranh, hành vi của cơ quan nhà nước, vi phạm của Người dùng hoặc sự cố nằm ngoài khả năng kiểm soát hợp lý. Chúng tôi được miễn trừ trách nhiệm đối với thiệt hại phát sinh từ Sự kiện bất khả kháng, theo Điều 156 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020). Chúng tôi được miễn trừ trách nhiệm đối với thiệt hại gián tiếp, thiệt hại do mất lợi nhuận, mất cơ hội kinh doanh, thiệt hại uy tín, theo Điều 361 Bộ luật Dân sự số 91/2015/QH13 (sửa đổi, bổ sung năm 2020). Chúng tôi được miễn trừ trách nhiệm trong trường hợp thiệt hại phát sinh từ hành vi vi phạm của Người dùng, bao gồm sử dụng Dịch vụ cho mục đích bất hợp pháp hoặc vi phạm văn bản này. Chúng tôi được miễn trừ trách nhiệm đối với thiệt hại phát sinh từ lỗi của bên thứ ba, bao gồm nhà cung cấp hạ tầng kỹ thuật, ngân hàng, ví điện tử, hoặc nền tảng MXH bên ngoài.
+Điều 32. Kiểm duyệt nội dung và hành vi bị cấm
+32.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật An ninh mạng số 24/2018/QH14, Nghị định 72/2013/NĐ-CP về quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng, Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, Luật Phòng, chống rửa tiền số 14/2022/QH15, và các văn bản pháp luật liên quan khác về giao dịch điện tử và dữ liệu số.
+32.2. Chúng tôi áp dụng hệ thống kiểm duyệt tự động và thủ công để giám sát Nội dung theo quy định tại Điều 5 Luật An ninh mạng số 24/2018/QH14 và Điều 8 Nghị định 72/2013/NĐ-CP, nhằm phát hiện và xử lý Nội dung vi phạm.
+32.3. Hành vi bị cấm: Người dùng tuyệt đối không được thực hiện các hành vi sau:
+32.3.1. Đăng tải, chia sẻ Nội dung vi phạm an ninh quốc gia, chống phá Nhà nước, kích động bạo lực, phân biệt đối xử, theo Điều 16 Luật An ninh mạng số 24/2018/QH14;
+32.3.2. Đăng tải Nội dung đồi trụy, khiêu dâm, mại dâm, ma túy, cờ bạc, vũ khí, khủng bố, theo Điều 17 Luật An ninh mạng số 24/2018/QH14;
+32.3.3. Vi phạm quyền sở hữu trí tuệ, bản quyền, nhãn hiệu, theo Luật Sở hữu trí tuệ số 50/2005/QH11 (sửa đổi, bổ sung năm 2019);
+32.3.4. Lừa đảo, gian lận, chiếm đoạt tài sản, rửa tiền, theo Điều 174 Bộ luật Hình sự số 100/2015/QH13 (sửa đổi, bổ sung năm 2017) và Luật Phòng, chống rửa tiền số 14/2022/QH15;
+32.3.5. Quấy rối, xúc phạm, đe dọa, vu khống cá nhân/tổ chức khác, theo Điều 18 Luật An ninh mạng số 24/2018/QH14;
+32.3.6. Spam, gửi tin nhắn hàng loạt không được phép, theo Nghị định 72/2013/NĐ-CP;
+32.3.7. Khai thác lỗ hổng hệ thống, hack, tấn công DDoS, theo Điều 19 Luật An ninh mạng số 24/2018/QH14;
+32.3.8. Đăng tải Nội dung sai sự thật, tin giả, gây hoang mang dư luận, theo Nghị định 15/2020/NĐ-CP;
+32.3.9. Các hành vi khác vi phạm pháp luật, đạo đức xã hội hoặc thuần phong mỹ tục Việt Nam.
+32.4. Quy trình kiểm duyệt và xử lý vi phạm:
+32.4.1. Nội dung vi phạm sẽ bị xóa, ẩn hoặc chặn mà không cần thông báo trước;
+32.4.2. Chúng tôi có quyền yêu cầu Người dùng giải trình trong thời hạn 03 ngày làm việc;
+32.4.3. Báo cáo cho cơ quan nhà nước có thẩm quyền nếu vi phạm nghiêm trọng, theo Điều 26 Luật An ninh mạng số 24/2018/QH14;
+32.4.4. Hợp tác cung cấp dữ liệu theo yêu cầu pháp luật mà không vi phạm Nghị định 13/2023/NĐ-CP.
+32.5. Hậu quả vi phạm: Tạm ngưng, khóa Tài khoản hoặc chấm dứt Dịch vụ, theo Điều 25 văn bản này.
+32.6. Chúng tôi không chịu trách nhiệm đối với thiệt hại phát sinh từ việc kiểm duyệt hoặc xử lý vi phạm theo pháp luật. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại từ vi phạm của Người dùng.
+Điều 33. Về hàng hóa/dịch vụ bị cấm giao dịch
+33.1. Nền tảng cam kết tuân thủ nghiêm ngặt Luật Thương mại số 36/2005/QH11 (sửa đổi, bổ sung năm 2017), Luật Quản lý, sử dụng vũ khí, vật liệu nổ và công cụ hỗ trợ số 14/2017/QH14, Luật Phòng, chống ma túy số 73/2021/QH15, Luật Phòng, chống khủng bố số 28/2013/QH13, Luật Quảng cáo số 16/2012/QH13 (sửa đổi, bổ sung năm 2018), Luật An ninh mạng số 24/2018/QH14, Nghị định 72/2013/NĐ-CP, và các văn bản pháp luật liên quan khác về hàng hóa/dịch vụ bị cấm.
+33.2. Người dùng tuyệt đối cam kết không sử dụng Nền tảng để giao dịch, mua bán, trao đổi hoặc quảng bá bất kỳ hàng hóa/dịch vụ bị cấm theo pháp luật Việt Nam, bao gồm nhưng không giới hạn:
+33.2.1. Ma túy, chất gây nghiện, chất hướng thần theo Luật Phòng, chống ma túy số 73/2021/QH15;
+33.2.2. Vũ khí, vật liệu nổ, công cụ hỗ trợ theo Luật Quản lý, sử dụng vũ khí, vật liệu nổ và công cụ hỗ trợ số 14/2017/QH14;
+33.2.3. Nội dung khiêu dâm, đồi trụy, mại dâm theo Điều 326 Bộ luật Hình sự số 100/2015/QH13 (sửa đổi, bổ sung năm 2017);
+33.2.4. Hàng hóa liên quan đến khủng bố, kích động bạo lực, chống phá Nhà nước theo Luật Phòng, chống khủng bố số 28/2013/QH13 và Luật An ninh mạng số 24/2018/QH14;
+33.2.5. Hàng hóa vi phạm quyền sở hữu trí tuệ, hàng giả mạo theo Luật Sở hữu trí tuệ số 50/2005/QH11 (sửa đổi, bổ sung năm 2019);
+33.2.6. Dịch vụ đánh bạc, cá độ bất hợp pháp theo Điều 321 Bộ luật Hình sự số 100/2015/QH13 (sửa đổi, bổ sung năm 2017);
+33.2.7. Hàng hóa, dịch vụ vi phạm an ninh mạng, truyền bá thông tin sai sự thật, theo Luật An ninh mạng số 24/2018/QH14 và Nghị định 15/2020/NĐ-CP;
+33.2.8. Các hàng hóa/dịch vụ khác bị cấm hoặc hạn chế theo Nghị định 52/2013/NĐ-CP về thương mại điện tử và các văn bản pháp luật liên quan.
+33.3. Quy trình kiểm tra và xử lý:
+33.3.1. Chúng tôi áp dụng hệ thống giám sát tự động và thủ công để phát hiện giao dịch liên quan đến hàng hóa/dịch vụ bị cấm.
+33.3.2. Khi phát hiện vi phạm, Chúng tôi có quyền: (i) hủy giao dịch ngay lập tức; (ii) yêu cầu Người dùng giải trình trong thời hạn 03 ngày làm việc; (iii) báo cáo cho cơ quan nhà nước có thẩm quyền mà không cần thông báo trước cho Người dùng; (iv) hợp tác cung cấp dữ liệu theo yêu cầu pháp luật.
+33.3.3. Chấm dứt vĩnh viễn Tài khoản và từ chối cung cấp Dịch vụ nếu vi phạm được xác định.
+33.4. Chúng tôi không chịu bất kỳ trách nhiệm nào đối với thiệt hại phát sinh từ việc hủy giao dịch hoặc xử lý vi phạm theo quy định pháp luật. Người dùng đồng ý bồi thường cho Chúng tôi mọi thiệt hại phát sinh từ vi phạm chính sách này.
+B. CHÍNH SÁCH BẢO MẬT THÔNG TIN
+Điều 34. Nguyên tắc bảo mật thông tin
+Việc bảo mật thông tin tuân thủ các nguyên tắc tại Nghị định 13/2023/NĐ-CP: hợp pháp, minh bạch, mục đích hạn chế, bảo mật, chính xác, cập nhật, an toàn và trách nhiệm giải trình. Chúng tôi áp dụng các biện pháp kỹ thuật và tổ chức để bảo vệ thông tin khỏi truy cập, sử dụng, tiết lộ, thay đổi hoặc phá hủy trái phép.
+Điều 35. Mục đích thu thập thông tin
+Chúng tôi thu thập thông tin để:
+35.1. Cung cấp, duy trì và cải thiện Dịch vụ, bao gồm xác minh danh tính và xử lý giao dịch.
+35.2. Phòng chống gian lận, rửa tiền và tuân thủ pháp luật.
+35.3. Phân tích dữ liệu tổng hợp để nâng cao chất lượng Nền tảng.
+35.4. Gửi thông báo, cập nhật và hỗ trợ Người dùng.
+Điều 36. Phạm vi thông tin thu thập
+36.1. Thông tin đăng ký: Họ tên, email, số điện thoại, địa chỉ.
+36.2. Thông tin thiết bị: Địa chỉ IP, loại thiết bị, trình duyệt, hệ điều hành.
+36.3. Lịch sử giao dịch: Chi tiết nạp/rút tiền, mua bán, chuyển tiền.
+36.4. Dữ liệu KYC: Bản sao giấy tờ tùy thân, thông tin tài chính.
+36.5. Thông tin khác: Nội dung nhắn tin, bài đăng, dữ liệu tự nguyện cung cấp.
+Điều 37. Lưu trữ và thời hạn lưu trữ
+37.1. Thông tin được lưu trữ tại máy chủ an toàn tại Việt Nam hoặc quốc tế với biện pháp bảo mật phù hợp.
+37.2. Thời hạn lưu trữ: Ít nhất 05 năm đối với dữ liệu giao dịch theo Luật Kế toán số 88/2003/QH11 (sửa đổi, bổ sung), hoặc lâu hơn nếu yêu cầu pháp luật.
+Điều 38. Cam kết không chia sẻ dữ liệu trái phép
+Chúng tôi không chia sẻ, bán hoặc cho thuê thông tin cho bên thứ ba, trừ trường hợp:
+38.1. Có sự đồng ý rõ ràng của Người dùng.
+38.2. Theo yêu cầu pháp luật từ cơ quan nhà nước có thẩm quyền.
+38.3. Để thực hiện hợp đồng với Người dùng, với bên thứ ba đáng tin cậy tuân thủ bảo mật tương đương.
+Điều 39. Biện pháp bảo mật
+39.1. Áp dụng mã hóa dữ liệu, tường lửa, kiểm soát truy cập.
+39.2. Đào tạo nhân viên về bảo mật.
+39.3. Kiểm tra định kỳ hệ thống an ninh.
+Điều 40. Thông báo sự cố dữ liệu
+Trong trường hợp xảy ra sự cố dữ liệu, Chúng tôi sẽ thông báo cho Người dùng và cơ quan nhà nước có thẩm quyền theo quy định tại Nghị định 13/2023/NĐ-CP.
+C. CHÍNH SÁCH XỬ LÝ DỮ LIỆU CÁ NHÂN
+Điều 41. Nguyên tắc xử lý dữ liệu cá nhân
+Việc xử lý dữ liệu cá nhân tuân thủ các nguyên tắc tại Điều 5 Nghị định 13/2023/NĐ-CP: hợp pháp, minh bạch, mục đích hạn chế, bảo mật, chính xác, cập nhật, an toàn và trách nhiệm giải trình.
+Điều 42. Quyền của chủ thể dữ liệu
+Người dùng có quyền:
+42.1. Yêu cầu truy cập, sửa chữa, xóa dữ liệu cá nhân theo Chương IV Nghị định 13/2023/NĐ-CP.
+42.2. Rút lại sự đồng ý xử lý dữ liệu, có thể dẫn đến hạn chế Dịch vụ.
+42.3. Khiếu nại về việc xử lý dữ liệu.
+Điều 43. Cam kết xử lý dữ liệu cá nhân
+43.1. Chúng tôi chỉ xử lý dữ liệu cá nhân cho mục đích đã thông báo.
+43.2. Không xử lý dữ liệu cá nhân nhạy cảm mà không có sự đồng ý.
+43.3. Áp dụng biện pháp bảo mật dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP.
+Điều 44. Trường hợp cung cấp dữ liệu theo yêu cầu pháp luật
+Chúng tôi cung cấp dữ liệu cá nhân theo yêu cầu của cơ quan nhà nước có thẩm quyền, mà không cần sự đồng ý của Người dùng, theo Luật An ninh mạng số 24/2018/QH14 và Nghị định 13/2023/NĐ-CP.
+D. QUYỀN & TRÁCH NHIỆM CÁC BÊN
+Điều 45. Quyền và nghĩa vụ của Người dùng
+45.1. Quyền của Người dùng:
+45.1.1. Được sử dụng các tính năng của Dịch vụ theo đúng chức năng và điều kiện quy định, bao gồm nhắn tin, chuyển tiền nội bộ, giao dịch mua bán, đổi thẻ cào, đăng tin tuyển dụng, nhận việc làm, mua tương tác, vận hành auto MXH, chia sẻ kiến thức, tham gia diễn đàn MMO, mua bán game và vật phẩm online.
+45.1.2. Được yêu cầu hỗ trợ từ Chúng tôi liên quan đến Dịch vụ, bao gồm xử lý khiếu nại về giao dịch hoặc dữ liệu cá nhân theo quy định tại Nghị định 13/2023/NĐ-CP.
+45.1.3. Được quyền truy cập, sửa chữa, xóa dữ liệu cá nhân của mình theo quy định pháp luật.
+45.1.4. Được thông báo về các thay đổi của Dịch vụ hoặc chính sách qua email hoặc thông báo trên Nền tảng.
+45.2. Nghĩa vụ của Người dùng:
+45.2.1. Cung cấp thông tin chính xác, đầy đủ và hợp pháp khi đăng ký Tài khoản và thực hiện giao dịch, bao gồm thông tin xác minh danh tính để tuân thủ quy định về giao dịch điện tử và phòng chống rửa tiền.
+45.2.2. Tuân thủ nghiêm ngặt pháp luật Việt Nam, bao gồm Luật An ninh mạng số 24/2018/QH14, Nghị định 72/2013/NĐ-CP, không sử dụng Dịch vụ để thực hiện hành vi bất hợp pháp như gian lận, rửa tiền, vi phạm quyền sở hữu trí tuệ, truyền bá thông tin sai sự thật, quấy rối, hoặc các hoạt động vi phạm an ninh mạng.
+45.2.3. Chịu trách nhiệm toàn bộ về nội dung đăng tải, giao dịch thực hiện trên Nền tảng, bao gồm đảm bảo tính hợp pháp của hàng hóa, dịch vụ mua bán (như game, vật phẩm online), và không đăng tải nội dung vi phạm pháp luật, đạo đức xã hội.
+45.2.4. Bảo mật thông tin Tài khoản, không chia sẻ với bên thứ ba, và thông báo ngay cho Chúng tôi nếu phát hiện truy cập trái phép.
+45.2.5. Hợp tác cung cấp thông tin, tài liệu khi Chúng tôi yêu cầu để xác minh giao dịch, xử lý khiếu nại hoặc tuân thủ yêu cầu pháp luật từ cơ quan nhà nước có thẩm quyền.
+45.2.6. Không sử dụng các công cụ, phần mềm hoặc phương pháp để can thiệp, làm gián đoạn hoạt động của Nền tảng, bao gồm vận hành auto MXH trái phép hoặc khai thác lỗ hổng hệ thống.
+45.2.7. Chịu trách nhiệm bồi thường thiệt hại cho Chúng tôi hoặc bên thứ ba nếu vi phạm nghĩa vụ, bao gồm chi phí pháp lý phát sinh từ tranh chấp do hành vi của Người dùng.
+45.2.8. Không sử dụng Dịch vụ cho mục đích thương mại trái phép mà không có sự đồng ý của Chúng tôi, và tuân thủ các quy định về thuế, phí liên quan đến giao dịch tài chính.
+Điều 46. Quyền và nghĩa vụ của Bên Cung Cấp
+46.1. Quyền của Bên Cung Cấp:
+46.1.1. Giám sát, kiểm tra và phân tích hoạt động của Người dùng trên Nền tảng để đảm bảo tuân thủ văn bản này và pháp luật Việt Nam, bao gồm Luật An ninh mạng số 24/2018/QH14 và Nghị định 72/2013/NĐ-CP, mà không cần thông báo trước.
+46.1.2. Từ chối đăng ký, tạm ngưng, khóa hoặc chấm dứt Tài khoản và cung cấp Dịch vụ đối với Người dùng vi phạm.
+46.1.3. Sửa đổi, bổ sung hoặc cập nhật Dịch vụ, tính năng, phí dịch vụ (nếu áp dụng), và văn bản này bất kỳ lúc nào, với thông báo hợp lý cho Người dùng theo quy định tại Luật Giao dịch điện tử số 51/2005/QH11 (sửa đổi, bổ sung năm 2018).
+46.1.4. Thu thập, lưu trữ và xử lý dữ liệu cá nhân của Người dùng để cung cấp Dịch vụ, cải thiện chất lượng, phòng chống gian lận và tuân thủ pháp luật, theo nguyên tắc tại Nghị định 13/2023/NĐ-CP.
+46.1.5. Cung cấp dữ liệu cho cơ quan nhà nước có thẩm quyền theo yêu cầu pháp luật, mà không cần sự đồng ý của Người dùng, bao gồm các trường hợp liên quan đến an ninh mạng hoặc điều tra vi phạm.
+46.1.6. Hợp tác với bên thứ ba đáng tin cậy để vận hành một phần Dịch vụ, miễn là đảm bảo bảo mật dữ liệu theo quy định pháp luật.
+46.1.7. Sử dụng nội dung do Người dùng đăng tải (không bao gồm dữ liệu cá nhân) để quảng bá Nền tảng hoặc phân tích dữ liệu tổng hợp, miễn là không vi phạm quyền sở hữu trí tuệ của Người dùng.
+46.2. Nghĩa vụ của Bên Cung Cấp:
+46.2.1. Vận hành Nền tảng ổn định, an toàn và liên tục trong khả năng hợp lý, áp dụng các biện pháp kỹ thuật cần thiết để bảo vệ hệ thống theo Luật An ninh mạng số 24/2018/QH14.
+46.2.2. Bảo vệ dữ liệu cá nhân của Người dùng theo các nguyên tắc tại Nghị định 13/2023/NĐ-CP, bao gồm áp dụng biện pháp bảo mật, không chia sẻ trái phép và thông báo cho Người dùng trong trường hợp xảy ra sự cố dữ liệu.
+46.2.3. Xử lý khiếu nại, tranh chấp của Người dùng một cách kịp thời, công bằng và minh bạch, trong thời hạn quy định tại văn bản này và pháp luật liên quan.
+46.2.4. Tuân thủ nghiêm ngặt các quy định pháp luật Việt Nam về cung cấp dịch vụ Internet, giao dịch điện tử và bảo vệ dữ liệu, bao gồm báo cáo định kỳ cho cơ quan nhà nước nếu yêu cầu.
+46.2.5. Thông báo cho Người dùng về các thay đổi quan trọng liên quan đến Dịch vụ hoặc văn bản này qua email, thông báo trên Nền tảng hoặc các phương tiện khác, với thời hạn hợp lý trước khi áp dụng.
+46.2.6. Hợp tác với Người dùng trong việc xác minh giao dịch, cung cấp thông tin cần thiết để hỗ trợ giải quyết tranh chấp giữa Người dùng với nhau, mà không chịu trách nhiệm trực tiếp về nội dung giao dịch.
+46.2.7. Lưu trữ hồ sơ giao dịch và dữ liệu theo thời hạn quy định pháp luật, ít nhất 05 năm đối với dữ liệu liên quan đến giao dịch tài chính theo Luật Kế toán số 88/2003/QH11 (sửa đổi, bổ sung).
+46.2.8. Đảm bảo tính minh bạch trong việc thu phí (nếu áp dụng) và hoàn tiền trong trường hợp lỗi hệ thống do Bên Cung Cấp gây ra.
+E. ĐIỀU KHOẢN MIỄN TRỪ & GIỚI HẠN TRÁCH NHIỆM
+Điều 47. Giới hạn trách nhiệm
+47.1. Nền tảng cung cấp “như hiện có”, không bảo đảm không gián đoạn, không lỗi.
+47.2. Chúng tôi không chịu trách nhiệm về nội dung Người dùng đăng tải, các giao dịch giữa Người dùng với nhau, thiệt hại gián tiếp, mất mát lợi nhuận.
+47.3. Tổng trách nhiệm của Chúng tôi không vượt quá số tiền Người dùng đã trả cho Dịch vụ trong 03 tháng gần nhất.
+Điều 48. Miễn trừ trách nhiệm
+Chúng tôi được miễn trừ trách nhiệm trong trường hợp sự cố do thiên tai, chiến tranh, hành vi của cơ quan nhà nước, vi phạm của Người dùng hoặc sự cố nằm ngoài khả năng kiểm soát hợp lý.
+F. CƠ CHẾ GIẢI QUYẾT TRANH CHẤP
+Điều 49. Giải quyết khiếu nại
+49.1. Khiếu nại được gửi về địa chỉ email hỗ trợ chính thức của Nền tảng.
+49.2. Thời hạn giải quyết khiếu nại là 15 ngày làm việc kể từ ngày nhận được khiếu nại hợp lệ.
+49.3. Các tranh chấp phát sinh sẽ được giải quyết thông qua thương lượng. Trường hợp không thỏa thuận được, tranh chấp sẽ được đưa ra Tòa án nhân dân có thẩm quyền tại thành phố Hồ Chí Minh theo pháp luật Việt Nam.
+G. ĐIỀU KHOẢN CHUNG – HIỆU LỰC
+Điều 50. Cập nhật văn bản
+Chúng tôi có quyền sửa đổi, bổ sung văn bản này bất kỳ lúc nào. Phiên bản mới sẽ được công bố trên Nền tảng và có hiệu lực sau 07 ngày kể từ ngày công bố. Việc Người dùng tiếp tục sử dụng Nền tảng sau khi có thay đổi đồng nghĩa với việc chấp nhận phiên bản mới.
+Điều 51. Hiệu lực và luật áp dụng
+51.1. Văn bản này có hiệu lực từ ngày 21 tháng 02 năm 2026 và thay thế toàn bộ các phiên bản trước đó.
+51.2. Văn bản này được điều chỉnh bởi pháp luật Việt Nam.
+51.3. Nếu bất kỳ điều khoản nào bị vô hiệu, các điều khoản còn lại vẫn giữ nguyên hiệu lực.
+Điều 52. Liên hệ
+Mọi thắc mắc liên quan vui lòng liên hệ qua email hỗ trợ chính thức hoặc địa chỉ trụ sở của Bên Cung Cấp.
+Bằng việc sử dụng Nền tảng TRUNGTAMMMO.VN, Người dùng xác nhận đã đọc, hiểu và đồng ý hoàn toàn với toàn bộ nội dung văn bản này.
+TRUNGTAMMMO.VN

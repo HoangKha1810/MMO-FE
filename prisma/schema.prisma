@@ -1,0 +1,614 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id                     Int            @id @default(autoincrement())
+  username               String         @unique @db.VarChar(50)
+  email                  String         @unique @db.VarChar(100)
+  password               String         @db.VarChar(255)
+  fullname               String?        @db.VarChar(100)
+  role                   users_role?    @default(member)
+  signature              String?        @db.Text
+  post_count             Int            @default(0)
+  status                 users_status?  @default(active)
+  balance                Decimal?       @default(0.00) @db.Decimal(15, 2)
+  rank                   String?        @default("Member") @db.VarChar(50)
+  remember_token         String?        @db.VarChar(255)
+  pin                    String?        @db.VarChar(255)
+  fa_enabled             Boolean?       @default(false) @map("2fa_enabled")
+  fa_secret              String?        @map("2fa_secret") @db.VarChar(255)
+  fa_type                users_2fa_type? @default(google) @map("2fa_type")
+  telegram_2fa_enabled   Boolean?       @default(false)
+  telegram_id            String?        @db.VarChar(50)
+  telegram_username      String?        @db.VarChar(255)
+  telegram_link_token    String?        @db.VarChar(50)
+  requires_email_setup   Boolean?       @default(false)
+  email_verified         Boolean?       @default(false)
+  avatar                 String?        @db.VarChar(255)
+  cover_photo            String?        @db.VarChar(255)
+  lock_reason            String?        @db.Text
+  locked_at              DateTime?      @db.Timestamp(0)
+  locked_until           DateTime?      @db.Timestamp(0)
+  last_login             DateTime?      @db.Timestamp(0)
+  last_ip                String?        @db.VarChar(45)
+  isp                    String?        @db.VarChar(255)
+  created_at             DateTime       @default(now()) @db.Timestamp(0)
+  bio                    String?        @db.Text
+  occupation             String?        @db.VarChar(100)
+  expertise_tags         String?        @db.Text
+  hometown               String?        @db.VarChar(100)
+  contact                String?        @db.VarChar(100)
+  birthday               DateTime?      @db.Date
+  gender                 String?        @db.VarChar(20)
+  is_blue_tick           Boolean?       @default(false)
+  blue_tick_expiry       DateTime?      @db.DateTime(0)
+  is_verified            Boolean?       @default(false)
+  is_insured             Boolean?       @default(false)
+  insurance_amount       Decimal?       @default(0.00) @db.Decimal(15, 2)
+  updated_at             DateTime       @default(now()) @updatedAt @db.Timestamp(0)
+  failed_login_attempts  Int?           @default(0)
+  created_by_admin_id    Int?
+  failed_2fa_attempts    Int?           @default(0)
+  last_2fa_attempt_at    DateTime?      @db.Timestamp(0)
+  failed_pin_attempts    Int?           @default(0)
+  last_pin_attempt_at    DateTime?      @db.Timestamp(0)
+  last_activity          DateTime?      @db.Timestamp(0)
+  show_hometown          Boolean?       @default(true)
+  show_gender            Boolean?       @default(true)
+  show_birthday          Boolean?       @default(true)
+  show_contact           Boolean?       @default(true)
+  is_shadow_banned       Boolean?       @default(false)
+  ai_plan_name           String?        @db.VarChar(120)
+
+  activity_logs          activity_logs[]
+  deposit_transactions   deposit_transactions[]
+  card_orders            card_orders[]
+  automxh_orders         automxh_orders[]
+  support_tiktok_orders  support_tiktok_orders[]
+  forum_threads          forum_threads[]
+  forum_posts            forum_posts[]
+  resource_orders        resource_orders[]
+  cart_items             cart_items[]
+  game_orders            game_orders[]
+  find_jobs              find_jobs[]
+  notifications          notifications[]
+  friendships_from       social_friendships[] @relation("FriendFrom")
+  friendships_to         social_friendships[] @relation("FriendTo")
+  messages_from          social_messages[] @relation("MessageFrom")
+  messages_to            social_messages[] @relation("MessageTo")
+
+  @@index([status], map: "idx_status")
+  @@index([post_count], map: "idx_users_post_count")
+}
+
+model settings {
+  id            Int      @id @default(autoincrement())
+  setting_key   String   @map("setting_key") @db.VarChar(50)
+  setting_value String?  @map("setting_value") @db.Text
+  updated_at    DateTime @default(now()) @db.Timestamp(0)
+
+  @@map("settings")
+}
+
+model transactions {
+  id            Int               @id @default(autoincrement())
+  user_id       Int
+  amount        Decimal           @db.Decimal(15, 2)
+  balance_after Decimal?          @db.Decimal(15, 2)
+  content       String?           @db.Text
+  type          transactions_type
+  status        String            @default("pending") @db.VarChar(20)
+  created_at    DateTime          @default(now()) @db.Timestamp(0)
+
+  @@index([created_at], map: "idx_created_at")
+  @@index([type, status], map: "idx_type_status")
+  @@index([user_id], map: "idx_user_id")
+  @@index([user_id, type, status], map: "idx_user_type_status")
+}
+
+model api_providers {
+  id                      Int                          @id @default(autoincrement())
+  name                    String                       @db.VarChar(100)
+  type                    String?                      @default("Standard") @db.VarChar(50)
+  service_type            api_providers_service_type?  @default(smm)
+  is_per_unit             Boolean?                     @default(false)
+  exchange_rate           Decimal?                     @default(1.00) @db.Decimal(15, 2)
+  api_key                 String?                      @db.Text
+  api_url                 String?                      @db.VarChar(255)
+  status                  api_providers_status?        @default(active)
+  created_at              DateTime                     @default(now()) @db.Timestamp(0)
+  last_sync               DateTime?                    @db.DateTime(0)
+  last_test               DateTime?                    @db.DateTime(0)
+  health_status           api_providers_health_status? @default(online)
+  balance_alert_threshold Decimal?                     @default(0.00) @db.Decimal(15, 2)
+}
+
+model smm_services_cache {
+  id                Int       @id @default(autoincrement())
+  provider_id       Int?      @default(0)
+  service_id        Int
+  name              String    @db.VarChar(500)
+  original_name     String?   @db.VarChar(500)
+  category          String?   @db.VarChar(255)
+  rate              Decimal   @db.Decimal(15, 4)
+  old_rate          Decimal?  @db.Decimal(15, 4)
+  last_price_change DateTime? @db.Timestamp(0)
+  custom_price      Decimal?  @db.Decimal(15, 4)
+  is_auto_margin    Boolean?  @default(false)
+  margin_percent    Decimal?  @db.Decimal(5, 2)
+  min               Int
+  max               Int
+  type              String?   @db.VarChar(50)
+  description       String?   @db.Text
+  custom_inputs     String?   @db.Text
+  server_info       String?   @db.Text
+  provider_data     String?   @db.Text
+  status            String?   @default("active") @db.VarChar(20)
+  is_deleted        Boolean?  @default(false)
+  total_orders      Int?      @default(0)
+  cached_at         DateTime  @default(now()) @db.Timestamp(0)
+
+  @@unique([provider_id, service_id], map: "idx_provider_service")
+  @@index([category], map: "idx_category")
+  @@index([service_id], map: "idx_service_id")
+  @@index([status], map: "idx_status")
+}
+
+model rate_limits {
+  id        Int      @id @default(autoincrement())
+  identifier String  @db.VarChar(255)
+  action     String  @db.VarChar(50)
+  count      Int      @default(1)
+  reset_at   Int
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  @@index([identifier, action])
+}
+
+model ip_blacklist {
+  id         Int      @id @default(autoincrement())
+  ip_address String   @unique @map("ip_address") @db.VarChar(45)
+  reason     String?  @db.Text
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  created_by Int?
+}
+
+model banned_ips {
+  id        Int                  @id @default(autoincrement()) @db.UnsignedInt
+  ip        String               @db.VarChar(45)
+  reason    String?              @db.Text
+  banned_by banned_ips_banned_by @default(auto)
+  user_id   Int?                 @db.UnsignedInt
+  expire_at DateTime?            @db.DateTime(0)
+  created_at DateTime            @default(now()) @db.DateTime(0)
+
+  @@index([ip, expire_at])
+}
+
+model security_logs {
+  id          BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  event_type  String                 @db.VarChar(50)
+  severity    security_logs_severity @default(HIGH)
+  ip          String                 @db.VarChar(45)
+  user_id     Int?                   @db.UnsignedInt
+  uri         String?                @db.VarChar(512)
+  method      String?                @db.VarChar(10)
+  field       String?                @db.VarChar(100)
+  payload     String?                @db.Text
+  user_agent  String?                @db.Text
+  auto_banned Boolean                @default(false)
+  created_at  DateTime               @default(now()) @db.DateTime(0)
+
+  @@index([ip], map: "idx_ip")
+  @@index([event_type], map: "idx_event_type")
+  @@index([severity], map: "idx_severity")
+  @@index([created_at], map: "idx_created")
+}
+
+model activity_logs {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?      @map("user_id")
+  activity   String    @db.Text
+  ip_address String?   @map("ip_address") @db.VarChar(45)
+  user_agent String?   @map("user_agent") @db.Text
+  created_at DateTime  @default(now()) @db.DateTime(0)
+
+  user users? @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([created_at])
+}
+
+model deposit_transactions {
+  id              Int       @id @default(autoincrement())
+  user_id         Int       @map("user_id")
+  amount          Float
+  transaction_id  String?   @unique @map("transaction_id") @db.VarChar(100)
+  bank            String?   @db.VarChar(50)
+  content         String?   @db.Text
+  status          String    @default("pending") @db.VarChar(20)
+  payment_method  String?   @map("payment_method") @db.VarChar(50)
+  note            String?   @db.Text
+  processed_by    Int?      @map("processed_by")
+  created_at      DateTime  @default(now()) @db.DateTime(0)
+  processed_at    DateTime? @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, status])
+}
+
+model card_orders {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @map("user_id")
+  type        String    @db.VarChar(20) // buy | exchange
+  telco       String    @db.VarChar(20)
+  card_amount Float     @map("card_amount")
+  amount      Float
+  serial      String?    @db.VarChar(50)
+  pin         String?    @db.Text
+  api_order_id String?   @map("api_order_id") @db.VarChar(100)
+  status      String    @default("pending") @db.VarChar(20)
+  note        String?   @db.Text
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  updated_at  DateTime  @updatedAt @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, status])
+}
+
+model smm_orders {
+  id            Int       @id @default(autoincrement()) @db.UnsignedInt
+  user_id       Int       @map("user_id")
+  provider_id   Int?      @default(0)
+  api_order_id  String    @map("api_order_id") @db.VarChar(100)
+  service_id    Int       @map("service_id")
+  service_name  String    @map("service_name") @db.VarChar(255)
+  link          String    @db.Text
+  custom_data   String?   @db.Text
+  quantity      Int
+  price         Decimal   @db.Decimal(15, 4)
+  balance_after Decimal?  @db.Decimal(15, 4)
+  start_count   Int?      @default(0) @map("start_count")
+  remains       Int?      @default(0)
+  status        String?   @default("Pending") @db.VarChar(50)
+  reason        String?   @db.Text
+  is_refunded   Boolean?  @default(false)
+  refund_amount Decimal?  @default(0.0000) @db.Decimal(15, 4)
+  created_at    DateTime  @default(now()) @db.Timestamp(0)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  exported_at   DateTime? @db.DateTime(0)
+  is_exported   Boolean   @default(false)
+
+  @@index([user_id], map: "smm_orders_ibfk_1")
+}
+
+enum users_role {
+  member
+  user
+  admin
+  sellermarket
+  support_tiktok
+}
+
+enum users_status {
+  active
+  suspended
+  locked
+  banned
+}
+
+enum users_2fa_type {
+  google
+  telegram
+}
+
+enum transactions_type {
+  deposit
+  order
+  refund
+  withdraw
+}
+
+enum api_providers_service_type {
+  smm
+  mmo
+}
+
+enum api_providers_status {
+  active
+  inactive
+}
+
+enum api_providers_health_status {
+  online
+  offline
+  slow
+}
+
+enum banned_ips_banned_by {
+  auto
+  admin
+}
+
+enum security_logs_severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model smm_services {
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  platform     String  @db.VarChar(50)
+  description  String? @db.Text
+  price_per_1k Float   @map("price_per_1k")
+  min_quantity Int     @default(1) @map("min_quantity")
+  max_quantity Int     @default(10000) @map("max_quantity")
+  api_service_id String? @map("api_service_id") @db.VarChar(100)
+  api_provider String? @map("api_provider") @db.VarChar(50)
+  status       String  @default("active") @db.VarChar(20)
+  created_at   DateTime @default(now()) @db.DateTime(0)
+
+  @@index([platform, status])
+}
+
+model automxh_orders {
+  id              Int       @id @default(autoincrement())
+  user_id         Int       @map("user_id")
+  category_id     Int?      @map("category_id")
+  product_id      Int?      @map("product_id")
+  title           String    @db.VarChar(255)
+  link            String?   @db.Text
+  quantity        Int       @default(1)
+  amount          Float
+  buyer_info      String?   @db.Text
+  status          String    @default("pending") @db.VarChar(20)
+  created_at      DateTime  @default(now()) @db.DateTime(0)
+  updated_at      DateTime  @updatedAt @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, status])
+}
+
+model automxh_categories {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  slug        String   @unique
+  description String?  @db.Text
+  icon        String?  @db.VarChar(50)
+  sort_order  Int      @default(0) @map("sort_order")
+  status      String   @default("active") @db.VarChar(20)
+  created_at  DateTime @default(now()) @db.DateTime(0)
+}
+
+model automxh_products {
+  id          Int      @id @default(autoincrement())
+  category_id Int      @map("category_id")
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  price       Float
+  stock       Int      @default(0)
+  status      String   @default("active") @db.VarChar(20)
+  created_at  DateTime @default(now()) @db.DateTime(0)
+
+  @@index([category_id, status])
+}
+
+model support_tiktok_orders {
+  id           Int       @id @default(autoincrement())
+  user_id      Int       @map("user_id")
+  tiktok_id    String    @db.VarChar(100)
+  service_type String    @map("service_type") @db.VarChar(50)
+  price        Float
+  status       String    @default("pending") @db.VarChar(20)
+  note         String?   @db.Text
+  created_at   DateTime  @default(now()) @db.DateTime(0)
+  updated_at   DateTime  @updatedAt @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, status])
+}
+
+model forum_categories {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  priority    Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  forums      forums[]
+}
+
+model forums {
+  id                    Int      @id @default(autoincrement())
+  category_id           Int      @map("category_id")
+  parent_id             Int?     @map("parent_id")
+  name                  String   @db.VarChar(255)
+  slug                  String   @db.VarChar(255)
+  description           String?  @db.Text
+  icon                  String?  @db.VarChar(50)
+  priority              Int      @default(0)
+  allowed_posting_roles String?  @map("allowed_posting_roles") @db.VarChar(255)
+  last_post_id          Int?     @map("last_post_id")
+  created_at            DateTime @default(now()) @db.Timestamp(0)
+
+  category forum_categories @relation(fields: [category_id], references: [id])
+  threads  forum_threads[]
+
+  @@index([category_id])
+}
+
+model forum_threads {
+  id           Int       @id @default(autoincrement())
+  forum_id     Int       @map("forum_id")
+  user_id      Int       @map("user_id")
+  title        String    @db.VarChar(255)
+  slug         String    @db.VarChar(255)
+  views        Int       @default(0)
+  is_pinned    Boolean   @default(false) @map("is_pinned")
+  is_locked    Boolean   @default(false) @map("is_locked")
+  status       String    @default("active") @db.VarChar(20)
+  created_at   DateTime  @default(now()) @db.Timestamp(0)
+  updated_at   DateTime  @updatedAt @db.Timestamp(0)
+  prefix_id    Int?      @map("prefix_id")
+  last_post_id Int?      @map("last_post_id")
+  is_deleted   Boolean   @default(false) @map("is_deleted")
+
+  user  users       @relation(fields: [user_id], references: [id])
+  forum forums      @relation(fields: [forum_id], references: [id])
+  posts forum_posts[]
+
+  @@index([user_id])
+  @@index([forum_id])
+  @@index([status])
+}
+
+model forum_posts {
+  id        Int       @id @default(autoincrement())
+  thread_id Int       @map("thread_id")
+  user_id   Int       @map("user_id")
+  content   String    @db.LongText
+  is_first_post Boolean @default(false) @map("is_first_post")
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @updatedAt @db.Timestamp(0)
+  status    String    @default("active") @db.VarChar(20)
+  is_deleted Boolean  @default(false) @map("is_deleted")
+
+  thread forum_threads @relation(fields: [thread_id], references: [id])
+  user   users         @relation(fields: [user_id], references: [id])
+
+  @@index([thread_id, status])
+}
+
+model resource_orders {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @map("user_id")
+  resource_id Int       @map("resource_id")
+  amount      Float
+  status      String    @default("pending") @db.VarChar(20)
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+
+  user     users        @relation(fields: [user_id], references: [id])
+  resource mmo_resources @relation(fields: [resource_id], references: [id])
+
+  @@index([user_id])
+}
+
+model mmo_resources {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?      @map("user_id")
+  category    String?   @db.VarChar(100)
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  price       Float
+  stock       Int       @default(1)
+  sold_count  Int       @default(0) @map("sold_count")
+  rating      Float     @default(0)
+  rating_count Int      @default(0) @map("rating_count")
+  status      String    @default("active") @db.VarChar(20)
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  updated_at  DateTime  @updatedAt @db.DateTime(0)
+
+  orders     resource_orders[]
+  cartItems  cart_items[]
+
+  @@index([category, status])
+}
+
+model cart_items {
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @map("user_id")
+  resource_id Int     @map("resource_id")
+  quantity   Int      @default(1)
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  user     users        @relation(fields: [user_id], references: [id])
+  resource mmo_resources @relation(fields: [resource_id], references: [id])
+
+  @@unique([user_id, resource_id])
+}
+
+model game_orders {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @map("user_id")
+  game_name   String    @map("game_name") @db.VarChar(100)
+  title       String    @db.VarChar(255)
+  price       Float
+  status      String    @default("pending") @db.VarChar(20)
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  updated_at  DateTime  @updatedAt @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, status])
+}
+
+model find_jobs {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @map("user_id")
+  title       String    @db.VarChar(255)
+  description String    @db.Text
+  budget_min  Float?    @map("budget_min")
+  budget_max  Float?    @map("budget_max")
+  status      String    @default("open") @db.VarChar(20)
+  is_pinned   Boolean   @default(false) @map("is_pinned")
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  updated_at  DateTime  @updatedAt @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, status])
+  @@index([is_pinned])
+}
+
+model social_friendships {
+  id         Int      @id @default(autoincrement())
+  from_user_id Int    @map("from_user_id")
+  to_user_id   Int    @map("to_user_id")
+  status    String   @default("pending") @db.VarChar(20) // pending | accepted | blocked
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  from_user users @relation("FriendFrom", fields: [from_user_id], references: [id])
+  to_user   users @relation("FriendTo", fields: [to_user_id], references: [id])
+
+  @@unique([from_user_id, to_user_id])
+}
+
+model social_messages {
+  id           Int      @id @default(autoincrement())
+  from_user_id Int      @map("from_user_id")
+  to_user_id   Int      @map("to_user_id")
+  content      String   @db.Text
+  is_read      Boolean  @default(false) @map("is_read")
+  created_at   DateTime @default(now()) @db.DateTime(0)
+
+  from_user users @relation("MessageFrom", fields: [from_user_id], references: [id])
+  to_user   users @relation("MessageTo", fields: [to_user_id], references: [id])
+
+  @@index([from_user_id, to_user_id])
+}
+
+model notifications {
+  id        Int      @id @default(autoincrement())
+  user_id   Int      @map("user_id")
+  title     String   @db.VarChar(255)
+  content   String   @db.Text
+  is_read   Boolean  @default(false) @map("is_read")
+  type      String?  @db.VarChar(50)
+  link      String?  @db.Text
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, is_read])
+}

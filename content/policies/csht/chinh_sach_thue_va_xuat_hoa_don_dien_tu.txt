@@ -1,0 +1,169 @@
+CHÍNH SÁCH THUẾ VÀ XUẤT HÓA ĐƠN ĐIỆN TỬ
+ÁP DỤNG CHO DỊCH VỤ CUNG CẤP TRÊN NỀN TẢNG TRUNGTAMMMO
+
+Căn cứ pháp lý:
+Chính sách này được xây dựng và áp dụng phù hợp với các quy định pháp luật Việt Nam hiện hành, bao gồm nhưng không giới hạn:
+
+Luật Quản lý thuế
+
+Luật Thuế Giá trị gia tăng
+
+Nghị định 123/2020/NĐ-CP
+
+Thông tư 78/2021/TT-BTC
+
+Nghị định 13/2023/NĐ-CP
+
+Luật An ninh mạng
+
+Chính sách này quy định về nghĩa vụ thuế, cơ chế tính thuế, phát hành hóa đơn điện tử và trách nhiệm của người sử dụng dịch vụ trên nền tảng TRUNGTAMMMO.
+
+A. ĐIỀU KHOẢN SỬ DỤNG DỊCH VỤ
+
+Điều 1. Phạm vi áp dụng
+
+1.1 Chính sách này áp dụng đối với toàn bộ cá nhân, tổ chức, doanh nghiệp truy cập, đăng ký tài khoản, nạp tiền hoặc sử dụng bất kỳ dịch vụ nào được cung cấp trên nền tảng TRUNGTAMMMO.
+
+1.2 Việc người dùng truy cập, đăng ký tài khoản hoặc thực hiện giao dịch trên website được xem là đã đọc, hiểu và đồng ý tuân thủ đầy đủ các quy định tại Chính sách Thuế và Xuất hóa đơn điện tử này.
+
+1.3 Chính sách này là một phần không tách rời của Điều khoản sử dụng dịch vụ trên hệ thống TRUNGTAMMMO.
+
+B. CHÍNH SÁCH THUẾ GIÁ TRỊ GIA TĂNG (VAT)
+
+Điều 2. Nghĩa vụ thuế đối với dịch vụ
+
+2.1 Tất cả các dịch vụ được cung cấp trên nền tảng TRUNGTAMMMO đều thuộc đối tượng chịu thuế Giá trị gia tăng (GTGT) theo quy định của pháp luật Việt Nam.
+
+2.2 Khi người dùng thực hiện giao dịch mua dịch vụ, hệ thống sẽ tự động tính toán và cộng phần thuế GTGT theo mức thuế suất hiện hành vào giá trị giao dịch.
+
+2.3 Người dùng có trách nhiệm thanh toán đầy đủ tổng giá trị giao dịch bao gồm:
+
+Giá trị dịch vụ
+
+Thuế Giá trị gia tăng (VAT)
+
+Các khoản phí khác (nếu có)
+
+2.4 Việc thanh toán dịch vụ trên hệ thống được xem là xác nhận của người dùng đối với nghĩa vụ thuế phát sinh từ giao dịch.
+
+C. CHÍNH SÁCH PHÁT HÀNH HÓA ĐƠN ĐIỆN TỬ
+
+Điều 3. Hình thức hóa đơn
+
+3.1 TRUNGTAMMMO sử dụng hóa đơn điện tử hợp pháp theo quy định tại Nghị định 123/2020/NĐ-CP.
+
+3.2 Hóa đơn điện tử được phát hành thông qua hệ thống quản lý hóa đơn của doanh nghiệp và có giá trị pháp lý tương đương hóa đơn giấy.
+
+3.3 Hóa đơn điện tử sau khi phát hành sẽ được gửi đến địa chỉ thư điện tử (email) do người dùng cung cấp trên hệ thống.
+
+Điều 4. Cơ chế yêu cầu xuất hóa đơn
+
+4.1 Người dùng có quyền yêu cầu xuất hóa đơn điện tử trực tiếp trên website TRUNGTAMMMO thông qua chức năng:
+
+"Nạp tiền / Xuất hóa đơn".
+
+4.2 Khi yêu cầu xuất hóa đơn, người dùng phải cung cấp đầy đủ và chính xác các thông tin sau:
+
+Tên cá nhân hoặc tổ chức
+
+Địa chỉ
+
+Mã số thuế (nếu có)
+
+Email nhận hóa đơn
+
+4.3 TRUNGTAMMMO sẽ thực hiện phát hành hóa đơn điện tử và gửi đến email người dùng trong cùng ngày làm việc kể từ thời điểm tiếp nhận yêu cầu hợp lệ.
+
+4.4 TRUNGTAMMMO không chịu trách nhiệm đối với các sai sót phát sinh từ việc người dùng cung cấp thông tin hóa đơn không chính xác.
+
+Điều 5. Trường hợp người dùng không yêu cầu hóa đơn
+
+5.1 Trong trường hợp người dùng không thực hiện yêu cầu xuất hóa đơn ngay sau khi phát sinh giao dịch, hệ thống TRUNGTAMMMO sẽ tạm thời lưu trữ dữ liệu giao dịch để phục vụ việc xuất hóa đơn trong thời hạn tối đa 30 ngày kể từ ngày phát sinh giao dịch.
+
+5.2 Sau thời hạn 30 ngày kể từ ngày giao dịch, nếu người dùng không yêu cầu xuất hóa đơn, TRUNGTAMMMO có quyền:
+
+Tổng hợp giao dịch
+
+Phát hành hóa đơn theo cơ chế xuất hóa đơn định kỳ.
+
+5.3 Người dùng đồng ý rằng việc không yêu cầu hóa đơn trong thời hạn nêu trên đồng nghĩa với việc chấp thuận cơ chế xuất hóa đơn tổng hợp theo kỳ của hệ thống.
+
+Điều 6. Cơ chế xuất hóa đơn theo kỳ (Monthly Billing)
+
+6.1 Đối với các giao dịch dịch vụ phát sinh liên tục hoặc nhiều lần trong một chu kỳ sử dụng, TRUNGTAMMMO áp dụng cơ chế xuất hóa đơn theo kỳ (Monthly Billing).
+
+6.2 Theo cơ chế này, hệ thống sẽ:
+
+Tổng hợp toàn bộ giá trị dịch vụ phát sinh trong một chu kỳ 01 tháng
+
+Thực hiện phát hành một hóa đơn điện tử tổng hợp cho toàn bộ các giao dịch trong tháng.
+
+6.3 Hóa đơn theo kỳ sẽ được phát hành tự động bởi hệ thống vào cuối chu kỳ thanh toán hàng tháng.
+
+6.4 Hóa đơn sẽ được gửi đến email đã đăng ký của người dùng.
+
+D. QUYỀN VÀ TRÁCH NHIỆM CÁC BÊN
+
+Điều 7. Quyền và trách nhiệm của người dùng
+
+Người dùng có trách nhiệm:
+
+7.1 Thanh toán đầy đủ giá trị dịch vụ và thuế GTGT phát sinh từ giao dịch.
+
+7.2 Cung cấp thông tin chính xác khi yêu cầu xuất hóa đơn.
+
+7.3 Kiểm tra hóa đơn sau khi nhận và thông báo sai sót (nếu có) trong thời hạn hợp lý.
+
+7.4 Tuân thủ các quy định pháp luật liên quan đến thuế, hóa đơn và giao dịch điện tử.
+
+Điều 8. Quyền và trách nhiệm của TRUNGTAMMMO
+
+TRUNGTAMMMO có quyền:
+
+8.1 Thu thuế GTGT đối với các dịch vụ cung cấp theo quy định pháp luật.
+
+8.2 Phát hành hóa đơn điện tử theo yêu cầu của người dùng hoặc theo cơ chế xuất hóa đơn định kỳ.
+
+8.3 Từ chối xuất hóa đơn trong trường hợp thông tin người dùng cung cấp không đầy đủ hoặc không hợp lệ.
+
+8.4 Lưu trữ dữ liệu hóa đơn, dữ liệu giao dịch theo thời hạn quy định của pháp luật.
+
+E. ĐIỀU KHOẢN MIỄN TRỪ VÀ GIỚI HẠN TRÁCH NHIỆM
+
+Điều 9. Miễn trừ trách nhiệm
+
+9.1 TRUNGTAMMMO không chịu trách nhiệm đối với các thiệt hại phát sinh do:
+
+Người dùng cung cấp thông tin hóa đơn sai hoặc thiếu chính xác
+
+Người dùng không thực hiện yêu cầu xuất hóa đơn trong thời hạn quy định.
+
+9.2 TRUNGTAMMMO không chịu trách nhiệm đối với việc người dùng sử dụng hóa đơn cho mục đích không phù hợp với quy định pháp luật.
+
+F. CƠ CHẾ GIẢI QUYẾT KHIẾU NẠI
+
+Điều 10. Khiếu nại liên quan đến hóa đơn
+
+10.1 Người dùng có quyền gửi yêu cầu khiếu nại liên quan đến hóa đơn điện tử thông qua hệ thống hỗ trợ của TRUNGTAMMMO.
+
+10.2 TRUNGTAMMMO sẽ tiếp nhận và xử lý khiếu nại trong thời hạn hợp lý theo quy trình nội bộ và quy định pháp luật.
+
+G. ĐIỀU KHOẢN CHUNG – HIỆU LỰC
+
+Điều 11. Cập nhật chính sách
+
+11.1 TRUNGTAMMMO có quyền sửa đổi, bổ sung Chính sách Thuế và Xuất hóa đơn điện tử này để phù hợp với quy định pháp luật hoặc thay đổi mô hình hoạt động.
+
+11.2 Phiên bản cập nhật sẽ được công bố trên website chính thức của TRUNGTAMMMO.
+
+Điều 12. Luật áp dụng
+
+12.1 Chính sách này được điều chỉnh và giải thích theo pháp luật của nước Cộng hòa xã hội chủ nghĩa Việt Nam.
+
+12.2 Mọi tranh chấp phát sinh liên quan đến chính sách này sẽ được giải quyết theo quy định của pháp luật Việt Nam.
+
+Điều 13. Hiệu lực
+
+13.1 Chính sách Thuế và Xuất hóa đơn điện tử này có hiệu lực kể từ ngày được công bố trên hệ thống TRUNGTAMMMO.
+
+13.2 Người dùng tiếp tục sử dụng dịch vụ đồng nghĩa với việc chấp thuận toàn bộ nội dung của chính sách này.
