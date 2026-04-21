@@ -213,7 +213,7 @@ export default async function HomePage() {
                   <label className="mt-3 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-white/45 sm:mt-4 sm:text-xs sm:tracking-[0.28em]">
                     {card.label}
                   </label>
-                  <div className={`mt-3 max-w-full overflow-hidden font-mono tabular-nums whitespace-nowrap text-[clamp(1rem,4.8vw,1.5rem)] font-black uppercase leading-[1.1] tracking-[-0.03em] ${card.color}`}>
+                  <div className={`mt-3 w-full font-mono tabular-nums whitespace-nowrap text-[min(1.5rem,4.8vw)] font-black uppercase leading-[1.08] tracking-[-0.05em] ${card.color}`}>
                     {typeof card.val === 'number'
                       ? new Intl.NumberFormat('vi-VN').format(card.val)
                       : card.val}
@@ -246,7 +246,7 @@ export default async function HomePage() {
                       <item.icon className="h-3.5 w-3.5" />
                       <span className="text-[9px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em]">{item.label}</span>
                     </div>
-                    <div className="mt-2 max-w-full overflow-hidden font-mono tabular-nums whitespace-nowrap text-[clamp(0.95rem,4.2vw,1.125rem)] font-black leading-[1.1] text-slate-950 dark:text-white">{item.value}</div>
+                    <div className="mt-2 w-full font-mono tabular-nums whitespace-nowrap text-[min(1.125rem,4.2vw)] font-black leading-[1.08] tracking-[-0.04em] text-slate-950 dark:text-white">{item.value}</div>
                   </div>
                 ))}
               </div>

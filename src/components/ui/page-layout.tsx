@@ -73,11 +73,11 @@ export function PageHero({
             {stats.map((stat) => (
               <Card key={`${stat.label}-${stat.value}`} className="min-w-0 rounded-[1.35rem] p-4 sm:rounded-[1.5rem] sm:p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-2">
+                  <div className="min-w-0 flex-1 space-y-2">
                     <div className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500 sm:text-[10px] sm:tracking-[0.3em]">
                       {stat.label}
                     </div>
-                    <div className="max-w-full overflow-hidden font-mono tabular-nums whitespace-nowrap text-[clamp(1rem,5.2vw,1.75rem)] font-black leading-[1.1] tracking-[-0.03em] text-slate-950 dark:text-white">
+                    <div className="w-full font-mono tabular-nums whitespace-nowrap text-[min(1.75rem,5vw)] font-black leading-[1.08] tracking-[-0.05em] text-slate-950 dark:text-white">
                       {stat.value}
                     </div>
                     {stat.hint ? (
@@ -86,7 +86,7 @@ export function PageHero({
                   </div>
                   <span
                     className={cn(
-                      'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.22em]',
+                      'inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.22em]',
                       toneMap[stat.tone || 'slate']
                     )}
                   >
@@ -159,11 +159,11 @@ export function MetricCard({ label, value, hint, tone = 'slate', icon, className
   return (
     <Card className={cn('min-w-0 rounded-[1.35rem] p-4 sm:rounded-[1.6rem] sm:p-5 md:p-6', className)}>
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 space-y-2">
+        <div className="min-w-0 flex-1 space-y-2">
           <div className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500 sm:text-[10px] sm:tracking-[0.28em]">
             {label}
           </div>
-          <div className="max-w-full overflow-hidden font-mono tabular-nums whitespace-nowrap text-[clamp(1rem,5.2vw,1.75rem)] font-black leading-[1.1] tracking-[-0.03em] text-slate-950 dark:text-white">
+          <div className="w-full font-mono tabular-nums whitespace-nowrap text-[min(1.75rem,5vw)] font-black leading-[1.08] tracking-[-0.05em] text-slate-950 dark:text-white">
             {value}
           </div>
           {hint ? (
@@ -172,7 +172,7 @@ export function MetricCard({ label, value, hint, tone = 'slate', icon, className
         </div>
         <span
           className={cn(
-            'inline-flex h-11 w-11 items-center justify-center rounded-2xl border',
+            'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border',
             toneMap[tone]
           )}
         >
