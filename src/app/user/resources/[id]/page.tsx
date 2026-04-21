@@ -35,7 +35,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           Quay lại tài nguyên
         </Link>
 
-        <section className="grid gap-6 lg:grid-cols-[460px_1fr]">
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,460px)_1fr]">
           <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
             <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-brand-blue/10 to-emerald-500/10">
               {thumbnail ? (
@@ -59,7 +59,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               {String(resource.description || 'Tài nguyên MMO đang được bán trong hệ thống.')}
             </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="mt-6 grid gap-3 min-[430px]:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
                 <Tag className="h-4 w-4 text-brand-blue" />
                 <div className="mt-2 font-mono text-xl font-black text-brand-blue">{formatCurrency(toNumber(resource.price))}</div>

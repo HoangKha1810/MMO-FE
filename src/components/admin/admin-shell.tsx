@@ -116,7 +116,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {themePulse ? <div className={cn('theme-transition-overlay', themePulse === 'dark' ? 'theme-transition-overlay-dark' : 'theme-transition-overlay-light')} /> : null}
       <aside
         className={cn(
-          'surface-panel-strong fixed inset-y-0 left-0 z-50 flex w-64 flex-col transition-transform duration-300 lg:static lg:translate-x-0',
+          'surface-panel-strong fixed inset-y-0 left-0 z-50 flex w-[min(86vw,16rem)] flex-col transition-transform duration-300 lg:static lg:w-64 lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -130,7 +130,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav className="custom-scrollbar flex-1 space-y-6 overflow-y-auto p-4">
+        <nav className="custom-scrollbar flex-1 space-y-5 overflow-y-auto p-3 sm:p-4">
           {adminNavItems.map((group) => (
             <div key={group.section}>
               <div className="mb-3 px-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
@@ -181,7 +181,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="surface-panel sticky top-0 z-30 mx-4 mt-4 flex h-16 items-center justify-between gap-4 rounded-[1.35rem] px-4 lg:mx-6 lg:px-6">
+        <header className="surface-panel sticky top-0 z-30 mx-2 mt-2 flex min-h-[4.25rem] items-center justify-between gap-2 rounded-[1.2rem] px-3 py-2.5 sm:mx-4 sm:mt-4 sm:h-16 sm:gap-4 sm:rounded-[1.35rem] sm:px-4 sm:py-0 lg:mx-6 lg:px-6">
           <button
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -203,7 +203,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={handleThemeToggle}
@@ -220,14 +220,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <NotificationBell className="h-10 w-10 shadow-[0_14px_40px_-24px_rgba(37,99,235,0.26)]" />
             <Link
               href="/user/home"
-              className="btn-kinetic rounded-xl bg-[linear-gradient(135deg,#2563eb_0%,#1d4ed8_48%,#0ea5e9_100%)] px-4 py-2 text-xs font-bold uppercase text-white transition-all hover:-translate-y-0.5"
+              className="btn-kinetic hidden rounded-xl bg-[linear-gradient(135deg,#2563eb_0%,#1d4ed8_48%,#0ea5e9_100%)] px-4 py-2 text-xs font-bold uppercase text-white transition-all hover:-translate-y-0.5 sm:inline-flex"
             >
               Trang chủ
             </Link>
           </div>
         </header>
 
-        <main className="page-stack flex-1 p-4 lg:p-6">{children}</main>
+        <main className="page-stack flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );

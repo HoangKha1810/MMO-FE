@@ -25,9 +25,9 @@ export default async function UserGameMarketPage() {
   return (
     <AppShell user={shell}>
       <div className="space-y-6">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 sm:rounded-[2rem] sm:p-6">
           <div className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-blue">Game Market</div>
-          <h1 className="mt-3 text-3xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">
+          <h1 className="mt-3 break-words text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white sm:text-3xl">
             Chợ game
           </h1>
           <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">

@@ -22,12 +22,12 @@ export default async function SocialInboxPage() {
   return (
     <AppShell user={shell}>
       <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-[2.25rem] border border-slate-200 bg-[#f7f3ea] p-7 dark:border-white/10 dark:bg-[#101520]">
+        <section className="relative overflow-hidden rounded-[1.7rem] border border-slate-200 bg-[#f7f3ea] p-4 dark:border-white/10 dark:bg-[#101520] sm:rounded-[2.25rem] sm:p-7">
           <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-brand-blue/10 blur-3xl" />
           <div className="relative grid gap-5 lg:grid-cols-[1fr_360px]">
             <div>
               <div className="inline-flex rounded-full bg-brand-blue/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-brand-blue">Social messenger</div>
-              <h1 className="mt-4 text-4xl font-black uppercase tracking-[-0.06em] text-slate-950 dark:text-white md:text-5xl">Hộp thư social, gọn và realtime</h1>
+              <h1 className="mt-4 break-words text-3xl font-black uppercase tracking-[-0.06em] text-slate-950 dark:text-white sm:text-4xl md:text-5xl">Hộp thư social, gọn và realtime</h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
                 Tin nhắn, bạn bè, số chưa đọc, thông báo admin và danh sách chặn được gom vào một màn hình dễ xử lý.
               </p>
@@ -36,7 +36,7 @@ export default async function SocialInboxPage() {
                 <Link href="/user/forum/members" className="rounded-xl border border-slate-200 bg-white/70 px-4 py-2 text-xs font-black uppercase text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">Tìm thành viên</Link>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
               {[
                 { label: 'Tin nhắn', value: messages.length, icon: MessageCircle },
                 { label: 'Bạn bè', value: friends.length, icon: UsersRound },

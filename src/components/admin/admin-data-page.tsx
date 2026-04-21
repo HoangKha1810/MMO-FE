@@ -87,22 +87,24 @@ export function AdminDataPage({ title, description, sections }: AdminDataPagePro
       />
 
       {sections.length > 1 ? (
-        <SectionPanel className="p-2">
-          {sections.map((section, index) => (
-            <button
-              key={section.resource + section.title}
-              type="button"
-              onClick={() => setActiveIndex(index)}
-              className={cn(
-                'whitespace-nowrap rounded-[1rem] px-4 py-2.5 text-xs font-black uppercase tracking-[0.18em] transition-all',
-                index === activeIndex
-                  ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'
-              )}
-            >
-              {section.title}
-            </button>
-          ))}
+        <SectionPanel className="overflow-hidden p-2">
+          <div className="custom-scrollbar flex gap-2 overflow-x-auto pb-1">
+            {sections.map((section, index) => (
+              <button
+                key={section.resource + section.title}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                className={cn(
+                  'whitespace-nowrap rounded-[1rem] px-4 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all',
+                  index === activeIndex
+                    ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'
+                )}
+              >
+                {section.title}
+              </button>
+            ))}
+          </div>
         </SectionPanel>
       ) : null}
 
@@ -317,7 +319,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
         />
 
         <form
-          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto]"
+          className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]"
           onSubmit={(event) => {
             event.preventDefault();
             void loadData(1);
@@ -344,7 +346,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
               ))}
             </select>
           ) : null}
-          <Button type="submit" size="default">
+          <Button type="submit" size="default" className="w-full lg:w-auto">
             <Search className="mr-2 h-4 w-4" />
             Lọc dữ liệu
           </Button>
@@ -464,7 +466,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                         </td>
                       ))}
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-2">
                           {section.actions?.filter((action) => !action.key.startsWith('bulk-')).map((action) => (
                             <Button
                               key={action.key}
@@ -548,7 +550,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
               </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {Object.keys(editor.values).map((field) => (
                 <label key={field} className="space-y-2">
                   <span className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">{field}</span>

@@ -38,21 +38,21 @@ export default async function ForumFolderPage({ params }: { params: Promise<{ id
           </Link>
         </div>
 
-        <section className="relative overflow-hidden rounded-[2.25rem] border border-slate-200 bg-[#f7f1e6] p-7 shadow-sm dark:border-white/10 dark:bg-[#0c1422]">
+        <section className="relative overflow-hidden rounded-[1.7rem] border border-slate-200 bg-[#f7f1e6] p-4 shadow-sm dark:border-white/10 dark:bg-[#0c1422] sm:rounded-[2.25rem] sm:p-7">
           <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-brand-blue/15 blur-3xl" />
           <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="inline-flex rounded-full border border-slate-900/10 bg-white/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300">
                 Forum folder
               </div>
-              <h1 className="mt-4 text-4xl font-black uppercase leading-none tracking-[-0.06em] text-slate-950 dark:text-white">
+              <h1 className="mt-4 break-words text-3xl font-black uppercase leading-none tracking-[-0.06em] text-slate-950 dark:text-white sm:text-4xl">
                 {data.forum.name}
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
                 {data.forum.description || 'Danh sách chủ đề trong folder này.'}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 md:w-72">
+            <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:w-72">
               <div className="rounded-2xl border border-white/70 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.04]">
                 <FolderOpen className="h-4 w-4 text-brand-blue" />
                 <div className="mt-3 text-2xl font-black text-slate-950 dark:text-white">{data.forum.id}</div>

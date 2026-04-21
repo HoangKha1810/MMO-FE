@@ -133,7 +133,7 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
 
   return (
     <div className="space-y-7">
-      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950">
+      <section className="relative overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950 sm:rounded-[2rem] sm:p-6">
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-brand-blue/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
@@ -142,14 +142,14 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
               <span className={cn('h-1.5 w-1.5 rounded-full bg-emerald-500', isPending ? 'animate-ping' : '')} />
               Live từ MySQL Vietnix
             </div>
-            <h1 className="mt-4 max-w-3xl text-4xl font-black uppercase leading-[1.05] tracking-[-0.05em] text-slate-950 dark:text-white">
+            <h1 className="mt-4 max-w-3xl break-words text-3xl font-black uppercase leading-[1.04] tracking-[-0.05em] text-slate-950 dark:text-white sm:text-4xl">
               Giám sát hệ thống
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
               Dashboard đang đọc trực tiếp từ database live, tự refresh mỗi 10 giây cho số liệu nạp tiền, đơn hàng, user, forum và queue dịch vụ.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-white/10 dark:bg-white/[0.04]">
+              <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 break-all dark:border-white/10 dark:bg-white/[0.04]">
                 <DatabaseZap className="h-3.5 w-3.5 text-brand-blue" />
                 {stats.databaseUrl}
               </span>
@@ -181,7 +181,7 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <section className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {pulseCards.map((card) => (
           <div key={card.label} className="group relative overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-slate-950">
             <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', card.accent)} />
@@ -220,7 +220,7 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 p-5">
+            <div className="grid grid-cols-1 gap-3 p-4 min-[430px]:grid-cols-2 sm:p-5">
               {[
                 { label: 'Doanh thu SMM', value: money(section.data.smm_revenue), icon: Banknote, tone: 'text-emerald-500' },
                 { label: 'Biên lợi nhuận', value: percent(section.data.smm_revenue > 0 ? (section.data.smm_profit / section.data.smm_revenue) * 100 : 0), icon: TrendingUp, tone: 'text-blue-500' },

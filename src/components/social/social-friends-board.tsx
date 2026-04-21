@@ -126,7 +126,7 @@ export function SocialFriendsBoard({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-3">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-[1.75rem] border border-slate-200 bg-white/90 p-5 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.4)] dark:border-white/10 dark:bg-white/[0.04]">
             <stat.icon className="h-5 w-5 text-brand-blue" />
@@ -138,7 +138,7 @@ export function SocialFriendsBoard({
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-5 shadow-[0_36px_80px_-55px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.04]">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[280px] flex-1">
+          <div className="relative min-w-0 flex-[1_1_100%] sm:min-w-[280px] sm:flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={search}

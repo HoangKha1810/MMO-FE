@@ -73,7 +73,7 @@ export function ForumAdsBoard({ feed, myAds, stats }: ForumAdsBoardProps) {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-3">
         {[
           { label: 'Ads của tôi', value: stats.myAds },
           { label: 'Đang duyệt / chờ upload', value: stats.pendingAds },
@@ -87,7 +87,7 @@ export function ForumAdsBoard({ feed, myAds, stats }: ForumAdsBoardProps) {
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
         <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-5 shadow-[0_30px_80px_-55px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.04]">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500 text-white">
@@ -135,7 +135,7 @@ export function ForumAdsBoard({ feed, myAds, stats }: ForumAdsBoardProps) {
                 <input type="file" accept="image/*" className="hidden" onChange={(event) => setImageFile(event.target.files?.[0] || null)} />
               </label>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={resetForm}>
                 Reset
               </Button>

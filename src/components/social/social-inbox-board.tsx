@@ -65,7 +65,7 @@ export function SocialInboxBoard({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-[1.7rem] border border-slate-200 bg-white/90 p-5 shadow-[0_24px_70px_-46px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.04]">
             <stat.icon className="h-5 w-5 text-brand-blue" />
@@ -133,15 +133,15 @@ export function SocialInboxBoard({
         {initialMessages.length === 0 ? (
           <div className="rounded-[1.6rem] border border-dashed border-slate-300 p-10 text-center text-sm font-bold text-slate-400 dark:border-white/10">Chưa có hội thoại.</div>
         ) : initialMessages.map((message) => (
-          <Link key={String(message.id)} href={`/user/social/conversation/${String(message.other_id)}`} className="block rounded-[1.6rem] border border-slate-200 bg-white/90 p-5 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.3)] transition hover:-translate-y-0.5 hover:border-brand-blue/35 dark:border-white/10 dark:bg-white/[0.04]">
-            <div className="flex items-start justify-between gap-4">
+          <Link key={String(message.id)} href={`/user/social/conversation/${String(message.other_id)}`} className="block rounded-[1.6rem] border border-slate-200 bg-white/90 p-4 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.3)] transition hover:-translate-y-0.5 hover:border-brand-blue/35 dark:border-white/10 dark:bg-white/[0.04] sm:p-5">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
               <div className="min-w-0">
                 <div className="truncate text-base font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">
                   {String(message.fullname || message.username || `User #${message.other_id}`)}
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm leading-7 text-slate-500 dark:text-slate-400">{String(message.content || '')}</p>
               </div>
-              <div className="shrink-0 text-right">
+              <div className="shrink-0 text-left sm:text-right">
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                   {new Date(String(message.created_at || '')).toLocaleString('vi-VN')}
                 </div>

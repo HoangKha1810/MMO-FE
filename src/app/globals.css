@@ -676,6 +676,7 @@
   }
 
   .surface-panel {
+    min-width: 0;
     background: var(--surface-0);
     border: 1px solid var(--surface-edge);
     box-shadow: var(--surface-shadow);
@@ -683,6 +684,7 @@
   }
 
   .surface-panel-strong {
+    min-width: 0;
     background: var(--surface-1);
     border: 1px solid var(--surface-edge);
     box-shadow: var(--surface-shadow-strong);
@@ -691,6 +693,7 @@
 
   .surface-card {
     position: relative;
+    min-width: 0;
     overflow: hidden;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 253, 0.92));
@@ -1596,5 +1599,57 @@ html.theme-switching .nav-link-shell {
 
   .service-tilt-number {
     font-size: 2.85rem;
+  }
+
+  .dashboard-hero,
+  .dashboard-metric,
+  .dashboard-service-card {
+    border-radius: 1.45rem;
+  }
+
+  .dashboard-service-card,
+  .dashboard-service-card-primary,
+  .dashboard-service-card-secondary {
+    min-height: 13.75rem;
+  }
+
+  .surface-card:hover,
+  .dashboard-service-card:hover,
+  .interactive-lift:hover,
+  .notification-trigger:hover,
+  .theme-switch-shell:hover {
+    transform: none;
+  }
+
+  .service-tilt-card,
+  .service-tilt-stage {
+    max-width: 100%;
+  }
+
+  .service-tilt-shadow {
+    inset: auto 1rem 1rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .surface-card:hover,
+  .dashboard-service-card:hover,
+  .interactive-lift:hover,
+  .notification-trigger:hover,
+  .theme-switch-shell:hover {
+    transform: none !important;
+  }
+
+  .service-tilt-stage,
+  .service-tilt-aura,
+  .service-tilt-icon-wrap,
+  .service-tilt-top-stack,
+  .service-tilt-content,
+  .service-tilt-footer {
+    transform: none !important;
+  }
+
+  .service-tilt-card:hover .service-tilt-stage {
+    box-shadow: none;
   }
 }

@@ -222,7 +222,7 @@ export default function ResourcesPage() {
                     ) : null}
                   </div>
 
-                  <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+                  <div className="mt-5 grid grid-cols-1 gap-2 text-center min-[430px]:grid-cols-3">
                     <div className="rounded-2xl border border-slate-200/70 bg-white/70 px-3 py-3 dark:border-white/10 dark:bg-white/[0.03]">
                       <div className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">Đã bán</div>
                       <div className="mt-2 font-mono text-lg font-black text-slate-950 dark:text-white">
@@ -243,8 +243,8 @@ export default function ResourcesPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex items-center justify-between gap-4 border-t border-slate-200/70 pt-5 dark:border-white/10">
-                    <div>
+                  <div className="mt-6 flex flex-col gap-4 border-t border-slate-200/70 pt-5 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                       <div className="text-[9px] font-black uppercase tracking-[0.26em] text-slate-400">Giá bán</div>
                       <div className="mt-2 font-mono text-2xl font-black text-brand-blue">
                         {formatCurrency(resource.price)}
@@ -252,6 +252,7 @@ export default function ResourcesPage() {
                     </div>
                     <Button
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => handleAddToCart(resource.id)}
                       disabled={loadingCart === resource.id || resource.stock <= 0}
                       loading={loadingCart === resource.id}

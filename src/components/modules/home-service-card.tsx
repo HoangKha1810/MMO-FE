@@ -107,8 +107,8 @@ export function HomeServiceCard({ service, className }: HomeServiceCardProps) {
         <div className="service-tilt-grid" />
         <div className="service-tilt-shadow" />
 
-        <div className="relative z-10 flex h-full flex-col p-6 sm:p-7">
-          <div className="mb-10 flex items-start justify-between gap-4">
+        <div className="relative z-10 flex h-full min-w-0 flex-col p-5 sm:p-7">
+          <div className="mb-8 flex items-start justify-between gap-3 sm:mb-10 sm:gap-4">
             <div className="service-tilt-icon-wrap">
               <div className={`service-tilt-icon bg-gradient-to-br ${service.color}`}>
                 <Icon className="h-5 w-5 text-white" />
@@ -126,20 +126,20 @@ export function HomeServiceCard({ service, className }: HomeServiceCardProps) {
           </div>
 
           <div className="service-tilt-content">
-            <h3 className="max-w-[18rem] text-xl font-black uppercase leading-[1.14] tracking-[-0.02em] text-slate-950 dark:text-white">
+            <h3 className="max-w-full break-words text-lg font-black uppercase leading-[1.14] tracking-[-0.02em] text-slate-950 dark:text-white sm:max-w-[18rem] sm:text-xl">
               {service.title}
             </h3>
-            <p className="mt-4 max-w-[18rem] text-[12px] font-semibold uppercase tracking-[0.16em] leading-[2.05] text-slate-500 dark:text-white/52">
+            <p className="mt-3 max-w-full text-[11px] font-semibold uppercase leading-[1.85] tracking-[0.08em] text-slate-500 dark:text-white/52 sm:mt-4 sm:max-w-[18rem] sm:text-[12px] sm:leading-[2.05] sm:tracking-[0.16em]">
               {service.desc}
             </p>
           </div>
 
-          <div className="service-tilt-footer mt-auto pt-8">
+          <div className="service-tilt-footer mt-auto pt-6 sm:pt-8">
             <div className="flex items-center justify-between border-t border-slate-200/80 pt-5 dark:border-white/10">
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-white/32">
+              <div className="min-w-0 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-white/32 sm:text-[10px] sm:tracking-[0.3em]">
                 {service.external ? 'External service' : 'Enter module'}
               </div>
-              <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-700 dark:text-white/82">
+              <div className="inline-flex shrink-0 items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-700 dark:text-white/82 sm:text-[10px] sm:tracking-[0.3em]">
                 Khám phá
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </div>

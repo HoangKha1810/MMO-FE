@@ -25,6 +25,7 @@ export default async function ResourceHistoryPage() {
         </div>
 
         <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
+          <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left">
             <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:bg-white/5">
               <tr>
@@ -58,6 +59,7 @@ export default async function ResourceHistoryPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </AppShell>

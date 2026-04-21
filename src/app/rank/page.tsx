@@ -53,7 +53,7 @@ export default async function RankPage() {
 
         <SectionPanel className="space-y-5">
           <SectionHeader eyebrow="Rank Rules" title="Mốc cấp bậc" description="Các mốc này dùng để hiển thị và hậu kiểm rank. Admin vẫn có thể chỉnh rank trực tiếp trong user manager." />
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-4">
             {tiers.map((tier, index) => (
               <div key={tier.name} className="surface-card rounded-[1.6rem] p-5">
                 <div className="flex items-center justify-between gap-3">
@@ -72,6 +72,7 @@ export default async function RankPage() {
         <SectionPanel className="space-y-5">
           <SectionHeader eyebrow="Leaderboard" title="Bảng thành viên nổi bật" description="Xếp theo số dư, sau đó số bài viết và trạng thái hoạt động gần nhất." />
           <div className="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.03]">
+            <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left">
               <thead className="border-b border-slate-200/80 bg-slate-50/80 text-[10px] font-black uppercase tracking-[0.24em] text-slate-400 dark:border-white/10 dark:bg-white/[0.04]">
                 <tr>
@@ -102,6 +103,7 @@ export default async function RankPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </SectionPanel>
       </div>

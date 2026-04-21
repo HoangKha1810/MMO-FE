@@ -80,7 +80,7 @@ export default function CardPage() {
             { label: 'Mức chọn', value: selectedAmount ? formatCurrency(selectedAmount) : '—', hint: 'Giá trị đang thao tác', tone: 'violet' },
           ]}
           actions={
-            <div className="inline-flex rounded-[1.2rem] border border-slate-200/80 bg-white/70 p-1 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+            <div className="inline-flex w-full flex-col rounded-[1.2rem] border border-slate-200/80 bg-white/70 p-1 shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:w-auto sm:flex-row">
               {[
                 { id: 'exchange', label: 'Đổi thẻ', icon: ArrowRightLeft },
                 { id: 'buy', label: 'Mua thẻ', icon: CreditCard },
@@ -92,7 +92,7 @@ export default function CardPage() {
                     setActiveTab(tab.id as 'exchange' | 'buy');
                     setResult(null);
                   }}
-                  className={`flex items-center gap-2 rounded-[1rem] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
+                  className={`flex items-center justify-center gap-2 rounded-[1rem] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-all sm:px-5 sm:tracking-[0.18em] ${
                     activeTab === tab.id
                       ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
                       : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white'
@@ -119,7 +119,7 @@ export default function CardPage() {
                 <label className="block text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
                   Nhà mạng
                 </label>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-3">
                   {telcos.map((telco) => (
                     <button
                       key={telco.id}

@@ -170,9 +170,9 @@ export function SocialConversationBoard({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-5 shadow-[0_36px_80px_-55px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.04]">
+      <section className="rounded-[1.6rem] border border-slate-200 bg-white/90 p-4 shadow-[0_36px_80px_-55px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.04] sm:rounded-[2rem] sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-4">
             <div className="h-14 w-14 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-blue to-cyan-400">
               {String(other.avatar || '') ? (
                 <img src={String(other.avatar)} alt={String(other.username || 'avatar')} className="h-full w-full object-cover" />
@@ -182,8 +182,8 @@ export function SocialConversationBoard({
                 </div>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2 text-xl font-black uppercase tracking-[-0.04em] text-slate-950 dark:text-white">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-lg font-black uppercase tracking-[-0.04em] text-slate-950 dark:text-white sm:text-xl">
                 {String(other.fullname || other.username || `User #${otherUserId}`)}
                 {String(other.role || '').toLowerCase() === 'admin' ? <ShieldCheck className="h-4 w-4 text-brand-blue" /> : null}
               </div>
@@ -215,8 +215,8 @@ export function SocialConversationBoard({
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_36px_90px_-60px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-white/[0.04]">
-        <div ref={boxRef} className="max-h-[560px] space-y-3 overflow-y-auto p-5">
+      <section className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/90 shadow-[0_36px_90px_-60px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-white/[0.04] sm:rounded-[2rem]">
+        <div ref={boxRef} className="max-h-[560px] space-y-3 overflow-y-auto p-4 sm:p-5">
           {messages.length === 0 ? (
             <div className="rounded-[1.4rem] border border-dashed border-slate-300 p-8 text-center text-sm font-bold text-slate-400 dark:border-white/10">
               Chưa có tin nhắn trong hội thoại này.
@@ -225,7 +225,7 @@ export function SocialConversationBoard({
             const mine = Number(message.sender_id) === userId;
             return (
               <div key={String(message.id)} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[78%] rounded-[1.5rem] px-4 py-3 shadow-[0_24px_50px_-40px_rgba(15,23,42,0.45)] ${mine ? 'bg-[linear-gradient(135deg,#2563eb_0%,#0ea5e9_100%)] text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-950/60 dark:text-slate-200'}`}>
+                <div className={`max-w-[88%] rounded-[1.5rem] px-4 py-3 shadow-[0_24px_50px_-40px_rgba(15,23,42,0.45)] sm:max-w-[78%] ${mine ? 'bg-[linear-gradient(135deg,#2563eb_0%,#0ea5e9_100%)] text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-950/60 dark:text-slate-200'}`}>
                   <div className="whitespace-pre-wrap text-sm font-semibold leading-7">{String(message.content || '')}</div>
                   {String(message.attachment || '') ? (
                     <a href={String(message.attachment)} target="_blank" rel="noreferrer" className={`mt-3 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] ${mine ? 'bg-white/15 text-white' : 'bg-white text-slate-700 dark:bg-white/10 dark:text-white'}`}>
@@ -233,7 +233,7 @@ export function SocialConversationBoard({
                       Mở tệp đính kèm
                     </a>
                   ) : null}
-                  <div className={`mt-3 flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.18em] ${mine ? 'text-white/65' : 'text-slate-400'}`}>
+                  <div className={`mt-3 flex flex-col items-start gap-2 text-[10px] font-black uppercase tracking-[0.18em] sm:flex-row sm:items-center sm:justify-between sm:gap-3 ${mine ? 'text-white/65' : 'text-slate-400'}`}>
                     <span>{new Date(String(message.created_at || '')).toLocaleString('vi-VN')}</span>
                     <button
                       type="button"
@@ -250,7 +250,7 @@ export function SocialConversationBoard({
           })}
         </div>
 
-        <div className="border-t border-slate-200/80 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-slate-950/40">
+        <div className="border-t border-slate-200/80 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-slate-950/40 sm:p-5">
           {conversationBlocked ? (
             <div className="rounded-[1.4rem] border border-rose-300/70 bg-rose-50/80 p-4 text-sm font-bold leading-7 text-rose-600 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
               {blockedByMe ? 'Bạn đang chặn người dùng này. Gỡ chặn để tiếp tục nhắn tin.' : 'Người dùng này đang chặn bạn. Bạn không thể tiếp tục gửi tin nhắn.'}
@@ -267,13 +267,13 @@ export function SocialConversationBoard({
                 placeholder="Nhập nội dung nhắn riêng..."
                 className="w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-sm font-semibold leading-7 text-slate-900 outline-none transition focus:border-brand-blue/40 dark:border-white/10 dark:bg-slate-950/50 dark:text-white"
               />
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-slate-600 transition hover:border-brand-blue/30 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200">
                   <ImagePlus className="h-4 w-4" />
                   {attachment ? attachment.name : 'Đính kèm tệp'}
                   <input type="file" className="hidden" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
                 </label>
-                <div className="flex gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                   <Button type="button" variant="outline" onClick={() => setAttachment(null)} disabled={!attachment}>
                     Bỏ tệp
                   </Button>

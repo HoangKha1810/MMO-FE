@@ -18,13 +18,13 @@ export default async function UserFindJobPage() {
   return (
     <AppShell user={shell}>
       <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-[2.25rem] border border-slate-200 bg-[#f7f3ea] p-7 shadow-sm dark:border-white/10 dark:bg-[#101520]">
+        <div className="relative overflow-hidden rounded-[1.7rem] border border-slate-200 bg-[#f7f3ea] p-4 shadow-sm dark:border-white/10 dark:bg-[#101520] sm:rounded-[2.25rem] sm:p-7">
           <div className="absolute -right-16 top-8 hidden h-40 w-40 rounded-full border border-slate-900/10 dark:border-white/10 md:block" />
           <div className="absolute -bottom-20 left-12 h-44 w-44 rounded-full bg-orange-400/10 blur-3xl" />
           <div className="relative grid gap-6 lg:grid-cols-[1fr_420px] lg:items-end">
             <div>
               <div className="inline-flex rounded-full border border-orange-500/20 bg-white/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-orange-600 dark:bg-white/[0.05] dark:text-orange-300">Find Job MMO</div>
-              <h1 className="mt-4 max-w-2xl text-4xl font-black uppercase leading-none tracking-[-0.06em] text-slate-950 dark:text-white md:text-5xl">
+              <h1 className="mt-4 max-w-2xl break-words text-3xl font-black uppercase leading-none tracking-[-0.06em] text-slate-950 dark:text-white sm:text-4xl md:text-5xl">
                 Việc ngon, người thật, ưu tiên bài ghim
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
@@ -35,7 +35,7 @@ export default async function UserFindJobPage() {
                 <Link href="/user/find-job/my-jobs" className="rounded-xl border border-slate-200 bg-white/70 px-4 py-2 text-xs font-black uppercase text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">Tin của tôi</Link>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
               {[
                 { label: 'Đang mở', value: jobs.length, icon: BriefcaseBusiness },
                 { label: 'Đang ghim', value: pinnedCount, icon: Pin },
