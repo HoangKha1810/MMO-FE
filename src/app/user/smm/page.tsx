@@ -364,9 +364,9 @@ function SmmPageContent() {
   return (
     <AppShell user={user}>
       <div className="space-y-6 pb-8">
-        <div className="sticky top-0 z-30 -mx-2 border-b border-slate-100 bg-white/90 px-2 pb-4 pt-4 shadow-sm backdrop-blur-2xl dark:border-white/5 dark:bg-[#090f1f]/90 md:-mx-4 md:px-4">
-          <div className="flex items-center gap-2">
-            <div className="group relative flex-1">
+        <div className="sticky top-0 z-30 -mx-1 border-b border-slate-100 bg-white/90 px-1 pb-4 pt-3 shadow-sm backdrop-blur-2xl dark:border-white/5 dark:bg-[#090f1f]/90 sm:-mx-2 sm:px-2 md:-mx-4 md:px-4">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <div className="group relative min-w-0 flex-[1_1_100%] sm:flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-brand-blue" />
               <input
                 type="text"
@@ -380,7 +380,7 @@ function SmmPageContent() {
               type="button"
               onClick={() => setFavoritesOnly((value) => !value)}
               className={cn(
-                'flex items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all active:scale-90 dark:bg-white/5',
+                'flex h-12 w-12 items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all active:scale-90 dark:bg-white/5',
                 favoritesOnly ? 'bg-yellow-500/10 text-yellow-500' : 'hover:text-yellow-500'
               )}
               aria-label="Chỉ xem dịch vụ đã lưu"
@@ -391,7 +391,7 @@ function SmmPageContent() {
               type="button"
               onClick={() => void loadServices(true)}
               disabled={syncing || loading}
-              className="flex items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all hover:text-brand-blue active:scale-90 disabled:opacity-60 dark:bg-white/5"
+              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all hover:text-brand-blue active:scale-90 disabled:opacity-60 dark:bg-white/5"
               aria-label="Đồng bộ dịch vụ SubMetaVip"
             >
               <RefreshCw className={cn('h-5 w-5', syncing && 'animate-spin text-brand-blue')} />
@@ -455,7 +455,7 @@ function SmmPageContent() {
                 Đã lưu
               </h2>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
               {favoriteGroups.map((group) => (
                 <ServiceCard
                   key={`favorite-${group.category}`}
@@ -499,7 +499,7 @@ function SmmPageContent() {
                   id={`platform-${section.platform.name}`}
                   className="space-y-5 scroll-mt-28"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/5">
+                  <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/5">
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 shadow-sm dark:bg-white/5">
                         {section.platform.gif ? (
@@ -521,7 +521,7 @@ function SmmPageContent() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                     {section.groups.map((group) => (
                       <ServiceCard
                         key={group.category}

@@ -114,7 +114,7 @@ export default function UserAutomxhPage() {
         ) : (
           sections.map((section) => (
             <section key={section.category.id} className="category-section space-y-5 scroll-mt-28">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/5">
+              <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/5">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 shadow-sm dark:bg-white/5">
                     {section.category.gif ? (
@@ -132,7 +132,7 @@ export default function UserAutomxhPage() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                 {section.products.map((product) => (
                   <div key={product.id} className="service-card-wrapper h-full">
                     <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">

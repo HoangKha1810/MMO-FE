@@ -482,7 +482,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
         {/* ─── SIDEBAR ─── */}
         <aside
           className={cn(
-            'shell-sidebar-frame fixed inset-y-0 left-0 z-50 h-dvh w-[286px] shrink-0 transition-all duration-300 lg:sticky lg:top-0 lg:translate-x-0',
+            'shell-sidebar-frame fixed inset-y-0 left-0 z-50 h-dvh w-[min(86vw,286px)] shrink-0 transition-all duration-300 sm:w-[286px] lg:sticky lg:top-0 lg:translate-x-0',
             sidebarOpen ? 'translate-x-0 shadow-2xl shadow-black/20' : '-translate-x-full'
           )}
         >
@@ -835,13 +835,13 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
         </aside>
 
         {/* ─── MAIN CONTENT AREA ─── */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:pl-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip lg:pl-1">
 
           {/* Top header */}
-          <header className="shell-topbar sticky top-0 z-40 mx-3 mt-3 flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:mx-5 md:px-5">
+          <header className="shell-topbar sticky top-0 z-40 mx-2 mt-2 flex shrink-0 items-center justify-between gap-2 px-2.5 py-2.5 sm:mx-3 sm:mt-3 sm:gap-3 sm:px-4 sm:py-3 md:mx-5 md:px-5">
 
             {/* Left: menu + search */}
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setSidebarOpen((open) => !open)}
@@ -890,7 +890,16 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
             </div>
 
             {/* Right: wallet, tools, avatar */}
-            <div className="shell-toolbar-cluster flex shrink-0 items-center gap-2 p-1.5 sm:gap-3">
+            <div className="shell-toolbar-cluster custom-scrollbar flex max-w-[calc(100vw-4.75rem)] min-w-0 shrink-0 items-center gap-1 overflow-x-auto overscroll-x-contain p-1 sm:max-w-none sm:gap-3 sm:overflow-visible sm:p-1.5">
+
+              {/* Wallet balance compact */}
+              <Link
+                href="/user/deposit"
+                className="interactive-lift relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 sm:hidden dark:border-white/8 dark:bg-white/[0.04]"
+                aria-label="Nạp tiền"
+              >
+                <Wallet className="h-4 w-4 text-brand-blue" />
+              </Link>
 
               {/* Wallet balance */}
               <Link
@@ -918,10 +927,10 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
               <button
                 type="button"
                 onClick={() => toast.info('Hệ thống hiện đang sử dụng tiếng Việt.')}
-                className="group flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-2.5 transition-all hover:-translate-y-0.5 dark:border-white/8 dark:bg-white/[0.04]"
+                className="group flex h-9 items-center gap-1 rounded-xl border border-slate-200/80 bg-white/80 px-2 transition-all hover:-translate-y-0.5 sm:gap-1.5 sm:px-2.5 dark:border-white/8 dark:bg-white/[0.04]"
               >
                 <Globe className="h-3.5 w-3.5 text-slate-400 group-hover:text-brand-blue dark:text-white/45" />
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-600 dark:text-white/75">VI</span>
+                <span className="hidden text-[10px] font-black uppercase tracking-[0.18em] text-slate-600 min-[390px]:inline dark:text-white/75">VI</span>
               </button>
 
               {/* Notifications */}
@@ -930,16 +939,30 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
               {/* Cart */}
               <Link
                 href="/user/cart"
-                className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 dark:border-white/8 dark:bg-white/[0.04]"
+                className="group hidden h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 sm:flex dark:border-white/8 dark:bg-white/[0.04]"
               >
                 <ShoppingCart className="h-4 w-4 text-slate-400 group-hover:text-brand-blue dark:text-white/45" />
               </Link>
 
-              {/* Theme toggle */}
+              {/* Theme toggle mobile */}
               <button
                 type="button"
                 onClick={handleThemeToggle}
-                className="theme-switch-shell group border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 dark:border-white/8 dark:bg-white/[0.04]"
+                className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 sm:hidden dark:border-white/8 dark:bg-white/[0.04]"
+                aria-label="Toggle theme"
+              >
+                {mounted && isDark ? (
+                  <Moon className="h-4 w-4 text-slate-500 dark:text-slate-200" />
+                ) : (
+                  <Sun className="h-4 w-4 text-amber-500" />
+                )}
+              </button>
+
+              {/* Theme toggle desktop */}
+              <button
+                type="button"
+                onClick={handleThemeToggle}
+                className="theme-switch-shell group hidden border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 sm:inline-flex dark:border-white/8 dark:bg-white/[0.04]"
                 data-mode={mounted && isDark ? 'dark' : 'light'}
                 aria-label="Toggle theme"
               >
@@ -955,7 +978,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                 href="https://ai.trungtammmo.vn/"
                 target="_blank"
                 rel="noreferrer"
-                className="btn-kinetic flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-md shadow-cyan-500/25 transition-all hover:-translate-y-0.5 hover:shadow-cyan-500/40"
+                className="btn-kinetic hidden h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-md shadow-cyan-500/25 transition-all hover:-translate-y-0.5 hover:shadow-cyan-500/40 sm:flex"
               >
                 <Bot className="h-4 w-4" />
               </a>
@@ -1039,8 +1062,8 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
           </header>
 
           {/* Breadcrumb bar */}
-          <div className="shell-breadcrumb mx-3 mt-3 shrink-0 px-5 py-3 md:mx-5 md:px-6">
-            <nav className="relative z-10 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.34em] text-slate-400 dark:text-white/35">
+          <div className="shell-breadcrumb mx-2 mt-2 shrink-0 px-3 py-2.5 sm:mx-3 sm:mt-3 sm:px-5 sm:py-3 md:mx-5 md:px-6">
+            <nav className="relative z-10 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400 custom-scrollbar dark:text-white/35 sm:text-[9px] sm:tracking-[0.34em]">
               <Link href={isAdmin ? '/admin/dashboard' : '/user/home'} className="transition-colors hover:text-brand-blue">
                 Trang Chủ
               </Link>
@@ -1057,7 +1080,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
 
           {/* Page content */}
           <main className="page-stack relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar">
-            <div className="w-full px-3 py-6 md:px-5 md:py-8 xl:px-6">{children}</div>
+            <div className="w-full max-w-full px-2.5 py-5 sm:px-3 sm:py-6 md:px-5 md:py-8 xl:px-6">{children}</div>
           </main>
         </div>
       </div>

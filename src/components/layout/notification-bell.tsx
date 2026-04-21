@@ -128,7 +128,7 @@ export function NotificationBell({ className }: { className?: string }) {
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="notification-panel mt-2 w-[22rem] rounded-[1.4rem] border-slate-200/80 p-2 shadow-2xl dark:border-white/[0.08]">
+      <DropdownMenuContent align="end" className="notification-panel mt-2 w-[min(22rem,calc(100vw-1rem))] rounded-[1.4rem] border-slate-200/80 p-2 shadow-2xl dark:border-white/[0.08]">
         <div className="flex items-center justify-between gap-3 px-3 py-2.5">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Thông báo</div>
