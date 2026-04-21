@@ -2,6 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { buyMmoProviderProduct, getMmoProviderProductDetail } from '@/lib/mmo-provider';
 import { toNumber } from '@/lib/utils';
 
 type Row = Record<string, unknown>;
@@ -67,28 +68,40 @@ export async function listResourceReviews(resourceId: number) {
 export async function purchaseResource(userId: number, resourceId: number, quantity: number) {
   const normalizedQuantity = Math.max(1, Math.min(10, Math.trunc(quantity || 1)));
 
-  return db.$transaction(async (tx) => {
-    const resourceRows = await tx.$queryRawUnsafe<Array<Row>>(
-      `
-        SELECT *
-        FROM mmo_resources
-        WHERE id = ?
-          AND status = 'active'
-          AND COALESCE(is_deleted, 0) = 0
-        LIMIT 1
-      `,
-      resourceId
-    );
-    const resource = normalize(resourceRows[0] || {});
-    if (!resource.id) {
-      throw new Error('Không tìm thấy tài nguyên');
-    }
+  const resourceRows = await db.$queryRawUnsafe<Array<Row>>(
+    `
+      SELECT *
+      FROM mmo_resources
+      WHERE id = ?
+        AND status IN ('active', 'out_of_stock')
+        AND COALESCE(is_deleted, 0) = 0
+      LIMIT 1
+    `,
+    resourceId
+  );
+  const resource = normalize(resourceRows[0] || {});
+  if (!resource.id) {
+    throw new Error('Không tìm thấy tài nguyên');
+  }
 
-    const stock = toNumber(resource.stock, 0);
-    if (stock > 0 && stock < normalizedQuantity) {
-      throw new Error('Kho tài nguyên không đủ');
-    }
+  const stock = toNumber(resource.stock, 0);
+  const apiProviderId = Math.max(0, Math.trunc(toNumber(resource.api_provider_id, 0)));
+  const apiProductId = String(resource.api_product_id || '').trim();
+  const isAuto = Boolean((resource.is_auto === true || toNumber(resource.is_auto, 0) === 1) && apiProviderId > 0 && apiProductId);
 
+  if (stock > 0 && stock < normalizedQuantity) {
+    throw new Error('Kho tài nguyên không đủ');
+  }
+
+  if (isAuto) {
+    const providerDetail = await getMmoProviderProductDetail(apiProviderId, apiProductId);
+    const providerStock = Math.max(0, Math.trunc(toNumber(providerDetail.product.amount, 0)));
+    if (providerStock > 0 && providerStock < normalizedQuantity) {
+      throw new Error('Kho CloneTut không đủ cho sản phẩm này');
+    }
+  }
+
+  const pendingResult = await db.$transaction(async (tx) => {
     const user = await tx.users.findUnique({
       where: { id: userId },
       select: { balance: true, username: true },
@@ -120,33 +133,45 @@ export async function purchaseResource(userId: number, resourceId: number, quant
       },
     }).catch(() => undefined);
 
+    const initialStatus = isAuto ? 'pending' : 'completed';
+    const initialDelivery = isAuto ? '' : String(resource.download_url || resource.product_content || resource.content || '');
+
     await tx.$executeRawUnsafe(
       `
         INSERT INTO resource_orders (user_id, resource_id, quantity, total_price, status, payment_method, download_count, max_downloads, expires_at, created_at, updated_at, delivery_data, exported_at, is_exported)
-        VALUES (?, ?, ?, ?, 'completed', 'balance', 0, 5, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW(), ?, NULL, 0)
+        VALUES (?, ?, ?, ?, ?, 'balance', 0, 5, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW(), ?, NULL, 0)
       `,
       userId,
       resourceId,
       normalizedQuantity,
       totalPrice,
-      String(resource.download_url || resource.product_content || resource.content || '')
+      initialStatus,
+      initialDelivery
     );
-
-    await tx.$executeRawUnsafe(
-      `
-        UPDATE mmo_resources
-        SET stock = CASE WHEN stock IS NULL THEN NULL ELSE GREATEST(stock - ?, 0) END,
-            sold_count = COALESCE(sold_count, 0) + ?,
-            updated_at = NOW()
-        WHERE id = ?
-      `,
-      normalizedQuantity,
-      normalizedQuantity,
-      resourceId
-    ).catch(() => undefined);
 
     const inserted = await tx.$queryRawUnsafe<Array<{ id: number | bigint }>>('SELECT LAST_INSERT_ID() AS id');
     const orderId = Number(inserted[0]?.id || 0);
+
+    if (!isAuto) {
+      await tx.$executeRawUnsafe(
+        `
+          UPDATE mmo_resources
+          SET stock = CASE WHEN stock IS NULL THEN NULL ELSE GREATEST(stock - ?, 0) END,
+              sold_count = COALESCE(sold_count, 0) + ?,
+              status = CASE
+                WHEN stock IS NULL THEN status
+                WHEN GREATEST(stock - ?, 0) <= 0 THEN 'out_of_stock'
+                ELSE 'active'
+              END,
+              updated_at = NOW()
+          WHERE id = ?
+        `,
+        normalizedQuantity,
+        normalizedQuantity,
+        normalizedQuantity,
+        resourceId
+      ).catch(() => undefined);
+    }
 
     await tx.activity_logs.create({
       data: {
@@ -157,6 +182,106 @@ export async function purchaseResource(userId: number, resourceId: number, quant
 
     return { orderId, totalPrice, nextBalance };
   });
+
+  if (!isAuto) {
+    return pendingResult;
+  }
+
+  try {
+    const providerPurchase = await buyMmoProviderProduct({
+      providerId: apiProviderId,
+      productId: apiProductId,
+      amount: normalizedQuantity,
+    });
+
+    const deliveryData = [
+      `Provider: ${providerPurchase.providerName}`,
+      `Trans ID: ${providerPurchase.orderId}`,
+      '',
+      ...providerPurchase.lines,
+    ].join('\n');
+
+    await db.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `
+          UPDATE resource_orders
+          SET status = 'completed',
+              delivery_data = ?,
+              exported_at = NOW(),
+              is_exported = 1,
+              updated_at = NOW()
+          WHERE id = ?
+        `,
+        deliveryData,
+        pendingResult.orderId
+      );
+
+      await tx.$executeRawUnsafe(
+        `
+          UPDATE mmo_resources
+          SET stock = CASE WHEN stock IS NULL THEN NULL ELSE GREATEST(stock - ?, 0) END,
+              sold_count = COALESCE(sold_count, 0) + ?,
+              status = CASE
+                WHEN stock IS NULL THEN status
+                WHEN GREATEST(stock - ?, 0) <= 0 THEN 'out_of_stock'
+                ELSE 'active'
+              END,
+              updated_at = NOW()
+          WHERE id = ?
+        `,
+        normalizedQuantity,
+        normalizedQuantity,
+        normalizedQuantity,
+        resourceId
+      ).catch(() => undefined);
+    });
+
+    return {
+      ...pendingResult,
+      provider_order_id: providerPurchase.orderId,
+      provider_lines: providerPurchase.lines.length,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Provider CloneTut xử lý thất bại';
+
+    await db.$transaction(async (tx) => {
+      const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { balance: true },
+      });
+      const refundedBalance = toNumber(user?.balance, 0) + pendingResult.totalPrice;
+
+      await tx.users.update({
+        where: { id: userId },
+        data: { balance: refundedBalance, last_activity: new Date() },
+      });
+
+      await tx.transactions.create({
+        data: {
+          user_id: userId,
+          amount: pendingResult.totalPrice,
+          balance_after: refundedBalance,
+          type: 'refund',
+          status: 'success',
+          content: `Hoàn tiền đơn tài nguyên auto #${pendingResult.orderId}`,
+        },
+      }).catch(() => undefined);
+
+      await tx.$executeRawUnsafe(
+        `
+          UPDATE resource_orders
+          SET status = 'cancelled',
+              delivery_data = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        `,
+        `Provider error: ${message}`,
+        pendingResult.orderId
+      ).catch(() => undefined);
+    });
+
+    throw new Error(message);
+  }
 }
 
 export async function submitResourceReview(userId: number, resourceId: number, rating: number, comment: string) {

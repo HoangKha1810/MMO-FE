@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes';
 import {
   BarChart3,
   BadgeDollarSign,
+  Bot,
   ChevronRight,
   CreditCard,
   Database,
@@ -49,6 +50,7 @@ const adminNavItems = [
       { href: '/admin/find-job', label: 'Find Job', icon: FileText },
       { href: '/admin/support-tiktok', label: 'Support TikTok', icon: Headset },
       { href: '/admin/support-tiktok/chat', label: 'Chat TikTok', icon: Headset },
+      { href: '/admin/ai', label: 'Trợ Lý Admin', icon: Bot },
     ],
   },
   {
@@ -113,7 +115,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="site-shell flex min-h-screen text-slate-900 dark:text-white">
+    <div className="site-shell flex h-dvh overflow-hidden text-slate-900 dark:text-white">
       {themePulse ? <div className={cn('theme-transition-overlay', themePulse === 'dark' ? 'theme-transition-overlay-dark' : 'theme-transition-overlay-light')} /> : null}
       <aside
         className={cn(
@@ -228,7 +230,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="page-stack flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
+        <main className={cn(
+          'page-stack min-h-0 flex-1 overflow-x-hidden',
+          pathname === '/admin/ai' ? 'overflow-hidden' : 'overflow-y-auto p-3 sm:p-4 lg:p-6'
+        )}>{children}</main>
       </div>
     </div>
   );

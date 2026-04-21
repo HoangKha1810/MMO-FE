@@ -63,6 +63,7 @@ import type { LegacyServiceItem } from '@/lib/legacy-settings';
 
 const mainLinks = [
   { href: '/user/home', label: 'Trang Chủ', icon: Grid3x3 },
+  { href: '/user/chatbot', label: 'Trợ Lý AI', icon: Bot },
   { href: '/user/deposit', label: 'Nạp Tiền Hệ Thống', icon: Wallet },
   { href: '/user/statistics', label: 'Thông Tin Tài Khoản', icon: BarChart3 },
   { href: '/user/history', label: 'Lịch sử giao dịch All', icon: Layers3 },
@@ -171,6 +172,7 @@ interface AppShellProps {
   sidebarServices?: LegacyServiceItem[];
   smmSidebarSections?: SidebarSmmSection[];
   smmSidebarLoading?: boolean;
+  fullHeight?: boolean;
 }
 
 function formatCurrency(amount: number) {
@@ -281,6 +283,7 @@ export function AppShell({
   sidebarServices,
   smmSidebarSections: prefetchedSmmSidebarSections,
   smmSidebarLoading: prefetchedSmmSidebarLoading,
+  fullHeight = false,
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -998,14 +1001,12 @@ export function AppShell({
               </button>
 
               {/* AI button */}
-              <a
-                href="https://ai.trungtammmo.vn/"
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                href="/user/chatbot"
                 className="btn-kinetic hidden h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-md shadow-cyan-500/25 transition-all hover:-translate-y-0.5 hover:shadow-cyan-500/40 sm:flex"
               >
                 <Bot className="h-4 w-4" />
-              </a>
+              </Link>
 
               {/* User avatar / dropdown */}
               {currentUser.data ? (
@@ -1103,8 +1104,8 @@ export function AppShell({
           </div>
 
           {/* Page content */}
-          <main className="page-stack relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar">
-            <div className="w-full max-w-full px-2.5 py-5 sm:px-3 sm:py-6 md:px-5 md:py-8 xl:px-6">{children}</div>
+          <main className={cn('page-stack relative min-h-0 flex-1 overflow-x-hidden', fullHeight ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar')}>
+            <div className={cn('w-full max-w-full', fullHeight ? 'h-full' : 'px-2.5 py-5 sm:px-3 sm:py-6 md:px-5 md:py-8 xl:px-6')}>{children}</div>
           </main>
         </div>
       </div>

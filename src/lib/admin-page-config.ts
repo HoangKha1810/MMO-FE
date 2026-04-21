@@ -177,6 +177,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       editableFields: ['product_code', 'title', 'description', 'category', 'category_id', 'price', 'original_price', 'thumbnail', 'resource_type', 'stock', 'sold_count', 'download_url', 'content', 'product_content', 'product_note', 'tags', 'status', 'featured', 'is_pinned', 'api_provider_id', 'api_product_id', 'is_auto', 'is_auto_margin', 'margin_percent', 'custom_badge', 'display_order', 'is_deleted'],
       createFields: ['product_code', 'title', 'description', 'category', 'category_id', 'price', 'original_price', 'thumbnail', 'resource_type', 'stock', 'download_url', 'content', 'product_content', 'product_note', 'tags', 'status', 'featured', 'is_pinned', 'created_by', 'api_provider_id', 'api_product_id', 'is_auto', 'is_auto_margin', 'margin_percent', 'custom_badge', 'display_order'],
       statusOptions: ['active', 'inactive', 'out_of_stock'],
+      actions: [{ key: 'sync', label: 'Sync CloneTut' }],
     },
     {
       resource: 'resource-categories',

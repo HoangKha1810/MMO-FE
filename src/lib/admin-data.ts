@@ -902,6 +902,18 @@ export async function runAdminAction(resource: string, input: Record<string, unk
   }
 
   if (action === 'sync') {
+    if (resource === 'resources' || resource === 'resource-categories') {
+      const { syncMmoResourcesFromProviders } = await import('@/lib/mmo-provider');
+      const result = await syncMmoResourcesFromProviders();
+      await logAdminAction({
+        adminId,
+        action: 'sync mmo resources',
+        target: `${result.providers} provider / ${result.categories} categories / ${result.products} products`,
+        req,
+      });
+      return { success: true, data: normalizeValue(result) };
+    }
+
     if (resource === 'smm-services') {
       const { listSmmServices } = await import('@/lib/smm-provider');
       const services = await listSmmServices(true);
