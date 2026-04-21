@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs, type Dirent } from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -139,7 +139,7 @@ export const adminAiTools: FunctionTool[] = [
   {
     type: 'function',
     name: 'search_workspace_files',
-    description: 'Tìm nhanh text hoặc tên file trong workspace bằng ripgrep.',
+    description: 'Tìm nhanh text hoặc tên file trong workspace dự án.',
     strict: true,
     parameters: {
       type: 'object',
@@ -220,6 +220,142 @@ async function audit(context: AdminToolContext, action: string, target?: string)
     action: `admin_ai:${action}`,
     target,
   });
+}
+
+const SEARCH_MAX_RESULTS = 200;
+const SEARCH_MAX_FILE_BYTES = 250_000;
+const SEARCH_EXCLUDED_DIRS = new Set([
+  '.git',
+  '.next',
+  '.turbo',
+  'build',
+  'coverage',
+  'dist',
+  'node_modules',
+]);
+const SEARCH_BINARY_EXTENSIONS = new Set([
+  '.avif',
+  '.eot',
+  '.gif',
+  '.ico',
+  '.jpeg',
+  '.jpg',
+  '.mp3',
+  '.mp4',
+  '.otf',
+  '.pdf',
+  '.png',
+  '.ttf',
+  '.webm',
+  '.webp',
+  '.woff',
+  '.woff2',
+]);
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildSearchMatcher(pattern: string) {
+  try {
+    const regex = new RegExp(pattern, 'i');
+    return (value: string) => regex.test(value);
+  } catch {
+    const regex = new RegExp(escapeRegExp(pattern), 'i');
+    return (value: string) => regex.test(value);
+  }
+}
+
+async function searchWorkspaceFilesWithNode(pattern: string) {
+  const matcher = buildSearchMatcher(pattern);
+  const results: string[] = [];
+
+  async function visitDirectory(directory: string) {
+    if (results.length >= SEARCH_MAX_RESULTS) {
+      return;
+    }
+
+    let entries: Dirent[];
+    try {
+      entries = await fs.readdir(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (results.length >= SEARCH_MAX_RESULTS) {
+        return;
+      }
+
+      const fullPath = path.join(directory, entry.name);
+      const relativePath = path.relative(WORKSPACE_ROOT, fullPath);
+
+      if (entry.isDirectory()) {
+        if (!SEARCH_EXCLUDED_DIRS.has(entry.name)) {
+          await visitDirectory(fullPath);
+        }
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      if (matcher(relativePath)) {
+        results.push(`${fullPath}:0:${relativePath}`);
+        continue;
+      }
+
+      if (SEARCH_BINARY_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+        continue;
+      }
+
+      try {
+        const stats = await fs.stat(fullPath);
+        if (stats.size > SEARCH_MAX_FILE_BYTES) {
+          continue;
+        }
+
+        const content = await fs.readFile(fullPath, 'utf8');
+        const lines = content.split(/\r?\n/);
+        for (let index = 0; index < lines.length && results.length < SEARCH_MAX_RESULTS; index += 1) {
+          const line = lines[index] || '';
+          if (matcher(line)) {
+            results.push(`${fullPath}:${index + 1}:${line.trim().slice(0, 500)}`);
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  await visitDirectory(WORKSPACE_ROOT);
+  return results;
+}
+
+async function searchWorkspaceFiles(pattern: string) {
+  try {
+    const { stdout } = await execFileAsync(
+      'rg',
+      ['-n', '--hidden', '--glob', '!.next', '--glob', '!node_modules', pattern, WORKSPACE_ROOT],
+      { maxBuffer: 1024 * 1024 }
+    );
+
+    return stdout
+      .split('\n')
+      .filter(Boolean)
+      .slice(0, SEARCH_MAX_RESULTS);
+  } catch (error) {
+    const typedError = error as { code?: string | number; stdout?: string };
+    if (typedError.code === 1 || typedError.code === '1') {
+      return [];
+    }
+    if (typedError.code === 'ENOENT') {
+      return searchWorkspaceFilesWithNode(pattern);
+    }
+    throw error;
+  }
 }
 
 export async function executeAdminAiTool(
@@ -320,19 +456,12 @@ export async function executeAdminAiTool(
       if (!pattern) {
         throw new Error('Thiếu pattern.');
       }
-      const { stdout } = await execFileAsync(
-        'rg',
-        ['-n', '--hidden', '--glob', '!.next', '--glob', '!node_modules', pattern, WORKSPACE_ROOT],
-        { maxBuffer: 1024 * 1024 }
-      );
+      const results = await searchWorkspaceFiles(pattern);
       await audit(context, 'search_workspace_files', pattern);
       return {
         name,
         input,
-        output: toJsonSafeValue(stdout
-          .split('\n')
-          .filter(Boolean)
-          .slice(0, 200)),
+        output: toJsonSafeValue(results),
       };
     }
     default:

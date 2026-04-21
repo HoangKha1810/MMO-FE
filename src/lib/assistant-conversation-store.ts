@@ -31,6 +31,24 @@ function isoDate(value: Date | string) {
   return new Date(value).toISOString();
 }
 
+function nextStoredSecond(previous?: Date | string | null) {
+  const now = new Date();
+  now.setMilliseconds(0);
+
+  if (!previous) {
+    return now;
+  }
+
+  const previousDate = new Date(previous);
+  if (Number.isNaN(previousDate.getTime())) {
+    return now;
+  }
+
+  previousDate.setMilliseconds(0);
+  const nextAfterPrevious = new Date(previousDate.getTime() + 1000);
+  return now.getTime() > nextAfterPrevious.getTime() ? now : nextAfterPrevious;
+}
+
 export async function ensureAssistantConversationTables() {
   if (!globalAssistantStore.assistantStoreReady) {
     globalAssistantStore.assistantStoreReady = (async () => {
@@ -176,7 +194,7 @@ export async function getAssistantConversation(
       SELECT id, conversation_id, role, content, created_at
       FROM assistant_messages
       WHERE conversation_id = ?
-      ORDER BY created_at ASC, id ASC
+      ORDER BY created_at ASC, CASE WHEN role = 'user' THEN 0 ELSE 1 END, id ASC
     `,
     conversationId
   );
@@ -205,7 +223,19 @@ export async function appendAssistantConversationExchange(input: {
 }) {
   await ensureAssistantConversationTables();
 
-  const now = new Date();
+  const latestMessageRows = await db.$queryRawUnsafe<Array<{ created_at: Date | string }>>(
+    `
+      SELECT created_at
+      FROM assistant_messages
+      WHERE conversation_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+    input.conversationId
+  );
+  const userCreatedAt = nextStoredSecond(latestMessageRows[0]?.created_at);
+  const assistantCreatedAt = new Date(userCreatedAt.getTime() + 1000);
+
   await db.$executeRawUnsafe(
     `
       INSERT INTO assistant_messages (id, conversation_id, role, content, created_at)
@@ -215,12 +245,12 @@ export async function appendAssistantConversationExchange(input: {
     input.conversationId,
     'user',
     input.userMessage,
-    now,
+    userCreatedAt,
     crypto.randomUUID(),
     input.conversationId,
     'assistant',
     input.assistantMessage,
-    now
+    assistantCreatedAt
   );
 
   const currentTitleRows = await db.$queryRawUnsafe<Array<{ title: string }>>(
@@ -251,7 +281,7 @@ export async function appendAssistantConversationExchange(input: {
       WHERE id = ? AND user_id = ? AND audience = ?
     `,
     nextTitle || DEFAULT_CONVERSATION_TITLE,
-    now,
+    assistantCreatedAt,
     input.conversationId,
     input.userId,
     input.audience

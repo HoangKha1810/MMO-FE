@@ -68,7 +68,7 @@ export async function generateOpenAiAdminReply(context: AdminToolContext, messag
   let input: ResponseInput = buildInitialInput(transcript, knowledgeContext);
   const toolTrail: AdminToolExecution[] = [];
 
-  for (let round = 0; round < 6; round += 1) {
+  while (true) {
     const response = await client.responses.create({
       model,
       instructions:
@@ -104,6 +104,4 @@ export async function generateOpenAiAdminReply(context: AdminToolContext, messag
 
     input = [...input, ...toolCalls, ...toolOutputs];
   }
-
-  throw new Error('OpenAI admin assistant vượt quá số vòng tool call cho phép.');
 }
