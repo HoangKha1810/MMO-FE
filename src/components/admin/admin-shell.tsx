@@ -116,8 +116,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {themePulse ? <div className={cn('theme-transition-overlay', themePulse === 'dark' ? 'theme-transition-overlay-dark' : 'theme-transition-overlay-light')} /> : null}
       <aside
         className={cn(
-          'surface-panel-strong fixed inset-y-0 left-0 z-50 flex w-[min(86vw,16rem)] flex-col transition-transform duration-300 lg:static lg:w-64 lg:translate-x-0',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          'surface-panel-strong fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-[width,transform] duration-300 lg:static lg:w-64 lg:translate-x-0',
+          sidebarOpen ? 'w-[min(86vw,16rem)] translate-x-0' : 'w-0 -translate-x-full lg:w-64'
         )}
       >
         <div className="flex items-center gap-3 border-b border-slate-200/60 p-6 dark:border-white/10">
@@ -180,7 +180,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         />
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 w-full flex-1 flex-col">
         <header className="surface-panel sticky top-0 z-30 mx-2 mt-2 flex min-h-[4.25rem] items-center justify-between gap-2 rounded-[1.2rem] px-3 py-2.5 sm:mx-4 sm:mt-4 sm:h-16 sm:gap-4 sm:rounded-[1.35rem] sm:px-4 sm:py-0 lg:mx-6 lg:px-6">
           <button
             type="button"

@@ -482,8 +482,10 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
         {/* ─── SIDEBAR ─── */}
         <aside
           className={cn(
-            'shell-sidebar-frame fixed inset-y-0 left-0 z-50 h-dvh w-[min(86vw,286px)] shrink-0 transition-all duration-300 sm:w-[286px] lg:sticky lg:top-0 lg:translate-x-0',
-            sidebarOpen ? 'translate-x-0 shadow-2xl shadow-black/20' : '-translate-x-full'
+            'shell-sidebar-frame fixed inset-y-0 left-0 z-50 h-dvh overflow-hidden transition-[width,transform,box-shadow] duration-300 lg:sticky lg:top-0 lg:w-[286px] lg:shrink-0 lg:translate-x-0',
+            sidebarOpen
+              ? 'w-[min(86vw,286px)] translate-x-0 shadow-2xl shadow-black/20 sm:w-[286px]'
+              : 'w-0 -translate-x-full lg:w-[286px]'
           )}
         >
           <div className="relative flex h-full flex-col overflow-hidden px-3 py-3">
@@ -835,7 +837,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
         </aside>
 
         {/* ─── MAIN CONTENT AREA ─── */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip lg:pl-1">
+        <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-hidden lg:pl-1">
 
           {/* Top header */}
           <header className="shell-topbar sticky top-0 z-40 mx-2 mt-2 flex shrink-0 items-center justify-between gap-2 px-2.5 py-2.5 sm:mx-3 sm:mt-3 sm:gap-3 sm:px-4 sm:py-3 md:mx-5 md:px-5">
@@ -890,7 +892,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
             </div>
 
             {/* Right: wallet, tools, avatar */}
-            <div className="shell-toolbar-cluster custom-scrollbar flex max-w-[calc(100vw-4.75rem)] min-w-0 shrink-0 items-center gap-1 overflow-x-auto overscroll-x-contain p-1 sm:max-w-none sm:gap-3 sm:overflow-visible sm:p-1.5">
+            <div className="shell-toolbar-cluster custom-scrollbar flex max-w-[calc(100dvw-5.5rem)] min-w-0 shrink-0 items-center gap-1 overflow-x-auto overscroll-x-contain p-1 sm:max-w-none sm:gap-3 sm:overflow-visible sm:p-1.5">
 
               {/* Wallet balance compact */}
               <Link
