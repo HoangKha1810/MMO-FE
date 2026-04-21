@@ -67,16 +67,16 @@ export default function CardPage() {
       <div className="space-y-6">
         <PageHero
           eyebrow="Card Center"
-          title={activeTab === 'exchange' ? 'Đổi thẻ cào, thao tác nhanh và rõ hơn.' : 'Mua mã thẻ với flow gọn hơn nhưng logic giữ nguyên.'}
+          title={activeTab === 'exchange' ? 'Đổi thẻ cào nhanh, an toàn và minh bạch.' : 'Mua mã thẻ nhanh cho nhu cầu nạp và phân phối.'}
           description={
             activeTab === 'exchange'
-              ? 'Giữ nguyên request tới API đổi thẻ hiện tại, nhưng form được dựng lại theo hướng sản phẩm tài chính: rõ nhà mạng, mệnh giá, trạng thái xử lý và khối tóm tắt.'
-              : 'Luồng mua thẻ dùng cùng endpoint cũ. Mình chỉ làm lại mặt hiển thị để cảm giác tin cậy hơn và ít giống template hơn.'
+              ? 'Chọn nhà mạng, mệnh giá và gửi yêu cầu đổi thẻ để hệ thống xử lý vào số dư tài khoản với bố cục rõ ràng, dễ kiểm tra trước khi xác nhận.'
+              : 'Đặt mua mã thẻ trực tiếp trên TRUNGTAMMMO với quy trình ngắn gọn, thông tin dễ đối chiếu và phản hồi trạng thái rõ ràng.'
           }
           stats={[
             { label: 'Nhà mạng', value: String(telcos.length), hint: 'Đang hỗ trợ thao tác', tone: 'blue' },
             { label: 'Mệnh giá', value: String(denominations.length), hint: 'Preset chọn nhanh', tone: 'emerald' },
-            { label: 'Chế độ', value: activeTab === 'exchange' ? 'Đổi thẻ' : 'Mua thẻ', hint: 'Giữ nguyên backend flow', tone: 'amber' },
+            { label: 'Chế độ', value: activeTab === 'exchange' ? 'Đổi thẻ' : 'Mua thẻ', hint: 'Luồng giao dịch đang thao tác', tone: 'amber' },
             { label: 'Mức chọn', value: selectedAmount ? formatCurrency(selectedAmount) : '—', hint: 'Giá trị đang thao tác', tone: 'violet' },
           ]}
           actions={
@@ -111,7 +111,7 @@ export default function CardPage() {
             <SectionHeader
               eyebrow="Transaction Form"
               title={activeTab === 'exchange' ? 'Nhập thông tin thẻ để đổi' : 'Nhập thông tin để mua mã thẻ'}
-              description="Giữ đúng endpoint `/api/card/exchange` như hiện tại. Mình chỉ nhóm lại trường nhập và CTA để thao tác tự tin hơn."
+              description="Điền đầy đủ thông tin để hệ thống tiếp nhận giao dịch và phản hồi trạng thái chính xác cho từng yêu cầu."
             />
 
             <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
@@ -141,7 +141,7 @@ export default function CardPage() {
                             {telco.name}
                           </div>
                           <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            {activeTab === 'exchange' ? 'Đổi nhanh vào số dư' : 'Xuất mã thẻ theo flow cũ'}
+                            {activeTab === 'exchange' ? 'Đổi nhanh vào số dư' : 'Phát hành mã thẻ an toàn'}
                           </div>
                         </div>
                       </div>
@@ -239,7 +239,7 @@ export default function CardPage() {
             <MetricCard
               label="Nhà mạng"
               value={selectedTelco ? telcos.find((item) => item.id === selectedTelco)?.name || selectedTelco : 'Chưa chọn'}
-              hint="Trường này không đổi logic, chỉ hiển thị lại rõ hơn."
+              hint="Hiển thị để bạn đối chiếu chính xác trước khi gửi giao dịch."
               tone="emerald"
               icon={<ShieldCheck className="h-4 w-4" />}
             />
@@ -248,13 +248,13 @@ export default function CardPage() {
               <SectionHeader
                 eyebrow="Guideline"
                 title="Lưu ý thao tác"
-                description="Khối này chỉ là trình bày hỗ trợ để user tránh nhập sai, không ảnh hưởng bất kỳ xử lý backend nào."
+                description="Những lưu ý dưới đây giúp bạn thao tác chính xác, hạn chế sai sót khi gửi yêu cầu đổi hoặc mua thẻ."
               />
               <div className="space-y-3">
                 {[
-                  'Chọn đúng nhà mạng trước khi nhập serial và mã thẻ.',
-                  'Mệnh giá có thể chọn nhanh bằng preset hoặc tự nhập tay.',
-                  'Phản hồi thành công/lỗi vẫn lấy trực tiếp từ API hiện tại.',
+                  'Kiểm tra đúng nhà mạng trước khi nhập serial và mã PIN.',
+                  'Ưu tiên chọn đúng mệnh giá để hệ thống xử lý nhanh hơn.',
+                  'Theo dõi phản hồi sau khi gửi để biết trạng thái giao dịch ngay.',
                 ].map((item) => (
                   <div key={item} className="flex gap-3 rounded-[1.25rem] border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
                     <span className="mt-0.5 text-emerald-500">
@@ -269,7 +269,7 @@ export default function CardPage() {
             {!selectedTelco ? (
               <EmptyState
                 title="Chọn nhà mạng để bắt đầu"
-                description="Mình giữ đúng flow cũ, nên chỉ khi đủ telco, mệnh giá, serial và pin thì nút submit mới chạy."
+                description="Chọn nhà mạng để mở form giao dịch và hoàn tất các trường bắt buộc trước khi gửi yêu cầu."
                 icon={<CreditCard className="h-5 w-5" />}
               />
             ) : null}

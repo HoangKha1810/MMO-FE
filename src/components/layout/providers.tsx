@@ -3,6 +3,7 @@
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
+import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog-provider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -27,7 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
         storageKey="trungtammmo-theme"
       >
-        {children}
+        <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
       </NextThemesProvider>
     </QueryClientProvider>
   );

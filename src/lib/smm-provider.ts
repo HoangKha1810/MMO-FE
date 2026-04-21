@@ -83,9 +83,16 @@ let servicesCache:
       data: SmmServiceRecord[];
     }
   | null = null;
+let servicesLoadPromise:
+  | {
+      key: string;
+      promise: Promise<SmmServiceRecord[]>;
+    }
+  | null = null;
 
 export function clearSmmServicesCache() {
   servicesCache = null;
+  servicesLoadPromise = null;
 }
 
 const platformKeywordMap: Array<{ platform: string; keywords: string[] }> = [
@@ -678,38 +685,17 @@ export async function listSmmServices(forceRefresh = false, providerId?: number 
     return servicesCache.data;
   }
 
-  if (forceRefresh) {
-    await syncSmmServicesFromProvider(config);
+  const loadKey = `${config.providerId}:${forceRefresh ? 'refresh' : 'cached'}`;
+  if (servicesLoadPromise?.key === loadKey) {
+    return servicesLoadPromise.promise;
   }
 
-  let rows = await db.smm_services_cache.findMany({
-    where: {
-      provider_id: config.providerId,
-      status: 'active',
-      is_deleted: false,
-    },
-    orderBy: [{ category: 'asc' }, { name: 'asc' }],
-    select: {
-      id: true,
-      provider_id: true,
-      service_id: true,
-      name: true,
-      original_name: true,
-      category: true,
-      rate: true,
-      custom_price: true,
-      min: true,
-      max: true,
-      type: true,
-      description: true,
-      provider_data: true,
-      total_orders: true,
-    },
-  });
+  const loadPromise = (async () => {
+    if (forceRefresh) {
+      await syncSmmServicesFromProvider(config);
+    }
 
-  if (rows.length === 0 && !forceRefresh) {
-    await syncSmmServicesFromProvider(config);
-    rows = await db.smm_services_cache.findMany({
+    let rows = await db.smm_services_cache.findMany({
       where: {
         provider_id: config.providerId,
         status: 'active',
@@ -733,37 +719,78 @@ export async function listSmmServices(forceRefresh = false, providerId?: number 
         total_orders: true,
       },
     });
-  }
 
-  const orderCounts = await db.smm_orders.groupBy({
-    by: ['provider_id', 'service_id'],
-    where: { provider_id: config.providerId },
-    _count: { _all: true },
-  });
-  const orderCountMap = new Map(
-    orderCounts.map((row) => [`${row.provider_id ?? 0}:${row.service_id}`, row._count._all])
-  );
+    if (rows.length === 0 && !forceRefresh) {
+      await syncSmmServicesFromProvider(config);
+      rows = await db.smm_services_cache.findMany({
+        where: {
+          provider_id: config.providerId,
+          status: 'active',
+          is_deleted: false,
+        },
+        orderBy: [{ category: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          provider_id: true,
+          service_id: true,
+          name: true,
+          original_name: true,
+          category: true,
+          rate: true,
+          custom_price: true,
+          min: true,
+          max: true,
+          type: true,
+          description: true,
+          provider_data: true,
+          total_orders: true,
+        },
+      });
+    }
 
-  const services = rows.map((row) =>
-    normalizeCachedService(
-      {
-        ...row,
-        total_orders: Math.max(
-          Math.trunc(toNumber(row.total_orders, 0)),
-          orderCountMap.get(`${row.provider_id ?? config.providerId}:${row.service_id}`) || 0
-        ),
-      },
-      config
-    )
-  );
+    const orderCounts = await db.smm_orders.groupBy({
+      by: ['provider_id', 'service_id'],
+      where: { provider_id: config.providerId },
+      _count: { _all: true },
+    });
+    const orderCountMap = new Map(
+      orderCounts.map((row) => [`${row.provider_id ?? 0}:${row.service_id}`, row._count._all])
+    );
 
-  servicesCache = {
-    providerId: config.providerId,
-    expiresAt: now + DEFAULT_SMM_CACHE_TTL_MS,
-    data: services,
+    const services = rows.map((row) =>
+      normalizeCachedService(
+        {
+          ...row,
+          total_orders: Math.max(
+            Math.trunc(toNumber(row.total_orders, 0)),
+            orderCountMap.get(`${row.provider_id ?? config.providerId}:${row.service_id}`) || 0
+          ),
+        },
+        config
+      )
+    );
+
+    servicesCache = {
+      providerId: config.providerId,
+      expiresAt: Date.now() + DEFAULT_SMM_CACHE_TTL_MS,
+      data: services,
+    };
+
+    return services;
+  })();
+
+  servicesLoadPromise = {
+    key: loadKey,
+    promise: loadPromise,
   };
 
-  return services;
+  try {
+    return await loadPromise;
+  } finally {
+    if (servicesLoadPromise?.promise === loadPromise) {
+      servicesLoadPromise = null;
+    }
+  }
 }
 
 export async function findSmmService(serviceId: number, providerId?: number | null): Promise<SmmServiceRecord | null> {

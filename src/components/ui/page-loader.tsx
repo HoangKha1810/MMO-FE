@@ -22,10 +22,10 @@ export function PageLoader({
           <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400 [animation-delay:240ms]" />
         </div>
 
-        <h2 className="mt-6 text-2xl font-black uppercase tracking-[-0.05em] text-slate-950 dark:text-white">
+        <h2 className="mt-6 text-2xl font-black uppercase leading-[1.16] tracking-[-0.02em] text-slate-950 dark:text-white">
           {title}
         </h2>
-        <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-7 text-slate-500 dark:text-slate-300">
+        <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-8 tracking-[0.018em] text-slate-500 dark:text-slate-300">
           {subtitle}
         </p>
 

@@ -5,7 +5,7 @@ import { readPolicySections } from '@/lib/legal-content';
 export const metadata: Metadata = {
   title: 'Điều khoản sử dụng',
   description:
-    'Điều khoản sử dụng hệ thống TRUNGTAMMMO.VN để người dùng theo dõi rõ rule giao dịch và vận hành.',
+    'Điều khoản sử dụng hệ thống TRUNGTAMMMO.VN giúp người dùng nắm rõ quyền lợi, trách nhiệm và nguyên tắc giao dịch.',
   alternates: {
     canonical: '/terms',
   },
@@ -18,7 +18,7 @@ export default async function TermsPage() {
     <LegalPage
       eyebrow="Điều khoản"
       title="Điều khoản sử dụng hệ thống"
-      description="Nội dung dưới đây được trình bày lại bằng bố cục đọc dài tốt hơn, giúp người dùng nắm nhanh rule giao dịch, bảo hành và trách nhiệm sử dụng."
+      description="Điều khoản này quy định quyền lợi, trách nhiệm sử dụng, nguyên tắc bảo hành và cách xử lý giao dịch khi bạn sử dụng các dịch vụ trên TRUNGTAMMMO."
       accent="blue"
       stats={[
         { value: `${sections.length}+`, label: 'Điều khoản' },
@@ -28,12 +28,12 @@ export default async function TermsPage() {
       ]}
       highlights={[
         {
-          title: 'Điều khoản gốc, trình bày mới',
-          body: 'Rule hệ thống không bị thay đổi chỉ vì migrate giao diện. Phần này chủ yếu được làm lại về bố cục và hierarchy để dễ đọc hơn.',
+          title: 'Quy tắc giao dịch rõ ràng',
+          body: 'Điều khoản tập trung vào những nguyên tắc có ảnh hưởng trực tiếp tới giao dịch, thanh toán, trạng thái đơn hàng, bảo hành và việc sử dụng tài khoản.',
         },
         {
           title: 'Ưu tiên tính rõ ràng khi giao dịch',
-          body: 'Điều khoản tập trung vào những thứ ảnh hưởng trực tiếp tới người dùng: trách nhiệm sử dụng, hoàn tiền, bảo hành, xử lý tranh chấp và cách hệ thống ghi nhận đơn hàng.',
+          body: 'Người dùng có thể đối chiếu nhanh các mốc trách nhiệm, quy định hoàn tiền, bảo hành và cơ chế xử lý tranh chấp trước khi sử dụng dịch vụ.',
         },
       ]}
       sections={sections}

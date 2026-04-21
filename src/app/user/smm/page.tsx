@@ -29,7 +29,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { AppShell } from '@/components/layout/app-shell';
+import { AppShell, buildSidebarSmmSections } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import type { SmmProviderMeta, SmmServiceRecord } from '@/lib/smm-provider';
 import { cn, formatNumber, slugify } from '@/lib/utils';
@@ -350,6 +350,7 @@ function SmmPageContent() {
     const groups = buildGroups(services).flatMap((section) => section.groups);
     return groups.filter((group) => favorites.includes(group.category));
   }, [favorites, services]);
+  const sidebarSections = useMemo(() => buildSidebarSmmSections(services), [services]);
 
   function toggleFavorite(category: string) {
     setFavorites((current) => {
@@ -362,7 +363,7 @@ function SmmPageContent() {
   }
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} smmSidebarSections={sidebarSections} smmSidebarLoading={loading}>
       <div className="space-y-6 pb-8">
         <div className="sticky top-0 z-30 -mx-1 border-b border-slate-100 bg-white/90 px-1 pb-4 pt-3 shadow-sm backdrop-blur-2xl dark:border-white/5 dark:bg-[#090f1f]/90 sm:-mx-2 sm:px-2 md:-mx-4 md:px-4">
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">

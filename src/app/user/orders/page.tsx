@@ -143,8 +143,8 @@ export default async function UserOrdersPage() {
       <div className="space-y-6">
         <PageHero
           eyebrow="Order Center"
-          title="Tất cả đơn hàng của bạn nằm gọn ở đây."
-          description="Trang này gom SMM, Auto MXH, tài nguyên, game market và thẻ cào vào một luồng duy nhất để bạn theo dõi nhanh hơn."
+          title="Trung tâm theo dõi đơn hàng đa dịch vụ"
+          description="Quản lý SMM, Auto MXH, tài nguyên, game market và thẻ cào trong cùng một dòng thời gian để kiểm tra tiến độ và giá trị giao dịch thuận tiện hơn."
           stats={[
             { label: 'Tổng đơn', value: String(orders.length), hint: 'Tối đa 120 đơn mới nhất', tone: 'blue' },
             { label: 'Đang xử lý', value: String(pendingCount), hint: 'Pending / Processing', tone: 'amber' },
@@ -157,7 +157,7 @@ export default async function UserOrdersPage() {
           <SectionHeader
             eyebrow="Live Orders"
             title="Danh sách đơn hàng"
-            description="Bấm vào từng dòng để mở module gốc của đơn. Với SMM, trạng thái chi tiết vẫn nằm trong trang đặt dịch vụ/lịch sử."
+            description="Mở từng dòng để đi tới đúng module xử lý, xem chi tiết trạng thái và tiếp tục thao tác khi cần."
             actions={
               <Link
                 href="/user/history"
@@ -172,7 +172,7 @@ export default async function UserOrdersPage() {
           {orders.length === 0 ? (
             <EmptyState
               title="Chưa có đơn hàng"
-              description="Khi bạn mua dịch vụ, tài nguyên, game hoặc đổi thẻ, đơn sẽ xuất hiện tại đây."
+              description="Đơn hàng từ các dịch vụ của TRUNGTAMMMO sẽ xuất hiện tại đây ngay sau khi phát sinh."
               icon={<PackageCheck className="h-5 w-5" />}
             />
           ) : (

@@ -36,7 +36,7 @@ export default async function FindJobDetailPage({ params }: { params: Promise<{ 
               <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">{String(job.status)}</span>
               {job.is_pinned ? <span className="rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">Ghim</span> : null}
             </div>
-            <h1 className="mt-5 text-3xl font-black uppercase leading-tight tracking-[-0.05em] text-slate-950 dark:text-white md:text-5xl">{String(job.title)}</h1>
+            <h1 className="mt-5 text-3xl font-black uppercase leading-[1.2] tracking-[-0.04em] text-slate-950 dark:text-white md:text-5xl md:leading-[1.16]">{String(job.title)}</h1>
             <p className="mt-5 whitespace-pre-line text-sm font-semibold leading-8 text-slate-600 dark:text-slate-300">{String(job.description || '')}</p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">

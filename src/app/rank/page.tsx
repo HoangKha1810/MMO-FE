@@ -31,8 +31,8 @@ export default async function RankPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHero
           eyebrow="Rank Center"
-          title="Cấp bậc thành viên dựa trên hoạt động tài khoản."
-          description="Trang này đọc trực tiếp bảng users: số dư, rank, post_count và blue tick. Không hard-code danh sách user."
+          title="Cấp bậc thành viên và quyền lợi trên TRUNGTAMMMO"
+          description="Theo dõi bảng xếp hạng cộng đồng, mốc cấp bậc và những quyền lợi nổi bật dành cho thành viên hoạt động tích cực trên nền tảng."
           stats={[
             { label: 'Thành viên', value: String(rows.length), hint: 'Top active users', tone: 'blue' },
             { label: 'Tổng số dư', value: formatCurrency(totalBalance), hint: 'Tính trên danh sách đang hiển thị', tone: 'emerald' },
@@ -52,7 +52,7 @@ export default async function RankPage() {
         />
 
         <SectionPanel className="space-y-5">
-          <SectionHeader eyebrow="Rank Rules" title="Mốc cấp bậc" description="Các mốc này dùng để hiển thị và hậu kiểm rank. Admin vẫn có thể chỉnh rank trực tiếp trong user manager." />
+          <SectionHeader eyebrow="Rank Rules" title="Mốc cấp bậc" description="Mỗi cấp bậc phản ánh mức độ hoạt động và mở ra các quyền lợi hỗ trợ, ưu tiên hoặc hiển thị nổi bật khác nhau." />
           <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-4">
             {tiers.map((tier, index) => (
               <div key={tier.name} className="surface-card rounded-[1.6rem] p-5">
@@ -70,7 +70,7 @@ export default async function RankPage() {
         </SectionPanel>
 
         <SectionPanel className="space-y-5">
-          <SectionHeader eyebrow="Leaderboard" title="Bảng thành viên nổi bật" description="Xếp theo số dư, sau đó số bài viết và trạng thái hoạt động gần nhất." />
+          <SectionHeader eyebrow="Leaderboard" title="Bảng thành viên nổi bật" description="Danh sách nổi bật giúp bạn theo dõi những tài khoản đang có mức hoạt động và số dư cao trên hệ thống." />
           <div className="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.03]">
             <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left">

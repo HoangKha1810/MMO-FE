@@ -5,7 +5,7 @@ import { readPolicySections } from '@/lib/legal-content';
 export const metadata: Metadata = {
   title: 'Chính sách riêng tư',
   description:
-    'Chính sách quyền riêng tư và vận hành dữ liệu của TRUNGTAMMMO.VN, trình bày theo cấu trúc dễ đọc hơn.',
+    'Chính sách quyền riêng tư và vận hành dữ liệu của TRUNGTAMMMO.VN dành cho người dùng, đối tác và hoạt động nội bộ.',
   alternates: {
     canonical: '/privacy',
   },
@@ -18,7 +18,7 @@ export default async function PrivacyPage() {
     <LegalPage
       eyebrow="Chính sách"
       title="Quyền riêng tư và vận hành dữ liệu"
-      description="Nội dung dưới đây được trình bày lại theo cấu trúc dễ đọc hơn để người dùng theo dõi rõ cách hệ thống lưu trữ, xử lý và bảo vệ dữ liệu."
+      description="Chính sách này giải thích cách TRUNGTAMMMO thu thập, lưu trữ, xử lý và bảo vệ dữ liệu trong quá trình cung cấp dịch vụ và hỗ trợ người dùng."
       accent="emerald"
       stats={[
         { value: `${sections.length}+`, label: 'Mục chính sách' },
@@ -32,8 +32,8 @@ export default async function PrivacyPage() {
           body: 'Chính sách tập trung giải thích những gì hệ thống ghi nhận trong quá trình vận hành: tài khoản, giao dịch, lịch sử thao tác, bảo mật và liên lạc hỗ trợ.',
         },
         {
-          title: 'Giữ đúng tinh thần vận hành',
-          body: 'Chúng tôi không viết policy theo kiểu marketing. Nội dung được trình bày lại để đọc rõ hơn, dễ tra cứu hơn và sát với cách hệ thống vận hành.',
+          title: 'Bảo vệ quyền riêng tư thực tế',
+          body: 'Mọi nguyên tắc xử lý dữ liệu đều hướng tới việc giảm rủi ro lộ lọt thông tin, kiểm soát truy cập hợp lý và duy trì môi trường giao dịch an toàn cho cộng đồng.',
         },
       ]}
       sections={sections}

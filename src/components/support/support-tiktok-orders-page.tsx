@@ -129,8 +129,8 @@ export function SupportTiktokOrdersPage() {
       <div className="space-y-6">
         <PageHero
           eyebrow="Support TikTok"
-          title="Đơn TikTok & gia hạn dịch vụ"
-          description="Tạo đơn TikTok, tự tính giá theo region/service đang mở, trừ số dư và theo dõi trạng thái ngay trong module."
+          title="Đặt và gia hạn dịch vụ Support TikTok"
+          description="Tạo đơn theo khu vực, chọn đúng gói dịch vụ, theo dõi thời hạn và gia hạn ngay trong cùng một module dành cho khách hàng TikTok."
           stats={[
             { label: 'Đơn', value: String(orders.length), hint: 'Đang hiển thị', tone: 'blue' },
             { label: 'Dịch vụ', value: String(services.length), hint: 'Menu/region đang active', tone: 'emerald' },
@@ -152,7 +152,7 @@ export function SupportTiktokOrdersPage() {
         {message ? <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-500">{message}</div> : null}
 
         <SectionPanel className="space-y-5">
-          <SectionHeader eyebrow="Create" title="Tạo đơn mới" description="Giá lấy theo region/service đang hoạt động. Nếu admin đổi giá, form sẽ cập nhật khi bạn refresh." />
+          <SectionHeader eyebrow="Create" title="Tạo đơn mới" description="Chọn khu vực và gói dịch vụ phù hợp để hệ thống tính giá chính xác trước khi tạo đơn." />
           <form onSubmit={createOrder} className="grid gap-3 lg:grid-cols-5">
             <select
               value={form.region}
@@ -189,7 +189,7 @@ export function SupportTiktokOrdersPage() {
         </SectionPanel>
 
         <SectionPanel className="space-y-5">
-          <SectionHeader eyebrow="Orders" title="Danh sách đơn Support TikTok" description="Theo dõi trạng thái, hạn dịch vụ và thao tác gia hạn ngay tại đây." />
+          <SectionHeader eyebrow="Orders" title="Danh sách đơn Support TikTok" description="Theo dõi tình trạng từng đơn, ngày hết hạn và thao tác gia hạn ngay khi cần duy trì dịch vụ." />
           {loading ? (
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200 p-6 text-sm font-bold text-slate-500 dark:border-white/10">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -226,7 +226,7 @@ export function SupportTiktokOrdersPage() {
         <SectionPanel className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Support-wide</div>
-            <div className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">Admin quản lý toàn bộ đơn ở `/admin/support-tiktok/orders`.</div>
+            <div className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">Đội ngũ TRUNGTAMMMO theo dõi toàn bộ đơn Support TikTok tại trung tâm vận hành chuyên dụng.</div>
           </div>
           <TicketCheck className="h-8 w-8 text-brand-blue" />
         </SectionPanel>

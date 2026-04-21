@@ -4,7 +4,7 @@ import { LegalPage } from '@/components/marketing/legal-page';
 export const metadata: Metadata = {
   title: 'Giới thiệu',
   description:
-    'Giới thiệu TRUNGTAMMMO.VN: nền tảng MMO đa dịch vụ với trải nghiệm rõ ràng, tốc độ tốt hơn và cụm module vận hành đầy đủ.',
+    'Giới thiệu TRUNGTAMMMO.VN: nền tảng MMO đa dịch vụ hỗ trợ SMM, Auto MXH, tài nguyên số, thanh toán, forum và công cụ vận hành.',
   alternates: {
     canonical: '/about',
   },
@@ -14,45 +14,45 @@ export default function AboutPage() {
   return (
     <LegalPage
       eyebrow="Giới thiệu"
-      title="Kiến trúc mới, tinh thần cũ"
-      description="TRUNGTAMMMO được tổ chức lại theo hướng sản phẩm rõ ràng hơn: trải nghiệm mạch lạc, dữ liệu nhất quán và khả năng mở rộng tốt hơn khi hệ thống phát triển."
+      title="TRUNGTAMMMO.VN là trung tâm dịch vụ MMO đa hệ"
+      description="Chúng tôi xây dựng một hệ sinh thái phục vụ tăng trưởng, giao dịch và vận hành MMO với các module SMM, Auto MXH, tài nguyên số, game market, forum và công cụ hỗ trợ chuyên biệt."
       accent="violet"
       stats={[
-        { value: '10+', label: 'Module chính' },
-        { value: 'Realtime', label: 'Cập nhật nhanh' },
-        { value: 'Product', label: 'Tư duy vận hành' },
-        { value: 'Stable', label: 'Giữ luồng xử lý' },
+        { value: '10+', label: 'Nhóm dịch vụ' },
+        { value: '24/7', label: 'Vận hành liên tục' },
+        { value: 'Live', label: 'Giao dịch cập nhật' },
+        { value: 'Secure', label: 'Kiểm soát an toàn' },
       ]}
       highlights={[
         {
-          title: 'Không làm lại từ con số 0',
-          body: 'Dự án ưu tiên giữ đúng rule vận hành, hành vi xử lý và trải nghiệm giao dịch đã quen thuộc, chỉ tinh gọn lại cách người dùng thao tác.',
+          title: 'Một tài khoản, nhiều dịch vụ',
+          body: 'Từ tăng tương tác, tự động hóa mạng xã hội, tài nguyên MMO, thẻ cào, game market tới forum và công cụ hỗ trợ đều được kết nối trong cùng một hệ sinh thái.',
         },
         {
-          title: 'Thiết kế lại để dễ vận hành',
-          body: 'Giao diện được tinh gọn theo hướng giống một product dashboard thật: rõ hierarchy, ít màu thừa, ít cảm giác template, nhưng vẫn giữ chất MMO.',
+          title: 'Vận hành rõ ràng, giao dịch nhanh',
+          body: 'Mỗi module được tổ chức để người dùng dễ hiểu giá trị dịch vụ, dễ thao tác thanh toán và dễ theo dõi trạng thái đơn trong quá trình sử dụng.',
         },
       ]}
       sections={[
         {
-          title: 'Tư duy sản phẩm',
-          body: 'Hệ thống được chia lớp rõ hơn để giao diện mạch lạc, backend có đường nâng cấp tốt hơn và những phần dễ hỏng được cô lập hợp lý hơn.',
+          title: 'Hệ sinh thái dịch vụ',
+          body: 'TRUNGTAMMMO phát triển theo mô hình nền tảng đa dịch vụ, nơi người dùng có thể tăng trưởng mạng xã hội, giao dịch tài nguyên số, mua bán sản phẩm game, nạp tiền và sử dụng các tiện ích MMO trong cùng một tài khoản.',
         },
         {
-          title: 'Phạm vi module',
-          body: 'Hệ thống giữ đầy đủ các lớp nghiệp vụ chính: SMM, Auto MXH, Resource Marketplace, Card Exchange, Deposit, Forum MMO, Game Market, Find Job MMO, Seller, Support, cùng cụm admin để vận hành nội bộ.',
+          title: 'Không gian người dùng',
+          body: 'Người dùng có thể quản lý đơn hàng, lịch sử giao dịch, số dư, hồ sơ cá nhân và các dịch vụ đang hoạt động trong một workspace tập trung, thuận tiện cho cả mua nhanh lẫn theo dõi dài hạn.',
         },
         {
-          title: 'Định hướng giao diện',
-          body: 'UI được đẩy sang hướng sắc hơn, đậm chất sản phẩm hơn và hạn chế cảm giác “AI-generated admin template”. Typography, motion và layout được đồng bộ để tạo trải nghiệm có nhịp hơn.',
+          title: 'Cụm công cụ chuyên biệt',
+          body: 'Bên cạnh các dịch vụ cốt lõi, nền tảng còn cung cấp công cụ tiện ích như tra cứu Social ID, 2FA Live, Support TikTok và những module hỗ trợ khác để phục vụ công việc thực chiến của cộng đồng MMO.',
         },
         {
-          title: 'Nguyên tắc migrate',
-          body: 'Những phần nghiệp vụ quan trọng được kiểm tra kỹ trước khi hiển thị, giúp dữ liệu giữa các module nhất quán và hạn chế lệch trạng thái.',
+          title: 'Vận hành và kiểm soát',
+          body: 'Đội ngũ quản trị có trung tâm điều phối riêng để kiểm tra dữ liệu, cập nhật giá, duyệt giao dịch, theo dõi nhật ký hệ thống và duy trì chất lượng dịch vụ ổn định trong quá trình vận hành.',
         },
         {
-          title: 'Hướng phát triển tiếp',
-          body: 'Sau khi nền tảng ổn định, hệ thống có thể mở rộng sang tối ưu hiệu năng, đồng bộ provider sâu hơn, đẩy cron/job queue chuẩn hơn và tinh chỉnh trải nghiệm admin theo từng nghiệp vụ chuyên biệt.',
+          title: 'Định hướng phát triển',
+          body: 'TRUNGTAMMMO tiếp tục mở rộng theo hướng tối ưu hiệu năng, làm sâu kết nối provider, nâng cấp độ an toàn giao dịch và phát triển thêm các nhóm dịch vụ sát với nhu cầu kiếm tiền online thực tế.',
         },
       ]}
     />

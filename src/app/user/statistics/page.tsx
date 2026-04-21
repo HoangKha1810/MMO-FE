@@ -85,8 +85,8 @@ export default async function UserStatisticsPage() {
       <div className="space-y-6">
         <PageHero
           eyebrow="Account Analytics"
-          title="Thống kê tài khoản dựng lại như dashboard sản phẩm."
-          description="Dữ liệu vẫn aggregate theo user từ các bảng giao dịch và order cũ. Mình chỉ gom lại theo hướng điều hành hơn để nhìn số dư, tổng nạp và phân bố đơn hàng rõ ràng hơn."
+          title="Toàn cảnh tài khoản và hiệu suất giao dịch"
+          description="Theo dõi số dư, tổng nạp và nhịp mua dịch vụ trên TRUNGTAMMMO trong một màn hình rõ ràng, giúp bạn kiểm soát chi tiêu và hiệu quả vận hành tài khoản nhanh hơn."
           stats={[
             { label: 'Số dư', value: formatCurrency(shell.balance), hint: 'Giá trị ví hiện tại', tone: 'blue' },
             { label: 'Tổng nạp', value: formatCurrency(toNumber(depositSum[0]?.total, 0)), hint: 'Deposit success', tone: 'emerald' },
@@ -99,7 +99,7 @@ export default async function UserStatisticsPage() {
           <SectionHeader
             eyebrow="Snapshot"
             title="Chỉ số vận hành theo từng module"
-            description="Thay vì các ô thô, mình chuyển sang metric card có ngữ cảnh để bạn nhìn nhanh được mỗi cụm đang đóng góp gì."
+            description="Mỗi nhóm chỉ số phản ánh một phần hoạt động mua bán, giúp bạn nhìn nhanh dòng tiền, khối lượng đơn và mức độ sử dụng từng dịch vụ."
           />
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

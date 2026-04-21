@@ -119,7 +119,7 @@ const smmPlatformLinks = [
   { href: '/user/smm?platform=Threads', label: 'Threads', icon: MessageCircle, color: 'text-slate-500' },
 ];
 
-type SidebarSmmService = {
+export type SidebarSmmServiceLike = {
   id?: number;
   service?: number;
   name?: string;
@@ -128,14 +128,14 @@ type SidebarSmmService = {
   price_per_1k_vnd?: number;
 };
 
-type SidebarSmmCategory = {
+export type SidebarSmmCategory = {
   category: string;
   cleanName: string;
   count: number;
   minPrice: number;
 };
 
-type SidebarSmmSection = {
+export type SidebarSmmSection = {
   platform: string;
   total: number;
   categories: SidebarSmmCategory[];
@@ -169,6 +169,8 @@ interface AppShellProps {
   user?: SessionUser;
   isAdmin?: boolean;
   sidebarServices?: LegacyServiceItem[];
+  smmSidebarSections?: SidebarSmmSection[];
+  smmSidebarLoading?: boolean;
 }
 
 function formatCurrency(amount: number) {
@@ -232,13 +234,13 @@ function cleanSmmCategoryName(category: string) {
   return category.replace(/\[.*?\]\s*/g, '').replace(/\s+/g, ' ').trim() || category;
 }
 
-function isSidebarServiceInPlatform(service: SidebarSmmService, platform: string) {
+function isSidebarServiceInPlatform(service: SidebarSmmServiceLike, platform: string) {
   const haystack = ` ${service.platform || ''} ${service.category || ''} ${service.name || ''} `.toLowerCase();
   const tags = smmPlatformTags[platform] || [platform.toLowerCase()];
   return tags.some((tag) => haystack.includes(tag.toLowerCase()));
 }
 
-function buildSidebarSmmSections(services: SidebarSmmService[]): SidebarSmmSection[] {
+export function buildSidebarSmmSections(services: SidebarSmmServiceLike[]): SidebarSmmSection[] {
   return smmPlatformLinks.map((platform) => {
     const platformServices = services.filter((service) => isSidebarServiceInPlatform(service, platform.label));
     const categories = new Map<string, { count: number; minPrice: number }>();
@@ -272,7 +274,14 @@ function buildSidebarSmmSections(services: SidebarSmmService[]): SidebarSmmSecti
   });
 }
 
-export function AppShell({ children, user, isAdmin = false, sidebarServices }: AppShellProps) {
+export function AppShell({
+  children,
+  user,
+  isAdmin = false,
+  sidebarServices,
+  smmSidebarSections: prefetchedSmmSidebarSections,
+  smmSidebarLoading: prefetchedSmmSidebarLoading,
+}: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
@@ -282,8 +291,8 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
   const [forumSearch, setForumSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
   const [resolvedSidebarServices, setResolvedSidebarServices] = useState<LegacyServiceItem[]>(sidebarServices || []);
-  const [smmSidebarSections, setSmmSidebarSections] = useState<SidebarSmmSection[]>([]);
-  const [smmSidebarLoading, setSmmSidebarLoading] = useState(false);
+  const [smmSidebarSections, setSmmSidebarSections] = useState<SidebarSmmSection[]>(prefetchedSmmSidebarSections || []);
+  const [smmSidebarLoadingState, setSmmSidebarLoadingState] = useState(false);
   const [openSmmPlatform, setOpenSmmPlatform] = useState('');
   const [themePulse, setThemePulse] = useState<'light' | 'dark' | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -354,6 +363,13 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
     ? new URLSearchParams(window.location.search).get('platform') || ''
     : '';
   const breadcrumbs = useMemo(() => formatBreadcrumb(pathname), [pathname]);
+  const smmSidebarLoading = prefetchedSmmSidebarLoading ?? smmSidebarLoadingState;
+
+  useEffect(() => {
+    if (prefetchedSmmSidebarSections !== undefined) {
+      setSmmSidebarSections(prefetchedSmmSidebarSections);
+    }
+  }, [prefetchedSmmSidebarSections]);
 
   useEffect(() => {
     if (pathname.startsWith('/terms') || pathname.startsWith('/privacy') || pathname === '/') {
@@ -366,18 +382,24 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
   }, [pathname]);
 
   useEffect(() => {
-    if (!isSmmArea || isAdmin || smmSidebarSections.length > 0 || smmSidebarLoading) {
+    if (
+      prefetchedSmmSidebarSections !== undefined ||
+      !isSmmArea ||
+      isAdmin ||
+      smmSidebarSections.length > 0 ||
+      smmSidebarLoadingState
+    ) {
       return;
     }
 
     let active = true;
-    setSmmSidebarLoading(true);
+    setSmmSidebarLoadingState(true);
 
     async function loadSmmSidebarServices() {
       try {
         const response = await fetch('/api/smm/services', { cache: 'no-store' });
         const payload = await response.json();
-        const services = Array.isArray(payload.data) ? payload.data as SidebarSmmService[] : [];
+        const services = Array.isArray(payload.data) ? payload.data as SidebarSmmServiceLike[] : [];
         if (active) {
           setSmmSidebarSections(buildSidebarSmmSections(services));
         }
@@ -387,7 +409,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
         }
       } finally {
         if (active) {
-          setSmmSidebarLoading(false);
+          setSmmSidebarLoadingState(false);
         }
       }
     }
@@ -397,7 +419,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
     return () => {
       active = false;
     };
-  }, [isAdmin, isSmmArea, smmSidebarLoading, smmSidebarSections.length]);
+  }, [isAdmin, isSmmArea, prefetchedSmmSidebarSections, smmSidebarLoadingState, smmSidebarSections.length]);
 
   useEffect(() => {
     if (!isSmmArea || !activeSmmPlatform) {
@@ -807,7 +829,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                   </div>
                   <div className="mt-3 rounded-[1rem] border border-slate-200/80 bg-slate-50/80 px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]">
                     <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Số dư khả dụng</div>
-                    <div className="mt-1 font-mono text-lg font-black text-brand-blue">
+                    <div className="mt-1 font-mono tabular-nums whitespace-nowrap text-[clamp(0.95rem,3.8vw,1.125rem)] font-black leading-none text-brand-blue">
                       {formatCurrency(currentUser.data.balance)} đ
                     </div>
                   </div>
@@ -915,7 +937,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                   <span className="text-[8px] font-bold uppercase leading-none tracking-[0.16em] text-slate-400 dark:text-white/35">
                     Số dư
                   </span>
-                  <span className="mt-0.5 text-sm font-black text-slate-900 dark:text-white">
+                  <span className="mt-0.5 whitespace-nowrap font-mono tabular-nums text-[clamp(0.95rem,2.4vw,1rem)] font-black leading-none text-slate-900 dark:text-white">
                     {formatCurrency(currentUser.data?.balance || 0)}
                     <span className="ml-0.5 text-xs font-bold text-slate-400 dark:text-white/35">đ</span>
                   </span>
@@ -1011,7 +1033,7 @@ export function AppShell({ children, user, isAdmin = false, sidebarServices }: A
                         </div>
                         <div className="mt-1 text-[10px] font-bold text-slate-500">
                           Số dư:{' '}
-                          <span className="font-black text-brand-blue">
+                          <span className="whitespace-nowrap font-mono tabular-nums font-black text-brand-blue">
                             {formatCurrency(currentUser.data.balance)}đ
                           </span>
                         </div>

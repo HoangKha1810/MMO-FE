@@ -52,7 +52,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               {resource.custom_badge ? <Badge>{String(resource.custom_badge)}</Badge> : null}
               {resource.product_code ? <Badge variant="muted">{String(resource.product_code)}</Badge> : null}
             </div>
-            <h1 className="mt-5 text-3xl font-black uppercase leading-tight tracking-[-0.05em] text-slate-950 dark:text-white md:text-5xl">
+            <h1 className="mt-5 text-3xl font-black uppercase leading-[1.2] tracking-[-0.04em] text-slate-950 dark:text-white md:text-5xl md:leading-[1.16]">
               {String(resource.title)}
             </h1>
             <p className="mt-4 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-300">

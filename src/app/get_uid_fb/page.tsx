@@ -44,8 +44,8 @@ export default function GetUidFbPage() {
       <div className="mx-auto max-w-5xl space-y-6">
         <PageHero
           eyebrow="Social Utility"
-          title="GET UID FB / Social ID"
-          description="Tách UID Facebook hoặc username TikTok, Instagram, X từ link. Route này gọi API thật `/api/social/get-id`, không dùng dữ liệu mẫu."
+          title="Tra cứu Social ID từ liên kết"
+          description="Dán link Facebook, TikTok, Instagram hoặc X để lấy nhanh UID hay username phục vụ chạy dịch vụ, kiểm tra profile và nhập liệu chính xác."
           stats={[
             { label: 'Facebook', value: 'UID', hint: 'profile, post, story, group', tone: 'blue' },
             { label: 'TikTok', value: '@user', hint: 'Link profile', tone: 'emerald' },
@@ -56,7 +56,7 @@ export default function GetUidFbPage() {
         />
 
         <SectionPanel className="space-y-5">
-          <SectionHeader eyebrow="Lookup" title="Nhập link cần lấy ID" description="Dán link đầy đủ để hệ thống bóc ID theo đúng rule API đang chạy." />
+          <SectionHeader eyebrow="Lookup" title="Nhập link cần lấy ID" description="Nhập đường link đầy đủ của profile hoặc bài viết để hệ thống tách đúng mã định danh." />
           <form onSubmit={submit} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
             <Input
               value={url}

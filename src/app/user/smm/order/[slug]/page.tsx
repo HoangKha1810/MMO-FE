@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { useSessionUser } from '@/hooks/use-session-user';
 import type { SmmServiceRecord } from '@/lib/smm-provider';
 import { cn, formatCurrency, formatNumber } from '@/lib/utils';
@@ -105,6 +106,7 @@ function isCommentCategory(category: string) {
 }
 
 export default function SmmOrderPage() {
+  const { confirm } = useConfirmDialog();
   const params = useParams<{ slug: string }>();
   const currentUser = useSessionUser();
   const user = currentUser.data;
@@ -294,9 +296,13 @@ export default function SmmOrderPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Khách hàng phải trả: ${formatCurrency(totalToPay)} (đã gồm VAT). Xác nhận thanh toán?`
-    );
+    const confirmed = await confirm({
+      title: 'Xác nhận thanh toán',
+      description: `Khách hàng phải trả ${formatCurrency(totalToPay)} (đã gồm VAT). Bạn muốn gửi đơn lên hệ thống ngay bây giờ chứ?`,
+      confirmText: 'Thanh toán',
+      cancelText: 'Kiểm tra lại',
+      tone: 'brand',
+    });
 
     if (!confirmed) return;
 

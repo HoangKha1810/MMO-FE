@@ -21,8 +21,8 @@ export default function ApiDocsPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHero
           eyebrow="Developer API"
-          title="Tài liệu API nội bộ TRUNGTAMMMO."
-          description="Trang này mô tả các endpoint thật đang chạy trong Next/BE. API key lấy từ biến môi trường hoặc phần settings/admin, không hiển thị secret ra client."
+          title="Tài liệu API dành cho tích hợp TRUNGTAMMMO"
+          description="Tổng hợp các endpoint phục vụ SMM, tài nguyên, social tools và tác vụ nội bộ để đội vận hành hoặc đối tác kỹ thuật tích hợp an toàn."
           stats={[
             { label: 'Base URL', value: apiBase.replace(/^https?:\/\//, ''), hint: 'API_DOMAIN/NEXT_PUBLIC_BASE_URL', tone: 'blue' },
             { label: 'Auth', value: 'Cookie/API_KEY', hint: 'User API dùng session, cron dùng key', tone: 'emerald' },
@@ -33,7 +33,7 @@ export default function ApiDocsPage() {
         />
 
         <SectionPanel className="space-y-5">
-          <SectionHeader eyebrow="Endpoints" title="Danh sách endpoint chính" description="Các route bên dưới đang hoạt động và trả JSON theo quyền truy cập." />
+          <SectionHeader eyebrow="Endpoints" title="Danh sách endpoint chính" description="Các endpoint bên dưới phục vụ xử lý dịch vụ, tiện ích social và tác vụ vận hành nội bộ của hệ thống." />
           <div className="grid gap-3">
             {endpoints.map((item) => (
               <div key={`${item.method}-${item.path}`} className="surface-card grid gap-4 rounded-[1.5rem] p-5 md:grid-cols-[110px_minmax(0,1fr)_1.2fr] md:items-center">
@@ -47,9 +47,9 @@ export default function ApiDocsPage() {
 
         <section className="grid gap-4 md:grid-cols-3">
           {[
-            { icon: <KeyRound className="h-5 w-5" />, title: 'API_KEY', body: 'Cron/admin integration gửi key qua header x-api-key hoặc query key.' },
-            { icon: <ShieldCheck className="h-5 w-5" />, title: 'Session', body: 'User endpoint dùng cookie user_id httpOnly và kiểm tra trạng thái active.' },
-            { icon: <Server className="h-5 w-5" />, title: 'Provider', body: 'SMM ưu tiên SubMetaVip trong api_providers, sau đó mới fallback provider khác.' },
+            { icon: <KeyRound className="h-5 w-5" />, title: 'API_KEY', body: 'Tác vụ hệ thống và cron sử dụng xác thực API_KEY riêng để bảo vệ các lệnh vận hành nhạy cảm.' },
+            { icon: <ShieldCheck className="h-5 w-5" />, title: 'Session', body: 'Các endpoint người dùng dựa trên phiên đăng nhập hiện tại để đảm bảo chỉ truy cập được đúng tài nguyên được cấp quyền.' },
+            { icon: <Server className="h-5 w-5" />, title: 'Provider', body: 'Nhóm dịch vụ được liên kết với provider phù hợp để đồng bộ giá, tạo đơn và theo dõi trạng thái xử lý theo thời gian thực.' },
           ].map((item) => (
             <div key={item.title} className="surface-card rounded-[1.6rem] p-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-blue/10 text-brand-blue">{item.icon || <Code2 />}</div>

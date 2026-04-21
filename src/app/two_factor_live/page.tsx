@@ -95,8 +95,8 @@ export default function TwoFactorLivePage() {
       <div className="mx-auto max-w-5xl space-y-6">
         <PageHero
           eyebrow="Security Tool"
-          title="2FA Live Tool"
-          description="Nhập secret Google Authenticator/Base32 để tạo mã TOTP ngay trên trình duyệt. Secret không gửi lên server."
+          title="Tạo mã 2FA trực tiếp trên trình duyệt"
+          description="Công cụ 2FA Live giúp bạn sinh mã TOTP tức thời từ secret Base32 để xác thực đăng nhập và thao tác bảo mật an toàn hơn."
           stats={[
             { label: 'Chu kỳ', value: '30s', hint: 'TOTP chuẩn', tone: 'blue' },
             { label: 'Hash', value: 'SHA-1', hint: 'Google Authenticator', tone: 'emerald' },
@@ -108,7 +108,7 @@ export default function TwoFactorLivePage() {
 
         <SectionPanel className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-5">
-            <SectionHeader eyebrow="Generator" title="Tạo mã xác thực" description="Dán secret 2FA của tài khoản. Mã sẽ tự đổi theo chu kỳ, không cần refresh trang." />
+            <SectionHeader eyebrow="Generator" title="Tạo mã xác thực" description="Dán secret 2FA của tài khoản để nhận mã mới theo chu kỳ 30 giây mà không cần rời trình duyệt." />
             <Input
               value={secret}
               onChange={(event) => setSecret(event.target.value)}
@@ -142,9 +142,9 @@ export default function TwoFactorLivePage() {
 
         <SectionPanel className="grid gap-3 md:grid-cols-3">
           {[
-            { title: 'Không lưu secret', body: 'Secret chỉ nằm trong state trình duyệt và mất khi rời trang.' },
-            { title: 'Dùng khi login', body: 'Có thể dùng mã này để xác thực route /auth/2fa nếu secret khớp tài khoản.' },
-            { title: 'PIN vẫn riêng', body: 'PIN bảo mật trong DB vẫn được xử lý ở luồng login/2FA riêng.' },
+            { title: 'Không lưu secret', body: 'Secret chỉ tồn tại trong phiên trình duyệt hiện tại và không được ghi lại sau khi bạn rời trang.' },
+            { title: 'Dùng cho xác thực', body: 'Mã sinh ra có thể phục vụ đăng nhập hoặc xác minh các thao tác bảo mật khi secret khớp với tài khoản của bạn.' },
+            { title: 'Tách biệt lớp bảo vệ', body: 'Công cụ này chỉ hỗ trợ sinh mã 2FA, còn các lớp xác thực bổ sung vẫn được hệ thống xử lý theo cơ chế bảo mật riêng.' },
           ].map((item) => (
             <div key={item.title} className="surface-card rounded-[1.5rem] p-5">
               <KeyRound className="h-5 w-5 text-brand-blue" />

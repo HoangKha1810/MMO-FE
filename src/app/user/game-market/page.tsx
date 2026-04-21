@@ -27,11 +27,11 @@ export default async function UserGameMarketPage() {
       <div className="space-y-6">
         <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 sm:rounded-[2rem] sm:p-6">
           <div className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-blue">Game Market</div>
-          <h1 className="mt-3 break-words text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white sm:text-3xl">
+          <h1 className="mt-3 break-words text-2xl font-black uppercase leading-[1.2] tracking-[-0.02em] text-slate-900 dark:text-white sm:text-3xl sm:leading-[1.16]">
             Chợ game
           </h1>
-          <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-            Listing, chi tiết, mua hàng, rating và seller flow được gom lại thành một marketplace dễ dùng hơn.
+          <p className="mt-2 text-sm font-medium leading-8 tracking-[0.018em] text-slate-500 dark:text-slate-400">
+            Không gian mua bán tài khoản, vật phẩm và listing game với thông tin rõ ràng, dễ theo dõi đơn hàng và kết nối nhanh với seller.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link href="/user/game-market/sell" className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase text-white">

@@ -45,7 +45,7 @@ export default async function ForumFolderPage({ params }: { params: Promise<{ id
               <div className="inline-flex rounded-full border border-slate-900/10 bg-white/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300">
                 Forum folder
               </div>
-              <h1 className="mt-4 break-words text-3xl font-black uppercase leading-none tracking-[-0.06em] text-slate-950 dark:text-white sm:text-4xl">
+              <h1 className="mt-4 break-words text-3xl font-black uppercase leading-[1.2] tracking-[-0.04em] text-slate-950 dark:text-white sm:text-4xl sm:leading-[1.16]">
                 {data.forum.name}
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">

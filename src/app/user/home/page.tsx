@@ -134,11 +134,11 @@ export default async function HomePage() {
                     </span>
                   </div>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-white/35 sm:text-sm sm:tracking-[0.3em]">{welcomeTitle}</div>
-                  <h1 className="mt-3 max-w-3xl break-words text-3xl font-black uppercase leading-[1.04] tracking-[-0.04em] text-slate-950 dark:text-white sm:text-4xl md:text-5xl">
+                  <h1 className="mt-3 max-w-3xl break-words text-3xl font-black uppercase leading-[1.22] tracking-[-0.02em] text-slate-950 dark:text-white sm:text-4xl sm:leading-[1.18] md:text-5xl md:leading-[1.16]">
                     {user.username}
                   </h1>
-                  <p className="mt-4 max-w-xl text-xs font-medium uppercase leading-[1.9] tracking-[0.06em] text-slate-600 dark:text-white/55 sm:mt-5 sm:text-sm sm:leading-[2.05] sm:tracking-[0.12em]">
-                    Hệ thống <span className="font-black text-brand-blue">TRUNGTAMMMO</span> đã sẵn sàng hỗ trợ bạn tối ưu hoá công việc kinh doanh, quản lý tài nguyên số và điều phối toàn bộ workflow MMO trong một giao diện gọn hơn.
+                  <p className="mt-4 max-w-xl text-xs font-medium uppercase leading-[2.05] tracking-[0.08em] text-slate-600 dark:text-white/55 sm:mt-5 sm:text-sm sm:leading-[2.15] sm:tracking-[0.14em]">
+                    Hệ thống <span className="font-black text-brand-blue">TRUNGTAMMMO</span> đã sẵn sàng đồng hành cùng bạn trong quản lý đơn hàng, tài nguyên số, tăng trưởng mạng xã hội và các giao dịch MMO trên một workspace tập trung.
                   </p>
                 </div>
 
@@ -169,7 +169,7 @@ export default async function HomePage() {
 
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4">
                 {[
-                  { label: 'Workspace modules', value: String(totalServiceModules).padStart(2, '0'), hint: 'Các cụm chức năng đang hoạt động', icon: Layers3 },
+                  { label: 'Module dịch vụ', value: String(totalServiceModules).padStart(2, '0'), hint: 'Các cụm chức năng đang sẵn sàng', icon: Layers3 },
                   { label: 'Tài khoản', value: user.rank || 'Member', hint: 'Cấp bậc hiện tại của bạn', icon: ShieldCheck },
                   { label: 'AI Manager', value: 'Live', hint: 'Kết nối trực tiếp công cụ AI', icon: Bot },
                 ].map((item) => (
@@ -213,7 +213,7 @@ export default async function HomePage() {
                   <label className="mt-3 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-white/45 sm:mt-4 sm:text-xs sm:tracking-[0.28em]">
                     {card.label}
                   </label>
-                  <div className={`mt-3 break-words font-mono text-xl font-black uppercase tracking-[-0.04em] sm:text-2xl ${card.color}`}>
+                  <div className={`mt-3 max-w-full overflow-hidden font-mono tabular-nums whitespace-nowrap text-[clamp(1rem,4.8vw,1.5rem)] font-black uppercase leading-[1.1] tracking-[-0.03em] ${card.color}`}>
                     {typeof card.val === 'number'
                       ? new Intl.NumberFormat('vi-VN').format(card.val)
                       : card.val}
@@ -246,7 +246,7 @@ export default async function HomePage() {
                       <item.icon className="h-3.5 w-3.5" />
                       <span className="text-[9px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em]">{item.label}</span>
                     </div>
-                    <div className="mt-2 break-words font-mono text-lg font-black text-slate-950 dark:text-white">{item.value}</div>
+                    <div className="mt-2 max-w-full overflow-hidden font-mono tabular-nums whitespace-nowrap text-[clamp(0.95rem,4.2vw,1.125rem)] font-black leading-[1.1] text-slate-950 dark:text-white">{item.value}</div>
                   </div>
                 ))}
               </div>

@@ -5,7 +5,7 @@ const sections = [
   {
     resource: 'interface-settings',
     title: 'Interface settings',
-    description: 'Logo, favicon, notification, theme và cấu hình giao diện nếu bảng legacy tồn tại.',
+    description: 'Quản lý logo, favicon, thông báo, theme và các cấu hình nhận diện giao diện của hệ thống.',
     columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
     editableFields: ['setting_value'],
     createFields: ['setting_key', 'setting_value'],

@@ -4,7 +4,7 @@ const sections = [
   {
     resource: 'accounting-extra',
     title: 'Accounting extra',
-    description: 'Khoản thu/chi bổ sung nếu bảng accounting_extra đã migrate.',
+    description: 'Quản lý các khoản thu chi bổ sung phục vụ đối soát và vận hành kế toán.',
     columns: ['id', 'type', 'amount', 'note', 'status', 'created_at'],
     editableFields: ['type', 'amount', 'note', 'status'],
     createFields: ['type', 'amount', 'note', 'status'],

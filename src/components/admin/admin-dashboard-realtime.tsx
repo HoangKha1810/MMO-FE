@@ -140,13 +140,13 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-500">
               <span className={cn('h-1.5 w-1.5 rounded-full bg-emerald-500', isPending ? 'animate-ping' : '')} />
-              Live từ MySQL Vietnix
+              Kết nối dữ liệu live
             </div>
-            <h1 className="mt-4 max-w-3xl break-words text-3xl font-black uppercase leading-[1.04] tracking-[-0.05em] text-slate-950 dark:text-white sm:text-4xl">
+            <h1 className="mt-4 max-w-3xl break-words text-3xl font-black uppercase leading-[1.22] tracking-[-0.02em] text-slate-950 dark:text-white sm:text-4xl sm:leading-[1.18]">
               Giám sát hệ thống
             </h1>
-            <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
-              Dashboard đang đọc trực tiếp từ database live, tự refresh mỗi 10 giây cho số liệu nạp tiền, đơn hàng, user, forum và queue dịch vụ.
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-8 tracking-[0.016em] text-slate-500 dark:text-slate-400">
+              Theo dõi nạp tiền, đơn hàng, người dùng, forum và hàng đợi dịch vụ theo thời gian gần thực để phản ứng nhanh với vận hành.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
               <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 break-all dark:border-white/10 dark:bg-white/[0.04]">

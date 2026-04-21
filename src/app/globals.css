@@ -1509,6 +1509,29 @@
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes confirm-dialog-overlay-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes confirm-dialog-content-in {
+  0% { opacity: 0; transform: translate(-50%, calc(-50% + 18px)) scale(0.97); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes confirm-dialog-content-out {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.985); }
+}
+
+.confirm-dialog-overlay {
+  animation: confirm-dialog-overlay-in 180ms ease-out;
+}
+
+.confirm-dialog-content {
+  animation: confirm-dialog-content-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @keyframes route-stage-enter {
   0% {
     opacity: 0;
@@ -1549,6 +1572,8 @@ html.theme-switching .nav-link-shell {
   .notification-panel,
   .notification-ping,
   .notification-trigger[data-has-unread="true"] .notification-trigger-icon,
+  .confirm-dialog-overlay,
+  .confirm-dialog-content,
   .route-stage,
   .route-progress-bar::after {
     animation: none !important;

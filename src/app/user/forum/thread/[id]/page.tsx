@@ -105,7 +105,7 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                 {thread.forum_name || thread.category_name || 'Forum'}
               </span>
             </div>
-            <h1 className="mt-4 max-w-5xl text-3xl font-black uppercase leading-tight tracking-[-0.05em] text-slate-950 dark:text-white md:text-5xl">
+            <h1 className="mt-4 max-w-5xl text-3xl font-black uppercase leading-[1.2] tracking-[-0.04em] text-slate-950 dark:text-white md:text-5xl md:leading-[1.16]">
               {thread.title}
             </h1>
             <div className="mt-5 flex flex-wrap gap-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">

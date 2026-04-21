@@ -24,7 +24,7 @@ export default async function UserFindJobPage() {
           <div className="relative grid gap-6 lg:grid-cols-[1fr_420px] lg:items-end">
             <div>
               <div className="inline-flex rounded-full border border-orange-500/20 bg-white/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-orange-600 dark:bg-white/[0.05] dark:text-orange-300">Find Job MMO</div>
-              <h1 className="mt-4 max-w-2xl break-words text-3xl font-black uppercase leading-none tracking-[-0.06em] text-slate-950 dark:text-white sm:text-4xl md:text-5xl">
+              <h1 className="mt-4 max-w-2xl break-words text-3xl font-black uppercase leading-[1.22] tracking-[-0.04em] text-slate-950 dark:text-white sm:text-4xl sm:leading-[1.18] md:text-5xl md:leading-[1.16]">
                 Việc ngon, người thật, ưu tiên bài ghim
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">

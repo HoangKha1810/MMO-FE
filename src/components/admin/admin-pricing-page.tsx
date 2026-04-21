@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Input } from '@/components/ui/input';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { formatDatabaseDateTime } from '@/lib/date-time';
@@ -136,6 +137,7 @@ function buildDraft(item: PricingItem, module?: PricingModule | null) {
 }
 
 export function AdminPricingPage() {
+  const { confirm } = useConfirmDialog();
   const [modules, setModules] = useState<PricingModule[]>([]);
   const [activeModuleKey, setActiveModuleKey] = useState('');
   const [items, setItems] = useState<PricingItem[]>([]);
@@ -282,7 +284,13 @@ export function AdminPricingPage() {
     const applyFiltered = !hasSelected;
 
     if (applyFiltered) {
-      const ok = window.confirm('Bạn chưa chọn dòng nào. Áp dụng thao tác này cho toàn bộ module/dữ liệu đang lọc?');
+      const ok = await confirm({
+        title: 'Áp dụng hàng loạt',
+        description: 'Bạn chưa chọn dòng nào. Áp dụng thao tác này cho toàn bộ module hoặc toàn bộ dữ liệu đang lọc?',
+        confirmText: 'Áp dụng',
+        cancelText: 'Hủy',
+        tone: 'brand',
+      });
       if (!ok) return;
     }
 
@@ -335,7 +343,7 @@ export function AdminPricingPage() {
       <PageHero
         eyebrow="Pricing Center"
         title="Điều phối giá toàn bộ dịch vụ"
-        description="Một màn hình để set giá SMM, Auto MXH, tài nguyên, game market, Support TikTok, thẻ cào và các service legacy. Tất cả đọc/ghi trực tiếp MySQL, không dùng mock."
+        description="Thiết lập giá, biên độ và trạng thái mở bán cho toàn bộ hệ dịch vụ trên TRUNGTAMMMO trong một trung tâm điều phối tập trung."
         stats={[
           { label: 'Module giá', value: String(modules.length), hint: 'Bảng có schema hợp lệ', tone: 'blue' },
           { label: 'Dịch vụ', value: formatNumber(totalServices), hint: 'Tổng record có thể chỉnh', tone: 'emerald' },
@@ -346,10 +354,10 @@ export function AdminPricingPage() {
           <>
             <Badge variant="info" className="rounded-full px-3 py-1.5">
               <BadgeDollarSign className="h-3 w-3" />
-              DB pricing
+              Pricing live
             </Badge>
             <Badge variant="muted" className="rounded-full px-3 py-1.5">
-              SMM override bằng custom_price
+              Điều chỉnh theo module
             </Badge>
           </>
         }
@@ -359,7 +367,7 @@ export function AdminPricingPage() {
         <SectionHeader
           eyebrow="Modules"
           title="Chọn nhóm dịch vụ cần set giá"
-          description="Những module không có bảng/cột giá trong MySQL sẽ tự ẩn, tránh lỗi schema khi deploy."
+          description="Chọn module cần điều chỉnh để xem đúng nhóm giá và trạng thái mở bán đang được vận hành."
           actions={
             <Button type="button" variant="outline" size="sm" onClick={() => void loadPricing()} loading={loading}>
               <RefreshCw className="h-4 w-4" />
@@ -415,7 +423,7 @@ export function AdminPricingPage() {
         <SectionHeader
           eyebrow={activeModule?.label || 'Pricing'}
           title="Bảng chỉnh giá dịch vụ"
-          description="Chỉnh từng dòng hoặc bulk theo phần trăm. Nếu không chọn dòng, thao tác bulk sẽ áp dụng cho toàn bộ kết quả đang lọc sau khi xác nhận."
+          description="Cập nhật từng dịch vụ hoặc xử lý hàng loạt theo phần trăm hay mức giá cố định sau khi xác nhận."
         />
 
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -487,7 +495,7 @@ export function AdminPricingPage() {
         ) : items.length === 0 ? (
           <EmptyState
             title="Không có dịch vụ phù hợp"
-            description="Thử đổi keyword hoặc chọn module khác. Dữ liệu vẫn đang đọc từ MySQL thật."
+            description="Thử đổi từ khóa hoặc chọn module khác để hiển thị đúng danh sách dịch vụ cần điều chỉnh."
             icon={<Search className="h-5 w-5" />}
           />
         ) : (

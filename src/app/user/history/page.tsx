@@ -106,8 +106,8 @@ export default async function UserHistoryPage() {
       <div className="space-y-6">
         <PageHero
           eyebrow="Unified Ledger"
-          title="Lịch sử giao dịch gom về một bảng, đọc nhanh hơn."
-          description="Tất cả giao dịch, đơn dịch vụ, thẻ cào, tài nguyên và game order được gom lại để dễ quét theo loại, giá trị và thời gian."
+          title="Lịch sử giao dịch tập trung của tài khoản"
+          description="Theo dõi toàn bộ nạp tiền, đơn dịch vụ, tài nguyên, game market và thẻ cào trong một bảng thời gian thống nhất để đối soát nhanh hơn."
           stats={[
             { label: 'Tổng dòng', value: String(rows.length), hint: 'Gộp tối đa 80 bản ghi gần nhất', tone: 'blue' },
             { label: 'Tổng volume', value: formatCurrency(totalVolume), hint: 'Cộng giá trị hiển thị trên bảng', tone: 'emerald' },
@@ -120,7 +120,7 @@ export default async function UserHistoryPage() {
           <SectionHeader
             eyebrow="Recent Activity"
             title="Dòng thời gian giao dịch"
-            description="Bảng dưới không đổi dữ liệu nguồn. Mình chỉ chuyển sang kiểu ledger rõ trạng thái, type badge và số tiền để nhìn chuyên nghiệp hơn."
+            description="Bảng thời gian này giúp bạn kiểm tra nguồn phát sinh, trạng thái và giá trị từng giao dịch theo đúng thứ tự mới nhất."
             actions={
               <div className="flex flex-wrap gap-2">
                 {Object.entries(typeSummary).map(([type, count]) => (

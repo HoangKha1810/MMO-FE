@@ -3,21 +3,21 @@ import { AdminDataPage } from '@/components/admin/admin-data-page';
 const sections = [
   {
     resource: 'mmo-api',
-    title: 'MMO API legacy',
-    description: 'Bảng API chuyên sâu nếu database cũ đã migrate.',
+    title: 'MMO API nâng cao',
+    description: 'Quản lý bảng API chuyên sâu dành cho nhóm tài nguyên MMO và đồng bộ dữ liệu dịch vụ.',
     columns: ['id', 'name', 'category', 'price', 'margin_percent', 'status', 'updated_at'],
     editableFields: ['name', 'category', 'price', 'margin_percent', 'status'],
     statusOptions: ['active', 'inactive'],
   },
   {
     resource: 'mmo-resources-sales',
-    title: 'MMO resources sales legacy',
-    description: 'Sales table legacy nếu còn tồn tại trong DB cũ.',
+    title: 'Doanh số tài nguyên chuyên sâu',
+    description: 'Theo dõi dữ liệu doanh số và tình trạng bán hàng ở nhóm tài nguyên chuyên sâu.',
     columns: ['id', 'user_id', 'resource_id', 'status', 'buyer_email', 'note', 'created_at'],
     editableFields: ['status', 'note'],
   },
 ];
 
 export default function AdminResourceMmoApiPage() {
-  return <AdminDataPage title="MMO API chuyên sâu" description="Provider CloneTut/MMO, API price, sales legacy và sync/margin theo DB thật." sections={sections} />;
+  return <AdminDataPage title="MMO API chuyên sâu" description="Quản lý provider CloneTut/MMO, bảng giá API, doanh số tài nguyên và đồng bộ biên độ ở tầng chuyên sâu." sections={sections} />;
 }

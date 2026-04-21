@@ -98,8 +98,8 @@ export default function ResourcesPage() {
       <div className="space-y-6">
         <PageHero
           eyebrow="MMO Resources"
-          title="Kho tài nguyên thật, trình bày lại gọn và sắc hơn."
-          description="Kho tài nguyên được trình bày lại theo kiểu storefront: dễ lọc, dễ xem tồn kho, dễ mua và theo dõi sau thanh toán."
+          title="Kho tài nguyên MMO sẵn sàng khai thác"
+          description="Khám phá nguồn tài nguyên số của TRUNGTAMMMO với thông tin tồn kho, giá bán và trạng thái mở bán rõ ràng để chọn mua nhanh và an toàn."
           stats={[
             { label: 'Danh mục', value: String(categories.length || 0), hint: 'Nhóm sản phẩm đang hiển thị', tone: 'blue' },
             { label: 'Tài nguyên', value: String(resourceStats.total), hint: 'Sản phẩm đang bật bán', tone: 'emerald' },
@@ -109,7 +109,7 @@ export default function ResourcesPage() {
           actions={
             <>
               <Badge variant="info" className="rounded-full px-3 py-1.5">Kho đang mở</Badge>
-              <Badge variant="muted" className="rounded-full px-3 py-1.5">Giữ nguyên flow mua hàng</Badge>
+              <Badge variant="muted" className="rounded-full px-3 py-1.5">Mua và nhận sau thanh toán</Badge>
             </>
           }
         />
@@ -118,7 +118,7 @@ export default function ResourcesPage() {
           <SectionHeader
             eyebrow="Catalog"
             title="Tìm nhanh sản phẩm phù hợp"
-            description="Bộ lọc vẫn là filter cũ, nhưng phần hiển thị được dựng lại để đọc giá, kho, badge và hành động mua rõ hơn."
+            description="Lọc theo từ khóa để tìm đúng bộ tài nguyên, nguồn hàng và mặt hàng phù hợp với nhu cầu kinh doanh của bạn."
           />
 
           <form
@@ -158,7 +158,7 @@ export default function ResourcesPage() {
           <SectionHeader
             eyebrow="Live Inventory"
             title="Sản phẩm đang mở bán"
-            description="Các card được rút gọn lại theo kiểu storefront: badge trước, meta sau, giá và CTA ở đáy để quét nhanh hơn."
+            description="Danh sách mở bán hiển thị rõ danh mục, tồn kho, giá và hành động mua để bạn ra quyết định nhanh hơn."
             actions={
               <div className="flex flex-wrap gap-2">
                 <Badge variant="muted" className="rounded-full px-3 py-1.5">
@@ -181,7 +181,7 @@ export default function ResourcesPage() {
           ) : resources.length === 0 ? (
             <EmptyState
               title="Chưa có tài nguyên đang bật"
-              description="Hiện chưa có resource phù hợp với bộ lọc hiện tại. Bạn có thể đổi keyword hoặc kiểm tra lại trạng thái sản phẩm trong admin."
+              description="Hiện chưa có tài nguyên phù hợp với bộ lọc hiện tại. Hãy thử từ khóa khác hoặc quay lại khi kho được cập nhật thêm."
               icon={<Package className="h-5 w-5" />}
             />
           ) : (

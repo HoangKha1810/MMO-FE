@@ -79,10 +79,10 @@ export function LegalPage({
                 <Sparkles className="h-3 w-3" />
               </div>
 
-              <h1 className="mt-5 text-[clamp(2.8rem,7vw,5.6rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-slate-950 dark:text-white">
+              <h1 className="mt-5 text-[clamp(2.8rem,7vw,5.6rem)] font-black uppercase leading-[1.14] tracking-[-0.03em] text-slate-950 dark:text-white">
                 {title}
               </h1>
-              <p className="mt-5 max-w-2xl text-base font-medium leading-8 text-slate-600 dark:text-slate-300">
+              <p className="mt-5 max-w-2xl text-base font-medium leading-9 tracking-[0.018em] text-slate-600 dark:text-slate-300">
                 {description}
               </p>
 
@@ -95,10 +95,10 @@ export function LegalPage({
                           <CheckCircle2 className="h-4.5 w-4.5" />
                         </div>
                         <div>
-                          <h2 className="text-sm font-black uppercase tracking-[0.02em] text-slate-900 dark:text-white">
+                          <h2 className="text-sm font-black uppercase tracking-[0.05em] text-slate-900 dark:text-white">
                             {item.title}
                           </h2>
-                          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                          <p className="mt-2 text-sm leading-7 tracking-[0.012em] text-slate-600 dark:text-slate-300">
                             {item.body}
                           </p>
                         </div>
@@ -115,15 +115,15 @@ export function LegalPage({
                   <div className="surface-chip flex h-12 w-12 items-center justify-center rounded-2xl">
                     <img src="/logo.gif" alt="TRUNGTAMMMO" className="h-8 w-auto object-contain" />
                   </div>
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">TRUNGTAMMMO.VN</div>
-                    <div className="mt-1 text-lg font-black uppercase tracking-[-0.04em] text-slate-950 dark:text-white">
-                      Tài liệu nền tảng
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">TRUNGTAMMMO.VN</div>
+                      <div className="mt-1 text-lg font-black uppercase tracking-[-0.015em] text-slate-950 dark:text-white">
+                        Tài liệu nền tảng
+                      </div>
                     </div>
                   </div>
-                </div>
-                <p className="mt-4 text-sm leading-7 text-slate-500 dark:text-slate-300">
-                  Cụm trang này được trình bày theo hướng đọc dễ hơn, sạch hơn và dễ tra cứu khi cần đối chiếu.
+                <p className="mt-4 text-sm leading-8 tracking-[0.012em] text-slate-500 dark:text-slate-300">
+                  Đây là cụm nội dung giúp người dùng và đối tác tra cứu nhanh các thông tin quan trọng về dịch vụ, chính sách và phạm vi vận hành của nền tảng.
                 </p>
               </div>
 
@@ -131,7 +131,7 @@ export function LegalPage({
                 <div className="grid grid-cols-2 gap-3">
                   {stats.map((stat, index) => (
                     <div key={`${stat.label}-${index}`} className="surface-card rounded-[1.5rem] p-5">
-                      <div className="text-2xl font-black uppercase tracking-[-0.05em] text-slate-950 dark:text-white">
+                      <div className="text-2xl font-black uppercase tracking-[-0.02em] text-slate-950 dark:text-white">
                         {stat.value}
                       </div>
                       <div className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
@@ -147,16 +147,16 @@ export function LegalPage({
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[0.78fr_1.22fr]">
           <aside className="surface-panel h-fit rounded-[2rem] p-5 lg:sticky lg:top-6">
-            <div className="flex items-center gap-3">
-              <div className="surface-chip flex h-10 w-10 items-center justify-center rounded-2xl text-brand-blue">
-                <Shield className="h-4.5 w-4.5" />
-              </div>
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Mục lục</div>
-                <div className="mt-1 text-lg font-black uppercase tracking-[-0.04em] text-slate-950 dark:text-white">
-                  Nội dung chính
-                </div>
-              </div>
+                <div className="flex items-center gap-3">
+                  <div className="surface-chip flex h-10 w-10 items-center justify-center rounded-2xl text-brand-blue">
+                    <Shield className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Mục lục</div>
+                    <div className="mt-1 text-lg font-black uppercase tracking-[-0.015em] text-slate-950 dark:text-white">
+                      Nội dung chính
+                    </div>
+                  </div>
             </div>
 
             <div className="mt-5 space-y-2">
@@ -195,7 +195,7 @@ export function LegalPage({
                       <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 ${theme.border}`}>
                         Mục {String(index + 1).padStart(2, '0')}
                       </div>
-                      <h2 className="mt-4 text-[clamp(1.4rem,3vw,2rem)] font-black uppercase tracking-[-0.05em] text-slate-950 dark:text-white">
+                      <h2 className="mt-4 text-[clamp(1.4rem,3vw,2rem)] font-black uppercase leading-[1.18] tracking-[-0.02em] text-slate-950 dark:text-white">
                         {section.title}
                       </h2>
                     </div>
@@ -205,7 +205,7 @@ export function LegalPage({
                   </div>
 
                   <div className="mt-5 h-px bg-gradient-to-r from-slate-200 via-slate-100 to-transparent dark:from-white/10 dark:via-white/5" />
-                  <p className="mt-5 whitespace-pre-line text-sm leading-8 text-slate-600 dark:text-slate-300">
+                  <p className="mt-5 whitespace-pre-line text-sm leading-9 tracking-[0.012em] text-slate-600 dark:text-slate-300">
                     {section.body}
                   </p>
                 </section>

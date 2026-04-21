@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Loader2, Plus, RefreshCw, Save, Search, Sparkles, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Input } from '@/components/ui/input';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import type { AdminSectionConfig } from '@/lib/admin-page-config';
@@ -64,23 +65,23 @@ export function AdminDataPage({ title, description, sections }: AdminDataPagePro
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Control Room"
+        eyebrow="Operations Center"
         title={title}
         description={description}
         stats={[
           { label: 'Section', value: String(sections.length), hint: 'Nhóm dữ liệu đang quản lý', tone: 'blue' },
-          { label: 'Flow', value: 'CRUD', hint: 'Giữ nguyên API và logic xử lý', tone: 'emerald' },
-          { label: 'Tác vụ', value: 'Search / Bulk', hint: 'Toolbar đồng bộ lại để thao tác nhanh hơn', tone: 'amber' },
-          { label: 'UI', value: 'Refined', hint: 'Bố cục làm lại nhưng không đổi data flow', tone: 'violet' },
+          { label: 'Flow', value: 'Live Data', hint: 'Cập nhật theo từng nhóm nghiệp vụ', tone: 'emerald' },
+          { label: 'Tác vụ', value: 'Search / Bulk', hint: 'Lọc, đồng bộ và xử lý hàng loạt', tone: 'amber' },
+          { label: 'UI', value: 'Unified', hint: 'Bố cục đồng nhất cho toàn admin', tone: 'violet' },
         ]}
         actions={
           <div className="flex flex-wrap gap-2">
             <Badge variant="muted" className="rounded-full px-3 py-1.5">
               <Sparkles className="h-3 w-3" />
-              Admin surface
+              Vận hành dữ liệu
             </Badge>
             <Badge variant="info" className="rounded-full px-3 py-1.5">
-              Reused across pages
+              Điều phối tập trung
             </Badge>
           </div>
         }
@@ -114,6 +115,7 @@ export function AdminDataPage({ title, description, sections }: AdminDataPagePro
 }
 
 function AdminTableSection({ section }: { section: AdminSectionConfig }) {
+  const { confirm } = useConfirmDialog();
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [pagination, setPagination] = useState<ApiResponse['pagination']>();
   const [search, setSearch] = useState('');
@@ -206,7 +208,17 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
   async function deleteRow(row: Record<string, unknown>) {
     const id = Number(row.id || 0);
-    if (!id || !window.confirm(`Xác nhận xóa/ẩn #${id}?`)) return;
+    if (!id) return;
+
+    const confirmed = await confirm({
+      title: 'Xóa hoặc ẩn dữ liệu',
+      description: `Xác nhận xóa hoặc ẩn bản ghi #${id}? Bạn vẫn có thể cần reload lại dữ liệu sau thao tác này.`,
+      confirmText: 'Xóa dữ liệu',
+      cancelText: 'Giữ lại',
+      tone: 'danger',
+    });
+
+    if (!confirmed) return;
     setSaving(true);
     try {
       const response = await fetch(`/api/admin/${section.resource}/${id}`, { method: 'DELETE' });

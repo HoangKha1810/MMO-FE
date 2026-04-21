@@ -38,7 +38,7 @@ export default async function UserProfilePage() {
         <PageHero
           eyebrow="Profile"
           title={raw.fullname || raw.username}
-          description={raw.bio || 'Trang hồ sơ đã được dựng lại theo hướng product profile: rõ thông tin, trạng thái tài khoản và hoạt động gần đây nhưng không chạm vào logic dữ liệu.'}
+          description={raw.bio || 'Quản lý hồ sơ, thông tin liên hệ, trạng thái tài khoản và hoạt động gần đây của bạn trên TRUNGTAMMMO trong một không gian thống nhất.'}
           stats={[
             { label: 'Username', value: raw.username, hint: raw.email, tone: 'blue' },
             { label: 'Rank', value: raw.rank || 'Member', hint: 'Phân hạng hiện tại', tone: 'emerald' },
@@ -124,7 +124,7 @@ export default async function UserProfilePage() {
             <SectionHeader
               eyebrow="Account Details"
               title="Thông tin tài khoản"
-              description="Các trường gốc từ user table được nhóm lại để bạn vừa đọc nhanh vừa kiểm tra lại thông tin sau khi chỉnh sửa."
+              description="Kiểm tra lại thông tin cá nhân, trạng thái thành viên và các dữ liệu liên hệ đang gắn với tài khoản."
             />
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {profileRows.map(([label, value]) => (
@@ -140,7 +140,7 @@ export default async function UserProfilePage() {
             <SectionHeader
               eyebrow="Recent Activity"
               title="Hoạt động gần đây"
-              description="Timeline này vẫn lấy từ activity_logs, chỉ đổi cách hiển thị để dễ scan hơn."
+              description="Theo dõi những thao tác và dấu mốc gần đây để nắm nhanh lịch sử hoạt động của tài khoản."
             />
             <div className="mt-5 space-y-3">
               {logs.length === 0 ? (
