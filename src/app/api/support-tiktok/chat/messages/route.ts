@@ -29,6 +29,9 @@ export async function GET(req: NextRequest) {
   if (!context.canAccess) {
     return NextResponse.json({ success: false, message: 'Module đang bảo trì' }, { status: 503 });
   }
+  if (!context.chatModuleAvailable) {
+    return NextResponse.json({ success: false, message: 'Thiếu bảng support_tiktok_messages' }, { status: 500 });
+  }
 
   const { searchParams } = new URL(req.url);
   const targetUserId = Number(searchParams.get('user_id') || 0);

@@ -30,6 +30,9 @@ export async function POST(req: NextRequest) {
   if (!context.canAccess) {
     return NextResponse.json({ success: false, message: 'Module đang bảo trì' }, { status: 503 });
   }
+  if (!context.chatModuleAvailable) {
+    return NextResponse.json({ success: false, message: 'Thiếu bảng support_tiktok_messages' }, { status: 500 });
+  }
 
   const contentType = req.headers.get('content-type') || '';
   const body = contentType.includes('multipart/form-data')

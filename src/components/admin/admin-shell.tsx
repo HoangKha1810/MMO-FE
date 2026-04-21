@@ -48,6 +48,7 @@ const adminNavItems = [
       { href: '/admin/game-market', label: 'Game Market', icon: ShoppingCart },
       { href: '/admin/find-job', label: 'Find Job', icon: FileText },
       { href: '/admin/support-tiktok', label: 'Support TikTok', icon: Headset },
+      { href: '/admin/support-tiktok/chat', label: 'Chat TikTok', icon: Headset },
     ],
   },
   {

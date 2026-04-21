@@ -26,10 +26,15 @@ interface ResourceItem {
   custom_badge?: string | null;
 }
 
+function getResourceFilterLabel(item: ResourceItem) {
+  return item.category_name || item.category || item.custom_badge || 'Khác';
+}
+
 export default function ResourcesPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
   const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('');
   const [resources, setResources] = useState<ResourceItem[]>([]);
   const [loadingPage, setLoadingPage] = useState(true);
   const [loadingCart, setLoadingCart] = useState<number | null>(null);
@@ -57,17 +62,30 @@ export default function ResourcesPage() {
   }, []);
 
   const categories = useMemo(
-    () => Array.from(new Set(resources.map((item) => item.category).filter(Boolean))),
+    () => Array.from(new Set(resources.map((item) => getResourceFilterLabel(item)).filter(Boolean))),
     [resources]
   );
+  const filteredResources = useMemo(() => {
+    if (!activeCategory) {
+      return resources;
+    }
+
+    return resources.filter((item) => getResourceFilterLabel(item) === activeCategory);
+  }, [activeCategory, resources]);
   const resourceStats = useMemo(
     () => ({
-      total: resources.length,
-      sold: resources.reduce((sum, item) => sum + (item.sold_count || 0), 0),
-      stock: resources.reduce((sum, item) => sum + (item.stock || 0), 0),
+      total: filteredResources.length,
+      sold: filteredResources.reduce((sum, item) => sum + (item.sold_count || 0), 0),
+      stock: filteredResources.reduce((sum, item) => sum + (item.stock || 0), 0),
     }),
-    [resources]
+    [filteredResources]
   );
+
+  useEffect(() => {
+    if (activeCategory && !categories.includes(activeCategory)) {
+      setActiveCategory('');
+    }
+  }, [activeCategory, categories]);
 
   async function handleAddToCart(id: number) {
     if (!user) {
@@ -145,10 +163,30 @@ export default function ResourcesPage() {
 
           {categories.length > 0 ? (
             <div className="mt-5 flex flex-wrap gap-2">
-              {categories.slice(0, 12).map((category) => (
-                <Badge key={category} variant="muted" className="rounded-full px-3 py-1.5">
+              <button
+                type="button"
+                onClick={() => setActiveCategory('')}
+                className={`rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] transition-all ${
+                  !activeCategory
+                    ? 'border-brand-blue bg-brand-blue text-white shadow-[0_18px_40px_-26px_rgba(37,99,235,0.65)]'
+                    : 'border-slate-200/80 bg-white/80 text-slate-500 hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300'
+                }`}
+              >
+                Tất cả
+              </button>
+              {categories.slice(0, 18).map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveCategory((current) => current === category ? '' : category)}
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] transition-all ${
+                    activeCategory === category
+                      ? 'border-brand-blue bg-brand-blue text-white shadow-[0_18px_40px_-26px_rgba(37,99,235,0.65)]'
+                      : 'border-slate-200/80 bg-white/80 text-slate-500 hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300'
+                  }`}
+                >
                   {category}
-                </Badge>
+                </button>
               ))}
             </div>
           ) : null}
@@ -165,6 +203,11 @@ export default function ResourcesPage() {
                   <Boxes className="h-3 w-3" />
                   {resourceStats.total} item
                 </Badge>
+                {activeCategory ? (
+                  <Badge variant="info" className="rounded-full px-3 py-1.5">
+                    Đang lọc: {activeCategory}
+                  </Badge>
+                ) : null}
                 <Badge variant="muted" className="rounded-full px-3 py-1.5">
                   <Store className="h-3 w-3" />
                   Kho thật
@@ -178,15 +221,17 @@ export default function ResourcesPage() {
               <Loader2 className="mr-3 h-5 w-5 animate-spin" />
               Đang tải tài nguyên
             </div>
-          ) : resources.length === 0 ? (
+          ) : filteredResources.length === 0 ? (
             <EmptyState
               title="Chưa có tài nguyên đang bật"
-              description="Hiện chưa có tài nguyên phù hợp với bộ lọc hiện tại. Hãy thử từ khóa khác hoặc quay lại khi kho được cập nhật thêm."
+              description={activeCategory
+                ? `Hiện chưa có tài nguyên phù hợp với nhóm ${activeCategory}. Hãy chọn nhóm khác hoặc bỏ bộ lọc.`
+                : 'Hiện chưa có tài nguyên phù hợp với bộ lọc hiện tại. Hãy thử từ khóa khác hoặc quay lại khi kho được cập nhật thêm.'}
               icon={<Package className="h-5 w-5" />}
             />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {resources.map((resource) => (
+              {filteredResources.map((resource) => (
                 <article
                   key={resource.id}
                   className="surface-card group rounded-[1.75rem] p-5 md:p-6"
@@ -197,7 +242,7 @@ export default function ResourcesPage() {
                     </div>
                     <div className="flex flex-wrap justify-end gap-2">
                       <Badge variant="info" className="rounded-full px-3 py-1.5 text-[9px]">
-                        {resource.category_name || resource.category || 'Khác'}
+                        {getResourceFilterLabel(resource)}
                       </Badge>
                       {resource.custom_badge ? (
                         <Badge variant="warning" className="rounded-full px-3 py-1.5 text-[9px]">

@@ -12,8 +12,10 @@ import { cn } from '@/lib/utils';
 
 interface SupportMeta {
   canAccess: boolean;
+  chatModuleAvailable: boolean;
   isSupport: boolean;
   maintenance: boolean;
+  missingTables: string[];
   orderModuleAvailable: boolean;
   role: string;
   serviceDescription: string;
@@ -63,7 +65,7 @@ function buildInitials(value: string) {
     .join('');
 }
 
-export function SupportTiktokPage() {
+export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) {
   const currentUser = useSessionUser();
   const user = currentUser.data;
   const [meta, setMeta] = useState<SupportMeta | null>(null);
@@ -99,6 +101,9 @@ export function SupportTiktokPage() {
       );
     });
   }, [conversations, search]);
+  const ordersHref = meta?.isSupport
+    ? (embedded ? '/admin/support-tiktok/orders' : '/user/support-tiktok/orders')
+    : '/user/support-tiktok/orders';
 
   async function loadMeta() {
     setLoadingMeta(true);
@@ -121,7 +126,7 @@ export function SupportTiktokPage() {
   }
 
   async function loadConversations(selectFirst = false) {
-    if (!meta?.isSupport) {
+    if (!meta?.isSupport || !meta.chatModuleAvailable) {
       return;
     }
 
@@ -149,7 +154,8 @@ export function SupportTiktokPage() {
   }
 
   async function loadMessages(targetUserId?: number | null) {
-    if (!meta) {
+    if (!meta || !meta.chatModuleAvailable) {
+      setMessages([]);
       return;
     }
 
@@ -184,7 +190,7 @@ export function SupportTiktokPage() {
   }
 
   async function sendMessage() {
-    if (!meta) {
+    if (!meta || !meta.chatModuleAvailable) {
       return;
     }
 
@@ -239,15 +245,24 @@ export function SupportTiktokPage() {
     }
 
     if (meta.isSupport) {
+      if (!meta.chatModuleAvailable) {
+        setConversations([]);
+        setMessages([]);
+        return;
+      }
       void loadConversations(true);
       return;
     }
 
+    if (!meta.chatModuleAvailable) {
+      setMessages([]);
+      return;
+    }
     void loadMessages(user?.id);
   }, [meta, user?.id]);
 
   useEffect(() => {
-    if (!meta?.isSupport || !activeUserId) {
+    if (!meta?.isSupport || !meta.chatModuleAvailable || !activeUserId) {
       return;
     }
 
@@ -255,7 +270,7 @@ export function SupportTiktokPage() {
   }, [meta?.isSupport, activeUserId]);
 
   useEffect(() => {
-    if (!meta) {
+    if (!meta || !meta.chatModuleAvailable) {
       return;
     }
 
@@ -282,8 +297,7 @@ export function SupportTiktokPage() {
     boxRef.current.scrollTop = boxRef.current.scrollHeight;
   }, [messages]);
 
-  return (
-    <AppShell user={user}>
+  const content = (
       <div className="space-y-6">
         <div className="flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900 md:flex-row md:items-start md:justify-between">
           <div className="space-y-3">
@@ -306,7 +320,7 @@ export function SupportTiktokPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <a
-              href="/user/support-tiktok/orders"
+              href={ordersHref}
               className="btn-kinetic inline-flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-white"
             >
               Đơn TikTok
@@ -332,6 +346,13 @@ export function SupportTiktokPage() {
           <div className="flex items-center gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-bold text-rose-500">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {error}
+          </div>
+        ) : null}
+
+        {!loadingMeta && meta && meta.missingTables.length > 0 ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-500">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            Thiếu bảng: {meta.missingTables.join(', ')}. Hãy tạo bảng bằng file SQL bootstrap trước khi dùng đầy đủ module.
           </div>
         ) : null}
 
@@ -481,7 +502,9 @@ export function SupportTiktokPage() {
                         Chưa có tin nhắn
                       </h3>
                       <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                        {meta?.isSupport
+                        {!meta?.chatModuleAvailable
+                          ? 'Phần chat đang thiếu bảng dữ liệu. Tạo bảng bootstrap rồi tải lại trang để tiếp tục.'
+                          : meta?.isSupport
                           ? 'Chọn một hội thoại bên trái để bắt đầu hỗ trợ.'
                           : 'Gửi yêu cầu trực tiếp cho đội Support TikTok từ module mới.'}
                       </p>
@@ -552,11 +575,13 @@ export function SupportTiktokPage() {
                         }
                       }}
                       placeholder={
-                        meta?.isSupport && !activeUserId
+                        !meta?.chatModuleAvailable
+                          ? 'Phần chat đang chờ tạo bảng dữ liệu'
+                          : meta?.isSupport && !activeUserId
                           ? 'Chọn khách ở cột trái để phản hồi'
                           : 'Nhập tin nhắn...'
                       }
-                      disabled={(meta?.isSupport && !activeUserId) || sending}
+                      disabled={!meta?.chatModuleAvailable || (meta?.isSupport && !activeUserId) || sending}
                       className="min-h-[104px] w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition-all focus:border-brand-blue dark:border-white/10 dark:bg-white/5 dark:text-white"
                     />
                     <div className="mt-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
@@ -571,7 +596,7 @@ export function SupportTiktokPage() {
                           accept="image/png,image/jpeg,image/webp,image/gif"
                           className="hidden"
                           onChange={(event) => setAttachment(event.target.files?.[0] || null)}
-                          disabled={(meta?.isSupport && !activeUserId) || sending}
+                          disabled={!meta?.chatModuleAvailable || (meta?.isSupport && !activeUserId) || sending}
                         />
                       </label>
                       {attachment ? (
@@ -590,7 +615,7 @@ export function SupportTiktokPage() {
                     size="xl"
                     className="h-14 w-14 rounded-2xl px-0"
                     onClick={() => void sendMessage()}
-                    disabled={sending || (meta?.isSupport && !activeUserId)}
+                    disabled={!meta?.chatModuleAvailable || sending || (meta?.isSupport && !activeUserId)}
                   >
                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizonal className="h-5 w-5" />}
                   </Button>
@@ -636,6 +661,11 @@ export function SupportTiktokPage() {
           </div>
         )}
       </div>
-    </AppShell>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <AppShell user={user}>{content}</AppShell>;
 }

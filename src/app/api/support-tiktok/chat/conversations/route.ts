@@ -26,6 +26,9 @@ export async function GET(req: NextRequest) {
   if (!context.isSupport) {
     return NextResponse.json({ success: false, message: 'Không có quyền truy cập' }, { status: 403 });
   }
+  if (!context.chatModuleAvailable) {
+    return NextResponse.json({ success: false, message: 'Thiếu bảng support_tiktok_messages' }, { status: 500 });
+  }
 
   const conversations = await getSupportConversations();
   return NextResponse.json({

@@ -102,7 +102,7 @@ async function tableExists(tableName: string) {
 }
 
 export async function getSupportTiktokContext(userId: number, clientIp?: string) {
-  const [user, settings, hasOrderTable] = await Promise.all([
+  const [user, settings, hasOrderTable, hasRegionServiceTable, hasMenuTable, hasChatTable] = await Promise.all([
     db.users.findUnique({
       where: { id: userId },
       select: {
@@ -118,6 +118,9 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
       'service_chat_support_tiktok_desc',
     ]),
     tableExists('tiktok_support_orders'),
+    tableExists('tiktok_region_services'),
+    tableExists('tiktok_service_menus'),
+    tableExists('support_tiktok_messages'),
   ]);
 
   if (!user) {
@@ -133,8 +136,14 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
   const supportUsernameAllowed =
     user.username.toLowerCase() === supportUsername.toLowerCase();
   const isSupport =
-    adminIpAllowed && (role === 'support_tiktok' || role === 'admin' || supportUsernameAllowed);
+    role === 'support_tiktok' || role === 'admin' || supportUsernameAllowed;
   const maintenance = getLegacySetting(settings, 'service_chat_support_tiktok_status', 'active') === 'maintenance';
+  const missingTables = [
+    !hasChatTable ? 'support_tiktok_messages' : '',
+    !hasOrderTable ? 'tiktok_support_orders' : '',
+    !hasRegionServiceTable ? 'tiktok_region_services' : '',
+    !hasMenuTable ? 'tiktok_service_menus' : '',
+  ].filter(Boolean);
 
   return {
     userId: user.id,
@@ -142,7 +151,7 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
     role,
     isSupport,
     adminIpAllowed,
-    canAccess: (!maintenance || isSupport || role === 'admin') && (role !== 'admin' || adminIpAllowed),
+    canAccess: !maintenance || isSupport,
     maintenance,
     serviceName: getLegacySetting(
       settings,
@@ -155,7 +164,9 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
       'Hỗ trợ chat TikTok chuyên nghiệp'
     ),
     supportUsername,
-    orderModuleAvailable: hasOrderTable,
+    chatModuleAvailable: hasChatTable,
+    orderModuleAvailable: hasOrderTable && hasRegionServiceTable && hasMenuTable,
+    missingTables,
   };
 }
 

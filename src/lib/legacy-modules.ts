@@ -29,12 +29,21 @@ export function normalizeLegacyRows<T extends LegacyRow>(rows: T[]): T[] {
 export async function tableExists(table: string) {
   if (tableCache.has(table)) return tableCache.get(table)!;
   try {
-    const rows = await db.$queryRawUnsafe<LegacyRow[]>('SHOW TABLES LIKE ?', table);
+    const rows = await db.$queryRawUnsafe<Array<{ table_name: string }>>(
+      `
+        SELECT TABLE_NAME AS table_name
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = ?
+        LIMIT 1
+      `,
+      table
+    );
     const exists = rows.length > 0;
-    tableCache.set(table, exists);
+    if (exists) {
+      tableCache.set(table, true);
+    }
     return exists;
   } catch {
-    tableCache.set(table, false);
     return false;
   }
 }

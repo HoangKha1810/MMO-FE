@@ -253,25 +253,14 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-            {services.map((service) => {
-              const cardClass =
-                service.index === 1
-                  ? 'dashboard-service-card dashboard-service-card-primary lg:col-span-6'
-                  : service.index === 2 || service.index === 3
-                    ? 'dashboard-service-card dashboard-service-card-secondary lg:col-span-3'
-                    : service.index === 4
-                      ? 'dashboard-service-card lg:col-span-6'
-                      : 'dashboard-service-card lg:col-span-4';
-
-              return (
-                <HomeServiceCard
-                  key={`${service.key}-${service.index}`}
-                  service={service}
-                  className={cardClass}
-                />
-              );
-            })}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {services.map((service) => (
+              <HomeServiceCard
+                key={`${service.key}-${service.index}`}
+                service={service}
+                className="dashboard-service-card h-full"
+              />
+            ))}
           </div>
         </div>
       </div>
