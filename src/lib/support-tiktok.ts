@@ -23,6 +23,12 @@ interface ConversationRow {
   last_sender_type: 'user' | 'support' | null;
 }
 
+interface SupportOrderAccessRow {
+  id: number;
+  status: string | null;
+  ngay_het_han: Date | string | null;
+}
+
 function parseImageUrls(value: string | null) {
   if (!value) {
     return [];
@@ -101,6 +107,81 @@ async function tableExists(tableName: string) {
   return rows.length > 0;
 }
 
+function toIsoDate(value: Date | string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
+  if (!hasOrderTable) {
+    return {
+      hasUnlockedChat: false,
+      chatBlockedReason: 'Module đơn Support TikTok chưa sẵn sàng.',
+      latestOrderId: null,
+      latestOrderStatus: null,
+      latestOrderExpiresAt: null,
+    };
+  }
+
+  const [latestRows, eligibleRows] = await Promise.all([
+    db.$queryRawUnsafe<SupportOrderAccessRow[]>(
+      `
+        SELECT id, status, ngay_het_han
+        FROM tiktok_support_orders
+        WHERE user_id = ?
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+      `,
+      userId
+    ).catch(() => []),
+    db.$queryRawUnsafe<SupportOrderAccessRow[]>(
+      `
+        SELECT id, status, ngay_het_han
+        FROM tiktok_support_orders
+        WHERE user_id = ?
+          AND LOWER(COALESCE(status, '')) IN ('active', 'completed', 'processing', 'success')
+          AND (ngay_het_han IS NULL OR ngay_het_han >= NOW())
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+      `,
+      userId
+    ).catch(() => []),
+  ]);
+
+  const latestOrder = latestRows[0] || null;
+  const latestStatus = String(latestOrder?.status || '').trim().toLowerCase();
+  const expiresAt = latestOrder?.ngay_het_han ? new Date(latestOrder.ngay_het_han) : null;
+  const notExpired = !expiresAt || expiresAt.getTime() >= Date.now();
+  const hasUnlockedChat = eligibleRows.length > 0;
+
+  let chatBlockedReason = '';
+  if (!hasUnlockedChat) {
+    if (!latestOrder) {
+      chatBlockedReason = 'Mua hàng thành công rồi mới chat được.';
+    } else if (!notExpired) {
+      chatBlockedReason = 'Gói Support TikTok của bạn đã hết hạn. Hãy gia hạn hoặc mua lại để chat tiếp.';
+    } else if (latestStatus === 'pending') {
+      chatBlockedReason = 'Đơn Support TikTok của bạn chưa được kích hoạt. Khi mua thành công bạn mới chat được.';
+    } else if (latestStatus === 'canceled' || latestStatus === 'cancelled') {
+      chatBlockedReason = 'Đơn Support TikTok của bạn đã bị hủy. Hãy tạo đơn mới để mở chat.';
+    } else {
+      chatBlockedReason = 'Mua hàng thành công rồi mới chat được.';
+    }
+  }
+
+  return {
+    hasUnlockedChat,
+    chatBlockedReason,
+    latestOrderId: latestOrder ? Number(latestOrder.id) : null,
+    latestOrderStatus: latestOrder?.status ? String(latestOrder.status) : null,
+    latestOrderExpiresAt: toIsoDate(latestOrder?.ngay_het_han),
+  };
+}
+
 export async function getSupportTiktokContext(userId: number, clientIp?: string) {
   const [user, settings, hasOrderTable, hasRegionServiceTable, hasMenuTable, hasChatTable] = await Promise.all([
     db.users.findUnique({
@@ -144,6 +225,15 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
     !hasRegionServiceTable ? 'tiktok_region_services' : '',
     !hasMenuTable ? 'tiktok_service_menus' : '',
   ].filter(Boolean);
+  const orderAccess = isSupport
+    ? {
+        hasUnlockedChat: true,
+        chatBlockedReason: '',
+        latestOrderId: null,
+        latestOrderStatus: null,
+        latestOrderExpiresAt: null,
+      }
+    : await getSupportOrderAccess(user.id, hasOrderTable);
 
   return {
     userId: user.id,
@@ -166,6 +256,11 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
     supportUsername,
     chatModuleAvailable: hasChatTable,
     orderModuleAvailable: hasOrderTable && hasRegionServiceTable && hasMenuTable,
+    canUseChat: isSupport ? hasChatTable : hasChatTable && orderAccess.hasUnlockedChat,
+    chatBlockedReason: orderAccess.chatBlockedReason,
+    latestOrderId: orderAccess.latestOrderId,
+    latestOrderStatus: orderAccess.latestOrderStatus,
+    latestOrderExpiresAt: orderAccess.latestOrderExpiresAt,
     missingTables,
   };
 }

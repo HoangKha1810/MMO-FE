@@ -33,6 +33,12 @@ export async function POST(req: NextRequest) {
   if (!context.chatModuleAvailable) {
     return NextResponse.json({ success: false, message: 'Thiếu bảng support_tiktok_messages' }, { status: 500 });
   }
+  if (!context.isSupport && !context.canUseChat) {
+    return NextResponse.json(
+      { success: false, message: context.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.' },
+      { status: 403 }
+    );
+  }
 
   const contentType = req.headers.get('content-type') || '';
   const body = contentType.includes('multipart/form-data')

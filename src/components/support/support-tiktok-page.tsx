@@ -12,8 +12,12 @@ import { cn } from '@/lib/utils';
 
 interface SupportMeta {
   canAccess: boolean;
+  canUseChat: boolean;
+  chatBlockedReason: string;
   chatModuleAvailable: boolean;
   isSupport: boolean;
+  latestOrderExpiresAt: string | null;
+  latestOrderStatus: string | null;
   maintenance: boolean;
   missingTables: string[];
   orderModuleAvailable: boolean;
@@ -101,6 +105,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       );
     });
   }, [conversations, search]);
+  const canUseChat = Boolean(meta?.isSupport || meta?.canUseChat);
   const ordersHref = meta?.isSupport
     ? (embedded ? '/admin/support-tiktok/orders' : '/user/support-tiktok/orders')
     : '/user/support-tiktok/orders';
@@ -154,7 +159,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   }
 
   async function loadMessages(targetUserId?: number | null) {
-    if (!meta || !meta.chatModuleAvailable) {
+    if (!meta || !meta.chatModuleAvailable || (!meta.isSupport && !meta.canUseChat)) {
       setMessages([]);
       return;
     }
@@ -190,7 +195,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   }
 
   async function sendMessage() {
-    if (!meta || !meta.chatModuleAvailable) {
+    if (!meta || !meta.chatModuleAvailable || (!meta.isSupport && !meta.canUseChat)) {
       return;
     }
 
@@ -258,6 +263,10 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       setMessages([]);
       return;
     }
+    if (!meta.canUseChat) {
+      setMessages([]);
+      return;
+    }
     void loadMessages(user?.id);
   }, [meta, user?.id]);
 
@@ -270,7 +279,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   }, [meta?.isSupport, activeUserId]);
 
   useEffect(() => {
-    if (!meta || !meta.chatModuleAvailable) {
+    if (!meta || !meta.chatModuleAvailable || (!meta.isSupport && !meta.canUseChat)) {
       return;
     }
 
@@ -339,6 +348,16 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
             <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:bg-white/5 dark:text-slate-300">
               Chế độ: {meta?.orderModuleAvailable ? 'Chat + đơn hàng' : 'Chat support'}
             </span>
+            {!meta?.isSupport ? (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em]',
+                  canUseChat ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                )}
+              >
+                {canUseChat ? 'Chat đã mở' : 'Chat bị khóa'}
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -499,15 +518,25 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                         <Headphones className="h-6 w-6" />
                       </div>
                       <h3 className="text-lg font-black uppercase text-slate-900 dark:text-white">
-                        Chưa có tin nhắn
+                        {!meta?.isSupport && !canUseChat ? 'Chat chưa mở' : 'Chưa có tin nhắn'}
                       </h3>
                       <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
                         {!meta?.chatModuleAvailable
                           ? 'Phần chat đang thiếu bảng dữ liệu. Tạo bảng bootstrap rồi tải lại trang để tiếp tục.'
+                          : !meta?.isSupport && !canUseChat
+                          ? meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'
                           : meta?.isSupport
                           ? 'Chọn một hội thoại bên trái để bắt đầu hỗ trợ.'
                           : 'Gửi yêu cầu trực tiếp cho đội Support TikTok từ module mới.'}
                       </p>
+                      {!meta?.isSupport && !canUseChat ? (
+                        <a
+                          href={ordersHref}
+                          className="btn-kinetic mt-5 inline-flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-white"
+                        >
+                          Mua hoặc gia hạn gói
+                        </a>
+                      ) : null}
                     </div>
                   ) : (
                     messages.map((message) => {
@@ -577,11 +606,13 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                       placeholder={
                         !meta?.chatModuleAvailable
                           ? 'Phần chat đang chờ tạo bảng dữ liệu'
+                          : !meta?.isSupport && !canUseChat
+                          ? meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'
                           : meta?.isSupport && !activeUserId
                           ? 'Chọn khách ở cột trái để phản hồi'
                           : 'Nhập tin nhắn...'
                       }
-                      disabled={!meta?.chatModuleAvailable || (meta?.isSupport && !activeUserId) || sending}
+                      disabled={!meta?.chatModuleAvailable || !canUseChat || (meta?.isSupport && !activeUserId) || sending}
                       className="min-h-[104px] w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition-all focus:border-brand-blue dark:border-white/10 dark:bg-white/5 dark:text-white"
                     />
                     <div className="mt-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
@@ -596,7 +627,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                           accept="image/png,image/jpeg,image/webp,image/gif"
                           className="hidden"
                           onChange={(event) => setAttachment(event.target.files?.[0] || null)}
-                          disabled={!meta?.chatModuleAvailable || (meta?.isSupport && !activeUserId) || sending}
+                          disabled={!meta?.chatModuleAvailable || !canUseChat || (meta?.isSupport && !activeUserId) || sending}
                         />
                       </label>
                       {attachment ? (
@@ -615,7 +646,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                     size="xl"
                     className="h-14 w-14 rounded-2xl px-0"
                     onClick={() => void sendMessage()}
-                    disabled={!meta?.chatModuleAvailable || sending || (meta?.isSupport && !activeUserId)}
+                    disabled={!meta?.chatModuleAvailable || !canUseChat || sending || (meta?.isSupport && !activeUserId)}
                   >
                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizonal className="h-5 w-5" />}
                   </Button>
@@ -646,6 +677,22 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                         ? 'Hỗ trợ đầy đủ chat, đơn TikTok và quản lý từ phía admin.'
                         : 'Hiện đang bật phần chat/inbox. Khi module đơn hàng sẵn sàng, hệ thống sẽ tự mở thêm phần đơn TikTok.'}
                     </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+                      Trạng thái chat
+                    </div>
+                    <div className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+                      {canUseChat
+                        ? 'Bạn đã có gói hợp lệ và có thể chat trực tiếp với support.'
+                        : meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'}
+                    </div>
+                    {meta?.latestOrderStatus ? (
+                      <div className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                        Đơn gần nhất: {meta.latestOrderStatus}
+                        {meta.latestOrderExpiresAt ? ` · Hết hạn ${formatTime(meta.latestOrderExpiresAt)}` : ''}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                     <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">

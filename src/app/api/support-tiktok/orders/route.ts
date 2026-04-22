@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
       `
         INSERT INTO tiktok_support_orders
           (user_id, region, service_key, service_name, tiktok_id, buyer_name, buyer_contact, price, status, ngay_gia_han, ngay_het_han, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW())
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW())
       `,
       auth.userId!,
       region,
@@ -214,5 +214,9 @@ export async function POST(req: NextRequest) {
     return { order: rows[0] || null, balance_after: nextBalance };
   });
 
-  return NextResponse.json({ success: true, message: 'Đã tạo đơn Support TikTok', data: created });
+  return NextResponse.json({
+    success: true,
+    message: 'Mua gói Support TikTok thành công. Bạn có thể chat ngay bây giờ.',
+    data: created,
+  });
 }
