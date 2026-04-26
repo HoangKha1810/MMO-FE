@@ -1,4 +1,4 @@
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { processSePayDepositByCode } from '@/lib/deposit-processing';
 import { logSePayDiagnostic, summarizeSePayPayload } from '@/lib/sepay-debug';
 import { verifySePayIpn } from '@/lib/sepay';
@@ -36,7 +36,7 @@ function extractSePayCode(payload: Record<string, unknown>) {
   return matched ? matched[0] : '';
 }
 
-function queueSePayWebhookProcessing(input: {
+async function runSePayWebhookProcessing(input: {
   ip: string;
   payload: Record<string, unknown>;
   code: string;
@@ -47,45 +47,46 @@ function queueSePayWebhookProcessing(input: {
 }) {
   const payloadSummary = summarizeSePayPayload(input.payload);
 
-  after(async () => {
-    try {
-      const result = await processSePayDepositByCode(input.code, input.amount);
-      await logSePayDiagnostic({
-        channel: 'ipn',
-        level: result.state === 'processed' || result.state === 'already_processed' ? 'info' : 'warn',
-        message: input.kind === 'generic'
-          ? 'Processed generic SePay webhook'
-          : 'Processed ORDER_PAID SePay webhook',
-        details: {
-          ip: input.ip,
-          code: input.code,
-          amount: input.amount,
-          orderStatus: input.orderStatus || null,
-          transactionStatus: input.transactionStatus || null,
-          state: result.state,
-          payload: payloadSummary,
-        },
-      });
-    } catch (error) {
-      console.error('SePay IPN background error:', error);
-      await logSePayDiagnostic({
-        channel: 'ipn',
-        level: 'error',
-        message: input.kind === 'generic'
-          ? 'Generic SePay webhook processing failed'
-          : 'ORDER_PAID SePay webhook processing failed',
-        details: {
-          ip: input.ip,
-          code: input.code,
-          amount: input.amount,
-          orderStatus: input.orderStatus || null,
-          transactionStatus: input.transactionStatus || null,
-          error: error instanceof Error ? error.message : 'unknown',
-          payload: payloadSummary,
-        },
-      });
-    }
-  });
+  try {
+    const result = await processSePayDepositByCode(input.code, input.amount);
+    await logSePayDiagnostic({
+      channel: 'ipn',
+      level: result.state === 'processed' || result.state === 'already_processed' ? 'info' : 'warn',
+      message: input.kind === 'generic'
+        ? 'Processed generic SePay webhook'
+        : 'Processed ORDER_PAID SePay webhook',
+      details: {
+        ip: input.ip,
+        code: input.code,
+        amount: input.amount,
+        orderStatus: input.orderStatus || null,
+        transactionStatus: input.transactionStatus || null,
+        state: result.state,
+        payload: payloadSummary,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    console.error('SePay IPN processing error:', error);
+    await logSePayDiagnostic({
+      channel: 'ipn',
+      level: 'error',
+      message: input.kind === 'generic'
+        ? 'Generic SePay webhook processing failed'
+        : 'ORDER_PAID SePay webhook processing failed',
+      details: {
+        ip: input.ip,
+        code: input.code,
+        amount: input.amount,
+        orderStatus: input.orderStatus || null,
+        transactionStatus: input.transactionStatus || null,
+        error: error instanceof Error ? error.message : 'unknown',
+        payload: payloadSummary,
+      },
+    });
+    throw error;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -127,19 +128,23 @@ export async function POST(req: NextRequest) {
   );
 
   if (genericCode && (!transferType || transferType === 'in')) {
-    queueSePayWebhookProcessing({
-      ip,
-      payload,
-      code: genericCode,
-      amount: genericAmount,
-      kind: 'generic',
-    });
+    try {
+      const result = await runSePayWebhookProcessing({
+        ip,
+        payload,
+        code: genericCode,
+        amount: genericAmount,
+        kind: 'generic',
+      });
 
-    return NextResponse.json({
-      success: true,
-      queued: true,
-      ip_address: ip,
-    });
+      return NextResponse.json({
+        success: true,
+        ip_address: ip,
+        data: result,
+      });
+    } catch {
+      return NextResponse.json({ success: false, message: 'Failed to process SePay webhook' }, { status: 500 });
+    }
   }
 
   if (payload.notification_type !== 'ORDER_PAID') {
@@ -178,19 +183,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Ignored payment status' });
   }
 
-  queueSePayWebhookProcessing({
-    ip,
-    payload,
-    code: transactionCode,
-    amount: toNumber(transaction.transaction_amount, 0),
-    kind: 'order_paid',
-    orderStatus,
-    transactionStatus,
-  });
+  try {
+    const result = await runSePayWebhookProcessing({
+      ip,
+      payload,
+      code: transactionCode,
+      amount: toNumber(transaction.transaction_amount, 0),
+      kind: 'order_paid',
+      orderStatus,
+      transactionStatus,
+    });
 
-  return NextResponse.json({
-    success: true,
-    queued: true,
-    ip_address: ip,
-  });
+    return NextResponse.json({
+      success: true,
+      ip_address: ip,
+      data: result,
+    });
+  } catch {
+    return NextResponse.json({ success: false, message: 'Failed to process IPN' }, { status: 500 });
+  }
 }

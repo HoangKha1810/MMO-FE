@@ -78,7 +78,7 @@ export function getSePayConfig(origin?: string) {
     mode,
     merchantId: getLegacyEnv('SEPAY_MERCHANT_ID'),
     secretKey: getLegacyEnv('SEPAY_SECRET_KEY'),
-    apiKey: getLegacyEnv('SEPAY_API_KEY'),
+    apiToken: getLegacyEnv('SEPAY_API_TOKEN') || getLegacyEnv('SEPAY_API_KEY'),
     webhookToken: getLegacyEnv('SEPAY_WEBHOOK_TOKEN'),
     userApiUrl: getLegacyEnv('SEPAY_USER_API_URL', 'https://my.sepay.vn/userapi'),
     gatewayApiUrl: getLegacyEnv(
@@ -180,7 +180,6 @@ export function verifySePayIpn(headers: Headers, payload: Record<string, unknown
   ].filter(Boolean);
 
   const validSecrets = [
-    config.apiKey,
     config.webhookToken,
     config.secretKey,
   ].filter((value): value is string => Boolean(value && value.trim()));
@@ -188,7 +187,7 @@ export function verifySePayIpn(headers: Headers, payload: Record<string, unknown
   if (!validSecrets.length) {
     return {
       success: false as const,
-      message: 'Chưa cấu hình SEPAY_API_KEY / SEPAY_WEBHOOK_TOKEN / SEPAY_SECRET_KEY',
+      message: 'Chưa cấu hình SEPAY_WEBHOOK_TOKEN / SEPAY_SECRET_KEY',
     };
   }
 

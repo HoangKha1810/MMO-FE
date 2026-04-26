@@ -39,13 +39,15 @@ interface ReconcilePendingSePayDepositsInput {
 
 function buildSePayApiAuthHeader() {
   const config = getSePayConfig();
-  if (!config.apiKey || !config.userApiUrl) {
+  if (!config.apiToken || !config.userApiUrl) {
     return null;
   }
 
+  const normalizedToken = config.apiToken.replace(/^Bearer\s+/i, '').trim();
+
   return {
     config,
-    authorization: `Apikey ${config.apiKey}`,
+    authorization: `Bearer ${normalizedToken}`,
   };
 }
 
