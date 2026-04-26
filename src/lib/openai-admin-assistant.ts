@@ -39,6 +39,22 @@ function buildInitialInput(transcript: string, knowledgeContext: string): Respon
   ];
 }
 
+function buildAdminInstructions(context: AdminToolContext) {
+  return [
+    'Bạn là AI nội bộ dành cho admin của TRUNGTAMMMO.',
+    'Bạn có thể dùng tool để đọc database, file trong workspace, biến môi trường, action admin, ghi file và ghi database khi thật sự được admin yêu cầu rõ ràng.',
+    'Chỉ trả lời bằng tiếng Việt.',
+    'Mặc định phải ưu tiên chế độ chỉ đọc. Nếu admin chỉ hỏi kiểm tra, tìm, xem, đối soát, giải thích hoặc audit thì tuyệt đối không dùng tool ghi.',
+    'Chỉ dùng tool quyền cao khi admin đang ra lệnh thay đổi trạng thái, cập nhật dữ liệu, duyệt, từ chối, khóa, mở khóa, sync, sửa file hoặc thực thi fix.',
+    'Không tự ý mở rộng phạm vi thay đổi. Mỗi lần dùng quyền cao phải bám sát đúng yêu cầu mới nhất của admin.',
+    'Không được đoán tên cột database. Nếu chưa chắc schema thì phải describe bảng trước hoặc dùng tool chuyên biệt.',
+    'Với yêu cầu kiểm tra tài khoản liên quan theo IP, ưu tiên dùng inspect_registration_ip thay vì tự viết SQL raw.',
+    'Ưu tiên dùng tài liệu nội bộ trước, chỉ dùng tool nhạy cảm khi cần xác minh dữ liệu hoặc thực thi đúng lệnh.',
+    'Sau khi dùng tool, phải giải thích ngắn gọn kết quả, nêu rõ phần nào đã thay đổi và nếu có rủi ro thì cảnh báo.',
+    `Yêu cầu mới nhất của admin cần bám theo: ${context.latestUserMessage}`,
+  ].join(' ');
+}
+
 function collectToolCalls(output: unknown): ResponseFunctionToolCall[] {
   if (!Array.isArray(output)) {
     return [];
@@ -71,8 +87,7 @@ export async function generateOpenAiAdminReply(context: AdminToolContext, messag
   while (true) {
     const response = await client.responses.create({
       model,
-      instructions:
-        'Bạn là AI nội bộ dành cho admin của TRUNGTAMMMO. Bạn có thể dùng tool để đọc database, file trong workspace và biến môi trường khi thật sự cần. Chỉ trả lời bằng tiếng Việt. Ưu tiên dùng tài liệu nội bộ trước, chỉ dùng tool nhạy cảm khi cần xác minh dữ liệu hoặc xem cấu hình. Khi dùng tool, phải giải thích ngắn gọn kết quả cho admin. Không thực thi thao tác ghi, chỉ đọc.',
+      instructions: buildAdminInstructions(context),
       input,
       tools: adminAiTools,
       parallel_tool_calls: false,
@@ -93,7 +108,19 @@ export async function generateOpenAiAdminReply(context: AdminToolContext, messag
     const toolOutputs: ResponseInputItem[] = [];
     for (const call of toolCalls) {
       const args = call.arguments ? JSON.parse(call.arguments) as Record<string, unknown> : {};
-      const execution = await executeAdminAiTool(context, call.name, args);
+      let execution: AdminToolExecution;
+      try {
+        execution = await executeAdminAiTool(context, call.name, args);
+      } catch (error) {
+        execution = {
+          name: call.name,
+          input: args,
+          output: {
+            success: false,
+            error: error instanceof Error ? error.message : 'Tool execution failed',
+          },
+        };
+      }
       toolTrail.push(execution);
       toolOutputs.push({
         type: 'function_call_output',

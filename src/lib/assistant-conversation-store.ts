@@ -90,7 +90,7 @@ export async function ensureAssistantConversationTables() {
 
 export function getDefaultAssistantWelcome(audience: AssistantAudience) {
   if (audience === 'admin') {
-    return 'AI admin đã sẵn sàng. Tôi có thể dùng tài liệu nội bộ, đọc schema database, chạy truy vấn chỉ đọc, đọc file trong workspace và đọc file .env để hỗ trợ vận hành hệ thống.';
+    return 'AI admin đã sẵn sàng. Tôi có thể dùng tài liệu nội bộ, đọc schema database, đọc file trong workspace, đọc .env, chạy action admin và thực hiện thay đổi khi admin ra lệnh rõ ràng. Mặc định tôi vẫn ưu tiên chế độ chỉ đọc để tránh thao tác ngoài ý muốn.';
   }
 
   return 'Xin chào. Tôi là chatbot hỗ trợ TRUNGTAMMMO, có thể giải thích tổng quan hệ thống, hướng dẫn mua SMM, tài nguyên MMO, VPS, nạp tiền và các bước thao tác cơ bản.';

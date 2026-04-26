@@ -32,6 +32,31 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
 }
 
+function normalizeSePayCallbackUrl(
+  override: string,
+  callbackBase: string,
+  fallbackPath: string,
+  legacyPaths: string[] = []
+) {
+  const fallbackUrl = new URL(fallbackPath, callbackBase).toString();
+  const raw = override.trim();
+
+  if (!raw) {
+    return fallbackUrl;
+  }
+
+  try {
+    const resolved = new URL(raw, callbackBase);
+    if (legacyPaths.includes(resolved.pathname)) {
+      return new URL(fallbackPath, resolved.origin).toString();
+    }
+
+    return resolved.toString();
+  } catch {
+    return fallbackUrl;
+  }
+}
+
 function resolveCallbackBase(origin?: string) {
   const preferredOrigin =
     process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
@@ -44,19 +69,52 @@ function resolveCallbackBase(origin?: string) {
 export function getSePayConfig(origin?: string) {
   const mode = getLegacyEnv('SEPAY_MODE', 'production').toLowerCase();
   const callbackBase = resolveCallbackBase(origin);
+  const configuredIpnUrl = getLegacyEnv('SEPAY_IPN_URL');
+  const configuredSuccessUrl = getLegacyEnv('SEPAY_SUCCESS_URL');
+  const configuredErrorUrl = getLegacyEnv('SEPAY_ERROR_URL');
+  const configuredCancelUrl = getLegacyEnv('SEPAY_CANCEL_URL');
 
   return {
     mode,
     merchantId: getLegacyEnv('SEPAY_MERCHANT_ID'),
     secretKey: getLegacyEnv('SEPAY_SECRET_KEY'),
+    apiKey: getLegacyEnv('SEPAY_API_KEY'),
+    webhookToken: getLegacyEnv('SEPAY_WEBHOOK_TOKEN'),
+    userApiUrl: getLegacyEnv('SEPAY_USER_API_URL', 'https://my.sepay.vn/userapi'),
+    gatewayApiUrl: getLegacyEnv(
+      'SEPAY_GATEWAY_API_URL',
+      mode === 'production'
+        ? 'https://pgapi.sepay.vn/v1'
+        : 'https://pgapi-sandbox.sepay.vn/v1'
+    ),
     checkoutUrl:
       mode === 'production'
         ? 'https://pay.sepay.vn/v1/checkout/init'
         : 'https://pay-sandbox.sepay.vn/v1/checkout/init',
-    ipnUrl: getLegacyEnv('SEPAY_IPN_URL', `${callbackBase}/api/payment/sepay/ipn`),
-    successUrl: getLegacyEnv('SEPAY_SUCCESS_URL', `${callbackBase}/user/deposit?payment=success`),
-    errorUrl: getLegacyEnv('SEPAY_ERROR_URL', `${callbackBase}/user/deposit?payment=error`),
-    cancelUrl: getLegacyEnv('SEPAY_CANCEL_URL', `${callbackBase}/user/deposit?payment=cancel`),
+    ipnUrl: normalizeSePayCallbackUrl(
+      configuredIpnUrl,
+      callbackBase,
+      '/api/payment/sepay/ipn',
+      ['/payment/sepay/ipn', '/sepay/ipn']
+    ),
+    successUrl: normalizeSePayCallbackUrl(
+      configuredSuccessUrl,
+      callbackBase,
+      '/user/deposit?payment=success',
+      ['/deposit']
+    ),
+    errorUrl: normalizeSePayCallbackUrl(
+      configuredErrorUrl,
+      callbackBase,
+      '/user/deposit?payment=error',
+      ['/deposit']
+    ),
+    cancelUrl: normalizeSePayCallbackUrl(
+      configuredCancelUrl,
+      callbackBase,
+      '/user/deposit?payment=cancel',
+      ['/deposit']
+    ),
   };
 }
 
@@ -107,38 +165,48 @@ export function buildSePayCheckout(input: BuildSePayCheckoutInput) {
 }
 
 export function verifySePayIpn(headers: Headers, payload: Record<string, unknown>) {
-  const secretKey = getLegacyEnv('SEPAY_SECRET_KEY');
-  const receivedSecret =
+  const config = getSePayConfig();
+  const authorizationHeader = headers.get('authorization') || headers.get('Authorization') || '';
+  const authorizationToken = authorizationHeader
+    .replace(/^apikey\s+/i, '')
+    .replace(/^bearer\s+/i, '')
+    .trim();
+  const receivedSecrets = [
     headers.get('x-secret-key') ||
-    headers.get('X-Secret-Key') ||
-    headers.get('x_secret_key') ||
-    '';
+    '',
+    headers.get('X-Secret-Key') || '',
+    headers.get('x_secret_key') || '',
+    authorizationToken,
+  ].filter(Boolean);
 
-  if (!secretKey) {
+  const validSecrets = [
+    config.apiKey,
+    config.webhookToken,
+    config.secretKey,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  if (!validSecrets.length) {
     return {
       success: false as const,
-      message: 'Chưa cấu hình SEPAY_SECRET_KEY',
+      message: 'Chưa cấu hình SEPAY_API_KEY / SEPAY_WEBHOOK_TOKEN / SEPAY_SECRET_KEY',
     };
   }
 
-  const expectedBuffer = Buffer.from(secretKey);
-  const receivedBuffer = Buffer.from(receivedSecret);
+  const matched = validSecrets.some((secret) => {
+    const expectedBuffer = Buffer.from(secret);
+    return receivedSecrets.some((candidate) => {
+      const receivedBuffer = Buffer.from(candidate);
+      return (
+        expectedBuffer.length === receivedBuffer.length &&
+        crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+      );
+    });
+  });
 
-  if (
-    !receivedSecret ||
-    expectedBuffer.length !== receivedBuffer.length ||
-    !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
-  ) {
+  if (!matched) {
     return {
       success: false as const,
-      message: 'X-Secret-Key không hợp lệ',
-    };
-  }
-
-  if (typeof payload.notification_type !== 'string') {
-    return {
-      success: false as const,
-      message: 'Thiếu notification_type',
+      message: 'SePay authorization không hợp lệ',
     };
   }
 

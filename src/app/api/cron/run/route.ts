@@ -6,6 +6,8 @@ import {
   getSmmProviderMultipleOrdersStatus,
   listSmmServices,
 } from '@/lib/smm-provider';
+import { runDailyAdminAnomalyDigest } from '@/lib/admin-anomaly-digest';
+import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
 
 type CronSummary = Record<string, unknown>;
@@ -278,6 +280,18 @@ async function runCardMaintenance() {
 }
 
 async function runDepositMaintenance() {
+  const sepay = await reconcilePendingSePayDeposits({ limit: 30 }).catch((error) => ({
+    checked: 0,
+    processed: 0,
+    already_processed: 0,
+    failed: 0,
+    still_pending: 0,
+    missing_remote: 0,
+    skipped: false,
+    reason: '',
+    errors: [error instanceof Error ? error.message : 'SePay reconcile failed'],
+  }));
+
   const stale = await db.transactions.updateMany({
     where: {
       type: 'deposit',
@@ -289,7 +303,10 @@ async function runDepositMaintenance() {
     data: { status: 'failed' },
   }).catch(() => ({ count: 0 }));
 
-  return { stale_deposits: Number(stale.count || 0) };
+  return {
+    stale_deposits: Number(stale.count || 0),
+    sepay,
+  };
 }
 
 async function runTask(task: string): Promise<CronSummary> {
@@ -306,6 +323,7 @@ async function runTask(task: string): Promise<CronSummary> {
   if (shouldRun('forum-ads')) summary.forum_ads = { expired: Number(await runForumAdsExpiry() || 0) };
   if (shouldRun('card')) summary.card = await runCardMaintenance();
   if (shouldRun('deposits')) summary.deposits = await runDepositMaintenance();
+  if (shouldRun('admin-digest')) summary.admin_digest = await runDailyAdminAnomalyDigest();
 
   if (!Object.keys(summary).length) {
     summary.message = `Task '${task}' không tồn tại`;

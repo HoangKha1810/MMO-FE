@@ -2,9 +2,18 @@ import { promises as fs, type Dirent } from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { NextRequest } from 'next/server';
 import type { FunctionTool } from 'openai/resources/responses/responses';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
+import {
+  adminResourceConfig,
+  createAdminResource,
+  deleteAdminResource,
+  runAdminAction,
+  updateAdminResource,
+} from '@/lib/admin-data';
+import { isTrackableIp } from '@/lib/ip-security';
 
 const execFileAsync = promisify(execFile);
 const WORKSPACE_ROOT = path.resolve(process.cwd(), '..');
@@ -12,6 +21,8 @@ const APP_ROOT = process.cwd();
 
 export interface AdminToolContext {
   adminId: number;
+  latestUserMessage: string;
+  auditRequest?: NextRequest;
 }
 
 export interface AdminToolExecution {
@@ -34,7 +45,32 @@ export function toJsonSafeValue<T>(value: T): T {
   ) as T;
 }
 
+const ADMIN_RESOURCE_ACTION_HINTS: Record<string, string[]> = {
+  deposits: ['approve', 'reject', 'check-new-deposits'],
+  'card-orders': ['refund'],
+  'forum-threads': ['approve', 'reject', 'pin', 'unpin', 'bulk-delete', 'bulk-update'],
+  'forum-posts': ['approve', 'reject', 'bulk-delete', 'bulk-update'],
+  'find-jobs': ['approve', 'reject', 'pin', 'unpin', 'bulk-delete', 'bulk-update'],
+  'registration-ips': ['block-ip', 'unblock-ip', 'lock-users-by-ip', 'unlock-users-by-ip'],
+  resources: ['sync'],
+  'resource-categories': ['sync'],
+  'smm-services': ['sync'],
+  providers: ['sync'],
+};
+
 export const adminAiTools: FunctionTool[] = [
+  {
+    type: 'function',
+    name: 'list_admin_resource_capabilities',
+    description: 'Liệt kê toàn bộ resource admin đang quản lý, các field có thể create/update và action sẵn có.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+  },
   {
     type: 'function',
     name: 'list_database_tables',
@@ -43,6 +79,7 @@ export const adminAiTools: FunctionTool[] = [
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
@@ -88,6 +125,7 @@ export const adminAiTools: FunctionTool[] = [
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
@@ -116,6 +154,7 @@ export const adminAiTools: FunctionTool[] = [
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
@@ -150,6 +189,199 @@ export const adminAiTools: FunctionTool[] = [
         },
       },
       required: ['pattern'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'inspect_registration_ip',
+    description: 'Kiem tra mot IP da tung gan voi nhung tai khoan nao, trang thai khoa/ban va tinh trang ban IP hien tai.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        ip: {
+          type: 'string',
+          description: 'Dia chi IP can kiem tra.',
+        },
+      },
+      required: ['ip'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'create_admin_resource_record',
+    description: 'Tạo bản ghi mới trong resource admin. Chi dùng khi admin ra lenh tao/ghi ro rang.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        resource: {
+          type: 'string',
+          description: 'Ten resource admin can tao ban ghi, vi du users, settings, providers.',
+        },
+        data_json: {
+          type: 'string',
+          description: 'JSON object dang chuoi cho payload tao moi theo create_fields cua resource.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau thao tac ghi.',
+        },
+      },
+      required: ['resource', 'data_json', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'update_admin_resource_record',
+    description: 'Cap nhat mot ban ghi trong resource admin. Chi dung khi admin yeu cau thay doi ro rang.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        resource: {
+          type: 'string',
+          description: 'Ten resource admin can cap nhat.',
+        },
+        id: {
+          type: 'number',
+          description: 'ID ban ghi can cap nhat.',
+        },
+        data_json: {
+          type: 'string',
+          description: 'JSON object dang chuoi cho payload cap nhat theo update_fields cua resource.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau thay doi.',
+        },
+      },
+      required: ['resource', 'id', 'data_json', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'delete_admin_resource_record',
+    description: 'Xoa hoac xu ly xoa mot ban ghi trong resource admin. Chi dung khi admin yeu cau ro rang.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        resource: {
+          type: 'string',
+          description: 'Ten resource admin can xoa.',
+        },
+        id: {
+          type: 'number',
+          description: 'ID ban ghi can xoa.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau xoa/ban/soft delete.',
+        },
+      },
+      required: ['resource', 'id', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'run_admin_resource_action',
+    description: 'Chay action admin san co nhu approve deposit, refund card, block IP, pin bai, sync du lieu. Chi dung khi admin yeu cau ro rang.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        resource: {
+          type: 'string',
+          description: 'Ten resource admin can chay action.',
+        },
+        action: {
+          type: 'string',
+          description: 'Ten action can chay, vi du approve, reject, refund, block-ip, sync.',
+        },
+        id: {
+          type: ['number', 'null'],
+          description: 'ID ban ghi chinh can xu ly neu co.',
+        },
+        ids: {
+          type: ['array', 'null'],
+          items: { type: 'number' },
+          description: 'Danh sach ID neu la bulk action.',
+        },
+        reason: {
+          type: ['string', 'null'],
+          description: 'Ly do bo sung neu action can.',
+        },
+        payload_json: {
+          type: ['string', 'null'],
+          description: 'JSON object dang chuoi cho payload bo sung truyen xuong action admin.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau action nay.',
+        },
+      },
+      required: ['resource', 'action', 'id', 'ids', 'reason', 'payload_json', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'run_database_mutation',
+    description: 'Chay mot cau SQL ghi du lieu hoac doi cau truc bang. Chi dung khi admin da yeu cau thuc thi ro rang.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        sql: {
+          type: 'string',
+          description: 'Mot cau SQL INSERT, UPDATE, DELETE, ALTER, CREATE, DROP, RENAME hoac REPLACE.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau SQL ghi.',
+        },
+      },
+      required: ['sql', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'write_workspace_file',
+    description: 'Ghi noi dung vao file trong workspace, ke ca code va .env. Chi dung khi admin da yeu cau ro rang.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        file_path: {
+          type: 'string',
+          description: 'Duong dan file tuong doi workspace hoac duong dan tuyet doi ben trong workspace.',
+        },
+        content: {
+          type: 'string',
+          description: 'Noi dung can ghi vao file.',
+        },
+        mode: {
+          type: ['string', 'null'],
+          enum: ['overwrite', 'append', null],
+          description: 'overwrite de ghi de, append de noi them cuoi file.',
+        },
+        create_parents: {
+          type: ['boolean', 'null'],
+          description: 'Tao thu muc cha neu chua ton tai.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau ghi file.',
+        },
+      },
+      required: ['file_path', 'content', 'mode', 'create_parents', 'request_excerpt'],
       additionalProperties: false,
     },
   },
@@ -214,11 +446,55 @@ function normalizeReadonlySql(sql: string) {
   return normalized;
 }
 
+function normalizeMutationSql(sql: string) {
+  const normalized = sql.trim().replace(/;+$/g, '');
+  const compact = normalized.replace(/\s+/g, ' ').trim().toLowerCase();
+
+  if (!compact) {
+    throw new Error('SQL trống.');
+  }
+
+  if (!/^(insert|update|delete|replace|alter|create|drop|rename)\b/.test(compact)) {
+    throw new Error('Tool này chỉ cho phép SQL ghi hoặc thay đổi cấu trúc.');
+  }
+
+  if (/\bdrop\s+database\b/.test(compact) || /\btruncate\b/.test(compact) || /\bgrant\b/.test(compact) || /\brevoke\b/.test(compact)) {
+    throw new Error('SQL quá nguy hiểm và đã bị chặn ở tool này.');
+  }
+
+  if (normalized.includes(';')) {
+    throw new Error('Chi cho phep mot cau SQL duy nhat.');
+  }
+
+  return normalized;
+}
+
+function parseJsonObjectInput(value: unknown, fieldName: string) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    throw new Error(`Thiếu ${fieldName}.`);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`${fieldName} phải là JSON hợp lệ.`);
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${fieldName} phải là JSON object.`);
+  }
+
+  return parsed as Record<string, unknown>;
+}
+
 async function audit(context: AdminToolContext, action: string, target?: string) {
   await logAdminAction({
     adminId: context.adminId,
     action: `admin_ai:${action}`,
     target,
+    req: context.auditRequest,
   });
 }
 
@@ -254,6 +530,138 @@ const SEARCH_BINARY_EXTENSIONS = new Set([
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeComparisonText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function requestAllowsElevatedAccess(message: string) {
+  const normalized = normalizeComparisonText(message);
+  if (!normalized) {
+    return false;
+  }
+
+  const elevatedPatterns = [
+    /\b(ban|khoa|mo khoa|unlock|unblock|block|duyet|tu choi|approve|reject|refund|pin|unpin)\b/,
+    /\b(cap nhat|chinh|sua|doi|set|reset|tao|them|xoa|delete|drop|remove|purge|hard delete|xoa cung|loai bo|ghi|write|overwrite|append)\b/,
+    /\b(chay|run|thuc hien|tien hanh|lam di|fix|sua loi)\b/,
+  ];
+
+  return elevatedPatterns.some((pattern) => pattern.test(normalized));
+}
+
+function ensureElevatedPermission(context: AdminToolContext, requestExcerpt: unknown) {
+  const latest = String(context.latestUserMessage || '').trim();
+  if (!requestAllowsElevatedAccess(latest)) {
+    throw new Error('Tool quyền cao chỉ chạy khi admin ra lệnh thay đổi rõ ràng trong tin nhắn hiện tại.');
+  }
+
+  const excerpt = String(requestExcerpt || '').trim();
+  if (!excerpt) {
+    throw new Error('Thiếu request_excerpt để đối chiếu lệnh admin.');
+  }
+
+  const normalizedLatest = normalizeComparisonText(latest);
+  const normalizedExcerpt = normalizeComparisonText(excerpt);
+  if (!normalizedExcerpt || !normalizedLatest.includes(normalizedExcerpt)) {
+    throw new Error('request_excerpt không khớp với yêu cầu mới nhất của admin.');
+  }
+}
+
+function buildAdminToolRequest(context: AdminToolContext, method: string) {
+  const source = context.auditRequest;
+  const headers = new Headers();
+  const forwardedFor = source?.headers.get('x-forwarded-for');
+  const realIp = source?.headers.get('x-real-ip');
+  const userAgent = source?.headers.get('user-agent') || 'admin-ai';
+
+  if (forwardedFor) {
+    headers.set('x-forwarded-for', forwardedFor);
+  }
+  if (realIp) {
+    headers.set('x-real-ip', realIp);
+  }
+  headers.set('user-agent', userAgent);
+  headers.set('x-admin-ai', '1');
+
+  return new NextRequest(source?.url || 'http://internal.local/api/admin/ai', {
+    method,
+    headers,
+  });
+}
+
+function listAdminResourceCapabilities() {
+  return Object.entries(adminResourceConfig).map(([resource, config]) => ({
+    resource,
+    title: config.title,
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+    actions: ADMIN_RESOURCE_ACTION_HINTS[resource] || [],
+  }));
+}
+
+async function inspectRegistrationIp(ip: string) {
+  if (!isTrackableIp(ip)) {
+    throw new Error('IP không hợp lệ để kiểm tra.');
+  }
+
+  const [accounts, activeBans, blacklistEntries] = await Promise.all([
+    db.users.findMany({
+      where: { last_ip: ip },
+      orderBy: [
+        { created_at: 'desc' },
+        { id: 'desc' },
+      ],
+      select: {
+        id: true,
+        username: true,
+        fullname: true,
+        email: true,
+        role: true,
+        status: true,
+        created_at: true,
+        last_login: true,
+        last_activity: true,
+        last_ip: true,
+        lock_reason: true,
+        locked_at: true,
+      },
+      take: 50,
+    }),
+    db.banned_ips.findMany({
+      where: {
+        ip,
+        OR: [
+          { expire_at: null },
+          { expire_at: { gt: new Date() } },
+        ],
+      },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    }).catch(() => []),
+    db.ip_blacklist.findMany({
+      where: { ip_address: ip },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    }).catch(() => []),
+  ]);
+
+  return {
+    ip,
+    accounts_count: accounts.length,
+    accounts: toJsonSafeValue(accounts),
+    active_bans_count: activeBans.length,
+    active_bans: toJsonSafeValue(activeBans),
+    blacklist_entries_count: blacklistEntries.length,
+    blacklist_entries: toJsonSafeValue(blacklistEntries),
+  };
 }
 
 function buildSearchMatcher(pattern: string) {
@@ -364,6 +772,11 @@ export async function executeAdminAiTool(
   input: Record<string, unknown>
 ): Promise<AdminToolExecution> {
   switch (name) {
+    case 'list_admin_resource_capabilities': {
+      const resources = listAdminResourceCapabilities();
+      await audit(context, 'list_admin_resource_capabilities');
+      return { name, input, output: toJsonSafeValue(resources) };
+    }
     case 'list_database_tables': {
       const rows = await db.$queryRawUnsafe<Array<{ table_name: string }>>(`
         SELECT table_name
@@ -462,6 +875,134 @@ export async function executeAdminAiTool(
         name,
         input,
         output: toJsonSafeValue(results),
+      };
+    }
+    case 'inspect_registration_ip': {
+      const ip = String(input.ip || '').trim();
+      if (!ip) {
+        throw new Error('Thiếu ip.');
+      }
+      const output = await inspectRegistrationIp(ip);
+      await audit(context, 'inspect_registration_ip', ip);
+      return { name, input: { ip }, output };
+    }
+    case 'create_admin_resource_record': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const resource = String(input.resource || '').trim();
+      if (!resource) {
+        throw new Error('Thiếu resource.');
+      }
+      const data = parseJsonObjectInput(input.data_json, 'data_json');
+      const result = await createAdminResource(resource, data, context.adminId, buildAdminToolRequest(context, 'POST'));
+      await audit(context, 'create_admin_resource_record', `${resource}`);
+      return { name, input, output: toJsonSafeValue(result) };
+    }
+    case 'update_admin_resource_record': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const resource = String(input.resource || '').trim();
+      const id = Number(input.id || 0);
+      if (!resource || !id) {
+        throw new Error('Thiếu resource hoặc id.');
+      }
+      const data = parseJsonObjectInput(input.data_json, 'data_json');
+      const result = await updateAdminResource(resource, id, data, context.adminId, buildAdminToolRequest(context, 'PATCH'));
+      await audit(context, 'update_admin_resource_record', `${resource}#${id}`);
+      return { name, input, output: toJsonSafeValue(result) };
+    }
+    case 'delete_admin_resource_record': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const resource = String(input.resource || '').trim();
+      const id = Number(input.id || 0);
+      if (!resource || !id) {
+        throw new Error('Thiếu resource hoặc id.');
+      }
+      const result = await deleteAdminResource(resource, id, context.adminId, buildAdminToolRequest(context, 'DELETE'));
+      await audit(context, 'delete_admin_resource_record', `${resource}#${id}`);
+      return { name, input, output: toJsonSafeValue(result) };
+    }
+    case 'run_admin_resource_action': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const resource = String(input.resource || '').trim();
+      const action = String(input.action || '').trim();
+      if (!resource || !action) {
+        throw new Error('Thiếu resource hoặc action.');
+      }
+
+      const payload = String(input.payload_json || '').trim()
+        ? parseJsonObjectInput(input.payload_json, 'payload_json')
+        : {};
+      const id = Number(input.id || 0);
+      const ids = Array.isArray(input.ids)
+        ? input.ids.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0)
+        : [];
+      const reason = String(input.reason || '').trim();
+
+      payload.action = action;
+      if (id > 0) {
+        payload.id = id;
+      }
+      if (ids.length > 0) {
+        payload.ids = ids;
+      }
+      if (reason) {
+        payload.reason = reason;
+      }
+
+      const result = await runAdminAction(resource, payload, context.adminId, buildAdminToolRequest(context, 'POST'));
+      await audit(context, 'run_admin_resource_action', `${resource}:${action}`);
+      return { name, input, output: toJsonSafeValue(result) };
+    }
+    case 'run_database_mutation': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const sql = normalizeMutationSql(String(input.sql || ''));
+      const affected = await db.$executeRawUnsafe(sql);
+      await audit(context, 'run_database_mutation', sql.slice(0, 180));
+      return {
+        name,
+        input: {
+          sql,
+          request_excerpt: input.request_excerpt,
+        },
+        output: toJsonSafeValue({ affected_rows: Number(affected || 0) }),
+      };
+    }
+    case 'write_workspace_file': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const filePath = String(input.file_path || '').trim();
+      const content = String(input.content ?? '');
+      const mode = String(input.mode || 'overwrite').trim().toLowerCase();
+      const createParents = Boolean(input.create_parents);
+      if (!filePath) {
+        throw new Error('Thiếu file_path.');
+      }
+      if (!['overwrite', 'append'].includes(mode)) {
+        throw new Error('mode chỉ hỗ trợ overwrite hoặc append.');
+      }
+
+      const resolved = ensureWorkspacePath(filePath);
+      if (createParents) {
+        await fs.mkdir(path.dirname(resolved), { recursive: true });
+      }
+      if (mode === 'append') {
+        await fs.appendFile(resolved, content, 'utf8');
+      } else {
+        await fs.writeFile(resolved, content, 'utf8');
+      }
+
+      await audit(context, 'write_workspace_file', resolved);
+      return {
+        name,
+        input: {
+          file_path: filePath,
+          mode,
+          create_parents: createParents,
+          request_excerpt: input.request_excerpt,
+        },
+        output: toJsonSafeValue({
+          path: resolved,
+          bytes_written: Buffer.byteLength(content, 'utf8'),
+          mode,
+        }),
       };
     }
     default:

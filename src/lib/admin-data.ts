@@ -4,6 +4,7 @@ import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { isTrackableIp } from '@/lib/ip-security';
+import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
 
 type SortOrder = 'asc' | 'desc';
@@ -517,6 +518,12 @@ export async function listAdminResource(resource: string, params: URLSearchParam
   const perPage = Math.min(100, Math.max(5, Number(params.get('per_page') || 25)));
   const skip = (page - 1) * perPage;
 
+  if (resource === 'deposits') {
+    await reconcilePendingSePayDeposits({
+      limit: Math.min(perPage, 30),
+    }).catch(() => null);
+  }
+
   if (resource === 'registration-ips') {
     return listRegistrationIps(config, params, page, perPage, skip);
   }
@@ -930,8 +937,19 @@ export async function runAdminAction(resource: string, input: Record<string, unk
   }
 
   if (action === 'check-new-deposits') {
+    const sepay = await reconcilePendingSePayDeposits({ limit: 20 }).catch((error) => ({
+      checked: 0,
+      processed: 0,
+      already_processed: 0,
+      failed: 0,
+      still_pending: 0,
+      missing_remote: 0,
+      skipped: false,
+      reason: '',
+      errors: [error instanceof Error ? error.message : 'SePay reconcile failed'],
+    }));
     const pending = await db.transactions.count({ where: { type: 'deposit', status: 'pending' } });
-    return { success: true, pending };
+    return { success: true, pending, sepay };
   }
 
   throw new Error('Action chưa được hỗ trợ');

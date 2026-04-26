@@ -371,7 +371,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
                   OpenAI + docs + tool nội bộ
                 </Badge>
                 <Badge variant="danger" className="rounded-full border-none bg-amber-500/15 px-3 py-1 text-amber-100">
-                  DB / ENV / File
+                  DB / ENV / File / Action
                 </Badge>
               </div>
             </div>
@@ -395,8 +395,9 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
                     Bạn cần kiểm tra hệ thống nào hôm nay?
                   </h1>
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
-                    AI admin có thể đọc docs nội bộ, xem schema, chạy truy vấn chỉ đọc, đọc file workspace và kiểm tra
-                    cấu hình môi trường để hỗ trợ debug hoặc audit.
+                    AI admin có thể đọc docs nội bộ, xem schema, đọc file workspace, kiểm tra cấu hình môi trường
+                    và thực thi action quản trị hoặc fix hệ thống khi admin ra lệnh rõ ràng. Mặc định AI vẫn ưu tiên
+                    chế độ chỉ đọc để tránh thay đổi ngoài ý muốn.
                   </p>
 
                   <div className="mt-8 grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -505,7 +506,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
                 />
                 <div className="flex flex-col gap-2 border-t border-white/8 px-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-0.5 text-xs leading-5 text-white/50">
-                    <div>AI này có quyền đọc dữ liệu nhạy cảm nội bộ. Tất cả tool đều đang bị giới hạn ở chế độ chỉ đọc.</div>
+                    <div>AI này có quyền đọc dữ liệu nhạy cảm nội bộ và có thể dùng quyền cao khi admin ra lệnh thay đổi rõ ràng.</div>
                     <div>Mọi lần gọi tool đều được ghi lại để audit nội bộ.</div>
                   </div>
                   <Button

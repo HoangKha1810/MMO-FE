@@ -92,7 +92,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Không tìm thấy cuộc trò chuyện.' }, { status: 404 });
     }
 
-    const result = await generateOpenAiAdminReply({ adminId: auth.user.id }, context.messages);
+    const result = await generateOpenAiAdminReply({
+      adminId: auth.user.id,
+      latestUserMessage: content,
+      auditRequest: req,
+    }, context.messages);
     const updatedConversation = await appendAssistantConversationExchange({
       userId: auth.user.id,
       audience: 'admin',

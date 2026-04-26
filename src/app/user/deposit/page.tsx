@@ -88,7 +88,7 @@ export default function DepositPage() {
     }
 
     if (paymentStatus === 'success') {
-      setResult({ success: true, message: 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ cộng tiền ngay khi IPN xác nhận.' });
+      setResult({ success: true, message: 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ tự đối soát SePay và cộng tiền vào tài khoản.' });
       return;
     }
 
@@ -399,11 +399,11 @@ export default function DepositPage() {
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">4</span>
-              <p>Hoàn tất thanh toán. Hệ thống chờ IPN xác nhận `ORDER_PAID` để cộng tiền tự động</p>
+              <p>Hoàn tất thanh toán. Hệ thống nhận IPN `ORDER_PAID` hoặc tự đối soát với SePay để cộng tiền tự động.</p>
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">5</span>
-              <p>Tiền sẽ được cộng vào tài khoản sau khi callback thành công và transaction chuyển sang `success`</p>
+              <p>Ngay khi SePay xác nhận `CAPTURED`, transaction sẽ chuyển sang `success` và số dư user được cộng tự động.</p>
             </div>
           </CardContent>
         </Card>

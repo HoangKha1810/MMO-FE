@@ -207,6 +207,14 @@ TURNSTILE_SECRET_KEY=your-turnstile-secret
 TELEGRAM_BOT_TOKEN=
 MOMO_API_KEY=
 SEPAY_API_KEY=
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=nhhkha.91tn@gmail.com
+SMTP_PASS=your-gmail-app-password
+ADMIN_ALERT_FROM_EMAIL=nhhkha.91tn@gmail.com
+ADMIN_ALERT_RECIPIENTS=nhhkha.91tn@gmail.com
+ADMIN_ALERT_DIGEST_ENABLED=1
 ```
 
 ## Phát triển

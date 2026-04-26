@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
+import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { buildSePayCheckout } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
 
@@ -54,6 +55,11 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * perPage;
 
   try {
+    await reconcilePendingSePayDeposits({
+      userId,
+      limit: 8,
+    }).catch(() => null);
+
     const where: Record<string, unknown> = {
       user_id: userId,
       type: 'deposit',
