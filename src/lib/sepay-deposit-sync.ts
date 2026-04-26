@@ -2,7 +2,8 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
-import { processSePayDepositByCode } from '@/lib/legacy-modules';
+import { processSePayDepositByCode } from '@/lib/deposit-processing';
+import { logSePayDiagnostic } from '@/lib/sepay-debug';
 import { getSePayConfig } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
 
@@ -103,6 +104,17 @@ async function findSePayTransactionByInvoiceNumber(input: {
   });
 
   if (!response.ok) {
+    const bodyPreview = clampResponseText(await response.text().catch(() => ''));
+    await logSePayDiagnostic({
+      channel: 'sync',
+      level: 'error',
+      message: 'SePay transaction lookup failed',
+      details: {
+        invoiceNumber: input.invoiceNumber,
+        status: response.status,
+        body: bodyPreview,
+      },
+    });
     throw new Error(`SePay transaction lookup failed with HTTP ${response.status}`);
   }
 
@@ -122,9 +134,22 @@ async function findSePayTransactionByInvoiceNumber(input: {
   };
 }
 
+function clampResponseText(value: string, max = 500) {
+  return value.length > max ? `${value.slice(0, max)}...` : value;
+}
+
 export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePayDepositsInput = {}) {
   const auth = buildSePayApiAuthHeader();
   if (!auth) {
+    await logSePayDiagnostic({
+      channel: 'sync',
+      level: 'warn',
+      message: 'Skipped reconcile because SePay API key is missing',
+      details: {
+        userId: input.userId ?? null,
+        limit: input.limit ?? null,
+      },
+    });
     return {
       checked: 0,
       processed: 0,
@@ -178,6 +203,19 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
 
       if (!transaction) {
         missingRemote += 1;
+        await logSePayDiagnostic({
+          channel: 'sync',
+          level: 'warn',
+          message: 'Pending deposit not found on SePay transaction list',
+          details: {
+            depositId: deposit.id,
+            userId: deposit.user_id,
+            invoiceNumber,
+            amount: toNumber(deposit.amount, 0),
+            createdAt: serializeDatabaseDateTime(deposit.created_at),
+          },
+          userId: deposit.user_id,
+        });
         continue;
       }
 
@@ -188,14 +226,48 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
 
       if (result.state === 'processed') {
         processed += 1;
+        await logSePayDiagnostic({
+          channel: 'sync',
+          level: 'info',
+          message: 'Reconciled pending SePay deposit successfully',
+          details: {
+            depositId: deposit.id,
+            userId: deposit.user_id,
+            invoiceNumber,
+            amount: toNumber(deposit.amount, 0),
+          },
+          userId: deposit.user_id,
+        });
       } else if (result.state === 'already_processed') {
         alreadyProcessed += 1;
       } else {
         stillPending += 1;
+        await logSePayDiagnostic({
+          channel: 'sync',
+          level: 'warn',
+          message: 'Found SePay transaction but local deposit still not processed',
+          details: {
+            depositId: deposit.id,
+            userId: deposit.user_id,
+            invoiceNumber,
+            state: result.state,
+          },
+          userId: deposit.user_id,
+        });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'reconcile failed';
       if (message.includes('HTTP 401') || message.includes('HTTP 403')) {
+        await logSePayDiagnostic({
+          channel: 'sync',
+          level: 'error',
+          message: 'Stopped reconcile because SePay API authorization failed',
+          details: {
+            invoiceNumber,
+            error: message,
+          },
+          userId: deposit.user_id,
+        });
         return {
           checked: pendingDeposits.length,
           processed,
@@ -210,6 +282,16 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
       }
 
       errors.push(`${invoiceNumber}: ${message}`);
+      await logSePayDiagnostic({
+        channel: 'sync',
+        level: 'error',
+        message: 'Unexpected reconcile error',
+        details: {
+          invoiceNumber,
+          error: message,
+        },
+        userId: deposit.user_id,
+      });
     }
   }
 
