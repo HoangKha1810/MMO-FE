@@ -3,6 +3,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { processSePayDepositByCode } from '@/lib/deposit-processing';
+import { extractSePayReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
 import { logSePayDiagnostic } from '@/lib/sepay-debug';
 import { getSePayConfig } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
@@ -63,9 +64,11 @@ function normalizeText(value: unknown) {
   return String(value || '').trim().toUpperCase();
 }
 
-function matchesInvoiceNumber(row: SePayTransactionRow, invoiceNumber: string) {
-  const normalizedInvoice = normalizeText(invoiceNumber);
-  if (!normalizedInvoice) return false;
+function matchesInvoiceNumber(row: SePayTransactionRow, referenceCodes: string[]) {
+  const normalizedCodes = referenceCodes
+    .map(normalizeText)
+    .filter(Boolean);
+  if (!normalizedCodes.length) return false;
 
   const candidates = [
     row.code,
@@ -77,11 +80,13 @@ function matchesInvoiceNumber(row: SePayTransactionRow, invoiceNumber: string) {
     row.sub_account,
   ].map(normalizeText);
 
-  return candidates.some((candidate) => candidate.includes(normalizedInvoice));
+  return normalizedCodes.some((normalizedCode) => (
+    candidates.some((candidate) => candidate.includes(normalizedCode))
+  ));
 }
 
 async function findSePayTransactionByInvoiceNumber(input: {
-  invoiceNumber: string;
+  referenceCodes: string[];
   amount: number;
   createdAt: Date;
 }) {
@@ -112,7 +117,7 @@ async function findSePayTransactionByInvoiceNumber(input: {
       level: 'error',
       message: 'SePay transaction lookup failed',
       details: {
-        invoiceNumber: input.invoiceNumber,
+        referenceCodes: input.referenceCodes,
         status: response.status,
         body: bodyPreview,
       },
@@ -127,7 +132,7 @@ async function findSePayTransactionByInvoiceNumber(input: {
 
   const exactMatch = rows.find((row) => (
     toNumber(row.amount_in, 0) === Math.trunc(input.amount) &&
-    matchesInvoiceNumber(row, input.invoiceNumber)
+    matchesInvoiceNumber(row, input.referenceCodes)
   ));
 
   return {
@@ -191,14 +196,15 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
   const errors: string[] = [];
 
   for (const deposit of pendingDeposits as PendingDepositRow[]) {
-    const invoiceNumber = String(deposit.content || '').trim();
-    if (!invoiceNumber) {
+    const referenceCodes = extractSePayReferenceCodes(deposit.content);
+    const invoiceNumber = getPrimarySePayReferenceCode(deposit.content);
+    if (!referenceCodes.length) {
       continue;
     }
 
     try {
       const { transaction } = await findSePayTransactionByInvoiceNumber({
-        invoiceNumber,
+        referenceCodes,
         amount: toNumber(deposit.amount, 0),
         createdAt: deposit.created_at,
       });
@@ -213,6 +219,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
             depositId: deposit.id,
             userId: deposit.user_id,
             invoiceNumber,
+            referenceCodes,
             amount: toNumber(deposit.amount, 0),
             createdAt: serializeDatabaseDateTime(deposit.created_at),
           },
@@ -236,6 +243,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
             depositId: deposit.id,
             userId: deposit.user_id,
             invoiceNumber,
+            referenceCodes,
             amount: toNumber(deposit.amount, 0),
           },
           userId: deposit.user_id,
@@ -252,6 +260,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
             depositId: deposit.id,
             userId: deposit.user_id,
             invoiceNumber,
+            referenceCodes,
             state: result.state,
           },
           userId: deposit.user_id,
@@ -266,6 +275,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
           message: 'Stopped reconcile because SePay API authorization failed',
           details: {
             invoiceNumber,
+            referenceCodes,
             error: message,
           },
           userId: deposit.user_id,
@@ -290,6 +300,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
         message: 'Unexpected reconcile error',
         details: {
           invoiceNumber,
+          referenceCodes,
           error: message,
         },
         userId: deposit.user_id,

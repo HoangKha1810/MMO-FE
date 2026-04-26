@@ -34,8 +34,10 @@ interface DepositFeedback {
 
 interface SePayPayment {
   checkout_url: string;
+  checkout_redirect_url?: string;
   fields: Record<string, string>;
   order_id: string;
+  sepay_order_id?: string;
 }
 
 interface DepositTransaction {
@@ -89,7 +91,12 @@ export default function DepositPage() {
 
     if (paymentStatus === 'success') {
       setResult({ success: true, message: 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ tự đối soát SePay và cộng tiền vào tài khoản.' });
-      return;
+      void loadRecentDeposits();
+      const timer = window.setTimeout(() => {
+        void loadRecentDeposits();
+        router.refresh();
+      }, 1500);
+      return () => window.clearTimeout(timer);
     }
 
     if (paymentStatus === 'cancel') {
@@ -155,7 +162,13 @@ export default function DepositPage() {
       setResult({ success: Boolean(data.success), message: String(data.message || 'Đã xử lý yêu cầu nạp tiền') });
 
       if (data.success) {
-        if (data.method === 'sepay' && data.payment?.checkout_url && data.payment?.fields) {
+        if (data.method === 'sepay' && data.payment?.checkout_redirect_url) {
+          const payment = data.payment as SePayPayment;
+          setSepayPayment(payment);
+          window.setTimeout(() => {
+            window.location.href = payment.checkout_redirect_url || payment.checkout_url;
+          }, 250);
+        } else if (data.method === 'sepay' && data.payment?.checkout_url && data.payment?.fields) {
           const payment = data.payment as SePayPayment;
           setSepayPayment(payment);
           setTimeout(() => submitExternalForm(payment.checkout_url, payment.fields), 250);
@@ -300,10 +313,21 @@ export default function DepositPage() {
                     <div className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                       Đơn {sepayPayment.order_id} đã sẵn sàng. Nếu không tự chuyển trang, bấm nút bên phải.
                     </div>
+                    {sepayPayment.sepay_order_id ? (
+                      <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                        Mã SePay: {sepayPayment.sepay_order_id}
+                      </div>
+                    ) : null}
                   </div>
                   <Button
                     type="button"
-                    onClick={() => submitExternalForm(sepayPayment.checkout_url, sepayPayment.fields)}
+                    onClick={() => {
+                      if (sepayPayment.checkout_redirect_url) {
+                        window.location.href = sepayPayment.checkout_redirect_url;
+                        return;
+                      }
+                      submitExternalForm(sepayPayment.checkout_url, sepayPayment.fields);
+                    }}
                   >
                     <CreditCard className="w-4 h-4" />
                     Mở QR Code

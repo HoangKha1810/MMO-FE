@@ -94,8 +94,7 @@ export function getSePayConfig(origin?: string) {
     ipnUrl: normalizeSePayCallbackUrl(
       configuredIpnUrl,
       callbackBase,
-      '/api/payment/sepay/ipn',
-      ['/payment/sepay/ipn', '/sepay/ipn']
+      '/payment/sepay/ipn'
     ),
     successUrl: normalizeSePayCallbackUrl(
       configuredSuccessUrl,
@@ -161,6 +160,44 @@ export function buildSePayCheckout(input: BuildSePayCheckoutInput) {
     checkoutUrl: config.checkoutUrl,
     config,
     fields,
+  };
+}
+
+export async function createSePayCheckoutSession(input: BuildSePayCheckoutInput) {
+  const checkout = buildSePayCheckout(input);
+  if (!checkout.success) {
+    return checkout;
+  }
+
+  const response = await fetch(checkout.checkoutUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams(checkout.fields),
+    redirect: 'manual',
+    cache: 'no-store',
+  });
+
+  const redirectUrl = response.headers.get('location') || '';
+  if (!redirectUrl) {
+    const bodyPreview = (await response.text().catch(() => '')).slice(0, 500);
+    return {
+      success: false as const,
+      message: `SePay checkout không trả về redirect URL (HTTP ${response.status})${bodyPreview ? `: ${bodyPreview}` : ''}`,
+    };
+  }
+
+  const redirect = new URL(redirectUrl);
+  const sepayOrderId = String(redirect.searchParams.get('order_id') || '').trim();
+
+  return {
+    success: true as const,
+    checkoutUrl: checkout.checkoutUrl,
+    redirectUrl,
+    sepayOrderId,
+    config: checkout.config,
+    fields: checkout.fields,
   };
 }
 

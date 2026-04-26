@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
+import { extractSePayReferenceCodes } from '@/lib/sepay-codes';
 import { toNumber } from '@/lib/utils';
 
 async function processDepositByCodeInternal(code: string, amount: number | undefined, sourceLabel: string) {
@@ -10,14 +11,23 @@ async function processDepositByCodeInternal(code: string, amount: number | undef
   }
 
   return db.$transaction(async (tx) => {
-    const deposit = await tx.transactions.findFirst({
+    const deposits = await tx.transactions.findMany({
       where: {
         type: 'deposit',
-        content: normalizedCode,
+        OR: [
+          { content: normalizedCode },
+          { content: { contains: normalizedCode } },
+        ],
       },
       orderBy: { id: 'desc' },
-      select: { id: true, user_id: true, amount: true, status: true },
+      select: { id: true, user_id: true, amount: true, status: true, content: true },
+      take: 5,
     });
+
+    const deposit = deposits.find((row) => {
+      const codes = extractSePayReferenceCodes(row.content);
+      return codes.includes(normalizedCode);
+    }) || deposits[0];
 
     if (!deposit) return { state: 'missing' as const };
     if (deposit.status === 'success') return { state: 'already_processed' as const, id: deposit.id };

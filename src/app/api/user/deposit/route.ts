@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
+import { buildSePayReferenceContent, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
-import { buildSePayCheckout } from '@/lib/sepay';
+import { createSePayCheckoutSession } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +30,7 @@ function normalizeTransaction(row: {
     transaction_id: `TX-${row.id}`,
     amount: toNumber(row.amount, 0),
     balance_after: toNumber(row.balance_after, 0),
-    content: row.content || '',
+    content: getPrimarySePayReferenceCode(row.content),
     payment_method: row.content?.startsWith('SEP') ? 'sepay_qr' : 'legacy_deposit',
     bank: '',
     type: row.type,
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const sepayCheckout = buildSePayCheckout({
+      const sepayCheckout = await createSePayCheckoutSession({
         amount: normalizedAmount,
         customerId: String(userId),
         description: `Nap tien vi ${user?.username || `User#${userId}`} (UID ${userId})`,
@@ -182,14 +183,37 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const storedContent = buildSePayReferenceContent([
+        transactionCode,
+        sepayCheckout.sepayOrderId,
+      ]);
+
+      const updatedDeposit = await db.transactions.update({
+        where: { id: deposit.id },
+        data: {
+          content: storedContent || transactionCode,
+        },
+        select: {
+          id: true,
+          amount: true,
+          balance_after: true,
+          content: true,
+          type: true,
+          status: true,
+          created_at: true,
+        },
+      });
+
       return NextResponse.json({
         success: true,
         message: 'Đã tạo yêu cầu Thanh Toán QR Code',
         method: 'sepay',
-        data: normalizeTransaction(deposit),
+        data: normalizeTransaction(updatedDeposit),
         payment: {
           order_id: transactionCode,
+          sepay_order_id: sepayCheckout.sepayOrderId,
           checkout_url: sepayCheckout.checkoutUrl,
+          checkout_redirect_url: sepayCheckout.redirectUrl,
           fields: sepayCheckout.fields,
           ipn_url: sepayCheckout.config.ipnUrl,
         },

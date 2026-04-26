@@ -32,7 +32,7 @@ function extractSePayCode(payload: Record<string, unknown>) {
     .map((value) => String(value || '').trim())
     .find(Boolean);
 
-  const matched = rawText?.match(/\bSEP\d+T\d+\b/i);
+  const matched = rawText?.match(/\b(?:SEP\d+T\d+|PAY[0-9A-Z]+)\b/i);
   return matched ? matched[0] : '';
 }
 
