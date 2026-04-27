@@ -455,24 +455,61 @@ function normalizeValue(value: unknown): unknown {
   return value;
 }
 
+const nullableDateFieldPatterns = [
+  /(^|_)(date|dates)$/i,
+  /_at$/i,
+  /_until$/i,
+  /_expiry$/i,
+  /_expires$/i,
+  /^ngay_/i,
+];
+
+const nullableBooleanFieldPatterns = [
+  /^is_/i,
+  /^show_/i,
+  /^allow_/i,
+  /^requires_/i,
+  /_enabled$/i,
+];
+
+function isNullableDateField(field: string) {
+  return nullableDateFieldPatterns.some((pattern) => pattern.test(field));
+}
+
+function isNullableBooleanField(field: string) {
+  return nullableBooleanFieldPatterns.some((pattern) => pattern.test(field));
+}
+
 function sanitizeData(input: Record<string, unknown>, allowedFields: string[] = []) {
   const output: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (Object.prototype.hasOwnProperty.call(input, field)) {
-      output[field] = coerceInput(input[field]);
+      output[field] = coerceInput(field, input[field]);
     }
   }
   return output;
 }
 
-function coerceInput(value: unknown) {
+function coerceInput(field: string, value: unknown) {
   if (typeof value !== 'string') {
     return value;
   }
 
   const trimmed = value.trim();
   if (trimmed === '') {
+    if (isNullableDateField(field)) {
+      return null;
+    }
+    if (isNullableBooleanField(field)) {
+      return null;
+    }
     return '';
+  }
+
+  if (isNullableBooleanField(field)) {
+    const normalized = trimmed.toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'off'].includes(normalized)) return false;
   }
 
   if (trimmed === 'true') return true;
