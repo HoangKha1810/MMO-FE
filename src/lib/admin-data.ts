@@ -4,6 +4,7 @@ import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { isTrackableIp } from '@/lib/ip-security';
+import { invalidateLegacySettingsCache } from '@/lib/legacy-settings';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
 
@@ -751,6 +752,10 @@ export async function createAdminResource(resource: string, input: Record<string
     created = await delegate.create({ data });
   }
 
+  if (resource === 'settings') {
+    invalidateLegacySettingsCache();
+  }
+
   await logAdminAction({ adminId, action: `create ${resource}`, target: JSON.stringify(data), req });
   return { success: true, data: normalizeValue(created) };
 }
@@ -772,6 +777,10 @@ export async function updateAdminResource(resource: string, id: number, input: R
   } else {
     const delegate = getDelegate(config);
     updated = await delegate.update({ where: { id }, data });
+  }
+
+  if (resource === 'settings') {
+    invalidateLegacySettingsCache();
   }
 
   await logAdminAction({ adminId, action: `update ${resource}`, target: `#${id}`, req });
@@ -807,6 +816,10 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
   } else {
     const delegate = getDelegate(config);
     await delegate.delete({ where: { id } });
+  }
+
+  if (resource === 'settings') {
+    invalidateLegacySettingsCache();
   }
 
   await logAdminAction({ adminId, action: `delete ${resource}`, target: `#${id}`, req });

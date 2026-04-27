@@ -27,6 +27,20 @@ interface ServiceDefinition {
   external?: boolean;
 }
 
+export interface LegacyServiceControlDefinition {
+  key: string;
+  nameKey: string;
+  descKey: string;
+  statusKey: string;
+  href: string;
+  iconKey: string;
+  color: string;
+  textColor: string;
+  defaultTitle: string;
+  defaultDesc: string;
+  external: boolean;
+}
+
 const SETTINGS_CACHE_TTL_MS = 60 * 1000;
 const LEGACY_SITE_ORIGIN =
   process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') || 'https://trungtammmo.vn';
@@ -322,6 +336,22 @@ const sidebarServiceDefinitions: ServiceDefinition[] = [
   },
 ];
 
+export function getLegacyHomeServiceControls(): LegacyServiceControlDefinition[] {
+  return homeServiceDefinitions.map((definition) => ({
+    key: definition.key,
+    nameKey: definition.nameKey,
+    descKey: definition.descKey,
+    statusKey: definition.statusKey,
+    href: definition.href,
+    iconKey: definition.iconKey,
+    color: definition.color,
+    textColor: definition.textColor,
+    defaultTitle: definition.defaultTitle,
+    defaultDesc: definition.defaultDesc,
+    external: Boolean(definition.external),
+  }));
+}
+
 function mapServices(
   settings: Record<string, string>,
   definitions: ServiceDefinition[]
@@ -377,6 +407,10 @@ export async function getLegacySettingsMap(forceRefresh = false): Promise<Record
 
     return {};
   }
+}
+
+export function invalidateLegacySettingsCache() {
+  settingsCache = null;
 }
 
 export function getLegacySetting(
