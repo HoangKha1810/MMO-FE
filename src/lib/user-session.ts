@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
@@ -9,7 +10,11 @@ export async function getCurrentUserForShell() {
   const userId = Number(cookieStore.get('user_id')?.value || 0);
 
   if (!userId) {
-    redirect('/auth/login');
+    redirect(buildAccessPageUrl({
+      reason: 'login-required',
+      area: 'user',
+      next: '/user/home',
+    }));
   }
 
   const user = await db.users.findUnique({
@@ -39,7 +44,11 @@ export async function getCurrentUserForShell() {
   });
 
   if (!user || user.status !== 'active') {
-    redirect('/auth/login');
+    redirect(buildAccessPageUrl({
+      reason: 'login-required',
+      area: 'user',
+      next: '/user/home',
+    }));
   }
 
   return {

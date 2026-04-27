@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { HomeServiceCard } from '@/components/modules/home-service-card';
+import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
 import {
   buildLegacyAssetUrl,
@@ -86,7 +87,11 @@ export default async function HomePage() {
   const userId = parseInt(cookieStore.get('user_id')?.value || '0', 10);
 
   if (!userId) {
-    redirect('/auth/login');
+    redirect(buildAccessPageUrl({
+      reason: 'login-required',
+      area: 'user',
+      next: '/user/home',
+    }));
   }
 
   const settings = await getLegacySettingsMap();
@@ -96,7 +101,11 @@ export default async function HomePage() {
   ]);
 
   if (!user) {
-    redirect('/auth/login');
+    redirect(buildAccessPageUrl({
+      reason: 'login-required',
+      area: 'user',
+      next: '/user/home',
+    }));
   }
 
   const services = getHomeServiceGrid(settings).map((service, index) => ({

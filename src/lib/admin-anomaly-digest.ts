@@ -460,69 +460,104 @@ function renderDigestHtml(summary: string, report: AdminAnomalyReport) {
 }
 
 export async function runDailyAdminAnomalyDigest() {
+  return runDailyAdminAnomalyDigestWithOptions();
+}
+
+export async function runDailyAdminAnomalyDigestWithOptions(input: {
+  force?: boolean;
+  markSent?: boolean;
+  subjectPrefix?: string;
+} = {}) {
   const alertConfig = await getAdminAlertEmailConfig();
-  if (!alertConfig.enabled) {
-    return {
-      sent: false,
-      skipped: true,
-      reason: 'Digest bị tắt trong cấu hình.',
-      recipients: alertConfig.recipients,
-    };
-  }
 
-  const smtpUser = String(process.env.SMTP_USER || '').trim();
-  const smtpPass = String(process.env.SMTP_PASS || '').trim();
-  if (!smtpUser || !smtpPass) {
-    return {
-      sent: false,
-      skipped: true,
-      reason: 'Thiếu SMTP_USER hoặc SMTP_PASS nên chưa gửi được digest hằng ngày.',
-      recipients: alertConfig.recipients,
-    };
-  }
-
-  const todayKey = vietnamDateKey();
-  const lastSent = await readDigestLastSentDate();
-  if (lastSent.value === todayKey) {
-    return {
-      sent: false,
-      skipped: true,
-      reason: `Digest đã được gửi trong ngày ${todayKey}.`,
-      recipients: alertConfig.recipients,
-    };
-  }
-
-  const report = await collectAnomalyRows();
-  const summary = await generateAiDigestSummary(report);
-  const subject = `[TRUNGTAMMMO] Daily anomaly digest ${displayDigestDate()}`;
-  const email = await sendAdminAlertEmail({
-    subject,
-    text: summary,
-    html: renderDigestHtml(summary, report),
-  });
-
-  if (email.sent) {
-    await saveDigestLastSentDate(todayKey);
-  }
-
-  await db.activity_logs.create({
-    data: {
-      activity: `admin daily digest ${email.sent ? 'sent' : 'skipped'}: ${JSON.stringify({
-        severity: report.severity,
-        metrics: report.metrics,
+  try {
+    if (!alertConfig.enabled) {
+      return {
+        sent: false,
+        skipped: true,
+        reason: 'Digest bị tắt trong cấu hình.',
         recipients: alertConfig.recipients,
-        reason: 'reason' in email ? email.reason : '',
-      }).slice(0, 1200)}`,
-      user_agent: 'cron-admin-digest',
-    },
-  }).catch(() => undefined);
+      };
+    }
 
-  return {
-    ...email,
-    subject,
-    severity: report.severity,
-    metrics: report.metrics,
-    window_start: report.window_start,
-    window_end: report.window_end,
-  };
+    const smtpUser = String(process.env.SMTP_USER || '').trim();
+    const smtpPass = String(process.env.SMTP_PASS || '').trim();
+    if (!smtpUser || !smtpPass) {
+      return {
+        sent: false,
+        skipped: true,
+        reason: 'Thiếu SMTP_USER hoặc SMTP_PASS nên chưa gửi được digest hằng ngày.',
+        recipients: alertConfig.recipients,
+      };
+    }
+
+    const todayKey = vietnamDateKey();
+    const lastSent = await readDigestLastSentDate();
+    if (!input.force && lastSent.value === todayKey) {
+      return {
+        sent: false,
+        skipped: true,
+        reason: `Digest đã được gửi trong ngày ${todayKey}.`,
+        recipients: alertConfig.recipients,
+      };
+    }
+
+    const report = await collectAnomalyRows();
+    const summary = await generateAiDigestSummary(report);
+    const subject = `${String(input.subjectPrefix || '').trim()}${input.subjectPrefix ? ' ' : ''}[TRUNGTAMMMO] Daily anomaly digest ${displayDigestDate()}`;
+    const email = await sendAdminAlertEmail({
+      subject,
+      text: summary,
+      html: renderDigestHtml(summary, report),
+    });
+
+    let postSendWarning = '';
+    if (email.sent && input.markSent !== false) {
+      try {
+        await saveDigestLastSentDate(todayKey);
+      } catch (error) {
+        postSendWarning = error instanceof Error ? error.message : 'Khong the luu trang thai digest da gui';
+      }
+    }
+
+    await db.activity_logs.create({
+      data: {
+        activity: `admin daily digest ${email.sent ? 'sent' : 'skipped'}: ${JSON.stringify({
+          severity: report.severity,
+          metrics: report.metrics,
+          recipients: alertConfig.recipients,
+          reason: 'reason' in email ? email.reason : '',
+          warning: postSendWarning,
+        }).slice(0, 1200)}`,
+        user_agent: 'cron-admin-digest',
+      },
+    }).catch(() => undefined);
+
+    return {
+      ...email,
+      subject,
+      severity: report.severity,
+      metrics: report.metrics,
+      window_start: report.window_start,
+      window_end: report.window_end,
+      warning: postSendWarning || undefined,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown admin digest failure';
+
+    await db.activity_logs.create({
+      data: {
+        activity: `admin daily digest failed: ${message}`.slice(0, 1200),
+        user_agent: 'cron-admin-digest',
+      },
+    }).catch(() => undefined);
+
+    return {
+      sent: false,
+      skipped: false,
+      reason: `Khong the tao/gui daily anomaly digest: ${message}`,
+      recipients: alertConfig.recipients,
+      error: message,
+    };
+  }
 }

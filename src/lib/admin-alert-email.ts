@@ -35,6 +35,16 @@ function parseEmailList(value: string) {
   );
 }
 
+function normalizeEmailList(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .map((item) => item.trim())
+        .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item))
+    )
+  );
+}
+
 async function loadAlertSettingsMap() {
   const rows = await db.settings.findMany({
     where: { setting_key: { in: ALERT_SETTING_KEYS } },
@@ -56,6 +66,83 @@ async function loadAlertSettingsMap() {
 function smtpPort() {
   const port = Number(process.env.SMTP_PORT || 465);
   return Number.isFinite(port) && port > 0 ? Math.trunc(port) : 465;
+}
+
+interface SmtpRuntimeConfig {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+}
+
+function getSmtpRuntimeConfig() {
+  const host = String(process.env.SMTP_HOST || 'smtp.gmail.com').trim();
+  const port = smtpPort();
+  const secure = parseBoolean(process.env.SMTP_SECURE || (port === 465 ? '1' : '0'), port === 465);
+  const user = String(process.env.SMTP_USER || '').trim();
+  const pass = String(process.env.SMTP_PASS || '').trim();
+
+  return {
+    host,
+    port,
+    secure,
+    user,
+    pass,
+  } satisfies SmtpRuntimeConfig;
+}
+
+function createSmtpTransporter(config: SmtpRuntimeConfig) {
+  return nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+}
+
+export async function sendSystemEmail(input: {
+  to: string[];
+  subject: string;
+  text: string;
+  html?: string;
+  from?: string | null;
+}) {
+  const config = await getAdminAlertEmailConfig();
+  const smtp = getSmtpRuntimeConfig();
+
+  if (!smtp.user || !smtp.pass) {
+    return {
+      sent: false,
+      skipped: true,
+      reason: 'Thiếu SMTP_USER hoặc SMTP_PASS để gửi email hệ thống.',
+      recipients: normalizeEmailList(input.to),
+    };
+  }
+
+  const recipients = normalizeEmailList(input.to);
+  const finalRecipients = recipients.length > 0 ? recipients : config.recipients;
+
+  const transporter = createSmtpTransporter(smtp);
+  const from = String(input.from || config.from || smtp.user || DEFAULT_ADMIN_ALERT_EMAIL).trim() || DEFAULT_ADMIN_ALERT_EMAIL;
+  const result = await transporter.sendMail({
+    from,
+    to: finalRecipients.join(', '),
+    subject: input.subject,
+    text: input.text,
+    html: input.html || input.text.replace(/\n/g, '<br />'),
+  });
+
+  return {
+    sent: true,
+    skipped: false,
+    recipients: finalRecipients,
+    from,
+    message_id: result.messageId,
+  };
 }
 
 export interface AdminAlertEmailConfig {
@@ -101,13 +188,9 @@ export async function sendAdminAlertEmail(input: {
     };
   }
 
-  const host = String(process.env.SMTP_HOST || 'smtp.gmail.com').trim();
-  const port = smtpPort();
-  const secure = parseBoolean(process.env.SMTP_SECURE || (port === 465 ? '1' : '0'), port === 465);
-  const user = String(process.env.SMTP_USER || '').trim();
-  const pass = String(process.env.SMTP_PASS || '').trim();
+  const smtp = getSmtpRuntimeConfig();
 
-  if (!user || !pass) {
+  if (!smtp.user || !smtp.pass) {
     return {
       sent: false,
       skipped: true,
@@ -116,15 +199,7 @@ export async function sendAdminAlertEmail(input: {
     };
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: {
-      user,
-      pass,
-    },
-  });
+  const transporter = createSmtpTransporter(smtp);
 
   const result = await transporter.sendMail({
     from: config.from,

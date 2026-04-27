@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
 
 export interface AdminSessionUser {
@@ -10,9 +11,27 @@ export interface AdminSessionUser {
   role: string;
 }
 
-export async function getSessionUser(): Promise<AdminSessionUser | null> {
+export interface SessionCookieState {
+  userId: number;
+  hasUserSession: boolean;
+  hasPending2fa: boolean;
+}
+
+export async function getSessionCookieState(): Promise<SessionCookieState> {
   const cookieStore = await cookies();
   const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const pending2fa = String(cookieStore.get('2fa_pending')?.value || '').trim();
+
+  return {
+    userId,
+    hasUserSession: userId > 0,
+    hasPending2fa: Boolean(pending2fa),
+  };
+}
+
+export async function getSessionUser(): Promise<AdminSessionUser | null> {
+  const session = await getSessionCookieState();
+  const userId = session.userId;
 
   if (!userId) {
     return null;
@@ -45,11 +64,20 @@ export async function requireAdminPage() {
   const user = await getSessionUser();
 
   if (!user) {
-    redirect('/auth/login');
+    redirect(buildAccessPageUrl({
+      reason: 'login-required',
+      area: 'admin',
+      next: '/admin/dashboard',
+    }));
   }
 
   if (user.role !== 'admin') {
-    redirect('/user/home');
+    redirect(buildAccessPageUrl({
+      reason: 'admin-only',
+      area: 'admin',
+      role: user.role,
+      next: '/admin/dashboard',
+    }));
   }
 
   return user;

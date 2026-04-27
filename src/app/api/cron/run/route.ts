@@ -6,7 +6,7 @@ import {
   getSmmProviderMultipleOrdersStatus,
   listSmmServices,
 } from '@/lib/smm-provider';
-import { runDailyAdminAnomalyDigest } from '@/lib/admin-anomaly-digest';
+import { runDailyAdminAnomalyDigest, runDailyAdminAnomalyDigestWithOptions } from '@/lib/admin-anomaly-digest';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
 
@@ -32,6 +32,11 @@ function authorized(req: NextRequest) {
 function normalizeTask(value: unknown) {
   const task = String(value || 'all').trim().toLowerCase();
   return task || 'all';
+}
+
+function parseBooleanFlag(value: unknown) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on'].includes(normalized);
 }
 
 function normalizeProviderStatus(value: unknown) {
@@ -309,7 +314,7 @@ async function runDepositMaintenance() {
   };
 }
 
-async function runTask(task: string): Promise<CronSummary> {
+async function runTask(task: string, options: { force?: boolean } = {}): Promise<CronSummary> {
   const shouldRun = (name: string) => task === 'all' || task === name;
   const summary: CronSummary = {};
 
@@ -323,7 +328,18 @@ async function runTask(task: string): Promise<CronSummary> {
   if (shouldRun('forum-ads')) summary.forum_ads = { expired: Number(await runForumAdsExpiry() || 0) };
   if (shouldRun('card')) summary.card = await runCardMaintenance();
   if (shouldRun('deposits')) summary.deposits = await runDepositMaintenance();
-  if (shouldRun('admin-digest')) summary.admin_digest = await runDailyAdminAnomalyDigest();
+  if (shouldRun('admin-digest')) {
+    summary.admin_digest = options.force
+      ? await runDailyAdminAnomalyDigestWithOptions({ force: true, markSent: true, subjectPrefix: '[FORCED]' })
+      : await runDailyAdminAnomalyDigest();
+  }
+  if (task === 'admin-digest-test') {
+    summary.admin_digest_test = await runDailyAdminAnomalyDigestWithOptions({
+      force: true,
+      markSent: false,
+      subjectPrefix: '[TEST]',
+    });
+  }
 
   if (!Object.keys(summary).length) {
     summary.message = `Task '${task}' không tồn tại`;
@@ -339,8 +355,9 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const task = normalizeTask((body as Record<string, unknown>).task || req.nextUrl.searchParams.get('task'));
+  const force = parseBooleanFlag((body as Record<string, unknown>).force || req.nextUrl.searchParams.get('force'));
   const startedAt = Date.now();
-  const summary = await runTask(task);
+  const summary = await runTask(task, { force });
 
   await db.activity_logs.create({
     data: {
@@ -364,8 +381,9 @@ export async function GET(req: NextRequest) {
   }
 
   const task = normalizeTask(req.nextUrl.searchParams.get('task'));
+  const force = parseBooleanFlag(req.nextUrl.searchParams.get('force'));
   const startedAt = Date.now();
-  const summary = await runTask(task);
+  const summary = await runTask(task, { force });
 
   await db.activity_logs.create({
     data: {

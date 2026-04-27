@@ -4,6 +4,8 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { NextRequest } from 'next/server';
 import type { FunctionTool } from 'openai/resources/responses/responses';
+import { runDailyAdminAnomalyDigestWithOptions } from '@/lib/admin-anomaly-digest';
+import { sendSystemEmail } from '@/lib/admin-alert-email';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
 import {
@@ -385,6 +387,97 @@ export const adminAiTools: FunctionTool[] = [
       additionalProperties: false,
     },
   },
+  {
+    type: 'function',
+    name: 'send_system_email',
+    description: 'Gui email chu dong tu he thong cho nguoi nhan bat ky. Chi dung khi admin yeu cau ro rang viec gui mail/thong bao.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        recipients_csv: {
+          type: 'string',
+          description: 'Danh sach email nguoi nhan, ngan cach boi dau phay, cham phay hoac xuong dong.',
+        },
+        subject: {
+          type: 'string',
+          description: 'Tieu de email can gui.',
+        },
+        text: {
+          type: 'string',
+          description: 'Noi dung text cua email.',
+        },
+        html: {
+          type: ['string', 'null'],
+          description: 'Noi dung HTML neu muon control mau email. Co the de null.',
+        },
+        from_email: {
+          type: ['string', 'null'],
+          description: 'Email nguoi gui neu muon override. Co the de null de dung cau hinh he thong.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau gui email.',
+        },
+      },
+      required: ['recipients_csv', 'subject', 'text', 'html', 'from_email', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'send_telegram_message',
+    description: 'Gui mot tin nhan Telegram bang bot cua he thong. Chi dung khi admin yeu cau ro rang viec gui thong bao Telegram.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: 'Noi dung tin nhan can gui.',
+        },
+        chat_id: {
+          type: ['string', 'null'],
+          description: 'Chat ID dich. Co the de null de dung TELEGRAM_CHAT_ID.',
+        },
+        token: {
+          type: ['string', 'null'],
+          description: 'Bot token neu muon override. Co the de null de dung TELEGRAM_BOT_TOKEN.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau gui Telegram.',
+        },
+      },
+      required: ['text', 'chat_id', 'token', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'run_admin_daily_digest',
+    description: 'Kich hoat ngay luong bao cao bat thuong hang ngay cua admin va gui mail theo cau hinh hien tai. Chi dung khi admin yeu cau ro rang.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        force: {
+          type: ['boolean', 'null'],
+          description: 'true de bo qua chan gui 1 lan/ngay. null thi mac dinh false.',
+        },
+        mark_sent: {
+          type: ['boolean', 'null'],
+          description: 'true de danh dau da gui hom nay, false de chi test. null thi mac dinh true.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau chay digest/gui bao cao.',
+        },
+      },
+      required: ['force', 'mark_sent', 'request_excerpt'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 function ensureWorkspacePath(inputPath: string) {
@@ -551,9 +644,22 @@ function requestAllowsElevatedAccess(message: string) {
     /\b(ban|khoa|mo khoa|unlock|unblock|block|duyet|tu choi|approve|reject|refund|pin|unpin)\b/,
     /\b(cap nhat|chinh|sua|doi|set|reset|tao|them|xoa|delete|drop|remove|purge|hard delete|xoa cung|loai bo|ghi|write|overwrite|append)\b/,
     /\b(chay|run|thuc hien|tien hanh|lam di|fix|sua loi)\b/,
+    /\b(gui|send|test)\b(?:\s+[a-z0-9]+){0,4}\s+\b(mail|email|telegram|thong bao)\b/,
+    /\b(chay|run|kich hoat|gui|test)\b(?:\s+[a-z0-9]+){0,4}\s+\b(digest|bao cao)\b/,
   ];
 
   return elevatedPatterns.some((pattern) => pattern.test(normalized));
+}
+
+function parseRecipientCsv(value: unknown) {
+  return Array.from(
+    new Set(
+      String(value || '')
+        .split(/[,\n;]+/)
+        .map((item) => item.trim())
+        .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item))
+    )
+  );
 }
 
 function ensureElevatedPermission(context: AdminToolContext, requestExcerpt: unknown) {
@@ -1003,6 +1109,95 @@ export async function executeAdminAiTool(
           bytes_written: Buffer.byteLength(content, 'utf8'),
           mode,
         }),
+      };
+    }
+    case 'send_system_email': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const recipients = parseRecipientCsv(input.recipients_csv);
+      const subject = String(input.subject || '').trim();
+      const text = String(input.text || '').trim();
+      const html = typeof input.html === 'string' ? String(input.html).trim() : '';
+      const fromEmail = typeof input.from_email === 'string' ? String(input.from_email).trim() : '';
+
+      if (!subject) {
+        throw new Error('Thiếu subject.');
+      }
+      if (!text) {
+        throw new Error('Thiếu text.');
+      }
+
+      const result = await sendSystemEmail({
+        to: recipients,
+        subject,
+        text,
+        html: html || undefined,
+        from: fromEmail || undefined,
+      });
+      await audit(context, 'send_system_email', `${subject} -> ${recipients.join(',')}`);
+      return {
+        name,
+        input: {
+          recipients_csv: recipients.join(', '),
+          subject,
+          request_excerpt: input.request_excerpt,
+        },
+        output: toJsonSafeValue(result),
+      };
+    }
+    case 'send_telegram_message': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const text = String(input.text || '').trim();
+      const token = String(input.token || process.env.TELEGRAM_BOT_TOKEN || '').trim();
+      const chatId = String(input.chat_id || process.env.TELEGRAM_CHAT_ID || '').trim();
+
+      if (!text) {
+        throw new Error('Thiếu text.');
+      }
+      if (!token || !chatId) {
+        throw new Error('Thiếu TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID.');
+      }
+
+      const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      await audit(context, 'send_telegram_message', `${chatId}`);
+      return {
+        name,
+        input: {
+          chat_id: chatId,
+          request_excerpt: input.request_excerpt,
+        },
+        output: toJsonSafeValue({
+          success: response.ok,
+          status: response.status,
+          data: payload,
+        }),
+      };
+    }
+    case 'run_admin_daily_digest': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const force = typeof input.force === 'boolean' ? input.force : false;
+      const markSent = typeof input.mark_sent === 'boolean' ? input.mark_sent : true;
+      const result = await runDailyAdminAnomalyDigestWithOptions({
+        force,
+        markSent,
+        subjectPrefix: force && !markSent ? '[FORCED TEST]' : force ? '[FORCED]' : markSent ? '' : '[TEST]',
+      });
+      await audit(context, 'run_admin_daily_digest', `${force ? 'force' : 'normal'}:${markSent ? 'mark' : 'test'}`);
+      return {
+        name,
+        input: {
+          force,
+          mark_sent: markSent,
+          request_excerpt: input.request_excerpt,
+        },
+        output: toJsonSafeValue(result),
       };
     }
     default:
