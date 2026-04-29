@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
-import { formatDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
+import { formatDatabaseDateTime, serializeAbsoluteDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { getAdminAlertEmailConfig, sendAdminAlertEmail } from '@/lib/admin-alert-email';
 import { safeCount, safeRows, tableExists, type LegacyRow } from '@/lib/legacy-modules';
 import { toNumber } from '@/lib/utils';
@@ -332,10 +332,10 @@ async function collectAnomalyRows() {
   ]);
 
   const baseReport = {
-    generated_at: serializeDatabaseDateTime(now),
+    generated_at: serializeAbsoluteDateTime(now),
     vietnam_day_key: vietnamDateKey(now),
-    window_start: serializeDatabaseDateTime(since),
-    window_end: serializeDatabaseDateTime(now),
+    window_start: serializeAbsoluteDateTime(since),
+    window_end: serializeAbsoluteDateTime(now),
     metrics: {
       total_pending_deposits: totalPendingDeposits,
       stale_pending_deposits: stalePendingCount,

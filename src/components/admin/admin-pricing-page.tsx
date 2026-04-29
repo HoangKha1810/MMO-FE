@@ -149,6 +149,8 @@ export function AdminPricingPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [savingRow, setSavingRow] = useState('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkPercent, setBulkPercent] = useState('10');
@@ -167,8 +169,12 @@ export function AdminPricingPage() {
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const totalServices = useMemo(() => modules.reduce((sum, module) => sum + module.count, 0), [modules]);
 
-  async function loadPricing() {
-    setLoading(true);
+  async function loadPricing(options?: { silent?: boolean }) {
+    if (options?.silent) {
+      setBackgroundRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -191,7 +197,9 @@ export function AdminPricingPage() {
       setItems(nextItems);
       setPagination(payload.pagination);
       setSummary(payload.summary || { min: 0, max: 0, avg: 0 });
-      setSelected([]);
+      if (!options?.silent) {
+        setSelected([]);
+      }
 
       const moduleForDraft = payload.active_module || nextModules.find((module) => module.key === nextActive) || null;
       setDrafts(Object.fromEntries(nextItems.map((item) => [rowKey(item), buildDraft(item, moduleForDraft)])));
@@ -199,10 +207,17 @@ export function AdminPricingPage() {
       if (!targetFieldKey && moduleForDraft) {
         setTargetFieldKey(getPrimaryField(moduleForDraft)?.key || '');
       }
+      setLastSyncedAt(new Date());
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể tải bảng giá');
+      if (!options?.silent) {
+        toast.error(error instanceof Error ? error.message : 'Không thể tải bảng giá');
+      }
     } finally {
-      setLoading(false);
+      if (options?.silent) {
+        setBackgroundRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }
 
@@ -212,8 +227,10 @@ export function AdminPricingPage() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && !bulkLoading && !savingRow && selected.length === 0) {
-        void loadPricing();
+      const activeTag = document.activeElement?.tagName || '';
+      const isEditingField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag);
+      if (document.visibilityState === 'visible' && !bulkLoading && !savingRow && selected.length === 0 && !isEditingField) {
+        void loadPricing({ silent: true });
       }
     }, 15000);
 
@@ -359,6 +376,13 @@ export function AdminPricingPage() {
             <Badge variant="muted" className="rounded-full px-3 py-1.5">
               Điều chỉnh theo module
             </Badge>
+            <Badge variant={backgroundRefreshing ? 'info' : 'muted'} className="rounded-full px-3 py-1.5">
+              {backgroundRefreshing
+                ? 'Đang đồng bộ nền...'
+                : lastSyncedAt
+                  ? `Cập nhật ${lastSyncedAt.toLocaleTimeString('vi-VN')}`
+                  : 'Chưa đồng bộ'}
+            </Badge>
           </>
         }
       />
@@ -369,7 +393,13 @@ export function AdminPricingPage() {
           title="Chọn nhóm dịch vụ cần set giá"
           description="Chọn module cần điều chỉnh để xem đúng nhóm giá và trạng thái mở bán đang được vận hành."
           actions={
-            <Button type="button" variant="outline" size="sm" onClick={() => void loadPricing()} loading={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void loadPricing()}
+              loading={loading || backgroundRefreshing}
+            >
               <RefreshCw className="h-4 w-4" />
               Tải lại
             </Button>
@@ -486,7 +516,7 @@ export function AdminPricingPage() {
           </Button>
         </div>
 
-        {loading ? (
+        {loading && items.length === 0 ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
               <Card key={index} className="h-56 animate-pulse rounded-[1.6rem] bg-slate-100 dark:bg-white/[0.04]" />

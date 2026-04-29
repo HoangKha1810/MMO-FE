@@ -60,6 +60,7 @@ import { startPageTransition } from '@/components/layout/navigation-effects';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { useSessionUser, type SessionUser } from '@/hooks/use-session-user';
 import type { LegacyServiceItem } from '@/lib/legacy-settings';
+import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 
 const mainLinks = [
   { href: '/user/home', label: 'Trang Chủ', icon: Grid3x3 },
@@ -297,7 +298,6 @@ export function AppShell({
   const [smmSidebarSections, setSmmSidebarSections] = useState<SidebarSmmSection[]>(prefetchedSmmSidebarSections || []);
   const [smmSidebarLoadingState, setSmmSidebarLoadingState] = useState(false);
   const [openSmmPlatform, setOpenSmmPlatform] = useState('');
-  const [themePulse, setThemePulse] = useState<'light' | 'dark' | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [supportOpen, setSupportOpen] = useState(
     pathname === '/terms' || pathname === '/privacy' || pathname === '/'
@@ -305,19 +305,9 @@ export function AppShell({
   const [connectionOpen, setConnectionOpen] = useState(
     pathname === '/user/statistics' || pathname === '/user/smm'
   );
-  const themeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (themeTimerRef.current) {
-        window.clearTimeout(themeTimerRef.current);
-      }
-      document.documentElement.classList.remove('theme-switching');
-    };
   }, []);
 
   useEffect(() => {
@@ -437,25 +427,18 @@ export function AppShell({
     }
   }, [activeSmmPlatform, isSmmArea]);
 
-  function handleThemeToggle() {
+  function handleThemeToggle(event: React.MouseEvent<HTMLButtonElement>) {
     if (!mounted) {
       return;
     }
 
     const nextTheme = isDark ? 'light' : 'dark';
-    setThemePulse(nextTheme);
-    document.documentElement.classList.add('theme-switching');
-    document.documentElement.style.colorScheme = nextTheme;
-    setTheme(nextTheme);
-
-    if (themeTimerRef.current) {
-      window.clearTimeout(themeTimerRef.current);
-    }
-
-    themeTimerRef.current = window.setTimeout(() => {
-      document.documentElement.classList.remove('theme-switching');
-      setThemePulse(null);
-    }, 380);
+    startThemeSwitchAnimation({
+      currentTheme: isDark ? 'dark' : 'light',
+      nextTheme,
+      setTheme,
+      source: event.currentTarget,
+    });
   }
 
   function submitSearch(event: React.FormEvent<HTMLFormElement>, target: 'forum' | 'service') {
@@ -491,7 +474,6 @@ export function AppShell({
 
   return (
     <div className="site-shell h-dvh overflow-hidden">
-      {themePulse ? <div className={cn('theme-transition-overlay', themePulse === 'dark' ? 'theme-transition-overlay-dark' : 'theme-transition-overlay-light')} /> : null}
       <div className="flex h-dvh overflow-hidden">
 
         {/* Backdrop overlay */}

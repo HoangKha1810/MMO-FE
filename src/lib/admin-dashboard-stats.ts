@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { serializeDatabaseDateTime } from '@/lib/date-time';
+import { serializeAbsoluteDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { safeRows } from '@/lib/legacy-modules';
 import { toNumber } from '@/lib/utils';
 
@@ -116,7 +116,7 @@ function numberFrom(row: MetricRow, key: string) {
 
 function iso(value: unknown) {
   const serialized = serializeDatabaseDateTime(value);
-  return serialized || serializeDatabaseDateTime(new Date());
+  return serialized || serializeAbsoluteDateTime(new Date());
 }
 
 function publicDatabaseUrl() {

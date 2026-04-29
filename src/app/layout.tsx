@@ -42,11 +42,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.svg?v=3', type: 'image/svg+xml' },
-      { url: '/logo.gif?v=3', type: 'image/gif' },
+      { url: '/favicon-32x32.png?v=4', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png?v=4', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon.svg?v=4', type: 'image/svg+xml' },
     ],
-    shortcut: ['/favicon.svg?v=3'],
-    apple: [{ url: '/logo.gif?v=3' }],
+    shortcut: ['/favicon-32x32.png?v=4'],
+    apple: [{ url: '/apple-touch-icon.png?v=4', sizes: '180x180', type: 'image/png' }],
   },
   appleWebApp: {
     capable: true,
@@ -101,7 +102,7 @@ export default function RootLayout({
         '@id': `${siteUrl}/#organization`,
         name: siteName,
         url: siteUrl,
-        logo: buildAbsoluteUrl('/logo.gif'),
+        logo: buildAbsoluteUrl('/icon-512.png'),
       },
       {
         '@type': 'WebSite',
@@ -120,9 +121,11 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <head>
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
-        <link rel="shortcut icon" href="/favicon.svg?v=3" />
-        <link rel="apple-touch-icon" href="/logo.gif?v=3" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=4" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=4" />
+        <link rel="shortcut icon" href="/favicon-32x32.png?v=4" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}

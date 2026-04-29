@@ -76,7 +76,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   const [booting, setBooting] = useState(true);
   const [toolTrail, setToolTrail] = useState<ToolTrailItem[]>([]);
   const didAutoCreateRef = useRef(false);
-  const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const messageViewportRef = useRef<HTMLDivElement | null>(null);
 
   async function deleteConversation(conversationId: string) {
     try {
@@ -206,7 +206,21 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   }, []);
 
   useEffect(() => {
-    scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const viewport = messageViewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      viewport.scrollTo({
+        top: viewport.scrollHeight,
+        behavior: 'smooth',
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, [visibleMessages.length, loading, toolTrail.length]);
 
   async function handleSelectConversation(conversationId: string) {
@@ -377,7 +391,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
             </div>
           </div>
 
-          <div className="custom-scrollbar flex-1 overflow-y-auto">
+          <div ref={messageViewportRef} className="custom-scrollbar flex-1 min-h-0 overflow-y-auto">
             <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 pb-8 pt-6 sm:px-6">
               {booting ? (
                 <div className="flex min-h-[50vh] items-center justify-center">
@@ -477,13 +491,12 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
                       </div>
                     </div>
                   ) : null}
-                  <div ref={scrollAnchorRef} />
                 </div>
               )}
             </div>
           </div>
 
-          <div className="border-t border-white/8 bg-[#0a0f1b]/88 px-4 py-3 backdrop-blur-xl">
+          <div className="sticky bottom-0 z-10 shrink-0 border-t border-white/8 bg-[#0a0f1b]/88 px-4 py-3 backdrop-blur-xl">
             <form
               className="mx-auto max-w-4xl"
               onSubmit={(event) => {

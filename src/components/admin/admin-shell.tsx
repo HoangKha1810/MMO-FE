@@ -1,239 +1,462 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
+  Award,
   BarChart3,
-  BadgeDollarSign,
-  Bot,
-  ChevronRight,
+  Briefcase,
+  CheckCircle2,
   CreditCard,
-  Database,
-  FileText,
-  Headset,
+  ExternalLink,
+  EyeOff,
+  Flag,
+  FolderOpen,
+  Gamepad2,
+  History,
+  Key,
+  Landmark,
+  Layers,
+  Layout,
   LayoutDashboard,
+  LayoutGrid,
+  Link2,
+  ListVideo,
+  Menu,
+  Megaphone,
+  Moon,
   Package,
+  Percent,
   Search,
   Settings,
-  Shield,
   ShieldAlert,
+  ShoppingBag,
   ShoppingCart,
-  Moon,
   Sun,
+  Terminal,
   Users,
   Wallet,
-  Zap,
+  X,
+  Bot,
+  Headset,
 } from 'lucide-react';
+import type { AdminSessionUser } from '@/lib/admin-auth';
+import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-const adminNavItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  accent?: 'blue' | 'red' | 'emerald' | 'amber';
+};
+
+type NavSection = {
+  title: string;
+  accent?: 'slate' | 'blue' | 'amber' | 'rose';
+  items: NavItem[];
+};
+
+const adminNavSections: NavSection[] = [
   {
-    section: 'Tổng quan',
+    title: 'Tổng quan',
+    accent: 'slate',
     items: [
-      { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/admin/orders', label: 'Đơn Hàng', icon: ShoppingCart },
-      { href: '/admin/deposits', label: 'Nạp Tiền', icon: Wallet },
+      { href: '/admin/dashboard', label: 'Trang chủ', icon: LayoutDashboard },
+      { href: '/admin/activity-logs', label: 'Nhật ký hoạt động', icon: History },
+      { href: '/admin/accounting', label: 'Đơn hàng SMM', icon: BarChart3 },
+      { href: '/admin/accounting/extra', label: 'Kế toán ALL', icon: BarChart3, accent: 'blue' },
+      { href: '/admin/smm/orders', label: 'Tracking SMM', icon: ShoppingBag },
     ],
   },
   {
-    section: 'Dịch vụ',
+    title: 'Người dùng',
+    accent: 'slate',
     items: [
-      { href: '/admin/pricing', label: 'Bảng Giá', icon: BadgeDollarSign },
-      { href: '/admin/smm', label: 'SMM Dịch vụ', icon: Zap },
-      { href: '/admin/automxh', label: 'Auto MXH', icon: Zap },
-      { href: '/admin/resources', label: 'Tài nguyên MMO', icon: Package },
-      { href: '/admin/card', label: 'Thẻ Cào', icon: CreditCard },
-      { href: '/admin/game-market', label: 'Game Market', icon: ShoppingCart },
-      { href: '/admin/find-job', label: 'Find Job', icon: FileText },
+      { href: '/admin/users', label: 'Quản lý thành viên', icon: Users },
+      { href: '/admin/security/check-ip', label: 'Kiểm tra IP', icon: Search },
+      { href: '/admin/security', label: 'Bảo mật & IP Ban', icon: ShieldAlert, accent: 'red' },
+    ],
+  },
+  {
+    title: 'Dịch vụ SMM Pro',
+    accent: 'blue',
+    items: [
+      { href: '/admin/smm/providers', label: 'Nguồn SMM', icon: Link2 },
+      { href: '/admin/smm/services', label: 'Gói dịch vụ SMM', icon: Layers },
+      { href: '/admin/smm/orders', label: 'Đơn SMM', icon: ShoppingBag },
+      { href: '/admin/pricing', label: 'Bảng giá', icon: Percent },
+    ],
+  },
+  {
+    title: 'Dịch vụ Auto MXH',
+    accent: 'blue',
+    items: [
+      { href: '/admin/automxh/categories', label: 'Danh mục Auto MXH', icon: FolderOpen },
+      { href: '/admin/automxh/products', label: 'Dịch vụ Auto MXH', icon: ListVideo },
+      { href: '/admin/automxh/orders', label: 'Đơn hàng Auto MXH', icon: ShoppingCart },
+    ],
+  },
+  {
+    title: 'Tài nguyên MMO',
+    accent: 'blue',
+    items: [
+      { href: '/admin/resources/products', label: 'Quản lí Tài nguyên', icon: Package },
+      { href: '/admin/resources/categories', label: 'Quản lý Danh mục', icon: LayoutGrid },
+      { href: '/admin/resources/sales', label: 'Lịch sử Bán hàng', icon: History },
+      { href: '/admin/resources/mmo-api', label: 'Quản lí API', icon: Terminal },
+    ],
+  },
+  {
+    title: 'Dịch vụ Thẻ',
+    accent: 'amber',
+    items: [
+      { href: '/admin/card', label: 'Bảng điều khiển Thẻ', icon: LayoutGrid },
+      { href: '/admin/card/history', label: 'Lịch sử giao dịch', icon: History },
+      { href: '/admin/card/rates', label: 'Cấu hình giá/CK', icon: Percent },
+      { href: '/admin/card/api', label: 'Cấu hình API', icon: Key },
+    ],
+  },
+  {
+    title: 'Thương mại',
+    accent: 'rose',
+    items: [
+      { href: '/admin/game-market', label: 'Chợ tài khoản Game', icon: Gamepad2 },
+      { href: '/admin/orders', label: 'Đơn hàng hệ thống', icon: ShoppingCart },
+      { href: '/admin/deposits', label: 'Lịch sử nạp tiền', icon: Wallet },
+      { href: '/admin/accounting/bank-api-logs', label: 'Lịch sử Bank API', icon: Landmark },
+    ],
+  },
+  {
+    title: 'Cộng đồng',
+    accent: 'slate',
+    items: [
+      { href: '/admin/forum/categories', label: 'Cấu trúc Chuyên mục', icon: Layers },
+      { href: '/admin/forum/forums', label: 'Danh sách các Box', icon: LayoutGrid },
+      { href: '/admin/forum/badges', label: 'Huy hiệu & Cấp bậc', icon: Award },
+      { href: '/admin/forum/reports', label: 'Xử lý Báo cáo', icon: Flag },
+      { href: '/admin/forum/approvals', label: 'Duyệt Forum', icon: CheckCircle2, accent: 'emerald' },
+      { href: '/admin/find-job', label: 'Find Job MMO', icon: Briefcase, accent: 'emerald' },
+      { href: '/admin/forum/members', label: 'Tra cứu Thành viên', icon: Users },
+      { href: '/admin/forum/hidden', label: 'Nội dung đã ẩn', icon: EyeOff },
+      { href: '/admin/forum/settings', label: 'Cấu hình Diễn đàn', icon: Settings },
+      { href: '/admin/forum/ads', label: 'Quảng cáo (Banner)', icon: Megaphone },
+    ],
+  },
+  {
+    title: 'Hệ thống',
+    accent: 'slate',
+    items: [
+      { href: '/admin/settings/interface', label: 'Cấu hình Giao diện', icon: Layout },
+      { href: '/admin/settings', label: 'Cài đặt chung', icon: Settings },
       { href: '/admin/support-tiktok', label: 'Support TikTok', icon: Headset },
-      { href: '/admin/support-tiktok/chat', label: 'Chat TikTok', icon: Headset },
-      { href: '/admin/ai', label: 'Trợ Lý Admin', icon: Bot },
-    ],
-  },
-  {
-    section: 'Cộng đồng',
-    items: [
-      { href: '/admin/forum', label: 'Diễn Đàn', icon: FileText },
-      { href: '/admin/users', label: 'Người Dùng', icon: Users },
-    ],
-  },
-  {
-    section: 'Hệ thống',
-    items: [
-      { href: '/admin/accounting', label: 'Kế Toán', icon: BarChart3 },
-      { href: '/admin/settings', label: 'Cài Đặt', icon: Settings },
-      { href: '/admin/security', label: 'Bảo Mật', icon: Shield },
-      { href: '/admin/ip-blocks', label: 'Chặn IP', icon: ShieldAlert },
-      { href: '/admin/activity-logs', label: 'Nhật ký', icon: Database },
+      { href: '/admin/ai', label: 'Trợ lý Admin AI', icon: Bot },
     ],
   },
 ];
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+function accentHeading(accent?: NavSection['accent']) {
+  switch (accent) {
+    case 'blue':
+      return 'text-brand-blue';
+    case 'amber':
+      return 'text-amber-500';
+    case 'rose':
+      return 'text-rose-500';
+    default:
+      return 'text-slate-500';
+  }
+}
+
+function accentLink(item: NavItem, active: boolean) {
+  if (active) {
+    return 'border border-brand-blue/20 bg-brand-blue/10 text-brand-blue font-bold shadow-[0_18px_36px_-28px_rgba(37,99,235,0.45)] dark:border-brand-blue/25 dark:bg-brand-blue/12 dark:text-blue-300';
+  }
+
+  if (item.accent === 'red') {
+    return 'text-slate-500 hover:bg-red-500/6 hover:text-red-500 dark:text-slate-400 dark:hover:bg-red-500/5 dark:hover:text-red-400';
+  }
+
+  if (item.accent === 'emerald') {
+    return 'text-slate-500 hover:bg-emerald-500/6 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-emerald-500/5 dark:hover:text-emerald-500';
+  }
+
+  if (item.accent === 'amber') {
+    return 'text-slate-500 hover:bg-amber-500/6 hover:text-amber-600 dark:text-slate-400 dark:hover:bg-amber-500/5 dark:hover:text-amber-500';
+  }
+
+  return 'text-slate-500 hover:bg-slate-900/[0.03] hover:text-brand-blue dark:text-slate-400 dark:hover:bg-white/5';
+}
+
+function getCurrentPageLabel(pathname: string) {
+  const allItems = adminNavSections.flatMap((section) => section.items);
+  const current = allItems
+    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+
+  if (current) {
+    return current.label;
+  }
+
+  const label = pathname.split('/').filter(Boolean).slice(-1)[0] || 'Dashboard';
+  return label.replace(/-/g, ' ');
+}
+
+function initials(username: string) {
+  return String(username || 'AD')
+    .trim()
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+export function AdminShell({
+  children,
+  user,
+  branding,
+}: {
+  children: React.ReactNode;
+  user: AdminSessionUser;
+  branding: { siteName: string; siteLogo: string | null };
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const [themePulse, setThemePulse] = useState<'light' | 'dark' | null>(null);
-  const themeTimerRef = useRef<number | null>(null);
   const { resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
+  const sidebarNavRef = useRef<HTMLElement | null>(null);
   const isDark = mounted ? resolvedTheme === 'dark' : true;
+  const isFullscreenWorkspace = pathname === '/admin/ai';
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (themeTimerRef.current) {
-        window.clearTimeout(themeTimerRef.current);
-      }
+    const nav = sidebarNavRef.current;
+    if (!nav) return;
+
+    const saved = window.localStorage.getItem('adminSidebarScrollPos');
+    if (saved) {
+      nav.scrollTop = Number(saved) || 0;
+    }
+
+    const handleScroll = () => {
+      window.localStorage.setItem('adminSidebarScrollPos', String(nav.scrollTop));
     };
+
+    nav.addEventListener('scroll', handleScroll);
+    return () => nav.removeEventListener('scroll', handleScroll);
   }, []);
 
-  function handleThemeToggle() {
+  const currentPageLabel = useMemo(() => getCurrentPageLabel(pathname), [pathname]);
+
+  function handleThemeToggle(event: React.MouseEvent<HTMLButtonElement>) {
     if (!mounted) {
       return;
     }
 
     const nextTheme = isDark ? 'light' : 'dark';
-    setThemePulse(nextTheme);
-    document.documentElement.classList.add('theme-switching');
-    document.documentElement.style.colorScheme = nextTheme;
-    setTheme(nextTheme);
-
-    if (themeTimerRef.current) {
-      window.clearTimeout(themeTimerRef.current);
-    }
-
-    themeTimerRef.current = window.setTimeout(() => {
-      document.documentElement.classList.remove('theme-switching');
-      setThemePulse(null);
-    }, 380);
+    startThemeSwitchAnimation({
+      currentTheme: isDark ? 'dark' : 'light',
+      nextTheme,
+      setTheme,
+      source: event.currentTarget,
+    });
   }
 
   return (
-    <div className="site-shell flex h-dvh overflow-hidden text-slate-900 dark:text-white">
-      {themePulse ? <div className={cn('theme-transition-overlay', themePulse === 'dark' ? 'theme-transition-overlay-dark' : 'theme-transition-overlay-light')} /> : null}
+    <div className="flex h-dvh overflow-hidden bg-slate-300 font-sans text-slate-950 antialiased dark:bg-[#0b0f1a] dark:text-white">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-slate-300 dark:hidden">
+          <div className="absolute left-0 top-0 h-[600px] w-full bg-gradient-to-b from-slate-400/10 to-transparent" />
+        </div>
+        <div className="absolute inset-0 hidden bg-[#0b0f1a] dark:block">
+          <div className="absolute left-0 top-0 h-[600px] w-full bg-gradient-to-b from-brand-blue/5 to-transparent" />
+        </div>
+      </div>
+
       <aside
         className={cn(
-          'surface-panel-strong fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-[width,transform] duration-300 lg:static lg:w-64 lg:translate-x-0',
-          sidebarOpen ? 'w-[min(86vw,16rem)] translate-x-0' : 'w-0 -translate-x-full lg:w-64'
+          'fixed inset-y-0 left-0 z-50 h-screen w-64 shrink-0 border-r border-slate-200 bg-[#f8fbff] [background-image:linear-gradient(180deg,#f8fbff_0%,#eef4ff_52%,#e7effd_100%)] text-slate-700 shadow-[24px_0_70px_-48px_rgba(15,23,42,0.22)] transition-all duration-300 dark:border-white/5 dark:bg-[#0b1220] dark:[background-image:linear-gradient(180deg,#101828_0%,#0d1626_52%,#0a111d_100%)] dark:text-slate-300 dark:shadow-none lg:static',
+          sidebarOpen ? 'translate-x-0 lg:ml-0' : '-translate-x-full lg:-ml-64'
         )}
       >
-        <div className="flex items-center gap-3 border-b border-slate-200/60 p-6 dark:border-white/10">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-blue to-blue-400 text-lg font-black text-white">
-            M
+        <div className="flex h-full flex-col overflow-hidden">
+          <div className="flex h-20 items-center justify-between border-b border-slate-200/80 px-6 dark:border-white/5">
+            <div className="flex items-center gap-3">
+              {branding.siteLogo ? (
+                <img src={branding.siteLogo} alt={branding.siteName} className="h-16 w-auto object-contain" />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-blue to-blue-400 text-lg font-black text-white">
+                  {initials(branding.siteName)}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-900/[0.04] hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white lg:hidden"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <div>
-            <div className="text-sm font-black uppercase text-slate-900 dark:text-white">Admin Panel</div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">TRUNGTAMMMO</div>
-          </div>
-        </div>
 
-        <nav className="custom-scrollbar flex-1 space-y-5 overflow-y-auto p-3 sm:p-4">
-          {adminNavItems.map((group) => (
-            <div key={group.section}>
-              <div className="mb-3 px-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
-                {group.section}
-              </div>
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          <nav
+            id="admin-sidebar-nav"
+            ref={sidebarNavRef}
+            className="custom-scrollbar flex-1 space-y-1.5 overflow-y-auto p-5"
+          >
+            {adminNavSections.map((section) => (
+              <div key={section.title}>
+                <div
+                  className={cn(
+                    'px-4 pb-2 pt-4 text-[10px] font-black uppercase tracking-[0.2em]',
+                    accentHeading(section.accent)
+                  )}
+                >
+                  {section.title}
+                </div>
+                {section.items.map((item) => {
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        'nav-link-shell interactive-lift flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all',
-                        isActive
-                          ? 'nav-link-active'
-                          : 'nav-link-idle'
+                        'group flex items-center space-x-3 rounded-lg px-4 py-3 transition-all',
+                        accentLink(item, active)
                       )}
                     >
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      <span className="truncate text-sm font-bold">{item.label}</span>
+                      {item.accent === 'red' ? (
+                        <span className="ml-auto rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-black leading-none text-red-500 dark:text-red-400">
+                          NEW
+                        </span>
+                      ) : null}
                     </Link>
                   );
                 })}
               </div>
-            </div>
-          ))}
-        </nav>
+            ))}
+          </nav>
 
-        <div className="border-t border-slate-200 p-4 dark:border-white/10">
-          <Link
-            href="/user/home"
-            className="nav-link-shell nav-link-idle interactive-lift flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all"
-          >
-            <ChevronRight className="h-4 w-4 rotate-180" />
-            Quay lại trang chính
-          </Link>
+          <div className="shrink-0 border-t border-slate-200/80 p-5 dark:border-white/5">
+            <Link
+              href="/user/home"
+              className="flex w-full items-center justify-center rounded-lg bg-brand-blue px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-brand-blue/20 transition-all hover:bg-blue-600"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Về trang chủ
+            </Link>
+          </div>
         </div>
       </aside>
 
       {sidebarOpen ? (
         <button
           type="button"
-          aria-label="Đóng menu admin"
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          aria-label="Đóng sidebar admin"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       ) : null}
 
-      <div className="flex min-w-0 w-full flex-1 flex-col">
-        <header className="surface-panel sticky top-0 z-30 mx-2 mt-2 flex min-h-[4.25rem] items-center justify-between gap-2 rounded-[1.2rem] px-3 py-2.5 sm:mx-4 sm:mt-4 sm:h-16 sm:gap-4 sm:rounded-[1.35rem] sm:px-4 sm:py-0 lg:mx-6 lg:px-6">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="surface-chip rounded-xl p-2 transition-all hover:-translate-y-0.5 lg:hidden"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="4" x2="20" y1="12" y2="12" />
-              <line x1="4" x2="20" y1="6" y2="6" />
-              <line x1="4" x2="20" y1="18" y2="18" />
-            </svg>
-          </button>
-
-          <div className="relative hidden max-w-md flex-1 md:block">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm nhanh..."
-              className="field-elevated h-10 w-full rounded-xl pl-11 pr-4 text-xs font-bold outline-none transition-all dark:text-white dark:placeholder:text-slate-400"
-            />
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-black">
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-md dark:border-white/5 dark:bg-slate-900/80">
+          <div className="flex items-center space-x-6">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((current) => !current)}
+              className="rounded-xl bg-slate-100 p-2.5 outline-none transition-all hover:bg-brand-blue/10 hover:text-brand-blue dark:bg-white/5"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="hidden md:block">
+              <div className="mb-1 text-[9px] font-black uppercase leading-none tracking-widest text-slate-400">
+                ADMINISTRATION
+              </div>
+              <div className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                {currentPageLabel}
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center space-x-5">
             <button
               type="button"
               onClick={handleThemeToggle}
-              className="theme-switch-shell border border-slate-200/80 bg-white/80 shadow-[0_14px_40px_-24px_rgba(37,99,235,0.26)] dark:border-white/10 dark:bg-white/[0.04]"
-              data-mode={mounted && isDark ? 'dark' : 'light'}
-              aria-label="Toggle theme"
+              className="rounded-xl bg-slate-100 p-2.5 outline-none transition-all hover:text-brand-blue dark:bg-white/5"
             >
-              <Sun className="theme-switch-icon theme-switch-icon-sun h-3.5 w-3.5 text-amber-500" />
-              <Moon className="theme-switch-icon theme-switch-icon-moon h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
-              <span className={cn('theme-switch-thumb', mounted && isDark ? 'translate-x-[2.5rem]' : 'translate-x-0')}>
-                {mounted && isDark ? <Moon className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" /> : <Sun className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" />}
-              </span>
+              {mounted && isDark ? (
+                <Sun className="h-4 w-4 text-amber-400" />
+              ) : (
+                <Moon className="h-4 w-4 text-slate-500" />
+              )}
             </button>
-            <NotificationBell className="h-10 w-10 shadow-[0_14px_40px_-24px_rgba(37,99,235,0.26)]" />
-            <Link
-              href="/user/home"
-              className="btn-kinetic hidden rounded-xl bg-[linear-gradient(135deg,#2563eb_0%,#1d4ed8_48%,#0ea5e9_100%)] px-4 py-2 text-xs font-bold uppercase text-white transition-all hover:-translate-y-0.5 sm:inline-flex"
-            >
-              Trang chủ
-            </Link>
+
+            <NotificationBell className="h-10 w-10 rounded-xl shadow-none" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="relative flex items-center space-x-3 rounded-xl p-1 outline-none transition-all hover:bg-slate-50 dark:hover:bg-white/5"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-brand-blue to-blue-400 font-bold text-white shadow-lg shadow-brand-blue/20">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
+                    ) : (
+                      initials(user.username)
+                    )}
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="mt-4 w-64 rounded-2xl p-4">
+                <div className="mb-2 border-b border-slate-100 px-3 py-2 dark:border-white/5">
+                  <div className="mb-1 text-[9px] font-black uppercase leading-none tracking-widest text-slate-400">
+                    Administrator
+                  </div>
+                  <div className="flex items-center gap-1 text-sm font-bold text-brand-blue">
+                    <span className="truncate">{user.username}</span>
+                    {user.isBlueTick ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : null}
+                  </div>
+                  <div className="mt-1 truncate text-[11px] font-semibold text-slate-400">{user.email}</div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a
+                    href="/api/auth/logout"
+                    className="flex items-center gap-3 rounded-xl bg-red-50 px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-red-600 transition-all hover:bg-red-600 hover:text-white dark:bg-red-500/10 dark:text-red-400"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Đăng xuất
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
-        <main className={cn(
-          'page-stack min-h-0 flex-1 overflow-x-hidden',
-          pathname === '/admin/ai' ? 'overflow-hidden' : 'overflow-y-auto p-3 sm:p-4 lg:p-6'
-        )}>{children}</main>
+        <main
+          className={cn(
+            'relative flex-1 overflow-x-hidden bg-white dark:bg-black',
+            isFullscreenWorkspace ? 'overflow-hidden' : 'custom-scrollbar overflow-y-auto'
+          )}
+        >
+          <div className={cn('w-full', isFullscreenWorkspace ? 'h-full px-4 py-4 md:px-6 md:py-6' : 'px-4 py-10 md:px-6')}>
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

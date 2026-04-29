@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTheme } from 'next-themes';
 import {
   ArrowDownRight,
@@ -35,6 +35,7 @@ import {
   Youtube,
   Zap,
 } from 'lucide-react';
+import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { cn } from '@/lib/utils';
 
 const partnerLogos = [
@@ -165,8 +166,6 @@ export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [mounted, setMounted] = useState(false);
-  const [themePulse, setThemePulse] = useState<'light' | 'dark' | null>(null);
-  const themeTimerRef = useRef<number | null>(null);
   const repeatedPartners = useMemo(() => [...partnerLogos, ...partnerLogos], []);
   const isDark = mounted ? resolvedTheme === 'dark' : true;
 
@@ -189,44 +188,22 @@ export function LandingPage() {
     document.documentElement.style.colorScheme = resolvedTheme === 'dark' ? 'dark' : 'light';
   }, [mounted, resolvedTheme]);
 
-  useEffect(() => {
-    return () => {
-      if (themeTimerRef.current) {
-        window.clearTimeout(themeTimerRef.current);
-      }
-    };
-  }, []);
-
-  function handleThemeToggle() {
+  function handleThemeToggle(event: React.MouseEvent<HTMLButtonElement>) {
     if (!mounted) {
       return;
     }
 
     const nextTheme = isDark ? 'light' : 'dark';
-    setThemePulse(nextTheme);
-    document.documentElement.classList.add('theme-switching');
-    document.documentElement.style.colorScheme = nextTheme;
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        setTheme(nextTheme);
-      });
+    startThemeSwitchAnimation({
+      currentTheme: isDark ? 'dark' : 'light',
+      nextTheme,
+      setTheme,
+      source: event.currentTarget,
     });
-
-    if (themeTimerRef.current) {
-      window.clearTimeout(themeTimerRef.current);
-    }
-
-    themeTimerRef.current = window.setTimeout(() => {
-      document.documentElement.classList.remove('theme-switching');
-      setThemePulse(null);
-    }, 680);
   }
 
   return (
     <main className="relative bg-white dark:bg-[#04080f] overflow-x-hidden">
-      {themePulse ? <div className={cn('theme-transition-overlay', themePulse === 'dark' ? 'theme-transition-overlay-dark' : 'theme-transition-overlay-light')} /> : null}
-
       {/* ─── NAVBAR ─── */}
       <nav
         className={`fixed left-0 right-0 top-0 z-50 transition-all duration-500 ${

@@ -7,7 +7,7 @@ function pad(value: number) {
   return String(value).padStart(2, '0');
 }
 
-function partsFromDatabaseDate(value: Date) {
+function partsFromAbsoluteDate(value: Date) {
   const formatter = new Intl.DateTimeFormat('en-GB', {
     timeZone: VIETNAM_TIME_ZONE,
     hour12: false,
@@ -31,6 +31,17 @@ function partsFromDatabaseDate(value: Date) {
   };
 }
 
+function partsFromDatabaseDriverDate(value: Date) {
+  return {
+    year: value.getUTCFullYear(),
+    month: value.getUTCMonth() + 1,
+    day: value.getUTCDate(),
+    hour: value.getUTCHours(),
+    minute: value.getUTCMinutes(),
+    second: value.getUTCSeconds(),
+  };
+}
+
 function formatDateParts(parts: {
   year: number;
   month: number;
@@ -44,7 +55,7 @@ function formatDateParts(parts: {
 
 export function serializeDatabaseDateTime(value: unknown) {
   if (value instanceof Date) {
-    return formatDateParts(partsFromDatabaseDate(value));
+    return formatDateParts(partsFromDatabaseDriverDate(value));
   }
 
   const raw = String(value ?? '').trim();
@@ -54,7 +65,27 @@ export function serializeDatabaseDateTime(value: unknown) {
   if (databaseDateHasTimezonePattern.test(raw)) {
     const parsed = new Date(raw);
     if (!Number.isNaN(parsed.getTime())) {
-      return formatDateParts(partsFromDatabaseDate(parsed));
+      return formatDateParts(partsFromAbsoluteDate(parsed));
+    }
+  }
+
+  const [, year, month, day, hour = '00', minute = '00', second = '00'] = match;
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+export function serializeAbsoluteDateTime(value: unknown) {
+  if (value instanceof Date) {
+    return formatDateParts(partsFromAbsoluteDate(value));
+  }
+
+  const raw = String(value ?? '').trim();
+  const match = raw.match(databaseDatePattern);
+  if (!match) return raw;
+
+  if (databaseDateHasTimezonePattern.test(raw)) {
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+      return formatDateParts(partsFromAbsoluteDate(parsed));
     }
   }
 

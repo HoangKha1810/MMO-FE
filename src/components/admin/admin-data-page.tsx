@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Plus, RefreshCw, Save, Search, Sparkles, Trash2 } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Input } from '@/components/ui/input';
-import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { EmptyState, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import type { AdminSectionConfig } from '@/lib/admin-page-config';
 import { formatDatabaseDateTime } from '@/lib/date-time';
 import { cn, formatNumber } from '@/lib/utils';
@@ -58,37 +58,59 @@ function isTruthy(value: unknown) {
   return value === true || value === 1 || value === '1' || value === 'true';
 }
 
+function rowId(row: Record<string, unknown>) {
+  return Number(row.id || 0);
+}
+
+function mergeIncomingRows(
+  previous: Array<Record<string, unknown>>,
+  incoming: Array<Record<string, unknown>>
+) {
+  const previousMap = new Map(previous.map((row) => [rowId(row), row] as const));
+
+  return incoming.map((row) => {
+    const id = rowId(row);
+    if (!id) return row;
+
+    const previousRow = previousMap.get(id);
+    if (!previousRow) return row;
+
+    return JSON.stringify(previousRow) === JSON.stringify(row) ? previousRow : { ...previousRow, ...row };
+  });
+}
+
+function keepSelectedRows(selected: number[], nextRows: Array<Record<string, unknown>>) {
+  const nextIds = new Set(nextRows.map((row) => rowId(row)).filter(Boolean));
+  return selected.filter((id) => nextIds.has(id));
+}
+
 export function AdminDataPage({ title, description, sections }: AdminDataPageProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSection = sections[activeIndex] || sections[0];
 
   return (
     <div className="space-y-6">
-      <PageHero
-        eyebrow="Operations Center"
-        title={title}
-        description={description}
-        stats={[
-          { label: 'Section', value: String(sections.length), hint: 'Nhóm dữ liệu đang quản lý', tone: 'blue' },
-          { label: 'Flow', value: 'Live Data', hint: 'Cập nhật theo từng nhóm nghiệp vụ', tone: 'emerald' },
-          { label: 'Tác vụ', value: 'Search / Bulk', hint: 'Lọc, đồng bộ và xử lý hàng loạt', tone: 'amber' },
-          { label: 'UI', value: 'Unified', hint: 'Bố cục đồng nhất cho toàn admin', tone: 'violet' },
-        ]}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="muted" className="rounded-full px-3 py-1.5">
-              <Sparkles className="h-3 w-3" />
-              Vận hành dữ liệu
-            </Badge>
-            <Badge variant="info" className="rounded-full px-3 py-1.5">
-              Điều phối tập trung
-            </Badge>
-          </div>
-        }
-      />
+      <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
+            {title}
+          </h1>
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            {description}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant="muted" className="rounded-lg px-3 py-2 text-[10px] tracking-widest">
+            Tổng section ({sections.length})
+          </Badge>
+          <Badge variant="info" className="rounded-lg px-3 py-2 text-[10px] tracking-widest">
+            Live admin dataset
+          </Badge>
+        </div>
+      </div>
 
       {sections.length > 1 ? (
-        <SectionPanel className="overflow-hidden p-2">
+        <SectionPanel className="overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-slate-900">
           <div className="custom-scrollbar flex gap-2 overflow-x-auto pb-1">
             {sections.map((section, index) => (
               <button
@@ -96,9 +118,9 @@ export function AdminDataPage({ title, description, sections }: AdminDataPagePro
                 type="button"
                 onClick={() => setActiveIndex(index)}
                 className={cn(
-                  'whitespace-nowrap rounded-[1rem] px-4 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all',
+                  'whitespace-nowrap rounded-lg px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] transition-all',
                   index === activeIndex
-                    ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
+                    ? 'border border-brand-blue/20 bg-brand-blue/10 text-brand-blue'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'
                 )}
               >
@@ -121,8 +143,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [editor, setEditor] = useState<{
     mode: 'create' | 'edit';
     row?: Record<string, unknown>;
@@ -134,8 +158,19 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   const canEdit = editableFields.length > 0;
   const canCreate = createFields.length > 0;
 
-  async function loadData(page = 1) {
-    setLoading(true);
+  async function loadData(
+    page = 1,
+    options?: {
+      silent?: boolean;
+      merge?: boolean;
+      preserveSelection?: boolean;
+    }
+  ) {
+    if (options?.silent) {
+      setBackgroundRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     const params = new URLSearchParams({
       page: String(page),
       per_page: '25',
@@ -149,13 +184,21 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       if (!response.ok || !payload.success) {
         throw new Error(payload.message || 'Không thể tải dữ liệu');
       }
-      setRows(payload.data || []);
+      const nextRows = payload.data || [];
+      setRows((current) => (options?.merge ? mergeIncomingRows(current, nextRows) : nextRows));
       setPagination(payload.pagination);
-      setSelected([]);
+      setSelected((current) => (options?.preserveSelection ? keepSelectedRows(current, nextRows) : []));
+      setLastSyncedAt(new Date());
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể tải dữ liệu');
+      if (!options?.silent) {
+        toast.error(error instanceof Error ? error.message : 'Không thể tải dữ liệu');
+      }
     } finally {
-      setLoading(false);
+      if (options?.silent) {
+        setBackgroundRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }
 
@@ -166,9 +209,9 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (!editor && document.visibilityState === 'visible') {
-        void loadData(pagination?.page || 1);
+        void loadData(pagination?.page || 1, { silent: true, merge: true, preserveSelection: true });
       }
-    }, 15000);
+    }, 10000);
 
     return () => window.clearInterval(timer);
   }, [section.resource, status, search, editor, pagination?.page]);
@@ -287,7 +330,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
   return (
     <>
-      <SectionPanel className="space-y-5">
+      <SectionPanel className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
         <SectionHeader
           eyebrow="Dataset"
           title={section.title}
@@ -309,7 +352,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                   key={action.key}
                   type="button"
                   size="sm"
-                  variant="outline"
+                  variant="default"
                   disabled={saving}
                   onClick={() => runAction(action.key)}
                 >
@@ -321,7 +364,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => loadData(pagination?.page || 1)}
+                onClick={() => loadData(pagination?.page || 1, { preserveSelection: true })}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
@@ -331,7 +374,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
         />
 
         <form
-          className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]"
+          className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_auto]"
           onSubmit={(event) => {
             event.preventDefault();
             void loadData(1);
@@ -365,19 +408,26 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
         </form>
 
         <div className="flex flex-wrap gap-2">
-          <Badge variant="muted" className="rounded-full px-3 py-1.5">
+          <Badge variant="muted" className="rounded-lg px-3 py-1.5">
             Tổng {pagination?.total || rows.length} dòng
           </Badge>
-          <Badge variant="muted" className="rounded-full px-3 py-1.5">
+          <Badge variant="muted" className="rounded-lg px-3 py-1.5">
             Trang {pagination?.page || 1}/{pagination?.total_pages || 1}
           </Badge>
-          <Badge variant={selected.length > 0 ? 'info' : 'muted'} className="rounded-full px-3 py-1.5">
+          <Badge variant={selected.length > 0 ? 'info' : 'muted'} className="rounded-lg px-3 py-1.5">
             Đã chọn {selected.length}
+          </Badge>
+          <Badge variant={backgroundRefreshing ? 'info' : 'muted'} className="rounded-lg px-3 py-1.5">
+            {backgroundRefreshing
+              ? 'Đang đồng bộ nền...'
+              : lastSyncedAt
+                ? `Cập nhật ${lastSyncedAt.toLocaleTimeString('vi-VN')}`
+                : 'Chưa đồng bộ'}
           </Badge>
         </div>
 
         {selected.length > 0 ? (
-          <div className="rounded-[1.45rem] border border-brand-blue/15 bg-brand-blue/10 p-4 dark:border-brand-blue/20 dark:bg-brand-blue/10">
+          <div className="rounded-xl border border-brand-blue/15 bg-brand-blue/10 p-4 dark:border-brand-blue/20 dark:bg-brand-blue/10">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="text-sm font-bold text-slate-700 dark:text-slate-100">
                 Đã chọn {selected.length} dòng. Bạn có thể cập nhật trạng thái hàng loạt hoặc chạy action bulk bên dưới.
@@ -414,10 +464,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left">
-              <thead className="border-b border-slate-200/80 bg-slate-50/80 text-[10px] font-black uppercase tracking-[0.26em] text-slate-400 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500">
+            <table className="w-full min-w-[980px] border-collapse text-left">
+              <thead className="border-b border-slate-200 bg-slate-50/70 text-[10px] font-black uppercase tracking-[0.26em] text-slate-400 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500">
                 <tr>
                   <th className="w-10 px-4 py-3">
                     <input
@@ -433,7 +483,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm dark:divide-white/5">
-                {loading ? (
+                {loading && rows.length === 0 ? (
                   <tr>
                     <td colSpan={section.columns.length + 2} className="px-4 py-16 text-center text-slate-400">
                       <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />
@@ -549,7 +599,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
       {editor ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="surface-panel-strong max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[12px] border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#1a1a1a]">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-black uppercase tracking-[-0.04em] text-slate-900 dark:text-white">
@@ -573,7 +623,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       values: { ...current.values, [field]: event.target.value },
                     } : current)}
                     rows={field.includes('description') || field.includes('content') || field.includes('key') ? 4 : 1}
-                    className="field-elevated w-full rounded-[1rem] px-3 py-2 text-sm font-bold outline-none dark:text-white"
+                    className="w-full rounded-[9px] border border-slate-200 bg-white px-3 py-2 text-sm font-bold outline-none transition-all dark:border-white/10 dark:bg-[#111] dark:text-white"
                   />
                 </label>
               ))}

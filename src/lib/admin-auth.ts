@@ -9,6 +9,8 @@ export interface AdminSessionUser {
   username: string;
   email: string;
   role: string;
+  avatar?: string | null;
+  isBlueTick?: boolean;
 }
 
 export interface SessionCookieState {
@@ -45,6 +47,8 @@ export async function getSessionUser(): Promise<AdminSessionUser | null> {
       email: true,
       role: true,
       status: true,
+      avatar: true,
+      is_blue_tick: true,
     },
   });
 
@@ -57,6 +61,8 @@ export async function getSessionUser(): Promise<AdminSessionUser | null> {
     username: user.username,
     email: user.email,
     role: String(user.role || 'member'),
+    avatar: user.avatar,
+    isBlueTick: Boolean(user.is_blue_tick),
   };
 }
 
