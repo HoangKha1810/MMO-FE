@@ -7,6 +7,7 @@ import {
   listSmmServices,
 } from '@/lib/smm-provider';
 import { runDailyAdminAnomalyDigest, runDailyAdminAnomalyDigestWithOptions } from '@/lib/admin-anomaly-digest';
+import { runDdosGuard } from '@/lib/admin-ddos-guard';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
 
@@ -314,6 +315,13 @@ async function runDepositMaintenance() {
   };
 }
 
+async function runDdosMaintenance() {
+  return runDdosGuard({
+    autoBlock: true,
+    sendEmail: true,
+  });
+}
+
 async function runTask(task: string, options: { force?: boolean } = {}): Promise<CronSummary> {
   const shouldRun = (name: string) => task === 'all' || task === name;
   const summary: CronSummary = {};
@@ -328,6 +336,7 @@ async function runTask(task: string, options: { force?: boolean } = {}): Promise
   if (shouldRun('forum-ads')) summary.forum_ads = { expired: Number(await runForumAdsExpiry() || 0) };
   if (shouldRun('card')) summary.card = await runCardMaintenance();
   if (shouldRun('deposits')) summary.deposits = await runDepositMaintenance();
+  if (shouldRun('ddos-guard')) summary.ddos_guard = await runDdosMaintenance();
   if (shouldRun('admin-digest')) {
     summary.admin_digest = options.force
       ? await runDailyAdminAnomalyDigestWithOptions({ force: true, markSent: true, subjectPrefix: '[FORCED]' })

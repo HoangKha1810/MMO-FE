@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
       adminId: auth.user.id,
       latestUserMessage: content,
       auditRequest: req,
+      allowFullAccess: true,
     }, context.messages);
     const updatedConversation = await appendAssistantConversationExchange({
       userId: auth.user.id,

@@ -25,6 +25,7 @@ export interface AdminToolContext {
   adminId: number;
   latestUserMessage: string;
   auditRequest?: NextRequest;
+  allowFullAccess?: boolean;
 }
 
 export interface AdminToolExecution {
@@ -208,6 +209,68 @@ export const adminAiTools: FunctionTool[] = [
         },
       },
       required: ['ip'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'inspect_ddos_signals',
+    description: 'Phan tich cac IP dang co dau hieu spam request, auth burst hoac DDOS dua tren activity_logs va security_logs gan day.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        window_minutes: {
+          type: 'number',
+          description: 'So phut can quet gan day. Mac dinh 10.',
+        },
+        limit: {
+          type: 'number',
+          description: 'So IP toi da tra ve.',
+        },
+      },
+      required: ['window_minutes', 'limit'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'run_admin_ddos_guard',
+    description: 'Quet DDOS/spam request, co the tu block IP va gui email canh bao cho admin.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        window_minutes: {
+          type: ['number', 'null'],
+          description: 'So phut can quet gan day. Null de dung mac dinh.',
+        },
+        activity_threshold: {
+          type: ['number', 'null'],
+          description: 'Nguong activity_logs theo IP de xem la bat thuong. Null de dung mac dinh.',
+        },
+        security_threshold: {
+          type: ['number', 'null'],
+          description: 'Nguong security_logs theo IP de xem la bat thuong. Null de dung mac dinh.',
+        },
+        auto_block: {
+          type: ['boolean', 'null'],
+          description: 'Co tu block IP vuot nguong hay khong.',
+        },
+        send_email: {
+          type: ['boolean', 'null'],
+          description: 'Co gui email canh bao hay khong.',
+        },
+        force_email: {
+          type: ['boolean', 'null'],
+          description: 'Bo qua cooldown email neu can gui lai ngay.',
+        },
+        request_excerpt: {
+          type: 'string',
+          description: 'Doan ngan trich nguyen van tu lenh moi nhat cua admin cho thay admin da yeu cau thao tac can thiep.',
+        },
+      },
+      required: ['window_minutes', 'activity_threshold', 'security_threshold', 'auto_block', 'send_email', 'force_email', 'request_excerpt'],
       additionalProperties: false,
     },
   },
@@ -663,6 +726,10 @@ function parseRecipientCsv(value: unknown) {
 }
 
 function ensureElevatedPermission(context: AdminToolContext, requestExcerpt: unknown) {
+  if (context.allowFullAccess) {
+    return;
+  }
+
   const latest = String(context.latestUserMessage || '').trim();
   if (!requestAllowsElevatedAccess(latest)) {
     throw new Error('Tool quyền cao chỉ chạy khi admin ra lệnh thay đổi rõ ràng trong tin nhắn hiện tại.');
@@ -768,6 +835,14 @@ async function inspectRegistrationIp(ip: string) {
     blacklist_entries_count: blacklistEntries.length,
     blacklist_entries: toJsonSafeValue(blacklistEntries),
   };
+}
+
+async function inspectDdosSignals(windowMinutes: number, limit: number) {
+  const { collectPotentialDdosSignals } = await import('@/lib/admin-ddos-guard');
+  return collectPotentialDdosSignals({
+    windowMinutes: Math.max(1, Math.min(windowMinutes || 10, 240)),
+    limit: Math.max(1, Math.min(limit || 12, 30)),
+  });
 }
 
 function buildSearchMatcher(pattern: string) {
@@ -991,6 +1066,46 @@ export async function executeAdminAiTool(
       const output = await inspectRegistrationIp(ip);
       await audit(context, 'inspect_registration_ip', ip);
       return { name, input: { ip }, output };
+    }
+    case 'inspect_ddos_signals': {
+      const windowMinutes = Number(input.window_minutes || 10);
+      const limit = Number(input.limit || 12);
+      const output = await inspectDdosSignals(windowMinutes, limit);
+      await audit(context, 'inspect_ddos_signals', `${windowMinutes}m`);
+      return { name, input: { window_minutes: windowMinutes, limit }, output: toJsonSafeValue(output) };
+    }
+    case 'run_admin_ddos_guard': {
+      ensureElevatedPermission(context, input.request_excerpt);
+      const { runDdosGuard } = await import('@/lib/admin-ddos-guard');
+      const windowMinutes = input.window_minutes === null ? undefined : Number(input.window_minutes || 0) || undefined;
+      const activityThreshold = input.activity_threshold === null ? undefined : Number(input.activity_threshold || 0) || undefined;
+      const securityThreshold = input.security_threshold === null ? undefined : Number(input.security_threshold || 0) || undefined;
+      const autoBlock = typeof input.auto_block === 'boolean' ? input.auto_block : undefined;
+      const sendEmail = typeof input.send_email === 'boolean' ? input.send_email : undefined;
+      const forceEmail = typeof input.force_email === 'boolean' ? input.force_email : undefined;
+      const output = await runDdosGuard({
+        windowMinutes,
+        activityThreshold,
+        securityThreshold,
+        autoBlock,
+        sendEmail,
+        forceEmail,
+        adminId: context.adminId,
+      });
+      await audit(context, 'run_admin_ddos_guard', `${windowMinutes || 'default'}m`);
+      return {
+        name,
+        input: {
+          window_minutes: windowMinutes ?? null,
+          activity_threshold: activityThreshold ?? null,
+          security_threshold: securityThreshold ?? null,
+          auto_block: autoBlock ?? null,
+          send_email: sendEmail ?? null,
+          force_email: forceEmail ?? null,
+          request_excerpt: input.request_excerpt,
+        },
+        output: toJsonSafeValue(output),
+      };
     }
     case 'create_admin_resource_record': {
       ensureElevatedPermission(context, input.request_excerpt);

@@ -51,6 +51,38 @@ export const chatbotDocumentDefinitions: ChatbotDocumentDefinition[] = [
     pdfPath: path.join(PDF_ROOT, '03-faq-ho-tro-bao-mat.pdf'),
     downloadUrl: '/docs/chatbot/03-faq-ho-tro-bao-mat.pdf',
   },
+  {
+    id: 'tai-khoan-ho-so-bao-mat',
+    title: 'TRUNGTAMMMO: Tài khoản, hồ sơ, đăng nhập và bảo mật người dùng',
+    summary: 'Hướng dẫn đăng ký, đăng nhập, 2FA, hồ sơ người dùng, giữ phiên và xử lý các tình huống tài khoản thường gặp.',
+    sourcePath: path.join(DOCS_ROOT, '04-tai-khoan-ho-so-va-bao-mat-nguoi-dung.md'),
+    pdfPath: path.join(PDF_ROOT, '04-tai-khoan-ho-so-va-bao-mat-nguoi-dung.pdf'),
+    downloadUrl: '/docs/chatbot/04-tai-khoan-ho-so-va-bao-mat-nguoi-dung.pdf',
+  },
+  {
+    id: 'nap-tien-thanh-toan-doi-soat',
+    title: 'TRUNGTAMMMO: Nạp tiền, thanh toán và đối soát giao dịch cho người dùng',
+    summary: 'Giải thích ví hệ thống, trạng thái giao dịch, pending/success và checklist đối soát khi nạp tiền.',
+    sourcePath: path.join(DOCS_ROOT, '05-nap-tien-thanh-toan-va-doi-soat-giao-dich.md'),
+    pdfPath: path.join(PDF_ROOT, '05-nap-tien-thanh-toan-va-doi-soat-giao-dich.pdf'),
+    downloadUrl: '/docs/chatbot/05-nap-tien-thanh-toan-va-doi-soat-giao-dich.pdf',
+  },
+  {
+    id: 'don-hang-lich-su-delivery',
+    title: 'TRUNGTAMMMO: Đơn hàng, lịch sử, delivery data và theo dõi sau khi mua',
+    summary: 'Phân biệt trang đơn hàng, lịch sử giao dịch, lịch sử tài nguyên và cách kiểm tra dữ liệu sau khi mua.',
+    sourcePath: path.join(DOCS_ROOT, '06-don-hang-lich-su-va-nhan-du-lieu.md'),
+    pdfPath: path.join(PDF_ROOT, '06-don-hang-lich-su-va-nhan-du-lieu.pdf'),
+    downloadUrl: '/docs/chatbot/06-don-hang-lich-su-va-nhan-du-lieu.pdf',
+  },
+  {
+    id: 'ban-do-module-playbook',
+    title: 'TRUNGTAMMMO: Bản đồ module người dùng và playbook thao tác theo nhu cầu',
+    summary: 'Bản đồ điều hướng các module user và các kịch bản thao tác nhanh theo từng mục tiêu thực tế.',
+    sourcePath: path.join(DOCS_ROOT, '07-ban-do-module-va-playbook-nguoi-dung.md'),
+    pdfPath: path.join(PDF_ROOT, '07-ban-do-module-va-playbook-nguoi-dung.pdf'),
+    downloadUrl: '/docs/chatbot/07-ban-do-module-va-playbook-nguoi-dung.pdf',
+  },
 ];
 
 let docsCache: ChatbotDocument[] | null = null;
@@ -72,6 +104,33 @@ function tokenize(value: string) {
     .filter((token) => token.length >= 2);
 }
 
+function splitSectionContent(content: string, maxLength = 900) {
+  const paragraphs = content
+    .split(/\n\s*\n/g)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  const parts: string[] = [];
+  let current = '';
+
+  for (const paragraph of paragraphs) {
+    const next = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (next.length <= maxLength || !current) {
+      current = next;
+      continue;
+    }
+
+    parts.push(current);
+    current = paragraph;
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts.length > 0 ? parts : [content];
+}
+
 function splitMarkdownIntoChunks(document: ChatbotDocument): KnowledgeChunk[] {
   const lines = document.content.split(/\r?\n/);
   const chunks: KnowledgeChunk[] = [];
@@ -85,15 +144,17 @@ function splitMarkdownIntoChunks(document: ChatbotDocument): KnowledgeChunk[] {
       return;
     }
 
-    sectionIndex += 1;
-    chunks.push({
-      id: `${document.id}-${sectionIndex}`,
-      documentId: document.id,
-      documentTitle: document.title,
-      heading: currentHeading,
-      content,
-      score: 0,
-    });
+    for (const part of splitSectionContent(content)) {
+      sectionIndex += 1;
+      chunks.push({
+        id: `${document.id}-${sectionIndex}`,
+        documentId: document.id,
+        documentTitle: document.title,
+        heading: currentHeading,
+        content: part,
+        score: 0,
+      });
+    }
     buffer = [];
   }
 
@@ -142,7 +203,7 @@ export async function retrieveKnowledgeChunks(query: string, limit = 6) {
 
   const scored = chunks
     .map((chunk) => {
-      const haystack = normalizeText(`${chunk.heading}\n${chunk.content}`);
+      const haystack = normalizeText(`${chunk.documentTitle}\n${chunk.heading}\n${chunk.content}`);
       let score = 0;
 
       for (const token of queryTokens) {
@@ -152,9 +213,13 @@ export async function retrieveKnowledgeChunks(query: string, limit = 6) {
       }
 
       const headingTokens = tokenize(chunk.heading);
+      const titleTokens = tokenize(chunk.documentTitle);
       for (const token of queryTokens) {
         if (headingTokens.includes(token)) {
           score += 4;
+        }
+        if (titleTokens.includes(token)) {
+          score += 5;
         }
       }
 

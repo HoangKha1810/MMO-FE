@@ -9,6 +9,7 @@ import {
   getIpBlock,
   getRequestIp,
   isTrackableIp,
+  logSecurityEvent,
 } from '@/lib/ip-security';
 
 function validateUsername(username: string): boolean {
@@ -20,6 +21,16 @@ export async function POST(req: NextRequest) {
     const ip = getRequestIp(req);
     const blockedIp = await getIpBlock(ip);
     if (blockedIp) {
+      await logSecurityEvent({
+        eventType: 'REGISTER_BLOCKED_IP',
+        severity: 'HIGH',
+        ip,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'ip',
+        payload: String(blockedIp.reason || 'blocked'),
+        userAgent: req.headers.get('user-agent'),
+      });
       return NextResponse.json(
         buildBlockedIpPayload(ip, blockedIp.reason),
         { status: 403 }

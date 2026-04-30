@@ -130,7 +130,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       nodes.push(
         <code
           key={key}
-          className="rounded-md border border-white/10 bg-black/20 px-1.5 py-0.5 font-mono text-[0.92em] text-current"
+          className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[0.92em] text-current dark:border-white/10 dark:bg-black/20"
         >
           {match[3]}
         </code>
@@ -142,7 +142,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
           href={match[5]}
           target="_blank"
           rel="noreferrer"
-          className="font-medium text-sky-200 underline underline-offset-4"
+          className="font-medium text-brand-blue underline underline-offset-4 dark:text-sky-200"
         >
           {renderInline(match[4], `${key}-link`)}
         </a>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
-import { buildBlockedIpPayload, getIpBlock, getRequestIp } from '@/lib/ip-security';
+import { buildBlockedIpPayload, getIpBlock, getRequestIp, logSecurityEvent } from '@/lib/ip-security';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
 
@@ -21,6 +21,16 @@ export async function POST(req: NextRequest) {
     const ip = getRequestIp(req);
     const blockedIp = await getIpBlock(ip);
     if (blockedIp) {
+      await logSecurityEvent({
+        eventType: 'LOGIN_BLOCKED_IP',
+        severity: 'HIGH',
+        ip,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'ip',
+        payload: String(blockedIp.reason || 'blocked'),
+        userAgent: req.headers.get('user-agent'),
+      });
       return NextResponse.json(
         buildBlockedIpPayload(ip, blockedIp.reason),
         { status: 403 }
@@ -60,6 +70,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
+      await logSecurityEvent({
+        eventType: 'LOGIN_FAILED',
+        severity: 'MEDIUM',
+        ip,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'username',
+        payload: normalizedUsername,
+        userAgent: req.headers.get('user-agent'),
+      });
       return NextResponse.json(
         { success: false, message: 'Tên đăng nhập hoặc mật khẩu không đúng' },
         { status: 401 }
@@ -68,6 +88,17 @@ export async function POST(req: NextRequest) {
 
     const passwordOk = await bcrypt.compare(String(password), user.password);
     if (!passwordOk) {
+      await logSecurityEvent({
+        eventType: 'LOGIN_FAILED',
+        severity: 'MEDIUM',
+        ip,
+        userId: user.id,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'password',
+        payload: normalizedUsername,
+        userAgent: req.headers.get('user-agent'),
+      });
       return NextResponse.json(
         { success: false, message: 'Tên đăng nhập hoặc mật khẩu không đúng' },
         { status: 401 }
@@ -75,6 +106,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (user.status === 'banned' || user.status === 'locked') {
+      await logSecurityEvent({
+        eventType: 'LOGIN_BLOCKED_USER',
+        severity: 'HIGH',
+        ip,
+        userId: user.id,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'status',
+        payload: String(user.status),
+        userAgent: req.headers.get('user-agent'),
+      });
       return NextResponse.json(
         { success: false, message: 'Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ.' },
         { status: 403 }
@@ -82,6 +124,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (user.status !== 'active') {
+      await logSecurityEvent({
+        eventType: 'LOGIN_INACTIVE_USER',
+        severity: 'HIGH',
+        ip,
+        userId: user.id,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'status',
+        payload: String(user.status),
+        userAgent: req.headers.get('user-agent'),
+      });
       return NextResponse.json(
         { success: false, message: 'Tài khoản không hoạt động' },
         { status: 403 }

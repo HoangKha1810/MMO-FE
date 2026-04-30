@@ -111,7 +111,7 @@ const adminNavSections: NavSection[] = [
     title: 'Tài nguyên MMO',
     accent: 'blue',
     items: [
-      { href: '/admin/resources/products', label: 'Quản lí Tài nguyên', icon: Package },
+      { href: '/admin/resources/products', label: 'Quản lý Sản phẩm MMO', icon: Package },
       { href: '/admin/resources/categories', label: 'Quản lý Danh mục', icon: LayoutGrid },
       { href: '/admin/resources/sales', label: 'Lịch sử Bán hàng', icon: History },
       { href: '/admin/resources/mmo-api', label: 'Quản lí API', icon: Terminal },

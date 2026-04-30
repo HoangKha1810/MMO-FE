@@ -98,6 +98,40 @@ export async function autoBanRegistrationIp(ip: string, count: number, req: Next
   `, ip, req.nextUrl.pathname, req.method, `accounts=${count}`, req.headers.get('user-agent') || '').catch(() => undefined);
 }
 
+export async function logSecurityEvent(input: {
+  eventType: string;
+  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  ip?: string | null;
+  userId?: number | null;
+  uri?: string | null;
+  method?: string | null;
+  field?: string | null;
+  payload?: string | null;
+  userAgent?: string | null;
+  autoBanned?: boolean;
+}) {
+  const ip = String(input.ip || '').trim();
+  if (!isTrackableIp(ip)) {
+    return;
+  }
+
+  await db.$executeRawUnsafe(`
+    INSERT INTO security_logs (event_type, severity, ip, user_id, uri, method, field, payload, user_agent, auto_banned)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `,
+    String(input.eventType || 'SECURITY_EVENT').trim().slice(0, 120),
+    String(input.severity || 'MEDIUM').trim().toUpperCase(),
+    ip,
+    input.userId || null,
+    String(input.uri || '').trim() || null,
+    String(input.method || '').trim() || null,
+    String(input.field || '').trim() || null,
+    String(input.payload || '').trim().slice(0, 400) || null,
+    String(input.userAgent || '').trim().slice(0, 255) || null,
+    input.autoBanned ? 1 : 0
+  ).catch(() => undefined);
+}
+
 export function buildBlockedIpPayload(ip: string, reason?: string | null) {
   return {
     success: false,
