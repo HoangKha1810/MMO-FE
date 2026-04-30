@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface Floating3DCardProps {
@@ -51,6 +51,7 @@ export function Floating3DCard({
       const glowEl = el.querySelector<HTMLDivElement>('.float-glow');
       if (glowEl) {
         glowEl.style.background = `radial-gradient(circle at ${mx * 100}% ${my * 100}%, rgba(37,99,235,0.12) 0%, transparent 55%)`;
+        glowEl.style.opacity = '1';
       }
 
       const glareEl = el.querySelector<HTMLDivElement>('.float-glare');
@@ -91,6 +92,11 @@ export function Floating3DCard({
         glareEl.style.opacity = '0';
       }
 
+      const glowEl = el.querySelector<HTMLDivElement>('.float-glow');
+      if (glowEl) {
+        glowEl.style.opacity = '0';
+      }
+
       if (Math.abs(currentTilt.current.x) > 0.01 || Math.abs(currentTilt.current.y) > 0.01) {
         tiltRaf.current = requestAnimationFrame(animate);
       }
@@ -119,35 +125,38 @@ export function Floating3DCard({
     const startTime = performance.now() + floatDelay * 1000;
 
       const animate = (time: number) => {
-      const elapsed = (time - startTime) / 1000;
-      if (elapsed < 0) {
-        floatRaf.current = requestAnimationFrame(animate);
-        return;
-      }
-
-      if (floatDuration > 0) {
-        const progress = elapsed % floatDuration;
-        const half = floatDuration / 2;
-        const y = floatDirection === 'up'
-          ? -1
-          : floatDirection === 'down'
-          ? 1
-          : Math.sin((progress / half) * Math.PI) * 2 - 1;
-        const x = floatDirection === 'both'
-          ? Math.sin((progress / floatDuration) * Math.PI * 2) * 0.7
-          : 0;
-        const rot = Math.sin((progress / floatDuration) * Math.PI * 2) * 1.0;
-
-        currentFloat.current = { y, x, rot, phase: progress };
-
-        const el = containerRef.current;
-        if (el) {
-          el.style.transform = `translateY(${y}px) translateX(${x}px) rotate(${rot}deg)`;
+        const elapsed = (time - startTime) / 1000;
+        if (elapsed < 0) {
+          floatRaf.current = requestAnimationFrame(animate);
+          return;
         }
-      }
 
-      floatRaf.current = requestAnimationFrame(animate);
-    };
+        if (floatDuration > 0) {
+          const progress = elapsed % floatDuration;
+          const half = floatDuration / 2;
+          const y = floatDirection === 'up'
+            ? -1
+            : floatDirection === 'down'
+            ? 1
+            : Math.sin((progress / half) * Math.PI) * 2 - 1;
+          const x = floatDirection === 'both'
+            ? Math.sin((progress / floatDuration) * Math.PI * 2) * 0.7
+            : 0;
+          const rot = Math.sin((progress / floatDuration) * Math.PI * 2) * 1.0;
+
+          currentFloat.current = { y, x, rot, phase: progress };
+
+          const rootEl = containerRef.current;
+          if (rootEl) {
+            const stageEl = rootEl.querySelector<HTMLDivElement>('.float-stage');
+            if (stageEl) {
+              stageEl.style.transform = `translateY(${y}px) translateX(${x}px) rotate(${rot}deg)`;
+            }
+          }
+        }
+
+        floatRaf.current = requestAnimationFrame(animate);
+      };
 
     floatRaf.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(floatRaf.current);
@@ -157,30 +166,32 @@ export function Floating3DCard({
     <div
       ref={containerRef}
       className={cn(
-        'relative',
+        'relative block h-full',
         enabled && 'transition-transform',
         className
       )}
       style={{ transform: 'translateZ(0)' }}
     >
-      {/* Glow backdrop */}
-      <div className="float-glow pointer-events-none absolute inset-0 z-0 rounded-[1.4rem] opacity-0 transition-opacity duration-300" />
+      <div className="float-stage h-full">
+        {/* Glow backdrop */}
+        <div className="float-glow pointer-events-none absolute inset-0 z-0 rounded-[1.4rem] opacity-0 transition-opacity duration-300" />
 
-      {/* Glare overlay */}
-      <div
-        className="float-glare pointer-events-none absolute inset-0 z-30 rounded-[1.4rem] bg-gradient-to-br from-white/60 via-white/20 to-transparent opacity-0 transition-opacity duration-200"
-        style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 55%)' }}
-      />
+        {/* Glare overlay */}
+        <div
+          className="float-glare pointer-events-none absolute inset-0 z-30 rounded-[1.4rem] bg-gradient-to-br from-white/60 via-white/20 to-transparent opacity-0 transition-opacity duration-200"
+          style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 55%)' }}
+        />
 
-      {/* Tilt container */}
-      <div
-        className={cn('float-inner relative z-20', innerClassName)}
-        style={{
-          transformStyle: 'preserve-3d',
-          transition: enabled ? 'transform 0.15s ease-out' : undefined,
-        }}
-      >
-        {children}
+        {/* Tilt container */}
+        <div
+          className={cn('float-inner relative z-20 h-full', innerClassName)}
+          style={{
+            transformStyle: 'preserve-3d',
+            transition: enabled ? 'transform 0.15s ease-out' : undefined,
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

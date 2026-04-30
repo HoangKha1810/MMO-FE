@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Dashboard3DCards } from '@/components/ui/dashboard-3d-cards';
-import { Floating3DCard } from '@/components/ui/floating-3d-card';
 import { HomeServiceCard } from '@/components/modules/home-service-card';
 import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
@@ -131,7 +130,7 @@ export default async function HomePage() {
       sidebarServices={sidebarServices}
     >
       <div className="space-y-6 sm:space-y-8">
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 2xl:grid-cols-[minmax(0,1.35fr)_380px]">
+        <div className="relative z-0 grid grid-cols-1 gap-4 sm:gap-6 2xl:grid-cols-[minmax(0,1.35fr)_380px]">
           <section className="dashboard-hero group min-w-0 p-4 sm:p-7 md:p-9 xl:p-10">
             <div className="relative z-10 flex h-full flex-col gap-8">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -219,7 +218,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="relative z-20 space-y-6">
           <div className="dashboard-quick-strip p-4 md:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -249,18 +248,11 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {services.map((service, i) => (
-              <Floating3DCard
+              <HomeServiceCard
                 key={`${service.key}-${service.index}`}
-                floatDelay={i * 0.2}
-                floatDuration={8 + i}
-                floatDirection="both"
-                tiltMax={6}
-                tiltPerspective={1200}
+                service={service}
                 className="dashboard-service-card h-full"
-                innerClassName="h-full"
-              >
-                <HomeServiceCard service={service} className="h-full" />
-              </Floating3DCard>
+              />
             ))}
           </div>
         </div>
