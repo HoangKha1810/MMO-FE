@@ -18,6 +18,9 @@ interface SessionUserState {
   loading: boolean;
 }
 
+const POLL_INTERVAL_WITH_INITIAL_USER_MS = 60 * 1000;
+const POLL_INTERVAL_WITHOUT_INITIAL_USER_MS = 15 * 1000;
+
 export function useSessionUser(initialUser?: SessionUser): SessionUserState {
   const [data, setData] = useState<SessionUser | undefined>(initialUser);
   const [loading, setLoading] = useState(!initialUser);
@@ -54,14 +57,14 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
     if (initialUser) {
       setData(initialUser);
       setLoading(false);
+    } else {
+      void loadUser();
     }
-
-    void loadUser();
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
         void loadUser();
       }
-    }, 10000);
+    }, initialUser ? POLL_INTERVAL_WITH_INITIAL_USER_MS : POLL_INTERVAL_WITHOUT_INITIAL_USER_MS);
 
     return () => {
       active = false;

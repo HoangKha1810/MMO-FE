@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { UserLayoutContent } from './user-layout-content';
 
 export const metadata: Metadata = {
   robots: {
@@ -14,6 +15,5 @@ export const metadata: Metadata = {
 };
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <UserLayoutContent>{children}</UserLayoutContent>;
 }
-

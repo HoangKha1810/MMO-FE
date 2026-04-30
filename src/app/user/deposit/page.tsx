@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { Button } from '@/components/ui/button';
@@ -81,7 +80,7 @@ export default function DepositPage() {
   const [sepayPayment, setSepayPayment] = useState<SePayPayment | null>(null);
   const [recentDeposits, setRecentDeposits] = useState<DepositTransaction[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const router = useRouter();
+  const hasPendingDeposits = recentDeposits.some((item) => item.status === 'pending');
 
   useEffect(() => {
     const paymentStatus = new URLSearchParams(window.location.search).get('payment');
@@ -91,11 +90,10 @@ export default function DepositPage() {
 
     if (paymentStatus === 'success') {
       setResult({ success: true, message: 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ tự đối soát SePay và cộng tiền vào tài khoản.' });
-      void loadRecentDeposits();
+      void loadRecentDeposits({ sync: true });
       const timer = window.setTimeout(() => {
-        void loadRecentDeposits();
-        router.refresh();
-      }, 1500);
+        void loadRecentDeposits({ sync: true, silent: true });
+      }, 2500);
       return () => window.clearTimeout(timer);
     }
 
@@ -116,24 +114,31 @@ export default function DepositPage() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
-        void loadRecentDeposits();
-        router.refresh();
+        void loadRecentDeposits({ silent: true, sync: hasPendingDeposits });
       }
-    }, 10000);
+    }, 15000);
 
     return () => window.clearInterval(timer);
-  }, [router]);
+  }, [hasPendingDeposits]);
 
-  async function loadRecentDeposits() {
-    setHistoryLoading(true);
+  async function loadRecentDeposits(options?: { silent?: boolean; sync?: boolean }) {
+    if (!options?.silent) {
+      setHistoryLoading(true);
+    }
     try {
-      const response = await fetch('/api/user/deposit?per_page=8', { cache: 'no-store' });
+      const params = new URLSearchParams({ per_page: '8' });
+      if (options?.sync) {
+        params.set('sync', '1');
+      }
+      const response = await fetch(`/api/user/deposit?${params.toString()}`, { cache: 'no-store' });
       const payload = await response.json();
       if (response.ok && payload.success && Array.isArray(payload.data)) {
         setRecentDeposits(payload.data);
       }
     } finally {
-      setHistoryLoading(false);
+      if (!options?.silent) {
+        setHistoryLoading(false);
+      }
     }
   }
 
@@ -175,7 +180,6 @@ export default function DepositPage() {
         }
 
         await loadRecentDeposits();
-        setTimeout(() => router.refresh(), 1500);
       }
     } catch {
       setResult({ success: false, message: 'Có lỗi xảy ra. Vui lòng thử lại.' });
@@ -352,7 +356,7 @@ export default function DepositPage() {
               Lịch sử nạp gần đây
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => void loadRecentDeposits()} loading={historyLoading}>
+              <Button type="button" variant="outline" size="sm" onClick={() => void loadRecentDeposits({ sync: true })} loading={historyLoading}>
                 Làm mới
               </Button>
               <Button asChild variant="outline" size="sm">

@@ -315,7 +315,7 @@ export function AdminMmoProductsPage() {
       if (!modalOpen && document.visibilityState === 'visible') {
         void loadData(query, { silent: true, merge: true, preserveSelection: true });
       }
-    }, 10000);
+    }, 20000);
 
     return () => window.clearInterval(timer);
   }, [modalOpen, query]);

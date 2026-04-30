@@ -502,7 +502,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
                             : 'border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(5,150,105,0.92),rgba(14,165,233,0.72))] text-white'
                           )}
                         >
-                        <div className={cn('mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]', message.role === 'assistant' ? 'text-slate-400 dark:text-white/45' : 'text-white/55')}>
+                        <div className={cn('mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]', message.role === 'assistant' ? 'text-slate-400 dark:text-white/45' : 'text-slate-500 dark:text-white/65')}>
                           {message.role === 'assistant' ? (
                             <>
                               <Bot className="h-3.5 w-3.5" />

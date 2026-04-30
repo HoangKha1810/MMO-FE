@@ -33,6 +33,7 @@ import { AppShell, buildSidebarSmmSections } from '@/components/layout/app-shell
 import { useSessionUser } from '@/hooks/use-session-user';
 import type { SmmProviderMeta, SmmServiceRecord } from '@/lib/smm-provider';
 import { cn, formatNumber, slugify } from '@/lib/utils';
+import { Floating3DCard } from '@/components/ui/floating-3d-card';
 
 interface ServicesResponse {
   success: boolean;
@@ -190,7 +191,16 @@ function ServiceCard({
 
   return (
     <div className="service-card-wrapper h-full">
-      <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
+      <Floating3DCard
+        floatDelay={0}
+        floatDuration={0}
+        floatDirection="both"
+        tiltMax={8}
+        tiltPerspective={1100}
+        className="h-full"
+        innerClassName="h-full"
+      >
+        <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
         <button
           type="button"
           onClick={() => onToggleFavorite(group.category)}
@@ -266,7 +276,8 @@ function ServiceCard({
             </div>
           </div>
         </Link>
-      </div>
+        </div>
+      </Floating3DCard>
     </div>
   );
 }
@@ -290,7 +301,9 @@ function SmmPageContent() {
     setError('');
 
     try {
-      const response = await fetch(`/api/smm/services${forceRefresh ? '?refresh=1' : ''}`, { cache: 'no-store' });
+      const response = await fetch(`/api/smm/services${forceRefresh ? '?refresh=1' : ''}`, {
+        cache: forceRefresh ? 'no-store' : 'default',
+      });
       const payload: ServicesResponse = await response.json();
 
       if (!response.ok || !payload.success || !payload.data) {

@@ -68,7 +68,7 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
       if (document.visibilityState === 'visible') {
         void refreshStats(true);
       }
-    }, 10000);
+    }, 20000);
 
     return () => window.clearInterval(timer);
   }, []);

@@ -52,14 +52,17 @@ export async function GET(req: NextRequest) {
   const perPage = parseInt(searchParams.get('per_page') || '20', 10);
   const search = searchParams.get('search') || '';
   const status = searchParams.get('status') || '';
+  const shouldSync = searchParams.get('sync') === '1';
 
   const skip = (page - 1) * perPage;
 
   try {
-    await reconcilePendingSePayDeposits({
-      userId,
-      limit: 8,
-    }).catch(() => null);
+    if (shouldSync) {
+      await reconcilePendingSePayDeposits({
+        userId,
+        limit: Math.min(Math.max(perPage, 1), 5),
+      }).catch(() => null);
+    }
 
     const where: Record<string, unknown> = {
       user_id: userId,

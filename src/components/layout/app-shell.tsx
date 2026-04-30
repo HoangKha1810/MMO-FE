@@ -176,6 +176,49 @@ interface AppShellProps {
   fullHeight?: boolean;
 }
 
+const SIDEBAR_SERVICES_CACHE_TTL_MS = 5 * 60 * 1000;
+const SMM_SIDEBAR_CACHE_TTL_MS = 2 * 60 * 1000;
+
+let sidebarServicesCache:
+  | {
+      expiresAt: number;
+      data: LegacyServiceItem[];
+    }
+  | null = null;
+
+let smmSidebarSectionsCache:
+  | {
+      expiresAt: number;
+      data: SidebarSmmSection[];
+    }
+  | null = null;
+
+function getCachedSidebarServices() {
+  return sidebarServicesCache && sidebarServicesCache.expiresAt > Date.now()
+    ? sidebarServicesCache.data
+    : null;
+}
+
+function setCachedSidebarServices(data: LegacyServiceItem[]) {
+  sidebarServicesCache = {
+    expiresAt: Date.now() + SIDEBAR_SERVICES_CACHE_TTL_MS,
+    data,
+  };
+}
+
+function getCachedSmmSidebarSections() {
+  return smmSidebarSectionsCache && smmSidebarSectionsCache.expiresAt > Date.now()
+    ? smmSidebarSectionsCache.data
+    : null;
+}
+
+function setCachedSmmSidebarSections(data: SidebarSmmSection[]) {
+  smmSidebarSectionsCache = {
+    expiresAt: Date.now() + SMM_SIDEBAR_CACHE_TTL_MS,
+    data,
+  };
+}
+
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('vi-VN').format(Math.floor(amount || 0));
 }
@@ -313,6 +356,7 @@ export function AppShell({
   useEffect(() => {
     if (sidebarServices?.length) {
       setResolvedSidebarServices(sidebarServices);
+      setCachedSidebarServices(sidebarServices);
       return;
     }
 
@@ -321,11 +365,17 @@ export function AppShell({
       return;
     }
 
+    const cachedServices = getCachedSidebarServices();
+    if (cachedServices?.length) {
+      setResolvedSidebarServices(cachedServices);
+      return;
+    }
+
     let active = true;
 
     async function loadSidebarServices() {
       try {
-        const response = await fetch('/api/ui/services', { cache: 'no-store' });
+        const response = await fetch('/api/ui/services');
         if (!response.ok) {
           return;
         }
@@ -333,6 +383,7 @@ export function AppShell({
         const payload = await response.json();
         if (active && Array.isArray(payload.sidebar)) {
           setResolvedSidebarServices(payload.sidebar);
+          setCachedSidebarServices(payload.sidebar);
         }
       } catch {
         if (active) {
@@ -361,6 +412,9 @@ export function AppShell({
   useEffect(() => {
     if (prefetchedSmmSidebarSections !== undefined) {
       setSmmSidebarSections(prefetchedSmmSidebarSections);
+      if (prefetchedSmmSidebarSections.length > 0) {
+        setCachedSmmSidebarSections(prefetchedSmmSidebarSections);
+      }
     }
   }, [prefetchedSmmSidebarSections]);
 
@@ -385,16 +439,24 @@ export function AppShell({
       return;
     }
 
+    const cachedSections = getCachedSmmSidebarSections();
+    if (cachedSections?.length) {
+      setSmmSidebarSections(cachedSections);
+      return;
+    }
+
     let active = true;
     setSmmSidebarLoadingState(true);
 
     async function loadSmmSidebarServices() {
       try {
-        const response = await fetch('/api/smm/services', { cache: 'no-store' });
+        const response = await fetch('/api/smm/services');
         const payload = await response.json();
         const services = Array.isArray(payload.data) ? payload.data as SidebarSmmServiceLike[] : [];
         if (active) {
-          setSmmSidebarSections(buildSidebarSmmSections(services));
+          const nextSections = buildSidebarSmmSections(services);
+          setSmmSidebarSections(nextSections);
+          setCachedSmmSidebarSections(nextSections);
         }
       } catch {
         if (active) {

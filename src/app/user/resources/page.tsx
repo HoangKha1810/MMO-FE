@@ -44,7 +44,7 @@ export default function ResourcesPage() {
     try {
       const params = new URLSearchParams();
       if (keyword.trim()) params.set('search', keyword.trim());
-      const response = await fetch(`/api/resources?${params.toString()}`, { cache: 'no-store' });
+      const response = await fetch(`/api/resources?${params.toString()}`);
       const payload = await response.json();
       if (!response.ok || !payload.success) {
         throw new Error(payload.message || 'Không thể tải tài nguyên');

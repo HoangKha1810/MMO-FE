@@ -562,7 +562,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       if (!editor && document.visibilityState === 'visible') {
         void loadData(pagination?.page || 1, { silent: true, merge: true, preserveSelection: true, pageSize: perPage });
       }
-    }, 10000);
+    }, 20000);
 
     return () => window.clearInterval(timer);
   }, [section.resource, status, search, editor, pagination?.page, perPage]);

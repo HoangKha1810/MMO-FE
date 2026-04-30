@@ -55,7 +55,7 @@ export default function UserAutomxhPage() {
       setError('');
 
       try {
-        const response = await fetch('/api/automxh/catalog', { cache: 'no-store' });
+        const response = await fetch('/api/automxh/catalog');
         const payload: CatalogResponse = await response.json();
 
         if (!response.ok || !payload.success || !payload.data) {

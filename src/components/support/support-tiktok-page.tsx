@@ -553,7 +553,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                             <div
                               className={cn(
                                 'text-[10px] font-black uppercase tracking-[0.25em]',
-                                ownMessage ? 'text-brand-blue text-right' : 'text-slate-400'
+                                ownMessage ? 'text-brand-blue text-right dark:text-brand-blue' : 'text-slate-400 dark:text-white/60'
                               )}
                             >
                               {message.sender_type === 'support'

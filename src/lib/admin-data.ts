@@ -556,12 +556,6 @@ export async function listAdminResource(resource: string, params: URLSearchParam
   const perPage = Math.min(100, Math.max(5, Number(params.get('per_page') || 25)));
   const skip = (page - 1) * perPage;
 
-  if (resource === 'deposits') {
-    await reconcilePendingSePayDeposits({
-      limit: Math.min(perPage, 30),
-    }).catch(() => null);
-  }
-
   if (resource === 'registration-ips') {
     return listRegistrationIps(config, params, page, perPage, skip);
   }

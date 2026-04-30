@@ -2,14 +2,14 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import {
   ArrowUpRight,
-  Bot,
   Headset,
   Layers3,
-  ShieldCheck,
   Sparkles,
   Wallet,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { Dashboard3DCards } from '@/components/ui/dashboard-3d-cards';
+import { Floating3DCard } from '@/components/ui/floating-3d-card';
 import { HomeServiceCard } from '@/components/modules/home-service-card';
 import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
@@ -176,61 +176,46 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4">
-                {[
-                  { label: 'Module dịch vụ', value: String(totalServiceModules).padStart(2, '0'), hint: 'Các cụm chức năng đang sẵn sàng', icon: Layers3 },
-                  { label: 'Tài khoản', value: user.rank || 'Member', hint: 'Cấp bậc hiện tại của bạn', icon: ShieldCheck },
-                  { label: 'AI Manager', value: 'Live', hint: 'Kết nối trực tiếp công cụ AI', icon: Bot },
-                ].map((item) => (
-                  <div key={item.label} className="min-w-0 rounded-[1.4rem] border border-slate-200/80 bg-white/70 p-4 backdrop-blur-sm dark:border-white/8 dark:bg-white/[0.04]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/35 sm:text-[10px] sm:tracking-[0.3em]">{item.label}</div>
-                        <div className="mt-3 break-words text-xl font-black uppercase tracking-[-0.028em] text-slate-950 dark:text-white sm:text-2xl">{item.value}</div>
-                        <div className="mt-2 text-xs font-semibold leading-7 text-slate-500 dark:text-white/45">{item.hint}</div>
-                      </div>
-                      <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-brand-blue/20 bg-brand-blue/10 text-brand-blue">
-                        <item.icon className="h-4 w-4" />
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pointer-events-none absolute bottom-0 right-4 hidden translate-y-8 opacity-20 transition-all duration-700 group-hover:translate-y-4 dark:opacity-30 2xl:block">
-              <img
-                src="/assets/images/528b91cfa29c7ffd85418f4b1e8cc8ce.png"
-                alt="Illustration"
-                className="h-auto w-[330px] object-contain"
+              <Dashboard3DCards
+                totalServiceModules={totalServiceModules}
+                userRank={user.rank || 'Member'}
+                balance={user.balance}
+                totalDeposit={depositStats.totalDeposit}
+                monthlyDeposit={depositStats.monthlyDeposit}
               />
             </div>
           </section>
 
+          {/* Right column: balance stats */}
           <div className="grid min-w-0 gap-4 min-[430px]:grid-cols-2 2xl:grid-cols-1">
-            {[
-              { label: 'Số Dư khả dụng', val: user.balance, color: 'text-brand-blue', kicker: 'Wallet' },
-              { label: 'Tổng Nạp tích luỹ', val: depositStats.totalDeposit, color: 'text-emerald-500 dark:text-emerald-400', kicker: 'Deposit' },
-              { label: 'Nạp Tháng hiện tại', val: depositStats.monthlyDeposit, color: 'text-orange-500 dark:text-orange-400', kicker: 'Monthly' },
-              { label: 'Cấp Bậc tài khoản', val: user.rank || 'Member', color: 'text-slate-950 dark:text-white', kicker: 'Rank' },
-            ].map((card) => (
-              <div key={card.label} className="dashboard-metric min-w-0 p-4 sm:p-5 md:p-6">
-                <div className="relative z-10 min-w-0">
-                  <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/35 sm:text-[10px] sm:tracking-[0.34em]">
-                    {card.kicker}
-                  </div>
-                  <label className="mt-3 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-white/45 sm:mt-4 sm:text-xs sm:tracking-[0.28em]">
-                    {card.label}
-                  </label>
-                  <div className={`mt-3 w-full font-mono tabular-nums whitespace-nowrap text-[min(1.5rem,4.8vw)] font-black uppercase leading-[1.08] tracking-[-0.05em] ${card.color}`}>
-                    {typeof card.val === 'number'
-                      ? new Intl.NumberFormat('vi-VN').format(card.val)
-                      : card.val}
-                    {typeof card.val === 'number' ? ' đ' : ''}
-                  </div>
+            <div className="dashboard-metric min-w-0 rounded-[1.4rem] border border-slate-200/80 bg-white/70 p-4 backdrop-blur-sm dark:border-white/8 dark:bg-white/[0.04] sm:p-5 md:p-6">
+              <div className="relative z-10 min-w-0">
+                <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/35 sm:text-[10px] sm:tracking-[0.34em]">
+                  Wallet
+                </div>
+                <label className="mt-3 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-white/45 sm:mt-4 sm:text-xs sm:tracking-[0.28em]">
+                  Số Dư khả dụng
+                </label>
+                <div className="mt-3 w-full font-mono tabular-nums whitespace-nowrap text-[min(1.5rem,4.8vw)] font-black uppercase leading-[1.08] tracking-[-0.05em] text-brand-blue">
+                  {new Intl.NumberFormat('vi-VN').format(user.balance)}
+                  <span className="ml-1 text-[0.65em] font-black uppercase tracking-tight">đ</span>
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="dashboard-metric min-w-0 rounded-[1.4rem] border border-slate-200/80 bg-white/70 p-4 backdrop-blur-sm dark:border-white/8 dark:bg-white/[0.04] sm:p-5 md:p-6">
+              <div className="relative z-10 min-w-0">
+                <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/35 sm:text-[10px] sm:tracking-[0.34em]">
+                  Rank
+                </div>
+                <label className="mt-3 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-white/45 sm:mt-4 sm:text-xs sm:tracking-[0.28em]">
+                  Cấp Bậc tài khoản
+                </label>
+                <div className="mt-3 w-full font-mono tabular-nums whitespace-nowrap text-[min(1.5rem,4.8vw)] font-black uppercase leading-[1.08] tracking-[-0.05em] text-slate-950 dark:text-white">
+                  {user.rank || 'Member'}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -263,12 +248,19 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {services.map((service) => (
-              <HomeServiceCard
+            {services.map((service, i) => (
+              <Floating3DCard
                 key={`${service.key}-${service.index}`}
-                service={service}
+                floatDelay={i * 0.2}
+                floatDuration={8 + i}
+                floatDirection="both"
+                tiltMax={6}
+                tiltPerspective={1200}
                 className="dashboard-service-card h-full"
-              />
+                innerClassName="h-full"
+              >
+                <HomeServiceCard service={service} className="h-full" />
+              </Floating3DCard>
             ))}
           </div>
         </div>

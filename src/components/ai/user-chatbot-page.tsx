@@ -278,7 +278,7 @@ export function UserChatbotPage({ user, documents }: UserChatbotPageProps) {
     <AppShell user={user} fullHeight>
       <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(242,246,255,0.94))] text-slate-900 shadow-[0_40px_120px_-60px_rgba(15,23,42,0.24)] dark:border-white/10 dark:bg-[#0b1020] dark:text-white dark:shadow-[0_40px_120px_-60px_rgba(15,23,42,0.95)]">
         <div className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="flex min-h-0 flex-col border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(240,245,255,0.92))] px-4 py-4 lg:border-b-0 lg:border-r lg:border-r-slate-200/80 lg:overflow-hidden dark:border-white/8 dark:bg-[#090e19]/95 dark:lg:border-r-white/8">
+          <aside className="flex min-h-0 flex-col border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(240,245,255,0.92))] px-4 py-4 lg:border-b-0 lg:border-r lg:border-r-slate-200/80 lg:overflow-hidden dark:border-white/8 dark:bg-[linear-gradient(180deg,rgba(8,12,23,0.98),rgba(6,10,18,0.96))] dark:lg:border-r-white/8">
             <div className="space-y-3">
               <div className="rounded-[1.7rem] border border-slate-200/80 bg-white/80 p-4 dark:border-white/8 dark:bg-white/[0.03]">
                 <div className="flex items-center justify-between gap-3">
@@ -290,7 +290,7 @@ export function UserChatbotPage({ user, documents }: UserChatbotPageProps) {
                       Chatbot TRUNGTAMMMO
                     </div>
                   </div>
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10 text-sky-300">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10 text-sky-300 dark:border-sky-400/15 dark:bg-sky-400/12 dark:text-sky-300">
                     <Bot className="h-5 w-5" />
                   </span>
                 </div>
@@ -308,7 +308,7 @@ export function UserChatbotPage({ user, documents }: UserChatbotPageProps) {
                 type="button"
                 onClick={() => void createConversation()}
                 disabled={loading}
-                className="h-10 w-full justify-start rounded-2xl normal-case tracking-normal text-sm font-semibold"
+                className="h-10 w-full justify-start rounded-2xl normal-case tracking-normal text-sm font-semibold border border-slate-200/80 bg-white/80 text-slate-700 hover:bg-white hover:border-brand-blue/25 dark:border-white/8 dark:bg-white/[0.04] dark:text-white/80 dark:hover:bg-white/[0.07] dark:hover:border-white/15"
               >
                 <MessageSquarePlus className="mr-2 h-4 w-4" />
                 Cuộc trò chuyện mới
@@ -339,7 +339,7 @@ export function UserChatbotPage({ user, documents }: UserChatbotPageProps) {
                               : 'border-slate-200/80 bg-white/82 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-white/8 dark:bg-white/[0.03] dark:text-white/75 dark:hover:border-white/15 dark:hover:bg-white/[0.05]'
                         )}
                       >
-                        <div className="line-clamp-2 text-sm font-semibold leading-6">{item.title}</div>
+                        <div className={cn('line-clamp-2 text-sm font-semibold leading-6', activeConversationId === item.id ? 'text-slate-950 dark:text-white' : 'text-slate-600 dark:text-white/75')}>{item.title}</div>
                         <div className="mt-1 text-xs text-slate-400 dark:text-white/40">
                           {formatConversationMeta(item.updated_at, item.message_count)}
                         </div>
@@ -466,7 +466,7 @@ export function UserChatbotPage({ user, documents }: UserChatbotPageProps) {
                               : 'border border-sky-400/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.92),rgba(14,165,233,0.82))] text-white'
                           )}
                         >
-                          <div className={cn('mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]', message.role === 'assistant' ? 'text-slate-400 dark:text-white/45' : 'text-white/55')}>
+                          <div className={cn('mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]', message.role === 'assistant' ? 'text-slate-400 dark:text-white/45' : 'text-slate-500 dark:text-white/65')}>
                             {message.role === 'assistant' ? (
                               <>
                                 <Bot className="h-3.5 w-3.5" />
