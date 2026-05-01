@@ -48,7 +48,6 @@ export default async function SellGameMarketPage() {
             <GameMarketItemForm
               endpoint="/api/game-market/item"
               submitLabel="Đăng sản phẩm"
-              redirectTo={(payload) => `/user/game-market/${String((payload.data as Record<string, unknown>)?.id || '')}`}
               categoryOptions={categoryOptions}
             />
           </div>

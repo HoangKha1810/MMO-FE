@@ -63,7 +63,7 @@ export default async function EditGameMarketPage({ params }: { params: Promise<{
             <GameMarketItemForm
               endpoint="/api/game-market/item"
               submitLabel="Lưu thay đổi"
-              redirectTo={() => `/user/game-market/${itemId}`}
+              redirectTo={`/user/game-market/${itemId}`}
               categoryOptions={categoryOptions}
               defaults={{
                 action: 'update',

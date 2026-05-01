@@ -39,7 +39,7 @@ interface GameMarketItemFormValues {
 interface GameMarketItemFormProps {
   endpoint: string;
   submitLabel: string;
-  redirectTo?: string | ((payload: Record<string, unknown>) => string);
+  redirectTo?: string;
   categoryOptions: GameMarketCategoryOption[];
   defaults?: Partial<GameMarketItemFormValues>;
 }
@@ -188,9 +188,14 @@ export function GameMarketItemForm({
 
       toast.success(result.message || 'Đã xử lý bài đăng');
 
+      const nextItemId = Number((result.data as Record<string, unknown>)?.id || values.itemId || 0);
+
       if (redirectTo) {
         startPageTransition();
-        router.push(typeof redirectTo === 'function' ? redirectTo(result) : redirectTo);
+        router.push(redirectTo);
+      } else if (nextItemId > 0) {
+        startPageTransition();
+        router.push(`/user/game-market/${nextItemId}`);
       } else {
         router.refresh();
       }
