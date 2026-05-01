@@ -5,7 +5,7 @@ export default function AdminGameMarketPage() {
   return (
     <AdminDataPage
       title="Quản trị Game Market"
-      description="Listing/order game market theo DB hiện có."
+      description="Quản lý bài đăng mua bán game, duyệt bài theo danh mục và theo dõi đơn hàng game-market."
       sections={adminPageSections['game-market']}
     />
   );

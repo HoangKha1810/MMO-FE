@@ -1,6 +1,12 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
+import {
+  getGameMarketCategoryMeta,
+  normalizeGameMarketCategory,
+} from '@/lib/game-market-config';
+import { collectGameMarketImageRefs, parseGameMarketImageRefs } from '@/lib/game-market-media';
+import { sendSocialMessage } from '@/lib/social';
 import { toNumber } from '@/lib/utils';
 
 type Row = Record<string, unknown>;
@@ -41,7 +47,17 @@ function parseList(value: string) {
     .filter(Boolean);
 }
 
-export async function listGameMarketItems(limit = 36) {
+export async function listGameMarketItems(limit = 36, category?: string) {
+  const conditions = ["i.status = 'selling'"];
+  const values: unknown[] = [];
+
+  if (category && category !== 'all') {
+    conditions.push('i.category = ?');
+    values.push(normalizeGameMarketCategory(category));
+  }
+
+  values.push(limit);
+
   return safeRows<Row>(
     `
       SELECT
@@ -50,10 +66,53 @@ export async function listGameMarketItems(limit = 36) {
         u.rank AS seller_rank
       FROM game_market_items i
       LEFT JOIN users u ON u.id = i.seller_id
-      WHERE i.status = 'selling'
+      WHERE ${conditions.join(' AND ')}
       ORDER BY i.is_pinned DESC, i.created_at DESC
       LIMIT ?
     `,
+    ...values
+  );
+}
+
+export async function listGameMarketCategoryStats() {
+  const rows = await safeRows<Row>(
+    `
+      SELECT category, COUNT(*) AS total
+      FROM game_market_items
+      WHERE status = 'selling'
+      GROUP BY category
+      ORDER BY total DESC, category ASC
+    `
+  );
+
+  const aggregated = new Map<string, { slug: string; label: string; description: string; total: number }>();
+
+  for (const row of rows) {
+    const category = String(row.category || '');
+    const meta = getGameMarketCategoryMeta(category);
+    const current = aggregated.get(meta.slug) || {
+      slug: meta.slug,
+      label: meta.label,
+      description: meta.description,
+      total: 0,
+    };
+    current.total += Number(row.total || 0);
+    aggregated.set(meta.slug, current);
+  }
+
+  return Array.from(aggregated.values()).sort((left, right) => right.total - left.total || left.label.localeCompare(right.label));
+}
+
+export async function listSellerGameItems(userId: number, limit = 12) {
+  return safeRows<Row>(
+    `
+      SELECT *
+      FROM game_market_items
+      WHERE seller_id = ?
+      ORDER BY created_at DESC, id DESC
+      LIMIT ?
+    `,
+    userId,
     limit
   );
 }
@@ -67,6 +126,8 @@ export async function getGameMarketDetail(itemId: number, userId?: number) {
           u.username AS seller_username,
           u.rank AS seller_rank,
           u.avatar AS seller_avatar,
+          u.last_activity AS seller_last_activity,
+          u.status AS seller_status,
           (
             SELECT AVG(o.rating)
             FROM game_market_orders o
@@ -77,9 +138,21 @@ export async function getGameMarketDetail(itemId: number, userId?: number) {
         FROM game_market_items i
         LEFT JOIN users u ON u.id = i.seller_id
         WHERE i.id = ?
+          AND (
+            i.status = 'selling'
+            OR i.seller_id = ?
+            OR EXISTS (
+              SELECT 1
+              FROM game_market_orders o
+              WHERE o.item_id = i.id
+                AND o.buyer_id = ?
+            )
+          )
         LIMIT 1
       `,
-      itemId
+      itemId,
+      userId || 0,
+      userId || 0
     ),
     safeRows<Row>(
       `
@@ -116,6 +189,31 @@ export async function getGameMarketDetail(itemId: number, userId?: number) {
   };
 }
 
+export async function getGameMarketChatContext(itemId: number) {
+  const item = await safeOne<Row>(
+    `
+      SELECT
+        i.id,
+        i.title,
+        i.category,
+        i.price,
+        i.stock,
+        i.status,
+        i.seller_id,
+        u.username AS seller_username,
+        u.fullname AS seller_fullname,
+        u.last_activity AS seller_last_activity
+      FROM game_market_items i
+      LEFT JOIN users u ON u.id = i.seller_id
+      WHERE i.id = ?
+      LIMIT 1
+    `,
+    itemId
+  );
+
+  return item;
+}
+
 export async function createOrUpdateGameItem(userId: number, input: {
   itemId?: number;
   title: string;
@@ -137,9 +235,19 @@ export async function createOrUpdateGameItem(userId: number, input: {
   accountDetails?: string;
   deliveryMethod?: string;
 }) {
+  const imageRefs = parseGameMarketImageRefs(String(input.images || ''));
+  if (imageRefs.length > 3) {
+    throw new Error('Mỗi bài đăng chỉ được tối đa 3 ảnh');
+  }
+
+  const thumbnail = collectGameMarketImageRefs({
+    thumbnail: input.thumbnail,
+    images: imageRefs,
+  }, 1)[0] || '';
+
   const payload = {
     title: input.title.trim(),
-    category: input.category.trim() || 'general',
+    category: normalizeGameMarketCategory(input.category.trim() || 'steam-khac'),
     tag: String(input.tag || '').trim(),
     badge: String(input.badge || '').trim(),
     badgeColor: String(input.badgeColor || '').trim(),
@@ -147,9 +255,9 @@ export async function createOrUpdateGameItem(userId: number, input: {
     stock: Math.max(1, Math.min(9999, Math.round(input.stock || 1))),
     prepTime: String(input.prepTime || '').trim(),
     originalPrice: input.originalPrice ? Math.round(input.originalPrice) : null,
-    thumbnail: String(input.thumbnail || '').trim(),
+    thumbnail,
     description: input.description.trim(),
-    images: JSON.stringify(parseList(String(input.images || ''))),
+    images: JSON.stringify(imageRefs),
     features: JSON.stringify(parseList(String(input.features || ''))),
     rank: String(input.rank || '').trim(),
     skins: String(input.skins || '').trim(),
@@ -171,7 +279,7 @@ export async function createOrUpdateGameItem(userId: number, input: {
     await db.$executeRawUnsafe(
       `
         UPDATE game_market_items
-        SET title = ?, category = ?, tag = ?, badge = ?, badge_color = ?, price = ?, stock = ?, prep_time = ?, original_price = ?, thumbnail = ?, description = ?, images = ?, features = ?, rank = ?, skins = ?, champs = ?, account_details = ?, delivery_method = ?, updated_at = NOW()
+        SET title = ?, category = ?, tag = ?, badge = ?, badge_color = ?, price = ?, stock = ?, prep_time = ?, original_price = ?, thumbnail = ?, description = ?, images = ?, features = ?, rank = ?, skins = ?, champs = ?, account_details = ?, delivery_method = ?, status = 'pending', is_pinned = 0, pinned_until = NULL, updated_at = NOW()
         WHERE id = ? AND seller_id = ?
       `,
       payload.title,
@@ -196,14 +304,14 @@ export async function createOrUpdateGameItem(userId: number, input: {
       userId
     );
 
-    return { id: input.itemId };
+    return { id: input.itemId, status: 'pending' };
   }
 
   const code = `GM${Date.now()}`;
   await db.$executeRawUnsafe(
     `
       INSERT INTO game_market_items (code, seller_id, title, category, tag, badge, badge_color, price, stock, prep_time, accounts_stock, original_price, thumbnail, description, images, features, rank, skins, champs, account_details, status, delivery_method, created_at, updated_at, is_pinned)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'selling', ?, NOW(), NOW(), 0)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW(), 0)
     `,
     code,
     userId,
@@ -229,11 +337,11 @@ export async function createOrUpdateGameItem(userId: number, input: {
   );
 
   const inserted = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>('SELECT LAST_INSERT_ID() AS id');
-  return { id: Number(inserted[0]?.id || 0) };
+  return { id: Number(inserted[0]?.id || 0), status: 'pending' };
 }
 
 export async function setGameItemState(userId: number, itemId: number, action: 'pin' | 'unpin' | 'hide') {
-  const owned = await safeOne<Row>('SELECT id FROM game_market_items WHERE id = ? AND seller_id = ? LIMIT 1', itemId, userId);
+  const owned = await safeOne<Row>('SELECT id, status FROM game_market_items WHERE id = ? AND seller_id = ? LIMIT 1', itemId, userId);
   if (!owned) {
     throw new Error('Không tìm thấy sản phẩm để thao tác');
   }
@@ -251,6 +359,10 @@ export async function setGameItemState(userId: number, itemId: number, action: '
     return { success: true };
   }
 
+  if (String(owned.status || '') !== 'selling') {
+    throw new Error('Chỉ có thể ghim bài đã được duyệt và đang hiển thị');
+  }
+
   await db.$executeRawUnsafe(
     `
       UPDATE game_market_items
@@ -266,7 +378,7 @@ export async function setGameItemState(userId: number, itemId: number, action: '
 }
 
 export async function purchaseGameItem(userId: number, itemId: number) {
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const items = await tx.$queryRawUnsafe<Array<Row>>(
       `
         SELECT *
@@ -320,9 +432,7 @@ export async function purchaseGameItem(userId: number, itemId: number) {
       },
     }).catch(() => undefined);
 
-    const status = String(item.delivery_method || 'manual').toLowerCase() === 'manual' && !String(item.account_details || '').trim()
-      ? 'processing'
-      : 'completed';
+    const status = 'processing';
 
     await tx.$executeRawUnsafe(
       `
@@ -333,7 +443,7 @@ export async function purchaseGameItem(userId: number, itemId: number) {
       item.seller_id,
       itemId,
       price,
-      String(item.account_details || ''),
+      '',
       status
     );
 
@@ -356,10 +466,27 @@ export async function purchaseGameItem(userId: number, itemId: number) {
         user_id: userId,
         activity: `Mua sản phẩm game-market #${itemId}, order #${orderId}`,
       },
-    }).catch(() => undefined);
+      }).catch(() => undefined);
 
-    return { orderId, status };
+    return {
+      orderId,
+      status,
+      sellerId: Number(item.seller_id || 0),
+      sellerUsername: String(item.seller_username || ''),
+      itemTitle: String(item.title || `Game #${itemId}`),
+      itemId,
+    };
   });
+
+  if (result.sellerId > 0) {
+    await sendSocialMessage({
+      senderId: userId,
+      receiverId: result.sellerId,
+      content: `Mình vừa mua bài "${result.itemTitle}" (order #${result.orderId}). Bạn vui lòng bàn giao tài khoản, mật khẩu và thông tin liên quan qua đoạn chat này giúp mình nhé.`,
+    }).catch(() => undefined);
+  }
+
+  return result;
 }
 
 export async function rateGameOrder(userId: number, orderId: number, rating: number, review: string) {
@@ -376,4 +503,51 @@ export async function rateGameOrder(userId: number, orderId: number, rating: num
     userId
   );
   return { success: true };
+}
+
+export async function completeGameOrder(userId: number, orderId: number) {
+  const order = await safeOne<Row>(
+    `
+      SELECT id, seller_id, buyer_id, item_id, status
+      FROM game_market_orders
+      WHERE id = ?
+      LIMIT 1
+    `,
+    orderId
+  );
+
+  if (!order) {
+    throw new Error('Không tìm thấy đơn game-market');
+  }
+
+  if (Number(order.seller_id || 0) !== userId) {
+    throw new Error('Bạn không có quyền cập nhật đơn hàng này');
+  }
+
+  if (String(order.status || '').toLowerCase() === 'completed') {
+    return { success: true, orderId, status: 'completed' };
+  }
+
+  await db.$executeRawUnsafe(
+    `
+      UPDATE game_market_orders
+      SET status = 'completed'
+      WHERE id = ? AND seller_id = ?
+    `,
+    orderId,
+    userId
+  );
+
+  await db.$executeRawUnsafe(
+    `
+      INSERT INTO notifications (user_id, from_user_id, type, message, link, is_read, created_at)
+      VALUES (?, ?, 'game_market_delivery', ?, ?, 0, NOW())
+    `,
+    Number(order.buyer_id || 0),
+    userId,
+    `Seller đã xác nhận bàn giao xong cho đơn game #${orderId}. Bạn có thể mở chat để kiểm tra lại thông tin.`,
+    `/user/game-market/${Number(order.item_id || 0)}`
+  ).catch(() => undefined);
+
+  return { success: true, orderId, status: 'completed' };
 }

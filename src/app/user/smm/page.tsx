@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -30,6 +30,7 @@ import {
   X,
 } from 'lucide-react';
 import { AppShell, buildSidebarSmmSections } from '@/components/layout/app-shell';
+import { startPageTransition } from '@/components/layout/navigation-effects';
 import { useSessionUser } from '@/hooks/use-session-user';
 import type { SmmProviderMeta, SmmServiceRecord } from '@/lib/smm-provider';
 import { cn, formatNumber, slugify } from '@/lib/utils';
@@ -185,25 +186,58 @@ function ServiceCard({
   favorites: string[];
   onToggleFavorite: (category: string) => void;
 }) {
+  const router = useRouter();
   const Icon = getServiceIcon(group.cleanName);
   const isFavorite = favorites.includes(group.category);
   const isHot = group.totalOrders >= 5;
+  const href = `/user/smm/order/${slugify(group.category)}`;
+
+  function navigateToOrder() {
+    startPageTransition();
+    router.push(href);
+  }
 
   return (
-    <div className="service-card-wrapper h-full">
+    <div className="service-card-wrapper relative z-20 h-full">
       <Floating3DCard
         floatDelay={0}
         floatDuration={0}
         floatDirection="both"
         tiltMax={8}
         tiltPerspective={1100}
-        className="h-full"
+        className="relative z-20 h-full"
         innerClassName="h-full"
       >
-        <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
+        <div
+          role="link"
+          tabIndex={0}
+          aria-label={group.cleanName}
+          onClickCapture={(event) => {
+            if (event.defaultPrevented || event.button !== 0) {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            navigateToOrder();
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+              return;
+            }
+
+            event.preventDefault();
+            navigateToOrder();
+          }}
+          className="group relative z-20 flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50"
+        >
         <button
           type="button"
-          onClick={() => onToggleFavorite(group.category)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleFavorite(group.category);
+          }}
           className={cn(
             'absolute right-2 top-2 z-10 rounded-lg bg-slate-50 p-1.5 text-slate-300 shadow-sm transition-all hover:text-yellow-500 dark:bg-white/5',
             isFavorite && 'bg-yellow-500/10 text-yellow-500'
@@ -213,7 +247,7 @@ function ServiceCard({
           <Star className={cn('h-3 w-3', isFavorite && 'fill-current')} />
         </button>
 
-        <Link href={`/user/smm/order/${slugify(group.category)}`} className="group/link flex flex-1 flex-col p-4">
+        <div className="group/link flex flex-1 flex-col p-4">
           <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-transform duration-300 group-hover:scale-110 dark:bg-white/5">
             <Icon className={cn('h-5 w-5', group.platform.color)} />
           </div>
@@ -275,7 +309,7 @@ function ServiceCard({
               <ArrowRight className="h-3 w-3" />
             </div>
           </div>
-        </Link>
+        </div>
         </div>
       </Floating3DCard>
     </div>
@@ -377,7 +411,7 @@ function SmmPageContent() {
 
   return (
     <AppShell user={user} smmSidebarSections={sidebarSections} smmSidebarLoading={loading}>
-      <div className="space-y-6 pb-8">
+      <div className="relative z-0 space-y-6 pb-8">
         <div className="sticky top-0 z-30 -mx-1 border-b border-slate-100 bg-white/90 px-1 pb-4 pt-3 shadow-sm backdrop-blur-2xl dark:border-white/5 dark:bg-[#090f1f]/90 sm:-mx-2 sm:px-2 md:-mx-4 md:px-4">
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <div className="group relative min-w-0 flex-[1_1_100%] sm:flex-1">
@@ -483,7 +517,7 @@ function SmmPageContent() {
           </section>
         ) : null}
 
-        <div className="space-y-10 pb-20">
+        <div className="relative z-20 space-y-10 pb-20">
           {loading ? (
             <div className="flex items-center justify-center py-24">
               <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-5 py-3 text-sm font-bold text-slate-500 dark:border-white/10 dark:text-slate-300">
@@ -511,7 +545,7 @@ function SmmPageContent() {
                 <section
                   key={section.platform.name}
                   id={`platform-${section.platform.name}`}
-                  className="space-y-5 scroll-mt-28"
+                  className="relative z-20 space-y-5 scroll-mt-28"
                 >
                   <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/5">
                     <div className="flex items-center gap-2.5">

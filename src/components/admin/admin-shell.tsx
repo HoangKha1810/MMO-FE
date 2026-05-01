@@ -9,6 +9,7 @@ import {
   BarChart3,
   Briefcase,
   CheckCircle2,
+  Cloud,
   CreditCard,
   ExternalLink,
   EyeOff,
@@ -115,6 +116,13 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/resources/categories', label: 'Quản lý Danh mục', icon: LayoutGrid },
       { href: '/admin/resources/sales', label: 'Lịch sử Bán hàng', icon: History },
       { href: '/admin/resources/mmo-api', label: 'Quản lí API', icon: Terminal },
+    ],
+  },
+  {
+    title: 'Dịch vụ Proxy',
+    accent: 'blue',
+    items: [
+      { href: '/admin/proxy', label: 'Cấu hình Proxy Cloud', icon: Cloud },
     ],
   },
   {

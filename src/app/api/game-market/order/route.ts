@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { purchaseGameItem, rateGameOrder } from '@/lib/game-market-actions';
+import { completeGameOrder, purchaseGameItem, rateGameOrder } from '@/lib/game-market-actions';
 
 async function getUserId() {
   const cookieStore = await cookies();
@@ -24,6 +24,15 @@ export async function POST(req: NextRequest) {
       }
       const data = await rateGameOrder(userId, orderId, Number(body.rating || 5), String(body.review || ''));
       return NextResponse.json({ success: true, message: 'Đã gửi đánh giá cho đơn hàng', data });
+    }
+
+    if (action === 'complete') {
+      const orderId = Number(body.order_id || 0);
+      if (!orderId) {
+        return NextResponse.json({ success: false, message: 'Thiếu order ID' }, { status: 400 });
+      }
+      const data = await completeGameOrder(userId, orderId);
+      return NextResponse.json({ success: true, message: 'Đã xác nhận bàn giao đơn hàng qua chat', data });
     }
 
     const itemId = Number(body.item_id || 0);

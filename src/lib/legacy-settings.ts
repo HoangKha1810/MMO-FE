@@ -199,12 +199,25 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     defaultTitle: 'TRUNGTAMMMO',
     defaultDesc: 'Giao dịch nhanh - An toàn tuyệt đối',
   },
+  {
+    key: 'proxy',
+    nameKey: 'proxy_service_name',
+    descKey: 'proxy_service_desc',
+    statusKey: 'proxy_service_status',
+    href: '/user/proxy',
+    iconKey: 'cloud',
+    color: 'from-cyan-500 to-blue-600',
+    textColor: 'text-cyan-500',
+    defaultTitle: 'Proxy Cloud',
+    defaultDesc: 'Mua proxy residential & datacenter',
+  },
 ];
 
 const sidebarServiceDefinitions: ServiceDefinition[] = [
   homeServiceDefinitions[0],
   homeServiceDefinitions[1],
   homeServiceDefinitions[2],
+  homeServiceDefinitions[12],
   homeServiceDefinitions[3],
   homeServiceDefinitions[5],
   homeServiceDefinitions[6],

@@ -9,6 +9,7 @@ import {
   Activity,
   BarChart3,
   Check,
+  Cloud,
   Clock3,
   Cpu,
   CreditCard,
@@ -73,6 +74,15 @@ const services = [
     gradient: 'from-emerald-500 to-teal-600',
     glow: 'shadow-emerald-500/20',
     badge: null,
+  },
+  {
+    title: 'Proxy Cloud',
+    desc: 'Mua proxy residential và datacenter',
+    href: '/auth/login',
+    icon: Cloud,
+    gradient: 'from-cyan-500 to-blue-600',
+    glow: 'shadow-cyan-500/20',
+    badge: 'LIVE',
   },
   {
     title: 'Chợ MMO',

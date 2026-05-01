@@ -6,9 +6,18 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Ban, Eraser, ImagePlus, LoaderCircle, MessageSquareText, ShieldCheck, Trash2, UserRoundX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { timeAgo } from '@/lib/utils';
 
 type ConversationMessage = Record<string, unknown>;
 type ConversationUser = Record<string, unknown>;
+
+interface ConversationContextCard {
+  eyebrow?: string;
+  title: string;
+  description: string;
+  href?: string;
+  linkLabel?: string;
+}
 
 interface SocialConversationBoardProps {
   userId: number;
@@ -18,6 +27,50 @@ interface SocialConversationBoardProps {
   blockedByMe: boolean;
   blockedMe: boolean;
   typing: boolean;
+  contextCard?: ConversationContextCard;
+  initialDraft?: string;
+}
+
+function mergeMessages(current: ConversationMessage[], incoming: ConversationMessage[]) {
+  const seen = new Set(current.map((item) => Number(item.id || 0)));
+  const next = [...current];
+
+  for (const message of incoming) {
+    const id = Number(message.id || 0);
+    if (id && seen.has(id)) {
+      continue;
+    }
+    if (id) {
+      seen.add(id);
+    }
+    next.push(message);
+  }
+
+  return next;
+}
+
+function isUserOnline(lastActivity: unknown) {
+  const value = String(lastActivity || '').trim();
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= 70 * 1000;
+}
+
+function formatPresenceLabel(other: ConversationUser) {
+  if (isUserOnline(other.last_activity)) {
+    return 'Đang online';
+  }
+
+  const lastActivity = String(other.last_activity || '').trim();
+  if (!lastActivity) {
+    return 'Ít hoạt động gần đây';
+  }
+
+  try {
+    return `Hoạt động ${timeAgo(lastActivity)}`;
+  } catch {
+    return `Hoạt động ${new Date(lastActivity).toLocaleString('vi-VN')}`;
+  }
 }
 
 async function postJson(payload: Record<string, unknown>) {
@@ -54,15 +107,33 @@ export function SocialConversationBoard({
   blockedByMe,
   blockedMe,
   typing,
+  contextCard,
+  initialDraft,
 }: SocialConversationBoardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [messages, setMessages] = useState(initialMessages);
-  const [content, setContent] = useState('');
+  const [otherState, setOtherState] = useState(other);
+  const [content, setContent] = useState(initialDraft || '');
   const [attachment, setAttachment] = useState<File | null>(null);
   const [isTyping, setIsTyping] = useState(typing);
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const lastTypingPingRef = useRef(0);
   const lastMessageId = useMemo(() => Number(messages[messages.length - 1]?.id || 0), [messages]);
+
+  useEffect(() => {
+    setOtherState(other);
+  }, [other]);
+
+  useEffect(() => {
+    setIsTyping(typing);
+  }, [typing]);
+
+  useEffect(() => {
+    if (!content.trim() && initialDraft) {
+      setContent(initialDraft);
+    }
+  }, [initialDraft]);
 
   useEffect(() => {
     boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight });
@@ -76,14 +147,17 @@ export function SocialConversationBoard({
         if (result.success) {
           const incoming = Array.isArray(result.data?.messages) ? result.data.messages : [];
           if (incoming.length > 0) {
-            setMessages((current) => [...current, ...incoming]);
+            setMessages((current) => mergeMessages(current, incoming));
           }
           setIsTyping(Boolean(result.data?.typing));
+          if (result.data?.other && typeof result.data.other === 'object') {
+            setOtherState(result.data.other as ConversationUser);
+          }
         }
       } catch {
         // best-effort polling
       }
-    }, 4000);
+    }, 1200);
 
     return () => window.clearInterval(interval);
   }, [lastMessageId, otherUserId]);
@@ -112,7 +186,7 @@ export function SocialConversationBoard({
           throw new Error(result.message || 'Không gửi được tin nhắn');
         }
 
-        setMessages((current) => [...current, result.data]);
+        setMessages((current) => mergeMessages(current, [result.data]));
         setContent('');
         setAttachment(null);
         toast.success(result.message || 'Đã gửi tin nhắn');
@@ -123,6 +197,12 @@ export function SocialConversationBoard({
   }
 
   async function sendTyping() {
+    const now = Date.now();
+    if (now - lastTypingPingRef.current < 2500) {
+      return;
+    }
+
+    lastTypingPingRef.current = now;
     try {
       await postJson({ action: 'typing', other_id: otherUserId });
     } catch {
@@ -173,22 +253,31 @@ export function SocialConversationBoard({
       <section className="rounded-[1.6rem] border border-slate-200 bg-white/90 p-4 shadow-[0_36px_80px_-55px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.04] sm:rounded-[2rem] sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="h-14 w-14 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-blue to-cyan-400">
-              {String(other.avatar || '') ? (
-                <img src={String(other.avatar)} alt={String(other.username || 'avatar')} className="h-full w-full object-cover" />
+            <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-blue to-cyan-400">
+              {String(otherState.avatar || '') ? (
+                <img src={String(otherState.avatar)} alt={String(otherState.username || 'avatar')} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xl font-black text-white">
-                  {String(other.username || other.fullname || '?').slice(0, 1).toUpperCase()}
+                  {String(otherState.username || otherState.fullname || '?').slice(0, 1).toUpperCase()}
                 </div>
               )}
+              <span className={`absolute bottom-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-950 ${isUserOnline(otherState.last_activity) ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-lg font-black uppercase tracking-[-0.04em] text-slate-950 dark:text-white sm:text-xl">
-                {String(other.fullname || other.username || `User #${otherUserId}`)}
-                {String(other.role || '').toLowerCase() === 'admin' ? <ShieldCheck className="h-4 w-4 text-brand-blue" /> : null}
+                {String(otherState.fullname || otherState.username || `User #${otherUserId}`)}
+                {String(otherState.role || '').toLowerCase() === 'admin' ? <ShieldCheck className="h-4 w-4 text-brand-blue" /> : null}
               </div>
               <div className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
-                @{String(other.username || 'unknown')} · {String(other.rank || other.role || 'Member')}
+                @{String(otherState.username || 'unknown')} · {String(otherState.rank || otherState.role || 'Member')}
+              </div>
+              <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+                isUserOnline(otherState.last_activity)
+                  ? 'bg-emerald-500/10 text-emerald-500'
+                  : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300'
+              }`}>
+                <span className={`h-2 w-2 rounded-full ${isUserOnline(otherState.last_activity) ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'}`} />
+                {formatPresenceLabel(otherState)}
               </div>
               {isTyping ? (
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">
@@ -214,6 +303,23 @@ export function SocialConversationBoard({
           </div>
         </div>
       </section>
+
+      {contextCard ? (
+        <section className="rounded-[1.6rem] border border-brand-blue/15 bg-brand-blue/5 p-4 dark:border-brand-blue/20 dark:bg-brand-blue/10 sm:rounded-[2rem] sm:p-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-blue">{contextCard.eyebrow || 'Ngữ cảnh giao dịch'}</div>
+          <div className="mt-2 text-xl font-black uppercase tracking-[-0.04em] text-slate-950 dark:text-white">{contextCard.title}</div>
+          <p className="mt-3 text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
+            {contextCard.description}
+          </p>
+          {contextCard.href ? (
+            <div className="mt-4">
+              <Link href={contextCard.href} className="inline-flex rounded-xl border border-brand-blue/20 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-brand-blue dark:border-brand-blue/25 dark:bg-slate-950/40">
+                {contextCard.linkLabel || 'Xem bài đăng'}
+              </Link>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/90 shadow-[0_36px_90px_-60px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-white/[0.04] sm:rounded-[2rem]">
         <div ref={boxRef} className="max-h-[560px] space-y-3 overflow-y-auto p-4 sm:p-5">

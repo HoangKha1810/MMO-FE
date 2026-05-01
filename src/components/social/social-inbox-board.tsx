@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Bell, MessageCircle, Search, ShieldAlert, UsersRound } from 'lucide-react';
+import { timeAgo } from '@/lib/utils';
 
 type InboxItem = Record<string, unknown>;
 
@@ -12,6 +13,30 @@ interface SocialInboxBoardProps {
   initialFriends: InboxItem[];
   initialBlocked: InboxItem[];
   initialAdminMessages: InboxItem[];
+}
+
+function isUserOnline(lastActivity: unknown) {
+  const value = String(lastActivity || '').trim();
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= 70 * 1000;
+}
+
+function presenceLabel(user: InboxItem) {
+  if (isUserOnline(user.last_activity)) {
+    return 'Đang online';
+  }
+
+  const value = String(user.last_activity || '').trim();
+  if (!value) {
+    return 'Ít hoạt động gần đây';
+  }
+
+  try {
+    return `Hoạt động ${timeAgo(value)}`;
+  } catch {
+    return `Hoạt động ${new Date(value).toLocaleString('vi-VN')}`;
+  }
 }
 
 export function SocialInboxBoard({
@@ -95,6 +120,14 @@ export function SocialInboxBoard({
                 <Link key={`search-user-${String(user.id)}`} href={`/user/social/conversation/${String(user.id)}`} className="block rounded-[1.3rem] border border-slate-200 bg-slate-50/70 p-4 transition hover:border-brand-blue/30 dark:border-white/10 dark:bg-white/[0.03]">
                   <div className="font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">{String(user.fullname || user.username)}</div>
                   <div className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">@{String(user.username || 'unknown')}</div>
+                  <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+                    isUserOnline(user.last_activity)
+                      ? 'bg-emerald-500/10 text-emerald-500'
+                      : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300'
+                  }`}>
+                    <span className={`h-2 w-2 rounded-full ${isUserOnline(user.last_activity) ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'}`} />
+                    {presenceLabel(user)}
+                  </div>
                 </Link>
               ))}
             </div>
@@ -138,6 +171,14 @@ export function SocialInboxBoard({
               <div className="min-w-0">
                 <div className="truncate text-base font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">
                   {String(message.fullname || message.username || `User #${message.other_id}`)}
+                </div>
+                <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+                  isUserOnline(message.last_activity)
+                    ? 'bg-emerald-500/10 text-emerald-500'
+                    : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300'
+                }`}>
+                  <span className={`h-2 w-2 rounded-full ${isUserOnline(message.last_activity) ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'}`} />
+                  {presenceLabel(message)}
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm leading-7 text-slate-500 dark:text-slate-400">{String(message.content || '')}</p>
               </div>

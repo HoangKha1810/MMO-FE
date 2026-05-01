@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Banknote, Box, PackageCheck, ReceiptText } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { getGameMarketCategoryLabel } from '@/lib/game-market-config';
 import { getSellerDashboard } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 export default async function SellerDashboardPage() {
   const { raw, shell } = await getCurrentUserForShell();
   const dashboard = await getSellerDashboard(raw.id);
+  const pendingItems = dashboard.items.filter((item) => String(item.status || '') === 'pending').length;
 
   return (
     <AppShell user={shell}>
@@ -21,21 +23,22 @@ export default async function SellerDashboardPage() {
               <div className="inline-flex rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Seller center</div>
               <h1 className="mt-4 text-4xl font-black uppercase tracking-[-0.06em] text-slate-950 dark:text-white md:text-5xl">Dashboard người bán</h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
-                Quản lý sản phẩm, đơn mua và yêu cầu rút tiền của shop trong một dashboard riêng.
+                Quản lý bài đăng game, trạng thái chờ duyệt, đơn mua và yêu cầu rút tiền của shop trong một dashboard riêng.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/user/game-market/sell" className="rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase text-white">Thêm sản phẩm</Link>
+              <Link href="/user/game-market/sell" className="rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase text-white">Đăng bài game</Link>
               <Link href="/user/seller/orders" className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black uppercase text-white dark:bg-white dark:text-slate-950">Đơn hàng</Link>
               <Link href="/user/seller/withdraw" className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-black uppercase text-white">Rút tiền</Link>
             </div>
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-5">
           {[
             { label: 'Sản phẩm', value: dashboard.items.length, icon: Box },
             { label: 'Đơn hàng', value: dashboard.orders.length, icon: ReceiptText },
+            { label: 'Chờ duyệt', value: pendingItems, icon: Box },
             { label: 'Đã bán', value: dashboard.completedSales, icon: PackageCheck },
             { label: 'Doanh thu', value: formatCurrency(dashboard.revenue), icon: Banknote },
           ].map((stat) => (
@@ -54,15 +57,29 @@ export default async function SellerDashboardPage() {
               {dashboard.items.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm font-bold text-slate-400 dark:border-white/10">Chưa có sản phẩm seller.</div>
               ) : dashboard.items.slice(0, 12).map((item) => (
-                <Link key={String(item.id)} href={`/user/game-market/edit/${String(item.id)}`} className="block rounded-2xl bg-slate-50 p-4 transition hover:border-brand-blue/30 dark:bg-white/[0.03]">
+                <div key={String(item.id)} className="rounded-2xl bg-slate-50 p-4 transition hover:border-brand-blue/30 dark:bg-white/[0.03]">
                   <div className="text-sm font-black uppercase text-slate-950 dark:text-white">{String(item.title)}</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold text-slate-400">
-                    <span>{String(item.category)}</span>
+                    <span>{getGameMarketCategoryLabel(String(item.category || ''))}</span>
                     <span>{formatCurrency(toNumber(item.price))}</span>
-                    <span>{String(item.status)}</span>
+                    <span>{String(item.status) === 'pending' ? 'Chờ duyệt' : String(item.status) === 'rejected' ? 'Bị từ chối' : String(item.status)}</span>
                     <span>Stock {String(item.stock || 0)}</span>
                   </div>
-                </Link>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link
+                      href={`/user/game-market/${String(item.id)}`}
+                      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-slate-600 transition hover:border-brand-blue/25 hover:text-brand-blue dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200"
+                    >
+                      Xem bài
+                    </Link>
+                    <Link
+                      href={`/user/game-market/edit/${String(item.id)}`}
+                      className="inline-flex items-center rounded-lg bg-brand-blue px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-white"
+                    >
+                      Sửa nội dung & giá
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

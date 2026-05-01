@@ -1090,7 +1090,7 @@ export async function runAdminAction(resource: string, input: Record<string, unk
 
   const moderationAction = action.replace(/^bulk-/, '');
   if (
-    (resource === 'forum-threads' || resource === 'forum-posts' || resource === 'find-jobs') &&
+    (resource === 'forum-threads' || resource === 'forum-posts' || resource === 'find-jobs' || resource === 'game-items') &&
     (moderationAction === 'approve' || moderationAction === 'reject')
   ) {
     const directId = Number(input.id || 0);
@@ -1106,6 +1106,8 @@ export async function runAdminAction(resource: string, input: Record<string, unk
         results.push(await moderateForumThread(targetId, approved, adminId, req));
       } else if (resource === 'forum-posts') {
         results.push(await moderateForumPost(targetId, approved, adminId, req));
+      } else if (resource === 'game-items') {
+        results.push(await moderateGameItem(targetId, approved, adminId, req));
       } else {
         results.push(await moderateFindJob(targetId, approved, adminId, req));
       }
@@ -1114,7 +1116,7 @@ export async function runAdminAction(resource: string, input: Record<string, unk
     return { success: true, affected: results.length, data: normalizeValue(results) };
   }
 
-  if ((resource === 'forum-threads' || resource === 'find-jobs') && (action === 'pin' || action === 'unpin')) {
+  if ((resource === 'forum-threads' || resource === 'find-jobs' || resource === 'game-items') && (action === 'pin' || action === 'unpin')) {
     const id = Number(input.id || ids[0] || 0);
     if (!id) throw new Error('Thiếu ID bài viết cần ghim');
     const pinned = action === 'pin';
@@ -1130,6 +1132,21 @@ export async function runAdminAction(resource: string, input: Record<string, unk
         id
       );
       await logAdminAction({ adminId, action: pinned ? 'pin forum thread' : 'unpin forum thread', target: `#${id}`, req });
+      return { success: true, data: normalizeValue(rows[0] || { id, is_pinned: pinned }) };
+    }
+
+    if (resource === 'game-items') {
+      await db.$executeRawUnsafe(
+        'UPDATE `game_market_items` SET `is_pinned` = ?, `pinned_until` = ?, `updated_at` = NOW() WHERE id = ?',
+        pinned ? 1 : 0,
+        pinned ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
+        id
+      );
+      const rows = await db.$queryRawUnsafe<Record<string, unknown>[]>(
+        'SELECT * FROM `game_market_items` WHERE id = ? LIMIT 1',
+        id
+      );
+      await logAdminAction({ adminId, action: pinned ? 'pin game item' : 'unpin game item', target: `#${id}`, req });
       return { success: true, data: normalizeValue(rows[0] || { id, is_pinned: pinned }) };
     }
 
@@ -1402,6 +1419,52 @@ async function moderateFindJob(id: number, approved: boolean, adminId: number, r
 
   const updated = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM \`${table}\` WHERE id = ? LIMIT 1`, id);
   return updated[0] || { id, status: approved ? 'open' : 'rejected' };
+}
+
+async function moderateGameItem(id: number, approved: boolean, adminId: number, req: NextRequest) {
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    'SELECT * FROM `game_market_items` WHERE id = ? LIMIT 1',
+    id
+  );
+  const item = rows[0];
+  if (!item) {
+    throw new Error(`Không tìm thấy bài game-market #${id}`);
+  }
+
+  const ownerId = Number(item.seller_id || 0);
+  const nextStatus = approved ? 'selling' : 'rejected';
+
+  await db.$executeRawUnsafe(
+    `
+      UPDATE game_market_items
+      SET status = ?,
+          is_pinned = CASE WHEN ? = 1 THEN is_pinned ELSE 0 END,
+          pinned_until = CASE WHEN ? = 1 THEN pinned_until ELSE NULL END,
+          updated_at = NOW()
+      WHERE id = ?
+    `,
+    nextStatus,
+    approved ? 1 : 0,
+    approved ? 1 : 0,
+    id
+  );
+
+  await notifyModerationUser({
+    userId: ownerId,
+    adminId,
+    type: approved ? 'game_item_approved' : 'game_item_rejected',
+    message: approved
+      ? `Bài đăng game của bạn đã được duyệt: ${String(item.title || `#${id}`)}`
+      : `Bài đăng game của bạn đã bị từ chối: ${String(item.title || `#${id}`)}`,
+    link: approved ? `/user/game-market/${id}` : `/user/game-market/edit/${id}`,
+  });
+  await logAdminAction({ adminId, action: approved ? 'approve game item' : 'reject game item', target: `#${id}`, req });
+
+  const updated = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    'SELECT * FROM `game_market_items` WHERE id = ? LIMIT 1',
+    id
+  );
+  return updated[0] || { id, status: nextStatus };
 }
 
 async function runRegistrationIpAction(

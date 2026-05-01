@@ -3,11 +3,20 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, BadgeCheck, Package, ShieldCheck, Star, Tag } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { GameMarketDetailActions } from '@/components/game-market/game-market-detail-actions';
+import { getGameMarketCategoryLabel } from '@/lib/game-market-config';
 import { getGameMarketDetail } from '@/lib/game-market-actions';
-import { formatCurrency, toNumber } from '@/lib/utils';
+import { getGameMarketGalleryUrls } from '@/lib/game-market-media';
+import { formatCurrency, timeAgo, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
 export const dynamic = 'force-dynamic';
+
+function isSellerOnline(lastActivity: unknown) {
+  const value = String(lastActivity || '').trim();
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= 70 * 1000;
+}
 
 export default async function GameMarketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,6 +28,16 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
   if (!data) notFound();
 
   const { item, related, myOrders } = data;
+  const galleryImages = getGameMarketGalleryUrls({
+    thumbnail: item.thumbnail,
+    images: item.images,
+  });
+  const sellerOnline = isSellerOnline(item.seller_last_activity);
+  const sellerPresence = sellerOnline
+    ? 'Đang online'
+    : String(item.seller_last_activity || '').trim()
+      ? `Hoạt động ${timeAgo(String(item.seller_last_activity))}`
+      : 'Ít hoạt động gần đây';
 
   return (
     <AppShell user={shell}>
@@ -30,8 +49,31 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
 
         <section className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm dark:border-white/10 dark:bg-slate-900">
+            {galleryImages.length > 0 ? (
+              <div className="mb-6 grid gap-3">
+                <div className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-slate-950/40">
+                  <img src={galleryImages[0]} alt={String(item.title)} className="aspect-[16/9] h-full w-full object-cover" />
+                </div>
+                {galleryImages.length > 1 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {galleryImages.slice(1).map((image, index) => (
+                      <div key={image} className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-slate-950/40">
+                        <img src={image} alt={`${String(item.title)} ${index + 2}`} className="aspect-[16/10] h-full w-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mb-6 flex aspect-[16/8] items-center justify-center rounded-[1.6rem] border border-dashed border-slate-300 bg-[radial-gradient(circle_at_top,#2563eb22,transparent_58%),linear-gradient(135deg,#0f172a,#111827)] text-[11px] font-black uppercase tracking-[0.24em] text-slate-300 dark:border-white/10">
+                Bài đăng chưa có ảnh minh họa
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-brand-blue/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand-blue">{String(item.category || 'game')}</span>
+              <span className="rounded-full bg-brand-blue/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand-blue">
+                {getGameMarketCategoryLabel(String(item.category || ''))}
+              </span>
               {String(item.badge || '') ? (
                 <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: String(item.badge_color || '#2563eb') }}>
                   {String(item.badge)}
@@ -70,6 +112,14 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Seller</div>
                 <div className="mt-3 text-lg font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">{String(item.seller_username || `User #${item.seller_id}`)}</div>
                 <div className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{String(item.seller_rank || 'Member')}</div>
+                <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+                  sellerOnline
+                    ? 'bg-emerald-500/10 text-emerald-500'
+                    : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300'
+                }`}>
+                  <span className={`h-2 w-2 rounded-full ${sellerOnline ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'}`} />
+                  {sellerPresence}
+                </div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.03]">
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Thông số nhanh</div>
@@ -86,7 +136,16 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
               <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Thao tác</div>
               <div className="mt-4">
-                <GameMarketDetailActions itemId={itemId} isOwner={Number(item.seller_id) === raw.id} isPinned={Boolean(item.is_pinned)} orders={myOrders} />
+                <GameMarketDetailActions
+                  itemId={itemId}
+                  sellerId={Number(item.seller_id || 0)}
+                  sellerUsername={String(item.seller_username || '')}
+                  itemTitle={String(item.title || '')}
+                  isOwner={Number(item.seller_id) === raw.id}
+                  isPinned={Boolean(item.is_pinned)}
+                  status={String(item.status || '')}
+                  orders={myOrders}
+                />
               </div>
             </div>
 
@@ -110,7 +169,9 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
             <div className="grid gap-4 md:grid-cols-3">
               {related.map((relatedItem) => (
                 <Link key={String(relatedItem.id)} href={`/user/game-market/${String(relatedItem.id)}`} className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-brand-blue/30 dark:border-white/10 dark:bg-slate-900">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{String(relatedItem.category || 'game')}</div>
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                    {getGameMarketCategoryLabel(String(relatedItem.category || ''))}
+                  </div>
                   <div className="mt-2 text-lg font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">{String(relatedItem.title)}</div>
                   <div className="mt-3 font-mono text-sm font-black text-brand-blue">{formatCurrency(toNumber(relatedItem.price))}</div>
                 </Link>

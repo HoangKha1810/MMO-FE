@@ -60,6 +60,31 @@ function mapAvatar<T extends SocialRow>(row: T, key = 'avatar') {
   } as T;
 }
 
+async function touchSocialPresence(userId: number) {
+  if (!userId) {
+    return;
+  }
+
+  await db.users.update({
+    where: { id: userId },
+    data: { last_activity: new Date() },
+  }).catch(() => undefined);
+}
+
+async function getSocialUserPreview(userId: number) {
+  const other = await safeOne<SocialRow>(
+    `
+      SELECT id, username, fullname, avatar, rank, role, status, last_activity
+      FROM users
+      WHERE id = ?
+      LIMIT 1
+    `,
+    userId
+  );
+
+  return other ? mapAvatar(other) : null;
+}
+
 export async function getSocialCounters(userId: number) {
   const [pendingRequests, unreadMessages, unreadNotifications, blockedCount] = await Promise.all([
     safeCount(
@@ -209,6 +234,8 @@ export async function getMiniInbox(userId: number) {
         u.username,
         u.fullname,
         u.avatar,
+        u.last_activity,
+        u.status,
         (
           SELECT COUNT(*)
           FROM private_messages unread
@@ -311,7 +338,9 @@ export async function searchSocialDirectory(userId: number, keyword: string) {
           CASE WHEN pm.sender_id = ? THEN pm.receiver_id ELSE pm.sender_id END AS other_id,
           u.username,
           u.fullname,
-          u.avatar
+          u.avatar,
+          u.last_activity,
+          u.status
         FROM private_messages pm
         LEFT JOIN users u ON u.id = CASE WHEN pm.sender_id = ? THEN pm.receiver_id ELSE pm.sender_id END
         WHERE (pm.sender_id = ? OR pm.receiver_id = ?)
@@ -546,16 +575,10 @@ export async function markConversationRead(userId: number, otherUserId: number) 
 }
 
 export async function getConversationAdvanced(userId: number, otherUserId: number) {
+  await touchSocialPresence(userId);
+
   const [other, state, messages] = await Promise.all([
-    safeOne<SocialRow>(
-      `
-        SELECT id, username, fullname, avatar, rank, role, status, last_activity
-        FROM users
-        WHERE id = ?
-        LIMIT 1
-      `,
-      otherUserId
-    ),
+    getSocialUserPreview(otherUserId),
     getFriendStatus(userId, otherUserId),
     safeRows<SocialRow>(
       `
@@ -639,6 +662,8 @@ export async function sendSocialMessage(input: {
     fileType
   );
 
+  await touchSocialPresence(senderId);
+
   await db.$executeRawUnsafe(
     `
       INSERT INTO notifications (user_id, from_user_id, type, message, link, is_read, created_at)
@@ -708,6 +733,8 @@ export async function clearSocialConversation(userId: number, otherUserId: numbe
 }
 
 export async function setSocialTyping(userId: number, otherUserId: number) {
+  await touchSocialPresence(userId);
+
   await db.$executeRawUnsafe(
     `
       INSERT INTO msg_typing (user_id, typing_to, updated_at)
@@ -739,9 +766,10 @@ export async function setSocialTyping(userId: number, otherUserId: number) {
 }
 
 export async function getConversationPoll(userId: number, otherUserId: number, afterId = 0) {
+  await touchSocialPresence(userId);
   await markConversationRead(userId, otherUserId);
 
-  const [messages, typing, unreadCount] = await Promise.all([
+  const [messages, typing, unreadCount, other] = await Promise.all([
     safeRows<SocialRow>(
       `
         SELECT *
@@ -778,6 +806,7 @@ export async function getConversationPoll(userId: number, otherUserId: number, a
       `,
       userId
     ),
+    getSocialUserPreview(otherUserId),
   ]);
 
   return {
@@ -787,5 +816,6 @@ export async function getConversationPoll(userId: number, otherUserId: number, a
     })),
     typing: Boolean(typing),
     unreadCount,
+    other,
   };
 }

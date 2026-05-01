@@ -312,11 +312,19 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'game-items',
       title: 'Game market items',
-      description: 'Listing tài khoản/game, pin, stock và trạng thái.',
+      description: 'Bài đăng mua bán game theo danh mục, cần admin duyệt trước khi xuất hiện ngoài user page.',
       columns: ['id', 'code', 'seller_id', 'title', 'category', 'price', 'stock', 'status', 'is_pinned'],
       editableFields: ['code', 'seller_id', 'title', 'category', 'tag', 'badge', 'badge_color', 'price', 'stock', 'prep_time', 'accounts_stock', 'original_price', 'thumbnail', 'description', 'images', 'features', 'rank', 'skins', 'champs', 'account_details', 'status', 'delivery_method', 'is_pinned', 'pinned_until'],
       createFields: ['id', 'code', 'seller_id', 'title', 'category', 'tag', 'badge', 'badge_color', 'price', 'stock', 'prep_time', 'accounts_stock', 'original_price', 'thumbnail', 'description', 'images', 'features', 'rank', 'skins', 'champs', 'account_details', 'status', 'delivery_method', 'is_pinned', 'pinned_until'],
-      statusOptions: ['selling', 'sold', 'hidden'],
+      statusOptions: ['pending', 'selling', 'sold', 'hidden', 'rejected'],
+      actions: [
+        { key: 'approve', label: 'Duyệt', tone: 'success' },
+        { key: 'reject', label: 'Từ chối', tone: 'danger' },
+        { key: 'pin', label: 'Ghim', tone: 'success' },
+        { key: 'unpin', label: 'Bỏ ghim' },
+        { key: 'bulk-approve', label: 'Duyệt hàng loạt', tone: 'success' },
+        { key: 'bulk-reject', label: 'Từ chối hàng loạt', tone: 'danger' },
+      ],
     },
     {
       resource: 'game-orders',

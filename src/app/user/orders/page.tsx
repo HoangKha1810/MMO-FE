@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Activity, ArrowUpRight, Boxes, CreditCard, PackageCheck, ReceiptText, ShieldCheck, Zap } from 'lucide-react';
+import { Activity, ArrowUpRight, Boxes, Cloud, CreditCard, PackageCheck, ReceiptText, ShieldCheck, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Badge } from '@/components/ui/badge';
 import { LiveRefresh } from '@/components/live/live-refresh';
@@ -33,11 +33,12 @@ const typeMeta: Record<string, { label: string; variant: OrderTone; icon: ReactN
   resource: { label: 'Resource', variant: 'purple', icon: <Boxes className="h-4 w-4" /> },
   game: { label: 'Game', variant: 'success', icon: <Activity className="h-4 w-4" /> },
   card: { label: 'Card', variant: 'warning', icon: <CreditCard className="h-4 w-4" /> },
+  proxy: { label: 'Proxy', variant: 'info', icon: <Cloud className="h-4 w-4" /> },
 };
 
 export default async function UserOrdersPage() {
   const { raw, shell } = await getCurrentUserForShell();
-  const [smmOrders, autoOrders, resourceOrders, gameOrders, cardOrders] = await Promise.all([
+  const [smmOrders, autoOrders, resourceOrders, gameOrders, cardOrders, proxyOrders] = await Promise.all([
     safeRows(`
       SELECT id, api_order_id, service_name, quantity, price, status, created_at
       FROM smm_orders
@@ -72,6 +73,13 @@ export default async function UserOrdersPage() {
     safeRows(`
       SELECT id, type, telco, serial, amount, status, created_at
       FROM card_orders
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 50
+    `, raw.id),
+    safeRows(`
+      SELECT id, kind, package_name, quantity, total_price, status, created_at
+      FROM proxy_orders
       WHERE user_id = ?
       ORDER BY created_at DESC
       LIMIT 50
@@ -130,6 +138,17 @@ export default async function UserOrdersPage() {
       status: String(item.status || 'pending'),
       createdAt: serializeDatabaseDateTime(item.created_at),
       href: '/user/card',
+    })),
+    ...proxyOrders.map((item) => ({
+      id: `proxy-${item.id}`,
+      type: 'proxy',
+      title: String(item.package_name || `Proxy order #${item.id}`),
+      code: String(item.id),
+      amount: toNumber(item.total_price, 0),
+      quantity: toNumber(item.quantity, 0),
+      status: String(item.status || 'pending'),
+      createdAt: serializeDatabaseDateTime(item.created_at),
+      href: '/user/proxy',
     })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 120);
 
