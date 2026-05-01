@@ -4,6 +4,7 @@ import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { isTrackableIp } from '@/lib/ip-security';
+import { decryptLegacyData } from '@/lib/legacy-crypto';
 import { invalidateLegacySettingsCache } from '@/lib/legacy-settings';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
@@ -455,6 +456,32 @@ function normalizeValue(value: unknown): unknown {
   return value;
 }
 
+function parseStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+  } catch {
+    // Fallback below keeps legacy non-JSON text usable.
+  }
+
+  return [trimmed];
+}
+
 const nullableDateFieldPatterns = [
   /(^|_)(date|dates)$/i,
   /_at$/i,
@@ -560,6 +587,14 @@ export async function listAdminResource(resource: string, params: URLSearchParam
     return listRegistrationIps(config, params, page, perPage, skip);
   }
 
+  if (resource === 'smm-services') {
+    return listLegacySmmServices(config, params, page, perPage, skip);
+  }
+
+  if (resource === 'automxh-orders') {
+    return listLegacyAutoMxhOrders(config, params, page, perPage, skip);
+  }
+
   if (config.table) {
     return listRawTable(config, params, page, perPage, skip);
   }
@@ -586,6 +621,178 @@ export async function listAdminResource(resource: string, params: URLSearchParam
     success: true,
     title: config.title,
     data: normalizeValue(rows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listLegacySmmServices(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const providerId = Math.max(0, Math.trunc(toNumber(params.get('provider_id'), 0)));
+  const category = (params.get('category') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = ['COALESCE(s.is_deleted, 0) = 0'];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(`(
+      s.name LIKE ?
+      OR COALESCE(s.original_name, '') LIKE ?
+      OR COALESCE(s.category, '') LIKE ?
+      OR COALESCE(s.type, '') LIKE ?
+      OR COALESCE(p.name, '') LIKE ?
+      OR CAST(s.service_id AS CHAR) LIKE ?
+      OR CAST(s.provider_id AS CHAR) LIKE ?
+    )`);
+    values.push(like, like, like, like, like, like, like);
+  }
+
+  if (status && config.statusField) {
+    conditions.push('COALESCE(s.status, \'active\') = ?');
+    values.push(status);
+  }
+
+  if (providerId > 0) {
+    conditions.push('s.provider_id = ?');
+    values.push(providerId);
+  }
+
+  if (category) {
+    conditions.push('s.category = ?');
+    values.push(category);
+  }
+
+  const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const fromSql = `
+    FROM smm_services_cache s
+    LEFT JOIN api_providers p ON p.id = s.provider_id
+    ${whereSql}
+  `;
+
+  const [rows, countRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT s.*, p.name AS provider_name
+        ${fromSql}
+        ORDER BY s.id DESC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `
+        SELECT COUNT(*) AS total
+        ${fromSql}
+      `,
+      ...values
+    ),
+  ]);
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(rows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(`(
+      CAST(o.id AS CHAR) LIKE ?
+      OR CAST(o.user_id AS CHAR) LIKE ?
+      OR COALESCE(o.link, '') LIKE ?
+      OR COALESCE(o.api_order_id, '') LIKE ?
+      OR COALESCE(u.username, '') LIKE ?
+      OR COALESCE(u.fullname, '') LIKE ?
+      OR COALESCE(p.name, '') LIKE ?
+      OR COALESCE(v.name, '') LIKE ?
+    )`);
+    values.push(like, like, like, like, like, like, like, like);
+  }
+
+  if (status && config.statusField) {
+    conditions.push('o.status = ?');
+    values.push(status);
+  }
+
+  const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const fromSql = `
+    FROM automxh_orders o
+    LEFT JOIN users u ON u.id = o.user_id
+    LEFT JOIN automxh_products p ON p.id = o.product_id
+    LEFT JOIN automxh_variants v ON v.id = o.variant_id
+    ${whereSql}
+  `;
+
+  const [rows, countRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT
+          o.*,
+          u.username,
+          u.fullname,
+          u.telegram_username,
+          p.name AS product_name,
+          p.input_label,
+          p.buyer_label,
+          p.custom_inputs,
+          v.name AS variant_name
+        ${fromSql}
+        ORDER BY o.updated_at DESC, o.id DESC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `
+        SELECT COUNT(*) AS total
+        ${fromSql}
+      `,
+      ...values
+    ),
+  ]);
+
+  const hydratedRows = rows.map((row) => ({
+    ...row,
+    buyer_info_display: decryptLegacyData(String(row.buyer_info || '')),
+    custom_value_display: decryptLegacyData(String(row.custom_value || '')),
+    additional_files_list: parseStringList(row.additional_files),
+    display_name: String(row.fullname || row.username || ''),
+  }));
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(hydratedRows),
     pagination: {
       page,
       per_page: perPage,

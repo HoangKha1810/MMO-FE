@@ -2,7 +2,29 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
+import {
+  Bold,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  Eye,
+  ImageIcon,
+  Italic,
+  Link2,
+  List,
+  ListOrdered,
+  Loader2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Search,
+  Send,
+  Trash2,
+  Underline,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
@@ -10,7 +32,7 @@ import { Input } from '@/components/ui/input';
 import { EmptyState, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import type { AdminSectionConfig } from '@/lib/admin-page-config';
 import { formatDatabaseDateTime } from '@/lib/date-time';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatCurrency, formatNumber, toNumber } from '@/lib/utils';
 
 interface AdminDataPageProps {
   title: string;
@@ -36,6 +58,19 @@ interface ApiResponse {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const GLOBAL_ACTION_KEYS = new Set(['sync', 'check-new-deposits']);
 const LONG_TEXT_FIELD_TOKENS = ['description', 'content', 'message', 'payload', 'note', 'reason', 'key'];
+const LEGACY_COMMUNITY_LINKS = [
+  { label: 'Nhóm Zalo', href: 'https://zalo.me/g/ibexon608' },
+  { label: 'Nhóm Telegram', href: 'https://t.me/+XdGxk8YFEE2NmE1' },
+  { label: 'Kênh Tiktok', href: 'http://www.tiktok.com/@haokimedia' },
+] as const;
+const LEGACY_ORDER_STATUS_TABS = [
+  { value: '', label: 'Tất cả' },
+  { value: 'pending', label: 'Đang chờ' },
+  { value: 'processing', label: 'Đang chạy' },
+  { value: 'completed', label: 'Hoàn thành' },
+  { value: 'canceled', label: 'Đã hủy' },
+] as const;
+const LEGACY_EDITOR_TOOLBAR = [Bold, Italic, Underline, List, ListOrdered, Link2, ImageIcon] as const;
 const SECTION_TITLE_LABELS: Record<string, string> = {
   'Services SMM': 'Dịch vụ SMM',
   'Orders SMM': 'Đơn SMM',
@@ -419,6 +454,164 @@ function keepSelectedRows(selected: number[], nextRows: Array<Record<string, unk
   return selected.filter((id) => nextIds.has(id));
 }
 
+function isLegacySmmServicesResource(resource: string) {
+  return resource === 'smm-services';
+}
+
+function isLegacyAutoMxhOrdersResource(resource: string) {
+  return resource === 'automxh-orders';
+}
+
+function formatCompactTimestamp(value: unknown) {
+  if (!value) return '—';
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('vi-VN', {
+    hour12: false,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatCompactClock(value: Date | null) {
+  if (!value) return 'Chưa đồng bộ';
+  return value.toLocaleTimeString('vi-VN', { hour12: false });
+}
+
+function formatPriceValue(value: unknown) {
+  return formatCurrency(toNumber(value, 0));
+}
+
+function normalizePublicAssetPath(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return raw.startsWith('public/') ? `/${raw.slice('public/'.length)}` : raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function parseStringArray(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+
+  const raw = String(value || '').trim();
+  if (!raw) return [] as string[];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+  } catch {
+    // Fallback below keeps non-JSON legacy strings visible.
+  }
+
+  return [raw];
+}
+
+function parseCustomInputs(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return [] as Array<{ label: string; placeholder?: string }>;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => ({
+        label: String(item?.label || '').trim(),
+        placeholder: String(item?.placeholder || '').trim(),
+      }))
+      .filter((item) => item.label);
+  } catch {
+    return [];
+  }
+}
+
+function parseCustomValueEntries(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return [] as string[];
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown> | unknown[];
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+
+    return Object.entries(parsed || {})
+      .sort(([left], [right]) => Number(left) - Number(right))
+      .map(([, item]) => String(item || '').trim())
+      .filter(Boolean);
+  } catch {
+    return [raw];
+  }
+}
+
+function extractOrderInputRows(row: Record<string, unknown>) {
+  const definitions = parseCustomInputs(row.custom_inputs);
+  const values = parseCustomValueEntries(row.custom_value_display);
+  const fallbackValues = [String(row.link || '').trim(), String(row.buyer_info_display || '').trim()].filter(Boolean);
+
+  if (definitions.length > 0) {
+    return definitions
+      .map((definition, index) => ({
+        label: definition.label,
+        value: values[index] || fallbackValues[index] || '',
+      }))
+      .filter((item) => item.value);
+  }
+
+  return [
+    { label: String(row.input_label || 'Liên kết / ID').trim(), value: fallbackValues[0] || '' },
+    { label: String(row.buyer_label || 'Thông tin liên hệ').trim(), value: fallbackValues[1] || '' },
+  ].filter((item) => item.value);
+}
+
+function formatOrderClipboardText(row: Record<string, unknown>) {
+  const header = [`#${row.id}`, String(row.product_name || row.title || `Đơn ${row.id}`)].filter(Boolean).join(' - ');
+  const inputs = extractOrderInputRows(row)
+    .map((item) => `${item.label}: ${item.value}`)
+    .join('\n');
+  const extras = [
+    `User: ${String(row.display_name || row.username || `#${row.user_id}`)}`,
+    `Trạng thái: ${humanizeStatusValue(row.status)}`,
+    `Giá: ${formatPriceValue(row.price)}`,
+  ];
+
+  return [header, inputs, extras.join('\n')].filter(Boolean).join('\n');
+}
+
+function formatOrderExportText(rows: Array<Record<string, unknown>>) {
+  return rows
+    .map((row) => formatOrderClipboardText(row))
+    .join('\n\n------------------------------\n\n');
+}
+
+function getLegacyOrderStatusClasses(status: unknown) {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (normalized === 'completed') {
+    return 'border-emerald-400/30 bg-emerald-500/14 text-emerald-200';
+  }
+  if (normalized === 'canceled') {
+    return 'border-rose-400/30 bg-rose-500/14 text-rose-200';
+  }
+  if (normalized === 'processing') {
+    return 'border-cyan-400/30 bg-cyan-500/14 text-cyan-100';
+  }
+  return 'border-blue-400/30 bg-blue-500/16 text-blue-100';
+}
+
+function getSmmCategoryAccent(value: unknown) {
+  const category = String(value || '').toUpperCase();
+  if (category.startsWith('[FB]')) return 'text-sky-200';
+  if (category.startsWith('[TT]')) return 'text-fuchsia-200';
+  if (category.startsWith('[IG]')) return 'text-amber-200';
+  if (category.startsWith('[YT]')) return 'text-red-200';
+  return 'text-slate-200';
+}
+
 export function AdminDataPage({ title, description, sections }: AdminDataPageProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSection = sections[activeIndex] || sections[0];
@@ -474,11 +667,16 @@ export function AdminDataPage({ title, description, sections }: AdminDataPagePro
 
 function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   const { confirm } = useConfirmDialog();
+  const isLegacySmmServices = isLegacySmmServicesResource(section.resource);
+  const isLegacyAutoMxhOrders = isLegacyAutoMxhOrdersResource(section.resource);
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [pagination, setPagination] = useState<ApiResponse['pagination']>();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const [perPage, setPerPage] = useState(25);
+  const [perPage, setPerPage] = useState(isLegacySmmServices ? 10 : 25);
+  const [providerFilter, setProviderFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [pageInput, setPageInput] = useState('1');
   const [loading, setLoading] = useState(true);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -511,6 +709,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       merge?: boolean;
       preserveSelection?: boolean;
       pageSize?: number;
+      searchValue?: string;
+      statusValue?: string;
+      providerValue?: string;
+      categoryValue?: string;
     }
   ) {
     if (options?.silent) {
@@ -523,8 +725,14 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       page: String(page),
       per_page: String(effectivePageSize),
     });
-    if (search.trim()) params.set('search', search.trim());
-    if (status) params.set('status', status);
+    const activeSearch = (options?.searchValue ?? search).trim();
+    const activeStatus = options?.statusValue ?? status;
+    const activeProvider = options?.providerValue ?? providerFilter;
+    const activeCategory = options?.categoryValue ?? categoryFilter;
+    if (activeSearch) params.set('search', activeSearch);
+    if (activeStatus) params.set('status', activeStatus);
+    if (isLegacySmmServices && activeProvider) params.set('provider_id', activeProvider);
+    if (isLegacySmmServices && activeCategory) params.set('category', activeCategory);
 
     try {
       const response = await fetch(`/api/admin/${section.resource}?${params.toString()}`, { cache: 'no-store' });
@@ -565,12 +773,120 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     }, 20000);
 
     return () => window.clearInterval(timer);
-  }, [section.resource, status, search, editor, pagination?.page, perPage]);
+  }, [section.resource, status, search, providerFilter, categoryFilter, editor, pagination?.page, perPage]);
+
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const selectedRows = useMemo(() => rows.filter((row) => selectedSet.has(rowId(row))), [rows, selectedSet]);
+  const smmProviderOptions = useMemo(() => {
+    return Array.from(
+      new Map(
+        rows
+          .map((row) => {
+            const id = String(row.provider_id || '').trim();
+            if (!id) return null;
+            return [
+              id,
+              {
+                value: id,
+                label: String(row.provider_name || `Provider #${id}`),
+              },
+            ] as const;
+          })
+          .filter(Boolean) as Array<readonly [string, { value: string; label: string }]>
+      ).values()
+    );
+  }, [rows]);
+  const smmCategoryOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        rows
+          .map((row) => String(row.category || '').trim())
+          .filter(Boolean)
+      )
+    ).sort((left, right) => left.localeCompare(right, 'vi'));
+  }, [rows]);
 
   function toggleSelected(id: number) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  async function patchRow(id: number, patch: Record<string, unknown>, successMessage = 'Đã cập nhật') {
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/${section.resource}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không thể cập nhật');
+      }
+
+      const updated = payload.data as Record<string, unknown> | undefined;
+      if (updated) {
+        setRows((current) => current.map((row) => (rowId(row) === id ? { ...row, ...updated } : row)));
+      }
+      toast.success(successMessage);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function copyToClipboard(text: string, successMessage: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(successMessage);
+    } catch {
+      toast.error('Không thể sao chép vào clipboard');
+    }
+  }
+
+  function downloadTextFile(filename: string, content: string) {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function resetLegacyBoard() {
+    const defaultPageSize = isLegacySmmServices ? 10 : 25;
+    setSearch('');
+    setStatus('');
+    setProviderFilter('');
+    setCategoryFilter('');
+    setSelected([]);
+    setPageInput('1');
+    setPerPage(defaultPageSize);
+    void loadData(1, {
+      pageSize: defaultPageSize,
+      searchValue: '',
+      statusValue: '',
+      providerValue: '',
+      categoryValue: '',
+    });
+  }
+
+  function goToPage(nextPage: number) {
+    const target = Math.max(1, Math.min(totalPages, nextPage));
+    setPageInput(String(target));
+    void loadData(target);
+  }
+
+  function submitTypedPage() {
+    const nextPage = Math.max(1, Math.min(totalPages, Number(pageInput || page)));
+    void loadData(Number.isFinite(nextPage) ? nextPage : page);
   }
 
   async function saveEditor() {
@@ -679,319 +995,1110 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     }
   }
 
+  const selectedAllOnPage = rows.length > 0 && selected.length === rows.length;
+
   return (
     <>
-      <SectionPanel className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
-        <SectionHeader
-          eyebrow="Dataset"
-          title={localizeAdminText(section.title)}
-          description={section.description}
-          actions={
-            <>
-              {canCreate ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setEditor({ mode: 'create', values: initialValues(createFields) })}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Thêm mới
-                </Button>
-              ) : null}
-              {globalActions.map((action) => (
-                <Button
-                  key={action.key}
-                  type="button"
-                  size="sm"
-                  variant="default"
-                  disabled={saving}
-                  onClick={() => runAction(action.key)}
-                >
-                  <RefreshCw className={cn('mr-2 h-4 w-4', saving && 'animate-spin')} />
-                  {resolveActionLabel(action)}
-                </Button>
-              ))}
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => loadData(pagination?.page || 1, { preserveSelection: true })}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </Button>
-            </>
-          }
-        />
-
-        <form
-          className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_180px_220px_auto]"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void loadData(1);
-          }}
-        >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tìm kiếm theo nội dung, tiêu đề, người dùng..."
-              className="pl-11"
-            />
-          </div>
-          <select
-            value={String(perPage)}
-            onChange={(event) => {
-              const nextPerPage = Number(event.target.value || 25);
-              setSelected([]);
-              setPerPage(nextPerPage);
-            }}
-            className="field-elevated h-11 rounded-[1rem] px-4 text-sm font-bold text-slate-700 outline-none dark:text-white"
-          >
-            {PAGE_SIZE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                Hiển thị {option} dòng
-              </option>
-            ))}
-          </select>
-          {section.statusOptions?.length ? (
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              className="field-elevated h-11 rounded-[1rem] px-4 text-sm font-bold text-slate-700 outline-none dark:text-white"
-            >
-              <option value="">Tất cả trạng thái</option>
-              {section.statusOptions.map((option) => (
-                <option key={option} value={option}>{humanizeStatusValue(option)}</option>
-              ))}
-            </select>
-          ) : null}
-          <Button type="submit" size="default" className="w-full lg:w-auto">
-            <Search className="mr-2 h-4 w-4" />
-            Lọc dữ liệu
-          </Button>
-        </form>
-
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="muted" className="rounded-lg px-3 py-1.5">
-            Tổng {totalRows} dòng
-          </Badge>
-          <Badge variant="muted" className="rounded-lg px-3 py-1.5">
-            Trang {page}/{totalPages}
-          </Badge>
-          <Badge variant={selected.length > 0 ? 'info' : 'muted'} className="rounded-lg px-3 py-1.5">
-            Đã chọn {selected.length} dòng
-          </Badge>
-          <Badge variant={backgroundRefreshing ? 'info' : 'muted'} className="rounded-lg px-3 py-1.5">
-            {backgroundRefreshing
-              ? 'Đang đồng bộ nền...'
-              : lastSyncedAt
-                ? `Cập nhật ${lastSyncedAt.toLocaleTimeString('vi-VN', { hour12: false })}`
-                : 'Chưa đồng bộ'}
-          </Badge>
-        </div>
-
-        {selected.length > 0 ? (
-          <div className="rounded-xl border border-brand-blue/15 bg-brand-blue/10 p-4 dark:border-brand-blue/20 dark:bg-brand-blue/10">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="text-sm font-bold text-slate-700 dark:text-slate-100">
-                Đã chọn {selected.length} dòng. Bạn có thể cập nhật trạng thái hàng loạt hoặc chạy action bulk bên dưới.
+      <SectionPanel className={cn(
+        'space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900',
+        (isLegacySmmServices || isLegacyAutoMxhOrders) && 'rounded-[2rem] border-[#16213c] bg-[#081121] p-5 text-white shadow-[0_30px_90px_-52px_rgba(2,6,23,0.92)]'
+      )}>
+        {isLegacySmmServices ? (
+          <>
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">
+                  Administration
+                </div>
+                <div className="text-3xl font-black uppercase tracking-[-0.04em] text-white">
+                  Cấu Hình Dịch Vụ SMM
+                </div>
+                <p className="max-w-3xl text-sm font-medium leading-7 text-slate-400">
+                  Đồng bộ nguồn, lọc danh mục và tinh chỉnh hiển thị dịch vụ theo đúng nhịp vận hành của giao diện cũ.
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {section.statusOptions?.length ? (
-                  <select
-                    defaultValue=""
-                    onChange={(event) => {
-                      void bulkUpdateStatus(event.target.value);
-                      event.currentTarget.value = '';
-                    }}
-                    className="field-elevated h-9 rounded-[0.95rem] px-3 text-xs font-bold text-slate-700 outline-none dark:text-white"
-                  >
-                    <option value="">Đổi trạng thái</option>
-                    {section.statusOptions.map((option) => (
-                      <option key={option} value={option}>{humanizeStatusValue(option)}</option>
-                    ))}
-                  </select>
-                ) : null}
-                {bulkActions.map((action) => (
+                {globalActions.map((action) => (
                   <Button
                     key={action.key}
                     type="button"
                     size="sm"
-                    variant={action.tone === 'danger' ? 'destructive' : 'default'}
+                    className="rounded-[1rem] bg-[linear-gradient(135deg,#0ea5e9_0%,#2563eb_52%,#1d4ed8_100%)]"
+                    disabled={saving}
                     onClick={() => runAction(action.key)}
                   >
+                    <RefreshCw className={cn('mr-2 h-4 w-4', saving && 'animate-spin')} />
                     {resolveActionLabel(action)}
                   </Button>
                 ))}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] border-collapse text-left">
-              <thead className="border-b border-slate-200 bg-slate-50/70 text-[10px] font-black uppercase tracking-[0.26em] text-slate-400 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500">
-                <tr>
-                  <th className="w-10 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={rows.length > 0 && selected.length === rows.length}
-                      onChange={(event) => setSelected(event.target.checked ? rows.map((row) => Number(row.id)).filter(Boolean) : [])}
-                    />
-                  </th>
-                  {section.columns.map((column) => (
-                    <th key={column} className="px-4 py-3">{humanizeFieldName(column)}</th>
-                  ))}
-                  <th className="px-4 py-3 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm dark:divide-white/5">
-                {loading && rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={section.columns.length + 2} className="px-4 py-16 text-center text-slate-400">
-                      <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />
-                      Đang tải dữ liệu...
-                    </td>
-                  </tr>
-                ) : rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={section.columns.length + 2} className="p-0">
-                      <EmptyState
-                        title="Không có dữ liệu"
-                        description="Bộ lọc hiện tại chưa trả về bản ghi nào. Bạn có thể đổi keyword, trạng thái hoặc kiểm tra dữ liệu nguồn."
-                        className="rounded-none border-0 shadow-none"
-                      />
-                    </td>
-                  </tr>
-                ) : rows.map((row) => {
-                  const id = Number(row.id || 0);
-                  const pinned = isTruthy(row.is_pinned);
-                  return (
-                    <tr
-                      key={id || JSON.stringify(row)}
-                      className={cn(
-                        'align-top transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03]',
-                        pinned && 'bg-amber-50/50 dark:bg-amber-400/[0.04]'
-                      )}
-                    >
-                      <td className="px-4 py-3">
-                        <input type="checkbox" checked={selectedSet.has(id)} onChange={() => toggleSelected(id)} />
-                      </td>
-                      {section.columns.map((column) => (
-                        <td
-                          key={column}
-                          className={cn(
-                            'max-w-[260px] px-4 py-3 font-medium leading-7 text-slate-600 dark:text-slate-300',
-                            isCodeLikeColumn(column) && 'font-mono text-[13px] tracking-tight text-slate-500 dark:text-slate-200'
-                          )}
-                        >
-                          {column === 'is_pinned' ? (
-                            <Badge variant={pinned ? 'warning' : 'muted'} className="w-fit rounded-full px-3 py-1.5">
-                              {pinned ? 'Đang ghim' : 'Không'}
-                            </Badge>
-                          ) : isStatusColumn(column) ? (
-                            <Badge variant={statusBadgeVariant(row[column])} className="w-fit rounded-full px-3 py-1.5">
-                              {formatCell(row[column], column)}
-                            </Badge>
-                          ) : formatCell(row[column], column)}
-                        </td>
-                      ))}
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap justify-end gap-2">
-                          {rowActions.map((action) => (
-                            <Button
-                              key={action.key}
-                              type="button"
-                              size="sm"
-                              variant={action.tone === 'danger' ? 'destructive' : action.tone === 'success' ? 'secondary' : 'outline'}
-                              disabled={saving}
-                              onClick={() => runAction(action.key, id)}
-                            >
-                              {resolveActionLabel(action)}
-                            </Button>
-                          ))}
-                          {canEdit ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
-                            >
-                              <Pencil className="mr-2 h-3.5 w-3.5" />
-                              Sửa
-                            </Button>
-                          ) : null}
-                          {canEdit ? (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => deleteRow(row)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 text-xs font-bold text-slate-500 md:flex-row md:items-center md:justify-between">
-          <span>
-            Hiển thị {visibleFrom}-{visibleTo} / {totalRows} dòng
-          </span>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={!pagination || page <= 1}
-              onClick={() => loadData(page - 1)}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Trước
-            </Button>
-            {paginationPages.map((item, index) =>
-              item === 'ellipsis' ? (
-                <span
-                  key={`ellipsis-${index}`}
-                  className="flex h-9 items-center px-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400"
-                >
-                  ...
-                </span>
-              ) : (
                 <Button
-                  key={item}
                   type="button"
                   size="sm"
-                  variant={item === page ? 'default' : 'outline'}
-                  onClick={() => loadData(item)}
+                  variant="outline"
+                  className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                  onClick={() => loadData(pagination?.page || 1, { preserveSelection: true })}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Làm mới
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-[1.8rem] border border-white/8 bg-[#0d1730] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="mb-3 flex flex-wrap gap-2">
+                {LEGACY_EDITOR_TOOLBAR.map((Icon, index) => (
+                  <button
+                    key={`${Icon.displayName || Icon.name}-${index}`}
+                    type="button"
+                    disabled
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/8 bg-white/[0.03] text-slate-300"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                ))}
+              </div>
+              <div className="rounded-[1.4rem] border border-white/7 bg-[#1b2742] p-4">
+                <div className="text-sm font-black uppercase tracking-tight text-slate-100">
+                  Cộng Đồng <span className="text-red-400">TRUNGTAMMMO.VN</span>
+                </div>
+                <div className="mt-3 space-y-2 text-sm text-slate-200">
+                  {LEGACY_COMMUNITY_LINKS.map((item) => (
+                    <div key={item.href} className="flex flex-wrap items-center gap-2">
+                      <span className="text-emerald-400">❯❯</span>
+                      <span className="font-black">{item.label}</span>
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-300 underline decoration-sky-300/50 underline-offset-2"
+                      >
+                        {item.href}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <form
+              className="space-y-4 rounded-[1.8rem] border border-white/8 bg-[#0d1730] p-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loadData(1);
+              }}
+            >
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Tìm gói dịch vụ, hashtag..."
+                  className="h-14 w-full rounded-[1.25rem] border border-white/8 bg-[#1b2742] pl-12 pr-14 text-sm font-semibold text-white outline-none placeholder:text-slate-500"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-[1rem] bg-white/[0.05] text-slate-200 transition hover:bg-white/[0.1]"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-[190px_minmax(0,1fr)_150px_190px]">
+                <select
+                  value={providerFilter}
+                  onChange={(event) => {
+                    const nextProvider = event.target.value;
+                    setProviderFilter(nextProvider);
+                    setSelected([]);
+                    void loadData(1, { providerValue: nextProvider });
+                  }}
+                  className="h-14 rounded-[1.2rem] border border-white/8 bg-[#1b2742] px-4 text-sm font-bold text-white outline-none"
+                >
+                  <option value="">Nguồn: Tất cả</option>
+                  {smmProviderOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={categoryFilter}
+                  onChange={(event) => {
+                    const nextCategory = event.target.value;
+                    setCategoryFilter(nextCategory);
+                    setSelected([]);
+                    void loadData(1, { categoryValue: nextCategory });
+                  }}
+                  className="h-14 rounded-[1.2rem] border border-white/8 bg-[#1b2742] px-4 text-sm font-bold text-white outline-none"
+                >
+                  <option value="">Lọc danh mục</option>
+                  {smmCategoryOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={String(perPage)}
+                  onChange={(event) => {
+                    const nextPerPage = Number(event.target.value || 10);
+                    setSelected([]);
+                    setPerPage(nextPerPage);
+                  }}
+                  className="h-14 rounded-[1.2rem] border border-white/8 bg-[#1b2742] px-4 text-sm font-bold text-white outline-none"
+                >
+                  {PAGE_SIZE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      Hiển thị {option} dòng
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-2 rounded-[1.2rem] border border-white/8 bg-[#1b2742] px-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Đến trang
+                  </span>
+                  <input
+                    value={pageInput}
+                    onChange={(event) => setPageInput(event.target.value.replace(/[^\d]/g, ''))}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        submitTypedPage();
+                      }
+                    }}
+                    className="h-11 min-w-0 flex-1 bg-transparent text-center text-sm font-black text-white outline-none"
+                  />
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.1] disabled:opacity-40"
+                      disabled={page <= 1}
+                      onClick={() => goToPage(page - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.1] disabled:opacity-40"
+                      disabled={page >= totalPages}
+                      onClick={() => goToPage(page + 1)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <div className="flex flex-wrap gap-3">
+              {[
+                `Tổng ${formatNumber(totalRows)} dòng`,
+                `Trang ${page}/${totalPages}`,
+                `Đã chọn ${selected.length} dòng`,
+                backgroundRefreshing ? 'Đang đồng bộ nền...' : `Cập nhật ${formatCompactClock(lastSyncedAt)}`,
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-300"
                 >
                   {item}
-                </Button>
-              )
-            )}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={!pagination || page >= totalPages}
-              onClick={() => loadData(page + 1)}
+                </span>
+              ))}
+            </div>
+
+            {selected.length > 0 ? (
+              <div className="rounded-[1.6rem] border border-blue-400/20 bg-blue-500/10 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="text-sm font-bold text-slate-100">
+                    Đã chọn {selected.length} dịch vụ. Bạn có thể cập nhật trạng thái nhanh hoặc ẩn hàng loạt.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {section.statusOptions?.length ? (
+                      <select
+                        defaultValue=""
+                        onChange={(event) => {
+                          void bulkUpdateStatus(event.target.value);
+                          event.currentTarget.value = '';
+                        }}
+                        className="h-10 rounded-[1rem] border border-white/10 bg-white/[0.06] px-3 text-xs font-black uppercase tracking-[0.14em] text-white outline-none"
+                      >
+                        <option value="">Đổi trạng thái</option>
+                        {section.statusOptions.map((option) => (
+                          <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                        ))}
+                      </select>
+                    ) : null}
+                    {bulkActions.map((action) => (
+                      <Button
+                        key={action.key}
+                        type="button"
+                        size="sm"
+                        variant={action.tone === 'danger' ? 'destructive' : 'default'}
+                        onClick={() => runAction(action.key)}
+                      >
+                        {resolveActionLabel(action)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="overflow-hidden rounded-[1.8rem] border border-white/8 bg-[#0d1730]">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[960px] border-collapse text-left">
+                  <thead className="border-b border-white/8 bg-[#17233e] text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                    <tr>
+                      <th className="w-12 px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedAllOnPage}
+                          onChange={(event) => setSelected(event.target.checked ? rows.map((row) => rowId(row)).filter(Boolean) : [])}
+                        />
+                      </th>
+                      <th className="px-4 py-4">Dịch vụ</th>
+                      <th className="w-[260px] px-4 py-4">Giá gốc</th>
+                      <th className="w-[180px] px-4 py-4 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/6">
+                    {loading && rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-16 text-center text-slate-400">
+                          <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />
+                          Đang tải dữ liệu...
+                        </td>
+                      </tr>
+                    ) : rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-0">
+                          <EmptyState
+                            title="Không có dịch vụ"
+                            description="Bộ lọc hiện tại chưa trả về service nào."
+                            className="rounded-none border-0 bg-transparent text-white shadow-none"
+                          />
+                        </td>
+                      </tr>
+                    ) : rows.map((row) => {
+                      const id = rowId(row);
+                      const customPrice = toNumber(row.custom_price, 0);
+                      const apiRate = toNumber(row.rate, 0);
+                      const hasCustomPrice = customPrice > 0;
+                      return (
+                        <tr key={id} className="align-top transition hover:bg-white/[0.02]">
+                          <td className="px-4 py-5">
+                            <input type="checkbox" checked={selectedSet.has(id)} onChange={() => toggleSelected(id)} />
+                          </td>
+                          <td className="px-4 py-5">
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap gap-2">
+                                <span className="rounded-full border border-white/8 bg-white/[0.05] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">
+                                  #{String(row.service_id || row.id || '')}
+                                </span>
+                                <span className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-200">
+                                  {String(row.provider_name || `Provider ${row.provider_id || 'N/A'}`)}
+                                </span>
+                                <span className={cn(
+                                  'rounded-full border border-white/8 bg-white/[0.05] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]',
+                                  getSmmCategoryAccent(row.category)
+                                )}>
+                                  {String(row.category || 'Chưa phân loại')}
+                                </span>
+                                {isTruthy(row.is_auto_margin) ? (
+                                  <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">
+                                    Auto Margin {row.margin_percent ? `${formatCell(row.margin_percent)}%` : ''}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="text-base font-black leading-7 text-white">
+                                {String(row.name || 'Dịch vụ không tên')}
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-slate-400">
+                                <span>Provider ID: {formatCell(row.provider_id)}</span>
+                                <span>Min: {formatCell(row.min)}</span>
+                                <span>Max: {formatCell(row.max)}</span>
+                                <span>Cập nhật: {formatCompactTimestamp(row.cached_at)}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-5">
+                            <div className="space-y-2 text-right">
+                              <div className="text-2xl font-black tracking-[-0.04em] text-white">
+                                {formatPriceValue(hasCustomPrice ? customPrice : apiRate)}
+                              </div>
+                              <div className="text-xs font-semibold text-slate-400">
+                                {hasCustomPrice ? (
+                                  <>
+                                    Giá API <span className="font-mono line-through">{formatPriceValue(apiRate)}</span>
+                                  </>
+                                ) : (
+                                  <>Giá API {formatPriceValue(apiRate)}</>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-end gap-2">
+                                <span className={cn(
+                                  'inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]',
+                                  getLegacyOrderStatusClasses(row.status)
+                                )}>
+                                  {humanizeStatusValue(row.status)}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-5">
+                            <div className="flex flex-wrap justify-end gap-2">
+                              {canEdit ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                                  onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
+                                >
+                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                                  Sửa
+                                </Button>
+                              ) : null}
+                              {canEdit ? (
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="rounded-[1rem] text-slate-300 hover:bg-red-500/10 hover:text-red-300"
+                                  disabled={saving}
+                                  onClick={() => deleteRow(row)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs font-bold text-slate-400 md:flex-row md:items-center md:justify-between">
+              <span>
+                Hiển thị {visibleFrom}-{visibleTo} / {formatNumber(totalRows)} dòng
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center rounded-[1rem] border border-white/8 bg-white/[0.04] px-4 uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08] disabled:opacity-40"
+                  disabled={page <= 1}
+                  onClick={() => goToPage(page - 1)}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Trước
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center rounded-[1rem] border border-white/8 bg-white/[0.04] px-4 uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08] disabled:opacity-40"
+                  disabled={page >= totalPages}
+                  onClick={() => goToPage(page + 1)}
+                >
+                  Sau
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : isLegacyAutoMxhOrders ? (
+          <>
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="space-y-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">
+                  Administration
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-4xl font-black uppercase tracking-[-0.08em] text-white">
+                    MXH
+                  </div>
+                  <span className="rounded-full border border-emerald-400/20 bg-emerald-500/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
+                    Live
+                  </span>
+                </div>
+                <div className="text-4xl font-black uppercase tracking-[-0.08em] text-white">
+                  Orders
+                </div>
+                <p className="max-w-xl text-sm font-medium leading-7 text-slate-400">
+                  Quản lý đơn hàng dịch vụ Auto MXH theo kiểu card, tab trạng thái và action bar giống giao diện cũ.
+                </p>
+              </div>
+
+              <form
+                className="flex w-full flex-col gap-3 xl:max-w-[820px]"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void loadData(1);
+                }}
+              >
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                    onClick={resetLegacyBoard}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Đặt Lại Bảng
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-[1rem] bg-[linear-gradient(135deg,#14b8a6_0%,#10b981_100%)] text-[#03131a]"
+                    onClick={() => {
+                      const exportRows = selectedRows.length > 0 ? selectedRows : rows;
+                      if (exportRows.length === 0) {
+                        toast.error('Không có đơn hàng để xuất');
+                        return;
+                      }
+                      downloadTextFile(`automxh-orders-page-${page}.txt`, formatOrderExportText(exportRows));
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Xuất TXT
+                  </Button>
+                </div>
+
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_170px_120px]">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    <input
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Tìm kiếm theo nội dung, tiêu đề, người dùng..."
+                      className="h-14 w-full rounded-[1.25rem] border border-white/8 bg-[#0d1730] pl-12 pr-4 text-sm font-semibold text-white outline-none placeholder:text-slate-500"
+                    />
+                  </div>
+                  <select
+                    value={String(perPage)}
+                    onChange={(event) => {
+                      const nextPerPage = Number(event.target.value || 25);
+                      setSelected([]);
+                      setPerPage(nextPerPage);
+                    }}
+                    className="h-14 rounded-[1.2rem] border border-white/8 bg-[#0d1730] px-4 text-sm font-bold text-white outline-none"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        Hiển thị {option} dòng
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex h-12 w-12 items-center justify-center rounded-[1rem] border border-white/8 bg-[#0d1730] text-slate-200 transition hover:bg-white/[0.08] disabled:opacity-40"
+                      disabled={page <= 1}
+                      onClick={() => goToPage(page - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-12 w-12 items-center justify-center rounded-[1rem] border border-white/8 bg-[#0d1730] text-slate-200 transition hover:bg-white/[0.08] disabled:opacity-40"
+                      disabled={page >= totalPages}
+                      onClick={() => goToPage(page + 1)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {selected.length > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-blue-400/20 bg-blue-500/10 px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-blue-100">
+                  Đã chọn {selected.length} đơn hàng
+                </div>
+                <button
+                  type="button"
+                  className="text-[11px] font-black uppercase tracking-[0.16em] text-blue-200 transition hover:text-white"
+                  onClick={() => setSelected([])}
+                >
+                  Bỏ chọn tất cả
+                </button>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-5">
+              {LEGACY_ORDER_STATUS_TABS.map((tab) => (
+                <button
+                  key={tab.value || 'all'}
+                  type="button"
+                  onClick={() => setStatus(tab.value)}
+                  className={cn(
+                    'rounded-[1.2rem] border px-4 py-4 text-[11px] font-black uppercase tracking-[0.18em] transition',
+                    status === tab.value
+                      ? 'border-slate-300 bg-slate-300 text-[#0b1220]'
+                      : 'border-white/8 bg-[#0d1730] text-slate-300 hover:bg-white/[0.08]'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              {[
+                `Tổng ${formatNumber(totalRows)} dòng`,
+                `Trang ${page}/${totalPages}`,
+                `Đã chọn ${selected.length} dòng`,
+                backgroundRefreshing ? 'Đang đồng bộ nền...' : `Cập nhật ${formatCompactClock(lastSyncedAt)}`,
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-300"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              {loading && rows.length === 0 ? (
+                <div className="rounded-[1.8rem] border border-white/8 bg-[#0d1730] px-6 py-16 text-center text-slate-400">
+                  <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />
+                  Đang tải đơn hàng...
+                </div>
+              ) : rows.length === 0 ? (
+                <EmptyState
+                  title="Không có đơn Auto MXH"
+                  description="Bộ lọc hiện tại chưa trả về đơn hàng nào."
+                  className="rounded-[1.8rem] border-white/8 bg-[#0d1730] text-white shadow-none"
+                />
+              ) : rows.map((row) => {
+                const id = rowId(row);
+                const orderInputs = extractOrderInputRows(row);
+                const avatarUrl = normalizePublicAssetPath(row.avatar_path);
+                const attachmentUrls = parseStringArray(row.additional_files_list || row.additional_files).map(normalizePublicAssetPath).filter(Boolean);
+                const consentAccepted = isTruthy(row.confirm_1) || isTruthy(row.confirm_2);
+                const completionNote = String(row.perfection_content || '').trim();
+                return (
+                  <article
+                    key={id}
+                    className="rounded-[1.8rem] border border-white/8 bg-[#0d1730] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                  >
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="flex items-start gap-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedSet.has(id)}
+                          onChange={() => toggleSelected(id)}
+                          className="mt-1"
+                        />
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-3 text-sm font-black text-white">
+                            <span>#{id}</span>
+                            <span className="text-xs font-bold text-slate-500">{formatCompactTimestamp(row.created_at)}</span>
+                          </div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-blue-300">
+                            {String(row.display_name || row.username || `User #${row.user_id}`)}
+                          </div>
+                          <div className="text-2xl font-black uppercase leading-tight text-white">
+                            {String(row.product_name || `Đơn hàng #${id}`)}
+                          </div>
+                          <div className="text-sm font-bold uppercase tracking-[0.06em] text-emerald-300">
+                            {String(row.variant_name || '').trim() || 'Biến thể mặc định'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-start gap-3 xl:items-end">
+                        {section.statusOptions?.length ? (
+                          <select
+                            value={String(row.status || '')}
+                            disabled={saving}
+                            onChange={(event) => {
+                              void patchRow(id, { status: event.target.value }, `Đã cập nhật trạng thái #${id}`);
+                            }}
+                            className={cn(
+                              'h-11 rounded-[1.1rem] border px-4 text-xs font-black uppercase tracking-[0.16em] outline-none',
+                              getLegacyOrderStatusClasses(row.status)
+                            )}
+                          >
+                            {section.statusOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {humanizeStatusValue(option)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
+                        <div className="text-right">
+                          <div className="text-3xl font-black tracking-[-0.04em] text-emerald-300">
+                            {formatPriceValue(row.price)}
+                          </div>
+                          {consentAccepted ? (
+                            <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                              Người dùng đã đồng ý điều khoản
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px]">
+                      <div className="rounded-[1.5rem] bg-white/[0.04] p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                          Dữ liệu đầu vào
+                        </div>
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          {orderInputs.length > 0 ? orderInputs.map((item) => (
+                            <div key={`${id}-${item.label}`} className="rounded-[1rem] border border-white/6 bg-[#111b31] p-3">
+                              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                                {item.label}
+                              </div>
+                              <div className="mt-2 break-all text-sm font-bold text-slate-100">
+                                {item.value}
+                              </div>
+                            </div>
+                          )) : (
+                            <div className="rounded-[1rem] border border-white/6 bg-[#111b31] p-3 text-sm font-semibold text-slate-400">
+                              Không có dữ liệu đầu vào.
+                            </div>
+                          )}
+                        </div>
+
+                        {avatarUrl || attachmentUrls.length > 0 ? (
+                          <div className="mt-4 flex flex-wrap items-start gap-3">
+                            {avatarUrl ? (
+                              <a href={avatarUrl} target="_blank" rel="noreferrer" className="block">
+                                <img
+                                  src={avatarUrl}
+                                  alt={`Avatar đơn #${id}`}
+                                  className="h-20 w-20 rounded-[1rem] border border-white/8 object-cover"
+                                />
+                              </a>
+                            ) : null}
+                            {attachmentUrls.map((url) => (
+                              <a
+                                key={url}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-2 rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200"
+                              >
+                                <Link2 className="h-3.5 w-3.5" />
+                                File
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {completionNote ? (
+                          <div className="mt-4 rounded-[1rem] border border-emerald-400/12 bg-emerald-500/6 p-3 text-sm font-semibold text-emerald-100">
+                            {completionNote}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="flex flex-col gap-3 xl:justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="rounded-[1rem] bg-[linear-gradient(135deg,#0ea5e9_0%,#2563eb_100%)]"
+                          onClick={() => copyToClipboard(formatOrderClipboardText(row), `Đã sao chép nội dung đơn #${id}`)}
+                        >
+                          <Send className="mr-2 h-4 w-4" />
+                          Gửi Tele
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                          onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Chi Tiết
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {selected.length > 0 ? (
+              <div className="sticky bottom-4 z-20">
+                <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-3 rounded-[1.8rem] border border-white/10 bg-[#111b31]/95 px-5 py-4 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.8)] backdrop-blur-xl">
+                  <div className="rounded-full bg-blue-500 px-3 py-2 text-sm font-black text-white">
+                    {selected.length}
+                  </div>
+                  <div className="text-sm font-black uppercase tracking-[0.16em] text-slate-200">
+                    Đơn hàng được chọn
+                  </div>
+                  {section.statusOptions?.length ? (
+                    <select
+                      defaultValue=""
+                      onChange={(event) => {
+                        void bulkUpdateStatus(event.target.value);
+                        event.currentTarget.value = '';
+                      }}
+                      className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.05] px-4 text-xs font-black uppercase tracking-[0.14em] text-white outline-none"
+                    >
+                      <option value="">Đổi trạng thái</option>
+                      {section.statusOptions.map((option) => (
+                        <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-[1rem] bg-[linear-gradient(135deg,#3b82f6_0%,#2563eb_100%)]"
+                    onClick={() => copyToClipboard(formatOrderExportText(selectedRows), 'Đã sao chép các đơn đã chọn')}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Sao Chép
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-[1rem] bg-[linear-gradient(135deg,#0ea5e9_0%,#06b6d4_100%)]"
+                    onClick={() => copyToClipboard(formatOrderExportText(selectedRows), 'Đã chuẩn bị nội dung Telegram')}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Gửi Telegram Hàng Loạt
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                    onClick={() => downloadTextFile(`automxh-selected-${page}.txt`, formatOrderExportText(selectedRows))}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Xuất TXT
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <SectionHeader
+              eyebrow="Dataset"
+              title={localizeAdminText(section.title)}
+              description={section.description}
+              actions={
+                <>
+                  {canCreate ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setEditor({ mode: 'create', values: initialValues(createFields) })}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Thêm mới
+                    </Button>
+                  ) : null}
+                  {globalActions.map((action) => (
+                    <Button
+                      key={action.key}
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      disabled={saving}
+                      onClick={() => runAction(action.key)}
+                    >
+                      <RefreshCw className={cn('mr-2 h-4 w-4', saving && 'animate-spin')} />
+                      {resolveActionLabel(action)}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => loadData(pagination?.page || 1, { preserveSelection: true })}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refresh
+                  </Button>
+                </>
+              }
+            />
+
+            <form
+              className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_180px_220px_auto]"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loadData(1);
+              }}
             >
-              Sau
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Tìm kiếm theo nội dung, tiêu đề, người dùng..."
+                  className="pl-11"
+                />
+              </div>
+              <select
+                value={String(perPage)}
+                onChange={(event) => {
+                  const nextPerPage = Number(event.target.value || 25);
+                  setSelected([]);
+                  setPerPage(nextPerPage);
+                }}
+                className="field-elevated h-11 rounded-[1rem] px-4 text-sm font-bold text-slate-700 outline-none dark:text-white"
+              >
+                {PAGE_SIZE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    Hiển thị {option} dòng
+                  </option>
+                ))}
+              </select>
+              {section.statusOptions?.length ? (
+                <select
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                  className="field-elevated h-11 rounded-[1rem] px-4 text-sm font-bold text-slate-700 outline-none dark:text-white"
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  {section.statusOptions.map((option) => (
+                    <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                  ))}
+                </select>
+              ) : null}
+              <Button type="submit" size="default" className="w-full lg:w-auto">
+                <Search className="mr-2 h-4 w-4" />
+                Lọc dữ liệu
+              </Button>
+            </form>
+
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="muted" className="rounded-lg px-3 py-1.5">
+                Tổng {totalRows} dòng
+              </Badge>
+              <Badge variant="muted" className="rounded-lg px-3 py-1.5">
+                Trang {page}/{totalPages}
+              </Badge>
+              <Badge variant={selected.length > 0 ? 'info' : 'muted'} className="rounded-lg px-3 py-1.5">
+                Đã chọn {selected.length} dòng
+              </Badge>
+              <Badge variant={backgroundRefreshing ? 'info' : 'muted'} className="rounded-lg px-3 py-1.5">
+                {backgroundRefreshing
+                  ? 'Đang đồng bộ nền...'
+                  : lastSyncedAt
+                    ? `Cập nhật ${lastSyncedAt.toLocaleTimeString('vi-VN', { hour12: false })}`
+                    : 'Chưa đồng bộ'}
+              </Badge>
+            </div>
+
+            {selected.length > 0 ? (
+              <div className="rounded-xl border border-brand-blue/15 bg-brand-blue/10 p-4 dark:border-brand-blue/20 dark:bg-brand-blue/10">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="text-sm font-bold text-slate-700 dark:text-slate-100">
+                    Đã chọn {selected.length} dòng. Bạn có thể cập nhật trạng thái hàng loạt hoặc chạy action bulk bên dưới.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {section.statusOptions?.length ? (
+                      <select
+                        defaultValue=""
+                        onChange={(event) => {
+                          void bulkUpdateStatus(event.target.value);
+                          event.currentTarget.value = '';
+                        }}
+                        className="field-elevated h-9 rounded-[0.95rem] px-3 text-xs font-bold text-slate-700 outline-none dark:text-white"
+                      >
+                        <option value="">Đổi trạng thái</option>
+                        {section.statusOptions.map((option) => (
+                          <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                        ))}
+                      </select>
+                    ) : null}
+                    {bulkActions.map((action) => (
+                      <Button
+                        key={action.key}
+                        type="button"
+                        size="sm"
+                        variant={action.tone === 'danger' ? 'destructive' : 'default'}
+                        onClick={() => runAction(action.key)}
+                      >
+                        {resolveActionLabel(action)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[980px] border-collapse text-left">
+                  <thead className="border-b border-slate-200 bg-slate-50/70 text-[10px] font-black uppercase tracking-[0.26em] text-slate-400 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500">
+                    <tr>
+                      <th className="w-10 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedAllOnPage}
+                          onChange={(event) => setSelected(event.target.checked ? rows.map((row) => Number(row.id)).filter(Boolean) : [])}
+                        />
+                      </th>
+                      {section.columns.map((column) => (
+                        <th key={column} className="px-4 py-3">{humanizeFieldName(column)}</th>
+                      ))}
+                      <th className="px-4 py-3 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm dark:divide-white/5">
+                    {loading && rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={section.columns.length + 2} className="px-4 py-16 text-center text-slate-400">
+                          <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />
+                          Đang tải dữ liệu...
+                        </td>
+                      </tr>
+                    ) : rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={section.columns.length + 2} className="p-0">
+                          <EmptyState
+                            title="Không có dữ liệu"
+                            description="Bộ lọc hiện tại chưa trả về bản ghi nào. Bạn có thể đổi keyword, trạng thái hoặc kiểm tra dữ liệu nguồn."
+                            className="rounded-none border-0 shadow-none"
+                          />
+                        </td>
+                      </tr>
+                    ) : rows.map((row) => {
+                      const id = Number(row.id || 0);
+                      const pinned = isTruthy(row.is_pinned);
+                      return (
+                        <tr
+                          key={id || JSON.stringify(row)}
+                          className={cn(
+                            'align-top transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03]',
+                            pinned && 'bg-amber-50/50 dark:bg-amber-400/[0.04]'
+                          )}
+                        >
+                          <td className="px-4 py-3">
+                            <input type="checkbox" checked={selectedSet.has(id)} onChange={() => toggleSelected(id)} />
+                          </td>
+                          {section.columns.map((column) => (
+                            <td
+                              key={column}
+                              className={cn(
+                                'max-w-[260px] px-4 py-3 font-medium leading-7 text-slate-600 dark:text-slate-300',
+                                isCodeLikeColumn(column) && 'font-mono text-[13px] tracking-tight text-slate-500 dark:text-slate-200'
+                              )}
+                            >
+                              {column === 'is_pinned' ? (
+                                <Badge variant={pinned ? 'warning' : 'muted'} className="w-fit rounded-full px-3 py-1.5">
+                                  {pinned ? 'Đang ghim' : 'Không'}
+                                </Badge>
+                              ) : isStatusColumn(column) ? (
+                                <Badge variant={statusBadgeVariant(row[column])} className="w-fit rounded-full px-3 py-1.5">
+                                  {formatCell(row[column], column)}
+                                </Badge>
+                              ) : formatCell(row[column], column)}
+                            </td>
+                          ))}
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap justify-end gap-2">
+                              {rowActions.map((action) => (
+                                <Button
+                                  key={action.key}
+                                  type="button"
+                                  size="sm"
+                                  variant={action.tone === 'danger' ? 'destructive' : action.tone === 'success' ? 'secondary' : 'outline'}
+                                  disabled={saving}
+                                  onClick={() => runAction(action.key, id)}
+                                >
+                                  {resolveActionLabel(action)}
+                                </Button>
+                              ))}
+                              {canEdit ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
+                                >
+                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                                  Sửa
+                                </Button>
+                              ) : null}
+                              {canEdit ? (
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  disabled={saving}
+                                  onClick={() => deleteRow(row)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs font-bold text-slate-500 md:flex-row md:items-center md:justify-between">
+              <span>
+                Hiển thị {visibleFrom}-{visibleTo} / {totalRows} dòng
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!pagination || page <= 1}
+                  onClick={() => loadData(page - 1)}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Trước
+                </Button>
+                {paginationPages.map((item, index) =>
+                  item === 'ellipsis' ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="flex h-9 items-center px-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <Button
+                      key={item}
+                      type="button"
+                      size="sm"
+                      variant={item === page ? 'default' : 'outline'}
+                      onClick={() => loadData(item)}
+                    >
+                      {item}
+                    </Button>
+                  )
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!pagination || page >= totalPages}
+                  onClick={() => loadData(page + 1)}
+                >
+                  Sau
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </SectionPanel>
 
       {editor ? (

@@ -288,11 +288,11 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(242,246,255,0.94))] text-slate-900 shadow-[0_40px_120px_-60px_rgba(15,23,42,0.24)] dark:border-white/10 dark:bg-[#0b1020] dark:text-white dark:shadow-[0_40px_120px_-60px_rgba(15,23,42,0.95)]">
+    <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(242,246,255,0.94))] text-slate-900 shadow-[0_40px_120px_-60px_rgba(15,23,42,0.24)] dark:border-white/10 dark:bg-[linear-gradient(180deg,#0d1323_0%,#090d17_100%)] dark:text-white dark:shadow-[0_40px_120px_-60px_rgba(15,23,42,0.95)]">
       <div className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(240,245,255,0.92))] px-4 py-4 lg:border-b-0 lg:border-r lg:border-r-slate-200/80 lg:overflow-hidden dark:border-white/8 dark:bg-[#090e19]/95 dark:lg:border-r-white/8">
+        <aside className="flex min-h-0 flex-col border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(240,245,255,0.92))] px-4 py-4 lg:border-b-0 lg:border-r lg:border-r-slate-200/80 lg:overflow-hidden dark:border-white/8 dark:bg-[linear-gradient(180deg,rgba(10,15,27,0.98),rgba(8,12,22,0.95))] dark:lg:border-r-white/8">
           <div className="space-y-3">
-            <div className="rounded-[1.7rem] border border-slate-200/80 bg-white/80 p-4 dark:border-white/8 dark:bg-white/[0.03]">
+            <div className="rounded-[1.7rem] border border-slate-200/80 bg-white/80 p-4 dark:border-white/8 dark:bg-[#111827]/82">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 dark:text-white/45">
@@ -310,7 +310,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
                 <Badge variant="danger" className="rounded-full border-none bg-rose-500/15 px-3 py-1 text-rose-700 dark:text-rose-100">
                   Admin only
                 </Badge>
-                <Badge variant="muted" className="rounded-full border-none bg-slate-100 px-3 py-1 text-slate-600 dark:bg-white/[0.06] dark:text-white/70">
+                <Badge variant="muted" className="rounded-full border-none bg-slate-100 px-3 py-1 text-slate-600 dark:bg-white/[0.08] dark:text-white/70">
                   Không giới hạn tin nhắn
                 </Badge>
               </div>
@@ -334,7 +334,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
               </div>
               <div className="mt-3 space-y-1.5">
                 {conversations.length === 0 ? (
-                  <div className="rounded-[1.4rem] border border-dashed border-slate-200 px-4 py-4 text-sm text-slate-400 dark:border-white/10 dark:text-white/45">
+                  <div className="rounded-[1.4rem] border border-dashed border-slate-200 px-4 py-4 text-sm text-slate-400 dark:border-white/10 dark:bg-[#0f1627]/65 dark:text-white/45">
                     Chưa có cuộc trò chuyện nào.
                   </div>
                 ) : (
@@ -347,7 +347,7 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
                           'w-full rounded-[1.4rem] border px-4 py-3 pr-10 text-left transition-all',
                           activeConversationId === item.id
                             ? 'border-emerald-300/70 bg-emerald-50 text-slate-950 shadow-[0_24px_60px_-42px_rgba(16,185,129,0.26)] dark:border-emerald-400/30 dark:bg-emerald-400/12 dark:text-white dark:shadow-[0_24px_60px_-42px_rgba(16,185,129,0.45)]'
-                            : 'border-slate-200/80 bg-white/82 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-white/8 dark:bg-white/[0.03] dark:text-white/75 dark:hover:border-white/15 dark:hover:bg-white/[0.05]'
+                            : 'border-slate-200/80 bg-white/82 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-white/8 dark:bg-[#0f1627]/78 dark:text-white/75 dark:hover:border-white/15 dark:hover:bg-[#141c30]'
                         )}
                       >
                         <div className="line-clamp-2 text-sm font-semibold leading-6">{item.title}</div>

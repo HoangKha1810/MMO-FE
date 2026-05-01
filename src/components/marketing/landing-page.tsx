@@ -329,12 +329,12 @@ export function LandingPage() {
 
             {/* Heading */}
             <h1
-              className="animate-fade-in-up text-[clamp(48px,9vw,108px)] font-black uppercase leading-[0.88] tracking-[-0.04em] text-slate-900 dark:text-white"
+              className="animate-fade-in-up text-[clamp(48px,9vw,108px)] font-black uppercase leading-[1.04] tracking-[-0.04em] text-slate-900 sm:leading-[0.98] dark:text-white"
               style={{ animationDelay: '0.12s' }}
             >
               THAY ĐỔI CÁCH{' '}
               <br className="hidden sm:block" />
-              <span className="bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))]">
+              <span className="block pt-[0.12em] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))] sm:pt-[0.1em]">
                 BẠN LÀM MMO
               </span>
             </h1>
@@ -417,9 +417,9 @@ export function LandingPage() {
                   Hệ thống lõi thông minh
                 </div>
 
-                <h2 className="text-[clamp(38px,6vw,76px)] font-black uppercase leading-[0.9] tracking-tighter text-slate-900 dark:text-white">
+                <h2 className="text-[clamp(38px,6vw,76px)] font-black uppercase leading-[1.06] tracking-tighter text-slate-900 sm:leading-[1] dark:text-white">
                   VẬN HÀNH{' '}
-                  <span className="bg-gradient-to-r from-brand-blue to-violet-500 bg-clip-text text-transparent">
+                  <span className="block pt-[0.12em] bg-gradient-to-r from-brand-blue to-violet-500 bg-clip-text text-transparent sm:pt-[0.1em]">
                     TỰ ĐỘNG HÓA
                   </span>
                 </h2>
@@ -615,9 +615,9 @@ export function LandingPage() {
             <div className="space-y-10">
               <div className="space-y-5">
                 <div className="tag-pill">Professional Standards</div>
-                <h2 className="text-[clamp(36px,5vw,68px)] font-black uppercase leading-[0.92] tracking-tighter text-slate-900 dark:text-white">
+                <h2 className="text-[clamp(36px,5vw,68px)] font-black uppercase leading-[1.06] tracking-tighter text-slate-900 sm:leading-[1] dark:text-white">
                   TẠI SAO CHỌN{' '}
-                  <span className="bg-gradient-to-r from-brand-blue to-violet-600 bg-clip-text text-transparent">
+                  <span className="block pt-[0.12em] bg-gradient-to-r from-brand-blue to-violet-600 bg-clip-text text-transparent sm:pt-[0.1em]">
                     TRUNGTAMMMO?
                   </span>
                 </h2>

@@ -93,7 +93,7 @@ const adminNavSections: NavSection[] = [
     accent: 'blue',
     items: [
       { href: '/admin/smm/providers', label: 'Nguồn SMM', icon: Link2 },
-      { href: '/admin/smm/services', label: 'Gói dịch vụ SMM', icon: Layers },
+      { href: '/admin/smm/services', label: 'Cấu Hình Dịch Vụ SMM', icon: Layers },
       { href: '/admin/smm/orders', label: 'Đơn SMM', icon: ShoppingBag },
       { href: '/admin/pricing', label: 'Bảng giá', icon: Percent },
     ],
@@ -104,7 +104,7 @@ const adminNavSections: NavSection[] = [
     items: [
       { href: '/admin/automxh/categories', label: 'Danh mục Auto MXH', icon: FolderOpen },
       { href: '/admin/automxh/products', label: 'Dịch vụ Auto MXH', icon: ListVideo },
-      { href: '/admin/automxh/orders', label: 'Đơn hàng Auto MXH', icon: ShoppingCart },
+      { href: '/admin/automxh/orders', label: 'Quản Lý Đơn Hàng Auto MXH', icon: ShoppingCart },
     ],
   },
   {
