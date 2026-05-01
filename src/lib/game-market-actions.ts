@@ -6,10 +6,12 @@ import {
   normalizeGameMarketCategory,
 } from '@/lib/game-market-config';
 import { collectGameMarketImageRefs, parseGameMarketImageRefs } from '@/lib/game-market-media';
+import { getGameMarketPendingLikeStatus } from '@/lib/game-market-schema';
 import { sendSocialMessage } from '@/lib/social';
 import { toNumber } from '@/lib/utils';
 
 type Row = Record<string, unknown>;
+type RawExecutor = Pick<typeof db, '$queryRawUnsafe' | '$executeRawUnsafe'>;
 
 function normalize<T extends Row>(row: T): T {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => {
@@ -45,6 +47,30 @@ function parseList(value: string) {
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function getPersistableGameMarketThumbnailRef(value: string) {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  if (/^data:/i.test(normalized) || normalized.length > 500) {
+    return '';
+  }
+
+  return normalized;
+}
+
+async function getNextSequentialId(client: RawExecutor, table: 'game_market_items' | 'game_market_orders') {
+  const rows = await client.$queryRawUnsafe<Array<{ next_id?: number | bigint }>>(
+    `SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM ${table}`
+  );
+  return Number(rows[0]?.next_id || 1);
+}
+
+function isDuplicateIdError(error: unknown) {
+  return error instanceof Error && /duplicate entry/i.test(error.message);
 }
 
 export async function listGameMarketItems(limit = 36, category?: string) {
@@ -255,7 +281,7 @@ export async function createOrUpdateGameItem(userId: number, input: {
     stock: Math.max(1, Math.min(9999, Math.round(input.stock || 1))),
     prepTime: String(input.prepTime || '').trim(),
     originalPrice: input.originalPrice ? Math.round(input.originalPrice) : null,
-    thumbnail,
+    thumbnail: getPersistableGameMarketThumbnailRef(thumbnail),
     description: input.description.trim(),
     images: JSON.stringify(imageRefs),
     features: JSON.stringify(parseList(String(input.features || ''))),
@@ -270,6 +296,8 @@ export async function createOrUpdateGameItem(userId: number, input: {
     throw new Error('Tiêu đề hoặc mô tả sản phẩm quá ngắn');
   }
 
+  const pendingLikeStatus = await getGameMarketPendingLikeStatus();
+
   if (input.itemId) {
     const owned = await safeOne<Row>('SELECT id FROM game_market_items WHERE id = ? AND seller_id = ? LIMIT 1', input.itemId, userId);
     if (!owned) {
@@ -279,7 +307,7 @@ export async function createOrUpdateGameItem(userId: number, input: {
     await db.$executeRawUnsafe(
       `
         UPDATE game_market_items
-        SET title = ?, category = ?, tag = ?, badge = ?, badge_color = ?, price = ?, stock = ?, prep_time = ?, original_price = ?, thumbnail = ?, description = ?, images = ?, features = ?, rank = ?, skins = ?, champs = ?, account_details = ?, delivery_method = ?, status = 'pending', is_pinned = 0, pinned_until = NULL, updated_at = NOW()
+        SET title = ?, category = ?, tag = ?, badge = ?, badge_color = ?, price = ?, stock = ?, prep_time = ?, original_price = ?, thumbnail = ?, description = ?, images = ?, features = ?, rank = ?, skins = ?, champs = ?, account_details = ?, delivery_method = ?, status = ?, is_pinned = 0, pinned_until = NULL, updated_at = NOW()
         WHERE id = ? AND seller_id = ?
       `,
       payload.title,
@@ -300,44 +328,59 @@ export async function createOrUpdateGameItem(userId: number, input: {
       payload.champs || null,
       payload.accountDetails || null,
       payload.deliveryMethod || 'manual',
+      pendingLikeStatus,
       input.itemId,
       userId
     );
 
-    return { id: input.itemId, status: 'pending' };
+    return { id: input.itemId, status: pendingLikeStatus };
   }
 
   const code = `GM${Date.now()}`;
-  await db.$executeRawUnsafe(
-    `
-      INSERT INTO game_market_items (code, seller_id, title, category, tag, badge, badge_color, price, stock, prep_time, accounts_stock, original_price, thumbnail, description, images, features, rank, skins, champs, account_details, status, delivery_method, created_at, updated_at, is_pinned)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW(), 0)
-    `,
-    code,
-    userId,
-    payload.title,
-    payload.category,
-    payload.tag || null,
-    payload.badge || null,
-    payload.badgeColor || null,
-    payload.price,
-    payload.stock,
-    payload.prepTime || null,
-    payload.stock,
-    payload.originalPrice,
-    payload.thumbnail || null,
-    payload.description,
-    payload.images,
-    payload.features,
-    payload.rank || null,
-    payload.skins || null,
-    payload.champs || null,
-    payload.accountDetails || null,
-    payload.deliveryMethod || 'manual'
-  );
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const nextId = await getNextSequentialId(db, 'game_market_items');
 
-  const inserted = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>('SELECT LAST_INSERT_ID() AS id');
-  return { id: Number(inserted[0]?.id || 0), status: 'pending' };
+    try {
+      await db.$executeRawUnsafe(
+        `
+          INSERT INTO game_market_items (id, code, seller_id, title, category, tag, badge, badge_color, price, stock, prep_time, accounts_stock, original_price, thumbnail, description, images, features, rank, skins, champs, account_details, status, delivery_method, created_at, updated_at, is_pinned)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 0)
+        `,
+        nextId,
+        code,
+        userId,
+        payload.title,
+        payload.category,
+        payload.tag || null,
+        payload.badge || null,
+        payload.badgeColor || null,
+        payload.price,
+        payload.stock,
+        payload.prepTime || null,
+        payload.stock,
+        payload.originalPrice,
+        payload.thumbnail || null,
+        payload.description,
+        payload.images,
+        payload.features,
+        payload.rank || null,
+        payload.skins || null,
+        payload.champs || null,
+        payload.accountDetails || null,
+        pendingLikeStatus,
+        payload.deliveryMethod || 'manual'
+      );
+
+      return { id: nextId, status: pendingLikeStatus };
+    } catch (error) {
+      if (attempt < 2 && isDuplicateIdError(error)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('Không thể tạo ID mới cho bài game-market');
 }
 
 export async function setGameItemState(userId: number, itemId: number, action: 'pin' | 'unpin' | 'hide') {
@@ -378,115 +421,129 @@ export async function setGameItemState(userId: number, itemId: number, action: '
 }
 
 export async function purchaseGameItem(userId: number, itemId: number) {
-  const result = await db.$transaction(async (tx) => {
-    const items = await tx.$queryRawUnsafe<Array<Row>>(
-      `
-        SELECT *
-        FROM game_market_items
-        WHERE id = ?
-          AND status = 'selling'
-        LIMIT 1
-      `,
-      itemId
-    );
-    const item = normalize(items[0] || {});
-    if (!item.id) {
-      throw new Error('Không tìm thấy sản phẩm');
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const result = await db.$transaction(async (tx) => {
+        const items = await tx.$queryRawUnsafe<Array<Row>>(
+          `
+            SELECT *
+            FROM game_market_items
+            WHERE id = ?
+              AND status = 'selling'
+            LIMIT 1
+          `,
+          itemId
+        );
+        const item = normalize(items[0] || {});
+        if (!item.id) {
+          throw new Error('Không tìm thấy sản phẩm');
+        }
+
+        if (Number(item.seller_id || 0) === userId) {
+          throw new Error('Bạn không thể tự mua sản phẩm của chính mình');
+        }
+
+        if (toNumber(item.stock, 0) <= 0) {
+          throw new Error('Sản phẩm đã hết hàng');
+        }
+
+        const buyer = await tx.users.findUnique({
+          where: { id: userId },
+          select: { balance: true },
+        });
+        if (!buyer) {
+          throw new Error('Không tìm thấy tài khoản người mua');
+        }
+
+        const price = toNumber(item.price, 0);
+        const nextBalance = toNumber(buyer.balance, 0) - price;
+        if (nextBalance < 0) {
+          throw new Error('Số dư không đủ để mua game');
+        }
+
+        await tx.users.update({
+          where: { id: userId },
+          data: { balance: nextBalance, last_activity: new Date() },
+        });
+
+        await tx.transactions.create({
+          data: {
+            user_id: userId,
+            amount: price,
+            balance_after: nextBalance,
+            type: 'order',
+            status: 'success',
+            content: `Mua game account #${itemId}`,
+          },
+        }).catch(() => undefined);
+
+        const status = 'processing';
+        const nextOrderId = await getNextSequentialId(tx, 'game_market_orders');
+
+        await tx.$executeRawUnsafe(
+          `
+            INSERT INTO game_market_orders (id, buyer_id, seller_id, item_id, stock_id, amount, delivered_data, status, created_at)
+            VALUES (?, ?, ?, ?, NULL, ?, ?, ?, NOW())
+          `,
+          nextOrderId,
+          userId,
+          item.seller_id,
+          itemId,
+          price,
+          '',
+          status
+        );
+
+        await tx.$executeRawUnsafe(
+          `
+            UPDATE game_market_items
+            SET stock = GREATEST(stock - 1, 0),
+                status = CASE WHEN stock - 1 <= 0 THEN 'sold' ELSE status END,
+                updated_at = NOW()
+            WHERE id = ?
+          `,
+          itemId
+        );
+        const orderId = nextOrderId;
+
+        await tx.activity_logs.create({
+          data: {
+            user_id: userId,
+            activity: `Mua sản phẩm game-market #${itemId}, order #${orderId}`,
+          },
+        }).catch(() => undefined);
+
+        return {
+          orderId,
+          status,
+          sellerId: Number(item.seller_id || 0),
+          sellerUsername: String(item.seller_username || ''),
+          itemTitle: String(item.title || `Game #${itemId}`),
+          itemId,
+        };
+      });
+
+      if (result.sellerId > 0) {
+        await sendSocialMessage({
+          senderId: userId,
+          receiverId: result.sellerId,
+          content: `Mình vừa mua bài "${result.itemTitle}" (order #${result.orderId}). Bạn vui lòng bàn giao tài khoản, mật khẩu và thông tin liên quan qua đoạn chat này giúp mình nhé.`,
+        }).catch(() => undefined);
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2 && isDuplicateIdError(error)) {
+        continue;
+      }
+      throw error;
     }
-
-    if (Number(item.seller_id || 0) === userId) {
-      throw new Error('Bạn không thể tự mua sản phẩm của chính mình');
-    }
-
-    if (toNumber(item.stock, 0) <= 0) {
-      throw new Error('Sản phẩm đã hết hàng');
-    }
-
-    const buyer = await tx.users.findUnique({
-      where: { id: userId },
-      select: { balance: true },
-    });
-    if (!buyer) {
-      throw new Error('Không tìm thấy tài khoản người mua');
-    }
-
-    const price = toNumber(item.price, 0);
-    const nextBalance = toNumber(buyer.balance, 0) - price;
-    if (nextBalance < 0) {
-      throw new Error('Số dư không đủ để mua game');
-    }
-
-    await tx.users.update({
-      where: { id: userId },
-      data: { balance: nextBalance, last_activity: new Date() },
-    });
-
-    await tx.transactions.create({
-      data: {
-        user_id: userId,
-        amount: price,
-        balance_after: nextBalance,
-        type: 'order',
-        status: 'success',
-        content: `Mua game account #${itemId}`,
-      },
-    }).catch(() => undefined);
-
-    const status = 'processing';
-
-    await tx.$executeRawUnsafe(
-      `
-        INSERT INTO game_market_orders (buyer_id, seller_id, item_id, stock_id, amount, delivered_data, status, created_at)
-        VALUES (?, ?, ?, NULL, ?, ?, ?, NOW())
-      `,
-      userId,
-      item.seller_id,
-      itemId,
-      price,
-      '',
-      status
-    );
-
-    await tx.$executeRawUnsafe(
-      `
-        UPDATE game_market_items
-        SET stock = GREATEST(stock - 1, 0),
-            status = CASE WHEN stock - 1 <= 0 THEN 'sold' ELSE status END,
-            updated_at = NOW()
-        WHERE id = ?
-      `,
-      itemId
-    );
-
-    const inserted = await tx.$queryRawUnsafe<Array<{ id: number | bigint }>>('SELECT LAST_INSERT_ID() AS id');
-    const orderId = Number(inserted[0]?.id || 0);
-
-    await tx.activity_logs.create({
-      data: {
-        user_id: userId,
-        activity: `Mua sản phẩm game-market #${itemId}, order #${orderId}`,
-      },
-      }).catch(() => undefined);
-
-    return {
-      orderId,
-      status,
-      sellerId: Number(item.seller_id || 0),
-      sellerUsername: String(item.seller_username || ''),
-      itemTitle: String(item.title || `Game #${itemId}`),
-      itemId,
-    };
-  });
-
-  if (result.sellerId > 0) {
-    await sendSocialMessage({
-      senderId: userId,
-      receiverId: result.sellerId,
-      content: `Mình vừa mua bài "${result.itemTitle}" (order #${result.orderId}). Bạn vui lòng bàn giao tài khoản, mật khẩu và thông tin liên quan qua đoạn chat này giúp mình nhé.`,
-    }).catch(() => undefined);
   }
 
-  return result;
+  throw lastError instanceof Error ? lastError : new Error('Không thể tạo order game-market');
 }
 
 export async function rateGameOrder(userId: number, orderId: number, rating: number, review: string) {

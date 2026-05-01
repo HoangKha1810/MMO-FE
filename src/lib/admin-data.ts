@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
+import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
 import { isTrackableIp } from '@/lib/ip-security';
 import { decryptLegacyData } from '@/lib/legacy-crypto';
 import { invalidateLegacySettingsCache } from '@/lib/legacy-settings';
@@ -1432,7 +1433,7 @@ async function moderateGameItem(id: number, approved: boolean, adminId: number, 
   }
 
   const ownerId = Number(item.seller_id || 0);
-  const nextStatus = approved ? 'selling' : 'rejected';
+  const nextStatus = approved ? 'selling' : await getGameMarketRejectedLikeStatus();
 
   await db.$executeRawUnsafe(
     `

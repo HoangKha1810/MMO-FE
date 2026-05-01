@@ -488,6 +488,7 @@ function formatPriceValue(value: unknown) {
 function normalizePublicAssetPath(value: unknown) {
   const raw = String(value || '').trim();
   if (!raw) return '';
+  if (/^data:/i.test(raw) || /^blob:/i.test(raw)) return raw;
   if (/^https?:\/\//i.test(raw)) return raw;
   return raw.startsWith('public/') ? `/${raw.slice('public/'.length)}` : raw.startsWith('/') ? raw : `/${raw}`;
 }

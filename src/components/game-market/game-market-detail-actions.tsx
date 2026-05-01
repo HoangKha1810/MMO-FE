@@ -139,14 +139,14 @@ export function GameMarketDetailActions({
     return (
       <div className="space-y-4">
         <div className={`rounded-2xl border px-4 py-4 text-sm font-semibold leading-7 ${
-          status === 'pending'
+          status === 'pending' || status === 'hidden'
             ? 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
             : status === 'rejected'
               ? 'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300'
               : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
         }`}>
-          {status === 'pending'
-            ? 'Bài đăng này đang chờ admin duyệt nên chưa hiển thị công khai trong chợ game.'
+          {status === 'pending' || status === 'hidden'
+            ? 'Bài đăng này hiện chưa công khai. Tùy cấu trúc DB hiện tại, nó có thể đang chờ admin duyệt hoặc đang được ẩn khỏi chợ game.'
             : status === 'rejected'
               ? 'Bài đăng này đã bị từ chối. Hãy chỉnh sửa lại nội dung rồi gửi lại để admin duyệt.'
               : 'Bài đăng này đang ở trạng thái hiển thị công khai và có thể tiếp tục ghim hoặc chỉnh sửa.'}

@@ -14,6 +14,10 @@ export function buildPublicAssetUrl(path: string | null | undefined): string | n
     return null;
   }
 
+  if (/^data:/i.test(rawPath) || /^blob:/i.test(rawPath)) {
+    return rawPath;
+  }
+
   if (/^https?:\/\//i.test(rawPath)) {
     return rawPath;
   }

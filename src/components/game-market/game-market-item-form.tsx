@@ -379,11 +379,6 @@ export function GameMarketItemForm({
         </label>
 
         <label className="space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Skins</span>
-          <Input value={values.skins} onChange={(event) => updateField('skins', event.target.value)} />
-        </label>
-
-        <label className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tướng / nhân vật</span>
           <Input value={values.champs} onChange={(event) => updateField('champs', event.target.value)} />
         </label>

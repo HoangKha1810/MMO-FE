@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { createOrUpdateGameItem, setGameItemState } from '@/lib/game-market-actions';
 import { parseGameMarketImageRefs } from '@/lib/game-market-media';
-import { saveUploadedFile } from '@/lib/server-upload';
+import { saveUploadedFileAsDataUrl } from '@/lib/server-upload';
 
 export const runtime = 'nodejs';
 
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     const uploadedImages = await Promise.all(
-      body.uploadedFiles.map((file) => saveUploadedFile({
+      body.uploadedFiles.map((file) => saveUploadedFileAsDataUrl({
         file,
         folder: ['game-market', String(userId)],
         prefix: `game_market_${userId}`,

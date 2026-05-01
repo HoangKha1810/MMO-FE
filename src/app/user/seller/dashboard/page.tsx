@@ -62,7 +62,15 @@ export default async function SellerDashboardPage() {
                   <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold text-slate-400">
                     <span>{getGameMarketCategoryLabel(String(item.category || ''))}</span>
                     <span>{formatCurrency(toNumber(item.price))}</span>
-                    <span>{String(item.status) === 'pending' ? 'Chờ duyệt' : String(item.status) === 'rejected' ? 'Bị từ chối' : String(item.status)}</span>
+                    <span>
+                      {String(item.status) === 'pending'
+                        ? 'Chờ duyệt'
+                        : String(item.status) === 'rejected'
+                          ? 'Bị từ chối'
+                          : String(item.status) === 'hidden'
+                            ? 'Chưa công khai'
+                            : String(item.status)}
+                    </span>
                     <span>Stock {String(item.stock || 0)}</span>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">

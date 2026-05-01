@@ -23,7 +23,7 @@ const statusLabels: Record<string, string> = {
   pending: 'Chờ duyệt',
   selling: 'Đang bán',
   rejected: 'Bị từ chối',
-  hidden: 'Đang ẩn',
+  hidden: 'Chưa công khai',
   sold: 'Đã bán',
 };
 
@@ -255,6 +255,8 @@ export default async function UserGameMarketPage({
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
                                 : String(item.status) === 'rejected'
                                   ? 'bg-red-500/10 text-red-600 dark:text-red-300'
+                                  : String(item.status) === 'hidden'
+                                    ? 'bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-300'
                                   : 'bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-300'
                           }`}>
                             {statusLabels[String(item.status || '')] || String(item.status)}

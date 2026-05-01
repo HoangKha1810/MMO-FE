@@ -16,7 +16,7 @@ function getSafeExtension(file: File) {
   return path.extname(file.name || '').replace('.', '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export async function saveUploadedFile(input: SaveUploadedFileInput) {
+function normalizeUploadInput(input: SaveUploadedFileInput) {
   const { file, folder, prefix } = input;
   const maxSize = input.maxSize ?? 6 * 1024 * 1024;
   const allowedExtensions = new Set((input.allowedExtensions ?? ['jpg', 'jpeg', 'png', 'webp', 'gif']).map((ext) => ext.toLowerCase()));
@@ -34,8 +34,40 @@ export async function saveUploadedFile(input: SaveUploadedFileInput) {
   const relativeDir = path.posix.join('uploads', ...folder.map((segment) => segment.replace(/[^a-z0-9/_-]/gi, '').trim()).filter(Boolean));
   const targetDir = path.join(process.cwd(), 'public', relativeDir);
 
+  return {
+    file,
+    ext,
+    filename,
+    relativeDir,
+    targetDir,
+  };
+}
+
+function inferImageMimeType(file: File, ext: string) {
+  const rawType = String(file.type || '').trim().toLowerCase();
+  if (rawType.startsWith('image/')) {
+    return rawType;
+  }
+
+  if (ext === 'jpg') {
+    return 'image/jpeg';
+  }
+
+  return `image/${ext}`;
+}
+
+export async function saveUploadedFile(input: SaveUploadedFileInput) {
+  const { file, filename, relativeDir, targetDir } = normalizeUploadInput(input);
+
   await fs.mkdir(targetDir, { recursive: true });
   await fs.writeFile(path.join(targetDir, filename), Buffer.from(await file.arrayBuffer()));
 
   return path.posix.join(relativeDir, filename);
+}
+
+export async function saveUploadedFileAsDataUrl(input: SaveUploadedFileInput) {
+  const { file, ext } = normalizeUploadInput(input);
+  const mimeType = inferImageMimeType(file, ext);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
 }
