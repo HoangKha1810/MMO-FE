@@ -31,6 +31,7 @@ function formatLocation(value: string) {
 export function AdminProxyPage() {
   const [data, setData] = useState<ProxyAdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [locationFilter, setLocationFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -65,11 +66,14 @@ export function AdminProxyPage() {
         throw new Error(payload.message || 'Không thể tải dashboard proxy');
       }
       syncDraftState(payload.data as ProxyAdminDashboardData);
+      setLoadError(null);
       if (showToast) {
         toast.success('Đã làm mới dữ liệu proxy');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể tải dashboard proxy');
+      const message = error instanceof Error ? error.message : 'Không thể tải dashboard proxy';
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -158,8 +162,15 @@ export function AdminProxyPage() {
         ]}
         actions={
           <>
-            <Badge variant={data?.settings.envConfigured ? 'success' : 'danger'} className="rounded-full px-3 py-1.5">
-              {data?.settings.envConfigured ? 'Token env sẵn sàng' : 'Thiếu PROXY_VNCLOUD_TOKEN'}
+            <Badge
+              variant={loadError && !data ? 'warning' : data?.settings.envConfigured ? 'success' : 'danger'}
+              className="rounded-full px-3 py-1.5"
+            >
+              {loadError && !data
+                ? 'Chưa đọc được cấu hình'
+                : data?.settings.envConfigured
+                  ? 'Token env sẵn sàng'
+                  : 'Thiếu PROXY_VNCLOUD_TOKEN'}
             </Badge>
             <Button type="button" variant="outline" onClick={() => void loadDashboard(true)} disabled={loading}>
               <RefreshCcw className="mr-2 h-4 w-4" />
@@ -167,7 +178,18 @@ export function AdminProxyPage() {
             </Button>
           </>
         }
-      />
+      >
+        {loadError && !data ? (
+          <div className="rounded-[1.25rem] border border-amber-500/25 bg-amber-500/10 px-4 py-4 text-sm font-semibold leading-7 text-amber-700 dark:text-amber-300">
+            Không tải được dashboard proxy: {loadError}
+          </div>
+        ) : null}
+        {data?.vendorError ? (
+          <div className="rounded-[1.25rem] border border-amber-500/25 bg-amber-500/10 px-4 py-4 text-sm font-semibold leading-7 text-amber-700 dark:text-amber-300">
+            Vendor proxy đang phản hồi lỗi: {data.vendorError}
+          </div>
+        ) : null}
+      </PageHero>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <SectionPanel className="space-y-5">
@@ -336,6 +358,18 @@ export function AdminProxyPage() {
             <Loader2 className="mr-3 h-5 w-5 animate-spin" />
             Đang tải package proxy
           </div>
+        ) : loadError && !data ? (
+          <EmptyState
+            title="Không tải được dashboard proxy"
+            description={loadError}
+            icon={<ShieldCheck className="h-5 w-5" />}
+          />
+        ) : data?.vendorError ? (
+          <EmptyState
+            title="Không đọc được package từ vendor"
+            description={data.vendorError}
+            icon={<Cloud className="h-5 w-5" />}
+          />
         ) : filteredPackages.length === 0 ? (
           <EmptyState
             title="Chưa có package nào"

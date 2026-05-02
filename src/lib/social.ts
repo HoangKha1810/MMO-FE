@@ -65,10 +65,18 @@ async function touchSocialPresence(userId: number) {
     return;
   }
 
-  await db.users.update({
-    where: { id: userId },
-    data: { last_activity: new Date() },
-  }).catch(() => undefined);
+  await db.$executeRawUnsafe(
+    `
+      UPDATE users
+      SET last_activity = NOW()
+      WHERE id = ?
+        AND (
+          last_activity IS NULL
+          OR last_activity < DATE_SUB(NOW(), INTERVAL 45 SECOND)
+        )
+    `,
+    userId
+  ).catch(() => undefined);
 }
 
 async function getSocialUserPreview(userId: number) {
@@ -650,21 +658,34 @@ export async function sendSocialMessage(input: {
     throw new Error('Không thể gửi tin nhắn khi một trong hai bên đang chặn');
   }
 
-  await db.$executeRawUnsafe(
-    `
-      INSERT INTO private_messages (sender_id, receiver_id, content, is_read, created_at, attachment, file_type, is_deleted, is_suspicious)
-      VALUES (?, ?, ?, 0, NOW(), ?, ?, 0, 0)
-    `,
-    senderId,
-    receiverId,
-    content,
-    attachment,
-    fileType
-  );
+  const insertedMessage = await db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      `
+        INSERT INTO private_messages (sender_id, receiver_id, content, is_read, created_at, attachment, file_type, is_deleted, is_suspicious)
+        VALUES (?, ?, ?, 0, NOW(), ?, ?, 0, 0)
+      `,
+      senderId,
+      receiverId,
+      content,
+      attachment,
+      fileType
+    );
 
-  await touchSocialPresence(senderId);
+    const rows = await tx.$queryRawUnsafe<SocialRow[]>(
+      `
+        SELECT *
+        FROM private_messages
+        WHERE id = LAST_INSERT_ID()
+        LIMIT 1
+      `
+    );
 
-  await db.$executeRawUnsafe(
+    return rows[0] ? normalizeRow(rows[0]) : null;
+  });
+
+  void touchSocialPresence(senderId);
+
+  void db.$executeRawUnsafe(
     `
       INSERT INTO notifications (user_id, from_user_id, type, message, link, is_read, created_at)
       VALUES (?, ?, 'private_message', ?, ?, 0, NOW())
@@ -675,17 +696,19 @@ export async function sendSocialMessage(input: {
     `/user/social/conversation/${senderId}`
   ).catch(() => undefined);
 
-  return safeOne<SocialRow>(
-    `
-      SELECT *
-      FROM private_messages
-      WHERE sender_id = ? AND receiver_id = ?
-      ORDER BY id DESC
-      LIMIT 1
-    `,
-    senderId,
-    receiverId
-  );
+  return insertedMessage
+    ? {
+        ...insertedMessage,
+        attachment: buildLegacyAssetUrl(String(insertedMessage.attachment || '')) || '',
+      }
+    : {
+        sender_id: senderId,
+        receiver_id: receiverId,
+        content,
+        created_at: new Date().toISOString(),
+        attachment: buildLegacyAssetUrl(attachment) || '',
+        file_type: fileType,
+      };
 }
 
 export async function deleteSocialMessage(userId: number, messageId: number) {

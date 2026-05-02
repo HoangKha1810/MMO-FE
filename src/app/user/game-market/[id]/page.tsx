@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, BadgeCheck, Package, ShieldCheck, Star, Tag } from 'lucide-react';
+import { GameMarketGallery } from '@/components/game-market/game-market-gallery';
 import { AppShell } from '@/components/layout/app-shell';
 import { GameMarketDetailActions } from '@/components/game-market/game-market-detail-actions';
 import { getGameMarketCategoryLabel } from '@/lib/game-market-config';
@@ -50,20 +51,7 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
         <section className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm dark:border-white/10 dark:bg-slate-900">
             {galleryImages.length > 0 ? (
-              <div className="mb-6 grid gap-3">
-                <div className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-slate-950/40">
-                  <img src={galleryImages[0]} alt={String(item.title)} className="aspect-[16/9] h-full w-full object-cover" />
-                </div>
-                {galleryImages.length > 1 ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {galleryImages.slice(1).map((image, index) => (
-                      <div key={image} className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-slate-950/40">
-                        <img src={image} alt={`${String(item.title)} ${index + 2}`} className="aspect-[16/10] h-full w-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+              <GameMarketGallery images={galleryImages} title={String(item.title)} />
             ) : (
               <div className="mb-6 flex aspect-[16/8] items-center justify-center rounded-[1.6rem] border border-dashed border-slate-300 bg-[radial-gradient(circle_at_top,#2563eb22,transparent_58%),linear-gradient(135deg,#0f172a,#111827)] text-[11px] font-black uppercase tracking-[0.24em] text-slate-300 dark:border-white/10">
                 Bài đăng chưa có ảnh minh họa

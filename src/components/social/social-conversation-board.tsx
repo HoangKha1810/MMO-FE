@@ -119,6 +119,7 @@ export function SocialConversationBoard({
   const [isTyping, setIsTyping] = useState(typing);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const lastTypingPingRef = useRef(0);
+  const pollInFlightRef = useRef(false);
   const lastMessageId = useMemo(() => Number(messages[messages.length - 1]?.id || 0), [messages]);
 
   useEffect(() => {
@@ -141,6 +142,11 @@ export function SocialConversationBoard({
 
   useEffect(() => {
     const interval = window.setInterval(async () => {
+      if (pollInFlightRef.current || document.visibilityState === 'hidden') {
+        return;
+      }
+
+      pollInFlightRef.current = true;
       try {
         const response = await fetch(`/api/social/message?mode=poll&other_id=${otherUserId}&after_id=${lastMessageId}`, { cache: 'no-store' });
         const result = await response.json();
@@ -156,8 +162,10 @@ export function SocialConversationBoard({
         }
       } catch {
         // best-effort polling
+      } finally {
+        pollInFlightRef.current = false;
       }
-    }, 1200);
+    }, 2400);
 
     return () => window.clearInterval(interval);
   }, [lastMessageId, otherUserId]);

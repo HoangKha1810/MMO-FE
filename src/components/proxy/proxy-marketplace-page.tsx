@@ -46,6 +46,7 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
   const user = session.data;
   const [overview, setOverview] = useState<ProxyMarketplaceOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [locationFilter, setLocationFilter] = useState('all');
   const [selectedPackageId, setSelectedPackageId] = useState('');
@@ -71,8 +72,11 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
         throw new Error(payload.message || 'Không thể tải dữ liệu proxy');
       }
       setOverview(payload.data as ProxyMarketplaceOverview);
+      setLoadError(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể tải dữ liệu proxy');
+      const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu proxy';
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -85,6 +89,16 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
   const packages = overview?.packages || [];
   const proxies = overview?.proxies || [];
   const orders = overview?.orders || [];
+  const envBadgeLabel = loadError && !overview
+    ? 'Chưa đọc được cấu hình'
+    : overview?.settings.envConfigured
+      ? 'API Proxy đã cấu hình'
+      : 'Thiếu token env';
+  const envBadgeVariant = loadError && !overview
+    ? 'warning'
+    : overview?.settings.envConfigured
+      ? 'info'
+      : 'danger';
 
   const visiblePackages = useMemo(() => {
     if (locationFilter === 'all') {
@@ -269,12 +283,22 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
             <Badge variant={overview?.settings.serviceStatus === 'maintenance' ? 'warning' : 'success'} className="rounded-full px-3 py-1.5">
               {overview?.settings.serviceStatus === 'maintenance' ? 'Đang bảo trì' : 'Đang mở bán'}
             </Badge>
-            <Badge variant={overview?.settings.envConfigured ? 'info' : 'danger'} className="rounded-full px-3 py-1.5">
-              {overview?.settings.envConfigured ? 'API Proxy đã cấu hình' : 'Thiếu token env'}
+            <Badge variant={envBadgeVariant} className="rounded-full px-3 py-1.5">
+              {envBadgeLabel}
             </Badge>
           </>
         }
       >
+        {loadError && !overview ? (
+          <div className="rounded-[1.25rem] border border-amber-500/25 bg-amber-500/10 px-4 py-4 text-sm font-semibold leading-7 text-amber-700 dark:text-amber-300">
+            Không tải được trạng thái proxy từ server: {loadError}
+          </div>
+        ) : null}
+        {overview?.vendorError ? (
+          <div className="rounded-[1.25rem] border border-amber-500/25 bg-amber-500/10 px-4 py-4 text-sm font-semibold leading-7 text-amber-700 dark:text-amber-300">
+            Vendor proxy đang phản hồi lỗi: {overview.vendorError}
+          </div>
+        ) : null}
         {overview?.settings.serviceNote ? (
           <div className="rounded-[1.25rem] border border-slate-200/80 bg-white/75 px-4 py-4 text-sm font-semibold leading-7 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
             {overview.settings.serviceNote}
@@ -317,11 +341,23 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
               <Loader2 className="mr-3 h-5 w-5 animate-spin" />
               Đang tải gói proxy
             </div>
+          ) : loadError && !overview ? (
+            <EmptyState
+              title="Không tải được dữ liệu proxy"
+              description={loadError}
+              icon={<ShieldCheck className="h-5 w-5" />}
+            />
           ) : !overview?.settings.envConfigured ? (
             <EmptyState
               title="Chưa cấu hình token proxy"
               description="Admin cần thêm PROXY_VNCLOUD_TOKEN vào env trước khi module proxy có thể hiển thị package và xử lý đơn mua."
               icon={<ShieldCheck className="h-5 w-5" />}
+            />
+          ) : overview?.vendorError ? (
+            <EmptyState
+              title="Không đọc được package từ vendor"
+              description={overview.vendorError}
+              icon={<Cloud className="h-5 w-5" />}
             />
           ) : visiblePackages.length === 0 ? (
             <EmptyState

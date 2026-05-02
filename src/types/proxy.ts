@@ -100,6 +100,7 @@ export interface ProxyMarketplaceOverview {
   proxies: ProxyOwnedItem[];
   orders: ProxyOrderSummary[];
   stats: ProxyMarketplaceStats;
+  vendorError: string | null;
 }
 
 export interface ProxyAdminDashboardData {
@@ -111,4 +112,5 @@ export interface ProxyAdminDashboardData {
     providerCash: number;
     providerDiscount: number;
   };
+  vendorError: string | null;
 }

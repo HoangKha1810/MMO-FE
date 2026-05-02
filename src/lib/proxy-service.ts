@@ -148,6 +148,10 @@ function safeJsonParse<T>(value: string, fallback: T): T {
   }
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function normalizeProtocol(value: string) {
   return value.trim().toUpperCase() === 'SOCKS5' ? 'SOCKS5' : 'HTTP';
 }
@@ -394,6 +398,7 @@ async function providerRequest<T>(
     cache: 'no-store',
     headers: {
       'X-Api-Token': config.token,
+      Accept: 'application/json',
       'Content-Type': 'application/json',
     },
     body: init?.method === 'POST' ? JSON.stringify(init.body || {}) : undefined,
@@ -405,11 +410,28 @@ async function providerRequest<T>(
   try {
     payload = rawText ? JSON.parse(rawText) as Record<string, unknown> : {};
   } catch {
-    throw new Error('Proxy vendor trả về dữ liệu không hợp lệ');
+    const trimmed = rawText.trim();
+    if (!trimmed) {
+      throw new Error(`Proxy vendor không trả dữ liệu (HTTP ${response.status})`);
+    }
+    if (trimmed.startsWith('<')) {
+      throw new Error(
+        `Proxy vendor trả về HTML thay vì JSON (HTTP ${response.status}). Kiểm tra token env hoặc khả năng Vercel đang bị chặn khi gọi API vendor.`
+      );
+    }
+    throw new Error(`Proxy vendor trả về JSON không hợp lệ (HTTP ${response.status})`);
   }
 
-  if (!response.ok || String(payload?.status || '').toLowerCase() !== 'success') {
-    const message = String(payload?.message || payload?.error || '').trim() || 'Proxy vendor xử lý thất bại';
+  const statusValue = String(payload?.status || '').toLowerCase();
+  const successValue =
+    typeof payload?.success === 'boolean'
+      ? payload.success
+      : statusValue === 'success';
+
+  if (!response.ok || !successValue) {
+    const message =
+      String(payload?.message || payload?.error || '').trim() ||
+      `Proxy vendor xử lý thất bại (HTTP ${response.status})`;
     throw new Error(message);
   }
 
@@ -786,11 +808,18 @@ function collectRequestedIds(input: number[]) {
 
 export async function getProxyMarketplaceOverview(userId: number): Promise<ProxyMarketplaceOverview> {
   const settings = await getProxyServiceSettings();
-  const [packages, proxies, orders] = await Promise.all([
-    settings.envConfigured ? listProxyPackages() : Promise.resolve([]),
-    listProxyItems(userId),
-    listProxyOrders(userId),
-  ]);
+  let packages: ProxyPackageRecord[] = [];
+  let vendorError: string | null = null;
+
+  if (settings.envConfigured) {
+    try {
+      packages = await listProxyPackages();
+    } catch (error) {
+      vendorError = getErrorMessage(error, 'Không thể tải package proxy từ vendor');
+    }
+  }
+
+  const [proxies, orders] = await Promise.all([listProxyItems(userId), listProxyOrders(userId)]);
   const stats = buildStats(packages, proxies, orders);
 
   return {
@@ -808,13 +837,24 @@ export async function getProxyMarketplaceOverview(userId: number): Promise<Proxy
     proxies,
     orders,
     stats,
+    vendorError,
   };
 }
 
 export async function getProxyAdminDashboardData(): Promise<ProxyAdminDashboardData> {
   const settings = await getProxyServiceSettings();
-  const [packages, profile, orders, proxies] = await Promise.all([
-    settings.envConfigured ? listProxyPackages() : Promise.resolve([]),
+  let packages: ProxyPackageRecord[] = [];
+  let vendorError: string | null = null;
+
+  if (settings.envConfigured) {
+    try {
+      packages = await listProxyPackages();
+    } catch (error) {
+      vendorError = getErrorMessage(error, 'Không thể tải package proxy từ vendor');
+    }
+  }
+
+  const [profile, orders, proxies] = await Promise.all([
     settings.envConfigured ? getProviderProfile() : Promise.resolve(null),
     listProxyOrders(),
     listProxyItems(),
@@ -831,6 +871,7 @@ export async function getProxyAdminDashboardData(): Promise<ProxyAdminDashboardD
       providerCash: toNumber(profile?.cash, 0),
       providerDiscount: toNumber(profile?.discount, 0),
     },
+    vendorError,
   };
 }
 
