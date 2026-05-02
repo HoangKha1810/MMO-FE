@@ -152,6 +152,40 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function compactPreview(value: string, maxLength = 220) {
+  const normalized = value
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return '';
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
+}
+
+function buildVendorResponseDebugMessage(response: Response, rawText: string) {
+  const contentType = response.headers.get('content-type') || 'unknown';
+  const server = response.headers.get('server') || 'unknown';
+  const cfRay = response.headers.get('cf-ray') || '';
+  const preview = compactPreview(rawText);
+  const parts = [
+    `HTTP ${response.status}`,
+    `content-type: ${contentType}`,
+    `server: ${server}`,
+  ];
+
+  if (cfRay) {
+    parts.push(`cf-ray: ${cfRay}`);
+  }
+
+  if (preview) {
+    parts.push(`body: ${preview}`);
+  }
+
+  return parts.join(' | ');
+}
+
 function normalizeProtocol(value: string) {
   return value.trim().toUpperCase() === 'SOCKS5' ? 'SOCKS5' : 'HTTP';
 }
@@ -410,16 +444,17 @@ async function providerRequest<T>(
   try {
     payload = rawText ? JSON.parse(rawText) as Record<string, unknown> : {};
   } catch {
+    const debugMessage = buildVendorResponseDebugMessage(response, rawText);
     const trimmed = rawText.trim();
     if (!trimmed) {
-      throw new Error(`Proxy vendor không trả dữ liệu (HTTP ${response.status})`);
+      throw new Error(`Proxy vendor không trả dữ liệu. ${debugMessage}`);
     }
     if (trimmed.startsWith('<')) {
       throw new Error(
-        `Proxy vendor trả về HTML thay vì JSON (HTTP ${response.status}). Kiểm tra token env hoặc khả năng Vercel đang bị chặn khi gọi API vendor.`
+        `Proxy vendor trả về HTML thay vì JSON. ${debugMessage}`
       );
     }
-    throw new Error(`Proxy vendor trả về JSON không hợp lệ (HTTP ${response.status})`);
+    throw new Error(`Proxy vendor trả về JSON không hợp lệ. ${debugMessage}`);
   }
 
   const statusValue = String(payload?.status || '').toLowerCase();

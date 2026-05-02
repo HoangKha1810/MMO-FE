@@ -25,9 +25,13 @@ export default function AdminLoginPage() {
       });
       const payload = await response.json();
       if (!response.ok || !payload.success) throw new Error(payload.message || 'Đăng nhập admin thất bại');
+      const nextHref = payload.require2fa ? '/auth/2fa?next=/admin/dashboard' : '/admin/dashboard';
       startPageTransition();
-      router.push(payload.require2fa ? '/auth/2fa?next=/admin/dashboard' : '/admin/dashboard');
-      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.location.replace(nextHref);
+        return;
+      }
+      router.replace(nextHref);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập admin thất bại');
     } finally {

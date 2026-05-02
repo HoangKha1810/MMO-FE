@@ -226,9 +226,13 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
         return;
       }
 
+      const nextHref = data.require2fa ? '/auth/2fa?next=/user/home' : '/user/home';
       startPageTransition();
-      router.push(data.require2fa ? '/auth/2fa?next=/user/home' : '/user/home');
-      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.location.replace(nextHref);
+        return;
+      }
+      router.replace(nextHref);
     } catch {
       setLoginError('Có lỗi xảy ra. Vui lòng thử lại.');
     } finally {

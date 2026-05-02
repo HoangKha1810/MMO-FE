@@ -226,22 +226,14 @@ export function LandingPage() {
           <div className="flex items-center justify-between">
 
             {/* Logo */}
-            <Link href="/" className="group flex items-center gap-3">
-              <div className="relative flex h-10 w-10 items-center justify-center">
-                <div className="absolute inset-0 rounded-xl bg-brand-blue/20 blur-lg opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+            <Link href="/" className="group flex items-center">
+              <div className="relative flex items-center justify-center rounded-[1.35rem] border border-slate-200/70 bg-white/78 px-3 py-2 shadow-[0_18px_44px_-28px_rgba(37,99,235,0.34)] transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-brand-blue/30 group-hover:shadow-[0_26px_60px_-30px_rgba(37,99,235,0.42)] dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="absolute inset-0 rounded-[1.35rem] bg-brand-blue/12 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
                 <img
                   src="/logo.gif"
-                  alt="Logo"
-                  className="relative z-10 h-10 w-auto grayscale transition-all duration-500 group-hover:grayscale-0"
+                  alt="TRUNGTAMMMO"
+                  className="relative z-10 h-10 w-auto object-contain sm:h-12"
                 />
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-900 dark:text-white">
-                  TRUNGTAMMMO
-                </span>
-                <span className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">
-                  Hệ sinh thái MMO
-                </span>
               </div>
             </Link>
 
