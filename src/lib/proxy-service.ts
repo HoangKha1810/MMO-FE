@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
+import { buildDirectBeApiUrl, getBeApiBaseUrl, withNgrokHeaders } from '@/lib/be-api';
 import { serializeAbsoluteDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { invalidateLegacySettingsCache } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
@@ -105,6 +106,12 @@ let providerProfileCache:
       data: ProxyProviderProfile | null;
     }
   | null = null;
+
+function hasProxyRelaySupport() {
+  const baseUrl = getBeApiBaseUrl();
+  const relaySecret = String(process.env.PROXY_VNCLOUD_RELAY_SECRET || process.env.ENCRYPTION_KEY || '').trim();
+  return Boolean(baseUrl && relaySecret);
+}
 
 function normalizeRow<T extends Row>(row: T): T {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => {
@@ -326,6 +333,7 @@ export async function getProxyServiceSettings(): Promise<ProxyServiceSettings> {
   const settings = await readSettingsMap();
   const token = String(process.env.PROXY_VNCLOUD_TOKEN || '').trim();
   const baseUrl = String(process.env.PROXY_VNCLOUD_BASE_URL || DEFAULT_PROXY_BASE_URL).trim().replace(/\/+$/, '');
+  const relaySupported = hasProxyRelaySupport();
   const packagePricing = safeJsonParse<Record<string, ProxyPricingRule>>(
     settings[PROXY_SETTINGS_KEYS.packagePricing] || '{}',
     {}
@@ -346,7 +354,7 @@ export async function getProxyServiceSettings(): Promise<ProxyServiceSettings> {
       settings[PROXY_SETTINGS_KEYS.defaultProtocol] || DEFAULT_PROXY_SETTINGS.defaultProtocol
     ) as 'HTTP' | 'SOCKS5',
     priceMultiplier: Math.max(1, toNumber(settings[PROXY_SETTINGS_KEYS.priceMultiplier], DEFAULT_PROXY_SETTINGS.priceMultiplier)),
-    envConfigured: Boolean(token),
+    envConfigured: Boolean(token || relaySupported),
     baseUrl,
     maskedToken: token ? maskToken(token) : '',
     packagePricing,
@@ -400,13 +408,31 @@ async function saveProxyServiceSettings(input: ProxyAdminSaveInput) {
 }
 
 function ensureProviderConfigured(settings: ProxyServiceSettings) {
-  if (!settings.envConfigured) {
+  const token = String(process.env.PROXY_VNCLOUD_TOKEN || '').trim();
+  const relaySupported = hasProxyRelaySupport();
+
+  if (!token && !relaySupported) {
     throw new Error('Thiếu PROXY_VNCLOUD_TOKEN trong env');
   }
 
   return {
     baseUrl: settings.baseUrl,
-    token: String(process.env.PROXY_VNCLOUD_TOKEN || '').trim(),
+    token,
+  };
+}
+
+function getProxyRelayConfig(settings: ProxyServiceSettings) {
+  const baseUrl = getBeApiBaseUrl();
+  const relaySecret = String(process.env.PROXY_VNCLOUD_RELAY_SECRET || process.env.ENCRYPTION_KEY || '').trim();
+
+  if (!baseUrl || !relaySecret) {
+    return null;
+  }
+
+  return {
+    relayUrl: buildDirectBeApiUrl('/api/proxy-vendor/request'),
+    relaySecret,
+    vendorBaseUrl: settings.baseUrl,
   };
 }
 
@@ -417,6 +443,58 @@ async function providerRequest<T>(
 ) {
   const settings = await getProxyServiceSettings();
   const config = ensureProviderConfigured(settings);
+  const relayConfig = getProxyRelayConfig(settings);
+
+  if (relayConfig) {
+    const response = await fetch(relayConfig.relayUrl, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: withNgrokHeaders(
+        {
+          'x-relay-secret': relayConfig.relaySecret,
+          'x-vncloud-token': config.token,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        getBeApiBaseUrl()
+      ),
+      body: JSON.stringify({
+        baseUrl: relayConfig.vendorBaseUrl,
+        path,
+        method: init?.method || 'GET',
+        query: init?.query,
+        body: init?.body,
+        timeoutMs: Number(process.env.PROXY_VNCLOUD_TIMEOUT_MS || 15000),
+      }),
+      signal: AbortSignal.timeout(Number(process.env.PROXY_VNCLOUD_TIMEOUT_MS || 15000) + 5000),
+    });
+
+    const relayPayload = await response.json().catch(() => null);
+    if (!relayPayload || typeof relayPayload !== 'object') {
+      throw new Error('Relay backend trả về dữ liệu không hợp lệ');
+    }
+
+    const payload = relayPayload as Record<string, unknown>;
+    const statusValue = String(payload.status || '').toLowerCase();
+    const successValue =
+      typeof payload.success === 'boolean'
+        ? payload.success
+        : statusValue === 'success';
+
+    if (!response.ok || !successValue) {
+      const message =
+        String(payload.message || payload.error || '').trim() ||
+        `Relay backend xử lý proxy thất bại (HTTP ${response.status})`;
+      throw new Error(message);
+    }
+
+    if (options?.unwrapData === false) {
+      return payload as T;
+    }
+
+    return payload.data as T;
+  }
+
   const url = new URL(`${config.baseUrl}${path.startsWith('/') ? path : `/${path}`}`);
 
   if (init?.query) {
