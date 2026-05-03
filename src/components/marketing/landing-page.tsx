@@ -36,6 +36,8 @@ import {
   Youtube,
   Zap,
 } from 'lucide-react';
+import { FlipButton } from '@/components/ui/flip-button';
+import { BrandForestWordmark } from '@/components/ui/brand-forest-wordmark';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { cn } from '@/lib/utils';
 
@@ -226,7 +228,7 @@ export function LandingPage() {
           <div className="flex items-center justify-between">
 
             {/* Logo */}
-            <Link href="/" className="group flex items-center">
+            <Link href="/" className="group flex items-center gap-3">
               <div className="relative flex items-center justify-center rounded-[1.35rem] border border-slate-200/70 bg-white/78 px-3 py-2 shadow-[0_18px_44px_-28px_rgba(37,99,235,0.34)] transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-brand-blue/30 group-hover:shadow-[0_26px_60px_-30px_rgba(37,99,235,0.42)] dark:border-white/10 dark:bg-white/[0.04]">
                 <div className="absolute inset-0 rounded-[1.35rem] bg-brand-blue/12 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
                 <img
@@ -234,6 +236,9 @@ export function LandingPage() {
                   alt="TRUNGTAMMMO"
                   className="relative z-10 h-10 w-auto object-contain sm:h-12"
                 />
+              </div>
+              <div className="hidden min-[440px]:block">
+                <BrandForestWordmark className="text-[0.7rem] text-slate-900 dark:text-white sm:text-[0.84rem]" />
               </div>
             </Link>
 
@@ -288,13 +293,9 @@ export function LandingPage() {
                 Đăng nhập
               </Link>
 
-              <Link
-                href="/auth/register"
-                className="relative overflow-hidden rounded-xl bg-brand-blue px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-brand-blue/30 transition-all hover:shadow-brand-blue/50 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                <span className="relative z-10">Đăng ký</span>
-                <span className="absolute inset-0 animate-shimmer" />
-              </Link>
+              <FlipButton href="/auth/register" size="sm">
+                Đăng ký
+              </FlipButton>
             </div>
           </div>
         </div>
@@ -354,15 +355,9 @@ export function LandingPage() {
               className="animate-fade-in-up flex flex-col items-center justify-center gap-4 pt-4 sm:flex-row"
               style={{ animationDelay: '0.28s' }}
             >
-              <Link
-                href="/auth/register"
-                className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-10 py-4 shadow-2xl shadow-blue-600/30 transition-all hover:-translate-y-1 hover:shadow-blue-600/50 active:translate-y-0 sm:w-auto"
-              >
-                <span className="relative z-10 text-xs font-black uppercase tracking-[0.28em] text-white">
-                  Bắt đầu ngay — Miễn phí
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              </Link>
+              <FlipButton href="/auth/register" size="lg" className="w-full sm:w-auto" stageClassName="w-full sm:w-auto min-w-0 sm:min-w-[14rem]">
+                Bắt đầu ngay — Miễn phí
+              </FlipButton>
 
               <a
                 href="#services"
@@ -503,7 +498,7 @@ export function LandingPage() {
       </section>
 
       {/* ─── PARTNERS / ACTIVITY SECTION ─── */}
-      <section className="relative border-y border-slate-100 bg-white py-16 dark:border-white/[0.05] dark:bg-[#04080f]">
+      <section id="stats" className="relative border-y border-slate-100 bg-white py-16 dark:border-white/[0.05] dark:bg-[#04080f]">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="flex flex-col gap-12 lg:flex-row lg:items-stretch">
 
@@ -834,12 +829,14 @@ export function LandingPage() {
             Tham gia cùng hơn 50,000+ thành viên đang kiếm tiền online với TRUNGTAMMMO.VN mỗi ngày.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link
+            <FlipButton
               href="/auth/register"
-              className="group relative overflow-hidden rounded-2xl bg-white px-10 py-4 text-[11px] font-black uppercase tracking-[0.25em] text-blue-600 shadow-xl shadow-black/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0"
+              size="lg"
+              className="w-full sm:w-auto [--btn-3d-front-bg:linear-gradient(135deg,#ffffff_0%,#eff6ff_100%)] [--btn-3d-front-text:#2563eb] [--btn-3d-side-bg:linear-gradient(180deg,rgba(99,102,241,0.95),rgba(37,99,235,0.92))] [--btn-3d-border:#ffffff] [--btn-3d-glow:rgba(255,255,255,0.26)]"
+              stageClassName="w-full sm:w-auto min-w-0 sm:min-w-[14rem]"
             >
-              <span className="relative z-10">Đăng ký Miễn phí</span>
-            </Link>
+              Đăng ký Miễn phí
+            </FlipButton>
             <Link
               href="/auth/login"
               className="rounded-2xl border border-white/25 bg-white/10 px-10 py-4 text-[11px] font-black uppercase tracking-[0.25em] text-white backdrop-blur-sm transition-all hover:bg-white/20"

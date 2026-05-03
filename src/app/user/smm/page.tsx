@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
@@ -63,6 +64,16 @@ interface CategoryGroup {
   totalOrders: number;
   isNew: boolean;
 }
+
+const CLIENT_SMM_SERVICES_CACHE_TTL_MS = 2 * 60 * 1000;
+const CLIENT_SMM_SERVICES_CACHE_KEY = 'smm_services_catalog_v1';
+
+let smmServicesClientCache:
+  | {
+      expiresAt: number;
+      data: SmmServiceRecord[];
+    }
+  | null = null;
 
 const platformConfig: PlatformConfig[] = [
   { name: 'Facebook', tag: '[FB]', gif: 'facebook_gif.gif', Icon: ThumbsUp, color: 'text-blue-500' },
@@ -177,6 +188,55 @@ function buildGroups(services: SmmServiceRecord[]) {
     .filter((section) => section.groups.length > 0);
 }
 
+function getCachedClientServices() {
+  if (smmServicesClientCache && smmServicesClientCache.expiresAt > Date.now()) {
+    return smmServicesClientCache.data;
+  }
+
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(CLIENT_SMM_SERVICES_CACHE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as { expiresAt?: number; data?: SmmServiceRecord[] };
+    if (!parsed?.expiresAt || parsed.expiresAt <= Date.now() || !Array.isArray(parsed.data)) {
+      window.sessionStorage.removeItem(CLIENT_SMM_SERVICES_CACHE_KEY);
+      return null;
+    }
+
+    smmServicesClientCache = {
+      expiresAt: parsed.expiresAt,
+      data: parsed.data,
+    };
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedClientServices(data: SmmServiceRecord[]) {
+  smmServicesClientCache = {
+    expiresAt: Date.now() + CLIENT_SMM_SERVICES_CACHE_TTL_MS,
+    data,
+  };
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      CLIENT_SMM_SERVICES_CACHE_KEY,
+      JSON.stringify(smmServicesClientCache)
+    );
+  } catch {}
+}
+
 function ServiceCard({
   group,
   favorites,
@@ -186,16 +246,10 @@ function ServiceCard({
   favorites: string[];
   onToggleFavorite: (category: string) => void;
 }) {
-  const router = useRouter();
   const Icon = getServiceIcon(group.cleanName);
   const isFavorite = favorites.includes(group.category);
   const isHot = group.totalOrders >= 5;
   const href = `/user/smm/order/${slugify(group.category)}`;
-
-  function navigateToOrder() {
-    startPageTransition();
-    router.push(href);
-  }
 
   return (
     <div className="service-card-wrapper relative z-20 h-full">
@@ -208,108 +262,92 @@ function ServiceCard({
         className="relative z-20 h-full"
         innerClassName="h-full"
       >
-        <div
-          role="link"
-          tabIndex={0}
-          aria-label={group.cleanName}
-          onClickCapture={(event) => {
-            if (event.defaultPrevented || event.button !== 0) {
-              return;
-            }
+        <div className="group relative z-20 flex h-full overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
+          <Link
+            href={href}
+            aria-label={group.cleanName}
+            className="absolute inset-0 z-10 rounded-xl"
+            onClick={() => startPageTransition()}
+          />
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onToggleFavorite(group.category);
+            }}
+            className={cn(
+              'absolute right-2 top-2 z-30 rounded-lg bg-slate-50 p-1.5 text-slate-300 shadow-sm transition-all hover:text-yellow-500 dark:bg-white/5',
+              isFavorite && 'bg-yellow-500/10 text-yellow-500'
+            )}
+            aria-label="Lưu dịch vụ"
+          >
+            <Star className={cn('h-3 w-3', isFavorite && 'fill-current')} />
+          </button>
 
-            event.preventDefault();
-            event.stopPropagation();
-            navigateToOrder();
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') {
-              return;
-            }
-
-            event.preventDefault();
-            navigateToOrder();
-          }}
-          className="group relative z-20 flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50"
-        >
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onToggleFavorite(group.category);
-          }}
-          className={cn(
-            'absolute right-2 top-2 z-10 rounded-lg bg-slate-50 p-1.5 text-slate-300 shadow-sm transition-all hover:text-yellow-500 dark:bg-white/5',
-            isFavorite && 'bg-yellow-500/10 text-yellow-500'
-          )}
-          aria-label="Lưu dịch vụ"
-        >
-          <Star className={cn('h-3 w-3', isFavorite && 'fill-current')} />
-        </button>
-
-        <div className="group/link flex flex-1 flex-col p-4">
-          <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-transform duration-300 group-hover:scale-110 dark:bg-white/5">
-            <Icon className={cn('h-5 w-5', group.platform.color)} />
-          </div>
-
-          <h3 className="mb-2 text-[12px] font-black leading-tight text-slate-800 dark:text-white">
-            {group.cleanName}
-            <span className="ml-1 inline-flex flex-wrap gap-1 align-middle">
-              {isHot ? (
-                <span className="inline-flex items-center gap-0.5 rounded bg-orange-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-tighter text-white shadow-sm">
-                  <Flame className="h-2 w-2" />
-                  HOT
-                </span>
-              ) : null}
-              {group.isNew ? (
-                <span className="rounded bg-blue-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-tighter text-white shadow-sm">
-                  Mới
-                </span>
-              ) : null}
-            </span>
-          </h3>
-
-          <div className="mb-4">
-            <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200/50 bg-slate-100 px-2 py-0.5 dark:border-white/5 dark:bg-white/5">
-              <span className="text-[7px] font-black uppercase text-slate-400">Min</span>
-              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">
-                {shortQty(group.minQty)}
-              </span>
-              <span className="text-[8px] text-slate-300 dark:text-slate-700">/</span>
-              <span className="text-[7px] font-black uppercase text-slate-400">Max</span>
-              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">
-                {shortQty(group.maxQty)}
-              </span>
+          <div className="pointer-events-none relative z-20 flex flex-1 flex-col p-4">
+            <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-transform duration-300 group-hover:scale-110 dark:bg-white/5">
+              <Icon className={cn('h-5 w-5', group.platform.color)} />
             </div>
-          </div>
 
-          <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
-            <div className="flex flex-col">
-              <span className="mb-1 text-[7px] font-bold uppercase leading-none tracking-widest text-slate-400">
-                Giá
-              </span>
-              <div className="flex items-baseline gap-0.5">
-                <span className="font-mono text-[14px] font-black tracking-tighter text-emerald-500">
-                  {formatPerUnit(group.minPrice)}
-                </span>
-                {group.maxPrice > group.minPrice ? (
-                  <>
-                    <span className="text-[10px] text-slate-300 dark:text-slate-600">-</span>
-                    <span className="font-mono text-[14px] font-black tracking-tighter text-emerald-500">
-                      {formatPerUnit(group.maxPrice)}
-                    </span>
-                  </>
+            <h3 className="mb-2 text-[12px] font-black leading-tight text-slate-800 dark:text-white">
+              {group.cleanName}
+              <span className="ml-1 inline-flex flex-wrap gap-1 align-middle">
+                {isHot ? (
+                  <span className="inline-flex items-center gap-0.5 rounded bg-orange-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-tighter text-white shadow-sm">
+                    <Flame className="h-2 w-2" />
+                    HOT
+                  </span>
                 ) : null}
-                <span className="ml-1 text-[8px] font-black uppercase leading-none text-emerald-500/70">
-                  đ / lượt
+                {group.isNew ? (
+                  <span className="rounded bg-blue-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-tighter text-white shadow-sm">
+                    Mới
+                  </span>
+                ) : null}
+              </span>
+            </h3>
+
+            <div className="mb-4">
+              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200/50 bg-slate-100 px-2 py-0.5 dark:border-white/5 dark:bg-white/5">
+                <span className="text-[7px] font-black uppercase text-slate-400">Min</span>
+                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">
+                  {shortQty(group.minQty)}
+                </span>
+                <span className="text-[8px] text-slate-300 dark:text-slate-700">/</span>
+                <span className="text-[7px] font-black uppercase text-slate-400">Max</span>
+                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">
+                  {shortQty(group.maxQty)}
                 </span>
               </div>
             </div>
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover/link:bg-brand-blue group-hover/link:text-white">
-              <ArrowRight className="h-3 w-3" />
+
+            <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
+              <div className="flex flex-col">
+                <span className="mb-1 text-[7px] font-bold uppercase leading-none tracking-widest text-slate-400">
+                  Giá
+                </span>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="font-mono text-[14px] font-black tracking-tighter text-emerald-500">
+                    {formatPerUnit(group.minPrice)}
+                  </span>
+                  {group.maxPrice > group.minPrice ? (
+                    <>
+                      <span className="text-[10px] text-slate-300 dark:text-slate-600">-</span>
+                      <span className="font-mono text-[14px] font-black tracking-tighter text-emerald-500">
+                        {formatPerUnit(group.maxPrice)}
+                      </span>
+                    </>
+                  ) : null}
+                  <span className="ml-1 text-[8px] font-black uppercase leading-none text-emerald-500/70">
+                    đ / lượt
+                  </span>
+                </div>
+              </div>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover:bg-brand-blue group-hover:text-white">
+                <ArrowRight className="h-3 w-3" />
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </Floating3DCard>
     </div>
@@ -331,7 +369,8 @@ function SmmPageContent() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   async function loadServices(forceRefresh = false) {
-    setLoading(true);
+    const shouldShowFullLoading = services.length === 0 && !forceRefresh;
+    setLoading(shouldShowFullLoading);
     setSyncing(forceRefresh);
     setError('');
 
@@ -346,6 +385,7 @@ function SmmPageContent() {
       }
 
       setServices(payload.data);
+      setCachedClientServices(payload.data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Không thể tải dịch vụ SMM');
     } finally {
@@ -355,6 +395,13 @@ function SmmPageContent() {
   }
 
   useEffect(() => {
+    const cached = getCachedClientServices();
+    if (cached?.length) {
+      setServices(cached);
+      setLoading(false);
+      return;
+    }
+
     void loadServices();
   }, []);
 
@@ -399,6 +446,7 @@ function SmmPageContent() {
     return groups.filter((group) => favorites.includes(group.category));
   }, [favorites, services]);
   const sidebarSections = useMemo(() => buildSidebarSmmSections(services), [services]);
+  const resolvedSidebarSections = sidebarSections.length > 0 ? sidebarSections : undefined;
 
   function toggleFavorite(category: string) {
     setFavorites((current) => {
@@ -416,7 +464,11 @@ function SmmPageContent() {
   }
 
   return (
-    <AppShell user={user} smmSidebarSections={sidebarSections} smmSidebarLoading={loading}>
+    <AppShell
+      user={user}
+      smmSidebarSections={resolvedSidebarSections}
+      smmSidebarLoading={loading && !resolvedSidebarSections}
+    >
       <div className="relative z-0 space-y-6 pb-8">
         <div className="sticky top-0 z-30 -mx-1 border-b border-slate-100 bg-white/90 px-1 pb-4 pt-3 shadow-sm backdrop-blur-2xl dark:border-white/5 dark:bg-[#090f1f]/90 sm:-mx-2 sm:px-2 md:-mx-4 md:px-4">
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">

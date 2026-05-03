@@ -36,26 +36,29 @@ export async function getIpBlock(ip: string): Promise<BlockRow | null> {
     return null;
   }
 
-  const rows = await db.$queryRawUnsafe<BlockRow[]>(`
-    SELECT 'blacklist' AS source, reason, NULL AS expire_at
-    FROM ip_blacklist
-    WHERE ip_address = ?
-    LIMIT 1
-  `, ip);
+  const rows = await db.$queryRawUnsafe<BlockRow[]>(
+    `
+      SELECT source, reason, expire_at
+      FROM (
+        SELECT 0 AS sort_order, 'blacklist' AS source, reason, NULL AS expire_at
+        FROM ip_blacklist
+        WHERE ip_address = ?
 
-  if (rows[0]) {
-    return rows[0];
-  }
+        UNION ALL
 
-  const bans = await db.$queryRawUnsafe<BlockRow[]>(`
-    SELECT 'ban' AS source, reason, expire_at
-    FROM banned_ips
-    WHERE ip = ?
-      AND (expire_at IS NULL OR expire_at > NOW())
-    LIMIT 1
-  `, ip);
+        SELECT 1 AS sort_order, 'ban' AS source, reason, expire_at
+        FROM banned_ips
+        WHERE ip = ?
+          AND (expire_at IS NULL OR expire_at > NOW())
+      ) blocked
+      ORDER BY sort_order ASC
+      LIMIT 1
+    `,
+    ip,
+    ip
+  );
 
-  return bans[0] || null;
+  return rows[0] || null;
 }
 
 export async function countAccountsByIp(ip: string) {

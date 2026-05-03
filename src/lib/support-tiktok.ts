@@ -293,6 +293,10 @@ export async function createSupportConversationMessage(input: {
   imageUrls?: string[];
 }) {
   const imageUrls = input.imageUrls?.filter(Boolean) || [];
+  const primaryImage =
+    imageUrls.find((image) => image && !/^data:/i.test(image)) ||
+    null;
+
   const created = await db.$transaction(async (tx) => {
     await tx.$executeRawUnsafe(
       `
@@ -302,7 +306,7 @@ export async function createSupportConversationMessage(input: {
       input.conversationUserId,
       input.senderType,
       input.message,
-      imageUrls[0] || '',
+      primaryImage,
       imageUrls.length > 0 ? JSON.stringify(imageUrls) : null
     );
 

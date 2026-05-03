@@ -21,6 +21,11 @@ import {
 } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
 
+interface DepositStatsRow {
+  total_deposit: number | string | bigint | null;
+  monthly_deposit: number | string | bigint | null;
+}
+
 async function getUser(userId: number) {
   try {
     const user = await db.users.findUnique({
@@ -58,20 +63,29 @@ async function getDepositStats(userId: number) {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
-    const [totalDeposit, monthlyDeposit] = await Promise.all([
-      db.transactions.aggregate({
-        where: { user_id: userId, type: 'deposit', status: 'success' },
-        _sum: { amount: true },
-      }),
-      db.transactions.aggregate({
-        where: { user_id: userId, type: 'deposit', status: 'success', created_at: { gte: monthStart } },
-        _sum: { amount: true },
-      }),
-    ]);
+    const rows = await db.$queryRawUnsafe<DepositStatsRow[]>(
+      `
+        SELECT
+          COALESCE(SUM(CASE
+            WHEN type = 'deposit' AND status = 'success' THEN amount
+            ELSE 0
+          END), 0) AS total_deposit,
+          COALESCE(SUM(CASE
+            WHEN type = 'deposit' AND status = 'success' AND created_at >= ?
+              THEN amount
+            ELSE 0
+          END), 0) AS monthly_deposit
+        FROM transactions
+        WHERE user_id = ?
+      `,
+      monthStart,
+      userId
+    );
+    const stats = rows[0];
 
     return {
-      totalDeposit: toNumber(totalDeposit._sum.amount, 0),
-      monthlyDeposit: toNumber(monthlyDeposit._sum.amount, 0),
+      totalDeposit: toNumber(stats?.total_deposit, 0),
+      monthlyDeposit: toNumber(stats?.monthly_deposit, 0),
     };
   } catch {
     return {
@@ -93,8 +107,8 @@ export default async function HomePage() {
     }));
   }
 
-  const settings = await getLegacySettingsMap();
-  const [user, depositStats] = await Promise.all([
+  const [settings, user, depositStats] = await Promise.all([
+    getLegacySettingsMap(),
     getUser(userId),
     getDepositStats(userId),
   ]);

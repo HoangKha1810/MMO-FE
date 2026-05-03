@@ -175,7 +175,10 @@ export function HomeServiceCard({ service, className }: HomeServiceCardProps) {
             <div className="min-w-0 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-white/32 sm:text-[10px] sm:tracking-[0.3em]">
               {service.external ? 'External service' : 'Enter module'}
             </div>
-            <div className="inline-flex shrink-0 items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-700 dark:text-white/82 sm:text-[10px] sm:tracking-[0.3em]">
+            <div
+              className="inline-flex shrink-0 items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-700 dark:text-white/82 sm:text-[10px] sm:tracking-[0.3em]"
+              style={{ transformStyle: 'flat' }}
+            >
               Khám phá
               <ArrowUpRight className="h-3.5 w-3.5" />
             </div>

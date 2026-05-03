@@ -47,6 +47,7 @@ import type { AdminSessionUser } from '@/lib/admin-auth';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { BrandForestWordmark } from '@/components/ui/brand-forest-wordmark';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -300,7 +301,7 @@ export function AdminShell({
       >
         <div className="flex h-full flex-col overflow-hidden">
           <div className="flex h-20 items-center justify-between border-b border-slate-200/80 px-6 dark:border-white/5">
-            <div className="flex items-center gap-3">
+            <div className="min-w-0 flex items-center gap-3">
               {branding.siteLogo ? (
                 <img src={branding.siteLogo} alt={branding.siteName} className="h-16 w-auto object-contain" />
               ) : (
@@ -308,6 +309,15 @@ export function AdminShell({
                   {initials(branding.siteName)}
                 </div>
               )}
+              <div className="min-w-0">
+                <div className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                  Administration
+                </div>
+                <BrandForestWordmark
+                  text={String(branding.siteName || 'TRUNGTAMMMO').replace(/\.vn$/i, '')}
+                  className="mt-1 text-[0.72rem] text-slate-900 dark:text-white"
+                />
+              </div>
             </div>
             <button
               type="button"

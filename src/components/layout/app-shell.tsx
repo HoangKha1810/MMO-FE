@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import { cn, slugify } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { BrandForestWordmark } from '@/components/ui/brand-forest-wordmark';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -179,6 +180,8 @@ interface AppShellProps {
 
 const SIDEBAR_SERVICES_CACHE_TTL_MS = 5 * 60 * 1000;
 const SMM_SIDEBAR_CACHE_TTL_MS = 2 * 60 * 1000;
+const SIDEBAR_SERVICES_CACHE_KEY = 'app_shell_sidebar_services_v1';
+const SMM_SIDEBAR_CACHE_KEY = 'app_shell_smm_sidebar_v1';
 
 let sidebarServicesCache:
   | {
@@ -194,10 +197,57 @@ let smmSidebarSectionsCache:
     }
   | null = null;
 
+function readSessionCache<T>(key: string) {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as { expiresAt?: number; data?: T };
+    if (!parsed?.expiresAt || parsed.expiresAt <= Date.now() || parsed.data === undefined) {
+      window.sessionStorage.removeItem(key);
+      return null;
+    }
+
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache<T>(key: string, ttlMs: number, data: T) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        expiresAt: Date.now() + ttlMs,
+        data,
+      })
+    );
+  } catch {}
+}
+
 function getCachedSidebarServices() {
-  return sidebarServicesCache && sidebarServicesCache.expiresAt > Date.now()
-    ? sidebarServicesCache.data
-    : null;
+  if (sidebarServicesCache && sidebarServicesCache.expiresAt > Date.now()) {
+    return sidebarServicesCache.data;
+  }
+
+  const cached = readSessionCache<LegacyServiceItem[]>(SIDEBAR_SERVICES_CACHE_KEY);
+  if (cached?.length) {
+    setCachedSidebarServices(cached);
+    return cached;
+  }
+
+  return null;
 }
 
 function setCachedSidebarServices(data: LegacyServiceItem[]) {
@@ -205,12 +255,21 @@ function setCachedSidebarServices(data: LegacyServiceItem[]) {
     expiresAt: Date.now() + SIDEBAR_SERVICES_CACHE_TTL_MS,
     data,
   };
+  writeSessionCache(SIDEBAR_SERVICES_CACHE_KEY, SIDEBAR_SERVICES_CACHE_TTL_MS, data);
 }
 
 function getCachedSmmSidebarSections() {
-  return smmSidebarSectionsCache && smmSidebarSectionsCache.expiresAt > Date.now()
-    ? smmSidebarSectionsCache.data
-    : null;
+  if (smmSidebarSectionsCache && smmSidebarSectionsCache.expiresAt > Date.now()) {
+    return smmSidebarSectionsCache.data;
+  }
+
+  const cached = readSessionCache<SidebarSmmSection[]>(SMM_SIDEBAR_CACHE_KEY);
+  if (cached?.length) {
+    setCachedSmmSidebarSections(cached);
+    return cached;
+  }
+
+  return null;
 }
 
 function setCachedSmmSidebarSections(data: SidebarSmmSection[]) {
@@ -218,6 +277,7 @@ function setCachedSmmSidebarSections(data: SidebarSmmSection[]) {
     expiresAt: Date.now() + SMM_SIDEBAR_CACHE_TTL_MS,
     data,
   };
+  writeSessionCache(SMM_SIDEBAR_CACHE_KEY, SMM_SIDEBAR_CACHE_TTL_MS, data);
 }
 
 function formatCurrency(amount: number) {
@@ -571,6 +631,9 @@ export function AppShell({
                       alt="TRUNGTAMMMO.VN Logo"
                       className="h-14 w-auto object-contain"
                     />
+                    <div className="mt-2">
+                      <BrandForestWordmark className="text-[0.74rem] text-slate-900 dark:text-white" />
+                    </div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <span className="tag-pill">control deck</span>
                       <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-emerald-500">

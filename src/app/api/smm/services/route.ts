@@ -4,7 +4,7 @@ import { getSmmProviderMeta, listSmmServices } from '@/lib/smm-provider';
 export const dynamic = 'force-dynamic';
 
 const cacheHeaders = {
-  'Cache-Control': 'public, max-age=30, stale-while-revalidate=120',
+  'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=300',
 };
 
 export async function GET(req: NextRequest) {

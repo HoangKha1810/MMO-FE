@@ -16,6 +16,51 @@ function createSessionCookieOptions(maxAge: number) {
   };
 }
 
+async function findLoginUser(identifier: string) {
+  const isEmailLike = identifier.includes('@');
+  const select = {
+    id: true,
+    username: true,
+    email: true,
+    password: true,
+    balance: true,
+    rank: true,
+    role: true,
+    status: true,
+    avatar: true,
+    is_blue_tick: true,
+    fa_enabled: true,
+  } as const;
+
+  if (isEmailLike) {
+    const byEmail = await db.users.findUnique({
+      where: { email: identifier },
+      select,
+    });
+    if (byEmail) {
+      return byEmail;
+    }
+
+    return db.users.findUnique({
+      where: { username: identifier },
+      select,
+    });
+  }
+
+  const byUsername = await db.users.findUnique({
+    where: { username: identifier },
+    select,
+  });
+  if (byUsername) {
+    return byUsername;
+  }
+
+  return db.users.findUnique({
+    where: { email: identifier },
+    select,
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = getRequestIp(req);
@@ -47,27 +92,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await db.users.findFirst({
-      where: {
-        OR: [
-          { username: normalizedUsername },
-          { email: normalizedUsername },
-        ],
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        password: true,
-        balance: true,
-        rank: true,
-        role: true,
-        status: true,
-        avatar: true,
-        is_blue_tick: true,
-        fa_enabled: true,
-      },
-    });
+    const user = await findLoginUser(normalizedUsername);
 
     if (!user) {
       await logSecurityEvent({

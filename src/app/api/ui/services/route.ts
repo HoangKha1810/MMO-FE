@@ -7,7 +7,7 @@ import {
 } from '@/lib/legacy-settings';
 
 const cacheHeaders = {
-  'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+  'Cache-Control': 'public, max-age=120, s-maxage=120, stale-while-revalidate=600',
 };
 
 export async function GET() {

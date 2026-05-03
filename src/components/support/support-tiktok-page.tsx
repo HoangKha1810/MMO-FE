@@ -123,11 +123,16 @@ function buildInitials(value: string) {
 }
 
 function normalizeMessageImages(message: SupportMessage) {
+  const galleryImages = (message.image_urls || [])
+    .map((image) => buildPublicAssetUrl(image || ''))
+    .filter((image): image is string => Boolean(image));
+  const singleImage = buildPublicAssetUrl(message.image_url || '');
+
   return Array.from(
     new Set(
-      [message.image_url, ...(message.image_urls || [])]
-        .map((image) => buildPublicAssetUrl(image || ''))
-        .filter((image): image is string => Boolean(image))
+      galleryImages.length > 0
+        ? galleryImages
+        : [singleImage].filter((image): image is string => Boolean(image))
     )
   );
 }
@@ -775,7 +780,6 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
               <SectionHeader
                 eyebrow="Inbox"
                 title="Danh sách khách"
-                description="Source cũ có dạng inbox nhiều hội thoại. Mình đã kéo lại thành danh sách khách để chọn chat và xem đơn nhanh."
                 actions={
                   <Button type="button" size="sm" variant="outline" onClick={() => void loadConversations()} loading={loadingConversations} loadingText="Đang tải...">
                     <RefreshCw className="mr-2 h-4 w-4" />

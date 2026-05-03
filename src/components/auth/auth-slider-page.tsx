@@ -22,6 +22,8 @@ import {
   WalletCards,
   X,
 } from 'lucide-react';
+import { BrandForestWordmark } from '@/components/ui/brand-forest-wordmark';
+import { FlipButton } from '@/components/ui/flip-button';
 import { startPageTransition } from '@/components/layout/navigation-effects';
 import { siteName, siteShortName } from '@/lib/seo';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
@@ -117,6 +119,11 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
       window.removeEventListener('popstate', syncFromBrowserLocation);
     };
   }, []);
+
+  useEffect(() => {
+    router.prefetch('/user/home');
+    router.prefetch('/auth/2fa');
+  }, [router]);
 
   useEffect(() => {
     animate('.auth-orb', {
@@ -373,9 +380,7 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
               <div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
                 Cổng xác thực
               </div>
-              <div className="mt-1 text-lg font-black uppercase tracking-[-0.04em] text-slate-900 dark:text-white">
-                {siteShortName}
-              </div>
+              <BrandForestWordmark text={siteShortName} className="mt-1 text-[0.95rem] text-slate-900 dark:text-white sm:text-[1.1rem]" />
             </div>
           </Link>
 
@@ -554,17 +559,16 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                     </span>
                   </label>
 
-                  <div className="auth-slider-note auth-form-enter">
-                    <ShieldCheck className="h-4 w-4 shrink-0" />
-                    <span>
-                      Sau khi tạo xong, anh có thể đăng nhập ngay để vào hệ thống và bắt đầu sử dụng dịch vụ.
-                    </span>
-                  </div>
-
-                  <button type="submit" className="auth-slider-submit auth-form-enter" disabled={registerLoading}>
+                  <FlipButton
+                    type="submit"
+                    size="lg"
+                    disabled={registerLoading}
+                    className="auth-form-enter w-full"
+                    stageClassName="w-full min-w-0"
+                  >
                     {registerLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
                     <ArrowRight className="h-4 w-4" />
-                  </button>
+                  </FlipButton>
 
                   <div className="auth-slider-links auth-form-enter">
                     <Link href="/" className="ghost-button">
@@ -650,17 +654,16 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                     <span>Giữ đăng nhập trên thiết bị này</span>
                   </label>
 
-                  <div className="auth-slider-note auth-form-enter auth-slider-note-soft">
-                    <DatabaseZap className="h-4 w-4 shrink-0" />
-                    <span>
-                      Nếu tài khoản có 2FA, hệ thống sẽ chuyển tiếp sang bước xác minh rồi mới vào khu user.
-                    </span>
-                  </div>
-
-                  <button type="submit" className="auth-slider-submit auth-form-enter" disabled={loginLoading}>
+                  <FlipButton
+                    type="submit"
+                    size="lg"
+                    disabled={loginLoading}
+                    className="auth-form-enter w-full"
+                    stageClassName="w-full min-w-0"
+                  >
                     {loginLoading ? 'Đang đăng nhập...' : 'Vào hệ thống'}
                     <ArrowRight className="h-4 w-4" />
-                  </button>
+                  </FlipButton>
 
                   <div className="auth-slider-links auth-form-enter">
                     <Link href="/auth/forgot-password" className="ghost-button">
@@ -690,9 +693,14 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                       </div>
                     ))}
                   </div>
-                  <button type="button" className="auth-overlay-button" onClick={() => switchTab('login')}>
+                  <FlipButton
+                    type="button"
+                    size="sm"
+                    className="mt-1"
+                    onClick={() => switchTab('login')}
+                  >
                     Đăng nhập
-                  </button>
+                  </FlipButton>
                 </div>
 
                 <div className="auth-overlay-panel auth-overlay-right">
@@ -708,9 +716,14 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                       </div>
                     ))}
                   </div>
-                  <button type="button" className="auth-overlay-button" onClick={() => switchTab('register')}>
+                  <FlipButton
+                    type="button"
+                    size="sm"
+                    className="mt-1"
+                    onClick={() => switchTab('register')}
+                  >
                     Tạo tài khoản
-                  </button>
+                  </FlipButton>
                 </div>
               </div>
             </div>

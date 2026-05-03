@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
+import { FlipButton } from '@/components/ui/flip-button';
 import { useSessionUser } from '@/hooks/use-session-user';
 import type { SmmServiceRecord } from '@/lib/smm-provider';
 import { cn, formatCurrency, formatNumber } from '@/lib/utils';
@@ -538,15 +539,17 @@ export default function SmmOrderPage() {
                     </div>
                   </div>
 
-                  <button
+                  <FlipButton
                     type="button"
                     onClick={() => void submitOrder()}
                     disabled={submitting}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl bg-brand-blue py-5 text-sm font-bold uppercase tracking-[0.2em] text-white shadow-xl shadow-brand-blue/20 transition-all hover:bg-blue-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                    size="lg"
+                    className="w-full"
+                    stageClassName="w-full min-w-0"
                   >
                     {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
                     Bắt đầu tiến trình
-                  </button>
+                  </FlipButton>
                 </div>
               </div>
             </div>

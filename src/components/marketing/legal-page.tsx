@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, CheckCircle2, Shield, Sparkles } from 'lucide-react';
+import { BrandForestWordmark } from '@/components/ui/brand-forest-wordmark';
+import { FlipButton } from '@/components/ui/flip-button';
 import { slugify } from '@/lib/utils';
 
 interface LegalPageProps {
@@ -62,10 +64,10 @@ export function LegalPage({
             <Link href="/auth/login" className="surface-chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 transition hover:-translate-y-0.5 hover:text-slate-950 dark:hover:text-white">
               Đăng nhập
             </Link>
-            <Link href="/auth/register" className="btn-kinetic inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2563eb_0%,#1d4ed8_48%,#0ea5e9_100%)] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:-translate-y-0.5">
+            <FlipButton href="/auth/register" size="sm">
               Bắt đầu
               <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            </FlipButton>
           </div>
         </div>
 
@@ -115,13 +117,16 @@ export function LegalPage({
                   <div className="surface-chip flex h-12 w-12 items-center justify-center rounded-2xl">
                     <img src="/logo.gif" alt="TRUNGTAMMMO" className="h-8 w-auto object-contain" />
                   </div>
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">TRUNGTAMMMO.VN</div>
-                      <div className="mt-1 text-lg font-black uppercase tracking-[-0.015em] text-slate-950 dark:text-white">
-                        Tài liệu nền tảng
-                      </div>
+                  <div>
+                    <div className="flex items-center gap-1 text-slate-400 dark:text-slate-300">
+                      <BrandForestWordmark className="text-[0.58rem]" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">.VN</span>
+                    </div>
+                    <div className="mt-1 text-lg font-black uppercase tracking-[-0.015em] text-slate-950 dark:text-white">
+                      Tài liệu nền tảng
                     </div>
                   </div>
+                </div>
                 <p className="mt-4 text-sm leading-8 tracking-[0.012em] text-slate-500 dark:text-slate-300">
                   Đây là cụm nội dung giúp người dùng và đối tác tra cứu nhanh các thông tin quan trọng về dịch vụ, chính sách và phạm vi vận hành của nền tảng.
                 </p>

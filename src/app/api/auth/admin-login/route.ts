@@ -13,6 +13,32 @@ function createSessionCookieOptions(maxAge: number) {
   };
 }
 
+async function findAdminLoginUser(identifier: string) {
+  const isEmailLike = identifier.includes('@');
+  const attempts = isEmailLike
+    ? [
+        { email: identifier },
+        { username: identifier },
+      ]
+    : [
+        { username: identifier },
+        { email: identifier },
+      ];
+
+  for (const where of attempts) {
+    const user = await db.users.findFirst({
+      where,
+      select: { id: true, username: true, password: true, role: true, status: true, fa_enabled: true },
+    });
+
+    if (user) {
+      return user;
+    }
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const ip = getRequestIp(req);
   const blockedIp = await getIpBlock(ip);
@@ -23,10 +49,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const username = String(body.username || '').trim().toLowerCase();
   const password = String(body.password || '');
-  const user = await db.users.findFirst({
-    where: { OR: [{ username }, { email: username }] },
-    select: { id: true, username: true, password: true, role: true, status: true, fa_enabled: true },
-  });
+  const user = await findAdminLoginUser(username);
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return NextResponse.json({ success: false, message: 'Sai tài khoản hoặc mật khẩu admin' }, { status: 401 });

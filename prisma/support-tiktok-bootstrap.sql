@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS `support_tiktok_messages` (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+ALTER TABLE `support_tiktok_messages`
+  MODIFY COLUMN `image_url` LONGTEXT NULL;
+
 CREATE TABLE IF NOT EXISTS `tiktok_service_menus` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(150) NOT NULL,
