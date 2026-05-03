@@ -26,6 +26,9 @@ interface NotificationItem {
   from_user_id?: number | string | null;
 }
 
+const INITIAL_NOTIFICATION_DELAY_MS = 4000;
+const NOTIFICATION_POLL_INTERVAL_MS = 60 * 1000;
+
 function isUnread(value: unknown) {
   return value === false || value === 0 || value === '0' || value === null || value === undefined;
 }
@@ -81,14 +84,22 @@ export function NotificationBell({ className }: { className?: string }) {
   }
 
   useEffect(() => {
-    void loadNotifications();
-    const timer = window.setInterval(() => {
+    const initialTimer = window.setTimeout(() => {
       if (document.visibilityState === 'visible') {
         void loadNotifications();
       }
-    }, 30000);
+    }, INITIAL_NOTIFICATION_DELAY_MS);
 
-    return () => window.clearInterval(timer);
+    const pollTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadNotifications();
+      }
+    }, NOTIFICATION_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(pollTimer);
+    };
   }, []);
 
   return (

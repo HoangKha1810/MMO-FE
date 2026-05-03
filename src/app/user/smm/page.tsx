@@ -1,8 +1,7 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -35,7 +34,6 @@ import { startPageTransition } from '@/components/layout/navigation-effects';
 import { useSessionUser } from '@/hooks/use-session-user';
 import type { SmmProviderMeta, SmmServiceRecord } from '@/lib/smm-provider';
 import { cn, formatNumber, slugify } from '@/lib/utils';
-import { Floating3DCard } from '@/components/ui/floating-3d-card';
 
 interface ServicesResponse {
   success: boolean;
@@ -65,7 +63,7 @@ interface CategoryGroup {
   isNew: boolean;
 }
 
-const CLIENT_SMM_SERVICES_CACHE_TTL_MS = 2 * 60 * 1000;
+const CLIENT_SMM_SERVICES_CACHE_TTL_MS = 10 * 60 * 1000;
 const CLIENT_SMM_SERVICES_CACHE_KEY = 'smm_services_catalog_v1';
 
 let smmServicesClientCache:
@@ -198,25 +196,29 @@ function getCachedClientServices() {
   }
 
   try {
-    const raw = window.sessionStorage.getItem(CLIENT_SMM_SERVICES_CACHE_KEY);
-    if (!raw) {
-      return null;
-    }
+    for (const storage of [window.sessionStorage, window.localStorage]) {
+      const raw = storage.getItem(CLIENT_SMM_SERVICES_CACHE_KEY);
+      if (!raw) {
+        continue;
+      }
 
-    const parsed = JSON.parse(raw) as { expiresAt?: number; data?: SmmServiceRecord[] };
-    if (!parsed?.expiresAt || parsed.expiresAt <= Date.now() || !Array.isArray(parsed.data)) {
-      window.sessionStorage.removeItem(CLIENT_SMM_SERVICES_CACHE_KEY);
-      return null;
-    }
+      const parsed = JSON.parse(raw) as { expiresAt?: number; data?: SmmServiceRecord[] };
+      if (!parsed?.expiresAt || parsed.expiresAt <= Date.now() || !Array.isArray(parsed.data)) {
+        storage.removeItem(CLIENT_SMM_SERVICES_CACHE_KEY);
+        continue;
+      }
 
-    smmServicesClientCache = {
-      expiresAt: parsed.expiresAt,
-      data: parsed.data,
-    };
-    return parsed.data;
+      smmServicesClientCache = {
+        expiresAt: parsed.expiresAt,
+        data: parsed.data,
+      };
+      return parsed.data;
+    }
   } catch {
     return null;
   }
+
+  return null;
 }
 
 function setCachedClientServices(data: SmmServiceRecord[]) {
@@ -231,6 +233,10 @@ function setCachedClientServices(data: SmmServiceRecord[]) {
 
   try {
     window.sessionStorage.setItem(
+      CLIENT_SMM_SERVICES_CACHE_KEY,
+      JSON.stringify(smmServicesClientCache)
+    );
+    window.localStorage.setItem(
       CLIENT_SMM_SERVICES_CACHE_KEY,
       JSON.stringify(smmServicesClientCache)
     );
@@ -250,43 +256,37 @@ function ServiceCard({
   const isFavorite = favorites.includes(group.category);
   const isHot = group.totalOrders >= 5;
   const href = `/user/smm/order/${slugify(group.category)}`;
+  const tiltY = group.services[0]?.id && group.services[0].id % 2 === 0 ? '7deg' : '-7deg';
 
   return (
-    <div className="service-card-wrapper relative z-20 h-full">
-      <Floating3DCard
-        floatDelay={0}
-        floatDuration={0}
-        floatDirection="both"
-        tiltMax={8}
-        tiltPerspective={1100}
-        className="relative z-20 h-full"
-        innerClassName="h-full"
-      >
-        <div className="group relative z-20 flex h-full overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
-          <Link
-            href={href}
-            aria-label={group.cleanName}
-            className="absolute inset-0 z-10 rounded-xl"
-            onClick={() => startPageTransition()}
-          />
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onToggleFavorite(group.category);
-            }}
-            className={cn(
-              'absolute right-2 top-2 z-30 rounded-lg bg-slate-50 p-1.5 text-slate-300 shadow-sm transition-all hover:text-yellow-500 dark:bg-white/5',
-              isFavorite && 'bg-yellow-500/10 text-yellow-500'
-            )}
-            aria-label="Lưu dịch vụ"
-          >
-            <Star className={cn('h-3 w-3', isFavorite && 'fill-current')} />
-          </button>
+    <div
+      className="service-card-wrapper relative z-20 h-full hover:z-30"
+      style={{ ['--smm-card-tilt' as string]: tiltY }}
+    >
+      <div className="smm-service-card-3d group relative flex h-full overflow-hidden rounded-xl border border-slate-300 bg-white dark:border-white/10 dark:bg-slate-900/50">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleFavorite(group.category);
+          }}
+          className={cn(
+            'absolute right-2 top-2 z-30 rounded-lg bg-slate-50 p-1.5 text-slate-300 shadow-sm transition-all hover:text-yellow-500 dark:bg-white/5',
+            isFavorite && 'bg-yellow-500/10 text-yellow-500'
+          )}
+          aria-label="Lưu dịch vụ"
+        >
+          <Star className={cn('h-3 w-3', isFavorite && 'fill-current')} />
+        </button>
 
-          <div className="pointer-events-none relative z-20 flex flex-1 flex-col p-4">
-            <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-transform duration-300 group-hover:scale-110 dark:bg-white/5">
+        <Link
+          href={href}
+          aria-label={group.cleanName}
+          className="smm-service-card-content relative z-10 flex h-full w-full flex-col p-4"
+          onClick={() => startPageTransition()}
+        >
+            <div className="smm-service-card-icon mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5">
               <Icon className={cn('h-5 w-5', group.platform.color)} />
             </div>
 
@@ -343,20 +343,18 @@ function ServiceCard({
                   </span>
                 </div>
               </div>
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover:bg-brand-blue group-hover:text-white">
+              <div className="smm-service-card-arrow flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover:bg-brand-blue group-hover:text-white">
                 <ArrowRight className="h-3 w-3" />
               </div>
             </div>
-          </div>
-        </div>
-      </Floating3DCard>
+        </Link>
+      </div>
     </div>
   );
 }
 
 function SmmPageContent() {
   const currentUser = useSessionUser();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const user = currentUser.data;
   const [services, setServices] = useState<SmmServiceRecord[]>([]);
@@ -367,10 +365,14 @@ function SmmPageContent() {
   const [platformFilter, setPlatformFilter] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const deferredSearch = useDeferredValue(search);
+  const deferredPlatformFilter = useDeferredValue(platformFilter);
 
-  async function loadServices(forceRefresh = false) {
+  async function loadServices(options?: { forceRefresh?: boolean; silent?: boolean }) {
+    const forceRefresh = Boolean(options?.forceRefresh);
+    const silent = Boolean(options?.silent);
     const shouldShowFullLoading = services.length === 0 && !forceRefresh;
-    setLoading(shouldShowFullLoading);
+    setLoading(!silent && shouldShowFullLoading);
     setSyncing(forceRefresh);
     setError('');
 
@@ -399,6 +401,7 @@ function SmmPageContent() {
     if (cached?.length) {
       setServices(cached);
       setLoading(false);
+      void loadServices({ silent: true });
       return;
     }
 
@@ -421,11 +424,13 @@ function SmmPageContent() {
     setPlatformFilter(platform);
   }, [searchParams]);
 
-  const sections = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const activePlatform = platformFilter.trim().toLowerCase();
+  const allSections = useMemo(() => buildGroups(services), [services]);
 
-    return buildGroups(services)
+  const sections = useMemo(() => {
+    const term = deferredSearch.trim().toLowerCase();
+    const activePlatform = deferredPlatformFilter.trim().toLowerCase();
+
+    return allSections
       .filter((section) => !activePlatform || section.platform.name.toLowerCase() === activePlatform)
       .map((section) => ({
         ...section,
@@ -439,12 +444,12 @@ function SmmPageContent() {
         }),
       }))
       .filter((section) => section.groups.length > 0);
-  }, [favorites, favoritesOnly, platformFilter, search, services]);
+  }, [allSections, deferredPlatformFilter, deferredSearch, favorites, favoritesOnly]);
 
   const favoriteGroups = useMemo(() => {
-    const groups = buildGroups(services).flatMap((section) => section.groups);
+    const groups = allSections.flatMap((section) => section.groups);
     return groups.filter((group) => favorites.includes(group.category));
-  }, [favorites, services]);
+  }, [allSections, favorites]);
   const sidebarSections = useMemo(() => buildSidebarSmmSections(services), [services]);
   const resolvedSidebarSections = sidebarSections.length > 0 ? sidebarSections : undefined;
 
@@ -456,11 +461,6 @@ function SmmPageContent() {
       localStorage.setItem('smm_favorites', JSON.stringify(next));
       return next;
     });
-  }
-
-  function openCategory(category: string) {
-    startPageTransition();
-    router.push(`/user/smm/order/${slugify(category)}`);
   }
 
   return (
@@ -495,7 +495,7 @@ function SmmPageContent() {
             </button>
             <button
               type="button"
-              onClick={() => void loadServices(true)}
+              onClick={() => void loadServices({ forceRefresh: true })}
               disabled={syncing || loading}
               className="flex h-12 w-12 items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all hover:text-brand-blue active:scale-90 disabled:opacity-60 dark:bg-white/5"
               aria-label="Đồng bộ dịch vụ SubMetaVip"
@@ -629,14 +629,14 @@ function SmmPageContent() {
 
                   <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
                     {section.groups.map((group) => (
-                      <button
+                      <Link
                         key={`${section.platform.name}-${group.category}-quick`}
-                        type="button"
-                        onClick={() => openCategory(group.category)}
+                        href={`/user/smm/order/${slugify(group.category)}`}
+                        onClick={() => startPageTransition()}
                         className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition-all hover:border-brand-blue/35 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-brand-blue/30"
                       >
                         {group.cleanName}
-                      </button>
+                      </Link>
                     ))}
                   </div>
 

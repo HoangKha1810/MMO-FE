@@ -42,6 +42,7 @@ export interface LegacyServiceControlDefinition {
 }
 
 const SETTINGS_CACHE_TTL_MS = 60 * 1000;
+const SETTINGS_ERROR_CACHE_TTL_MS = 30 * 1000;
 const LEGACY_SITE_ORIGIN =
   process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') || 'https://trungtammmo.vn';
 
@@ -417,6 +418,11 @@ export async function getLegacySettingsMap(forceRefresh = false): Promise<Record
     if (process.env.NODE_ENV === 'development') {
       console.warn('[legacy-settings] Falling back to default settings because database is unavailable.', error);
     }
+
+    settingsCache = {
+      expiresAt: now + SETTINGS_ERROR_CACHE_TTL_MS,
+      data: {},
+    };
 
     return {};
   }

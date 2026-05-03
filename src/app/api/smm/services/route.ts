@@ -10,8 +10,10 @@ const cacheHeaders = {
 export async function GET(req: NextRequest) {
   try {
     const forceRefresh = req.nextUrl.searchParams.get('refresh') === '1';
-    const services = await listSmmServices(forceRefresh);
-    const meta = await getSmmProviderMeta();
+    const [services, meta] = await Promise.all([
+      listSmmServices(forceRefresh),
+      getSmmProviderMeta(),
+    ]);
     const platforms = Array.from(new Set(services.map((service) => service.platform)));
     const categories = Array.from(new Set(services.map((service) => service.category)));
 

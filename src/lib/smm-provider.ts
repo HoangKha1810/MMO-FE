@@ -7,7 +7,8 @@ import {
 } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
 
-const DEFAULT_SMM_CACHE_TTL_MS = 60 * 1000;
+const DEFAULT_SMM_CACHE_TTL_MS = 5 * 60 * 1000;
+const PROVIDER_CONFIG_CACHE_TTL_MS = 2 * 60 * 1000;
 
 type ProviderAction = 'services' | 'add' | 'status' | 'balance';
 type ProviderType = 'Standard' | 'BaoStar';
@@ -89,10 +90,25 @@ let servicesLoadPromise:
       promise: Promise<SmmServiceRecord[]>;
     }
   | null = null;
+let providerConfigCache:
+  | {
+      key: string;
+      expiresAt: number;
+      data: SmmProviderConfig;
+    }
+  | null = null;
+let providerConfigLoadPromise:
+  | {
+      key: string;
+      promise: Promise<SmmProviderConfig>;
+    }
+  | null = null;
 
 export function clearSmmServicesCache() {
   servicesCache = null;
   servicesLoadPromise = null;
+  providerConfigCache = null;
+  providerConfigLoadPromise = null;
 }
 
 const platformKeywordMap: Array<{ platform: string; keywords: string[] }> = [
@@ -222,108 +238,144 @@ function getMarginPercent(multiplier: number): number {
 }
 
 async function loadProviderConfig(providerId?: number | null): Promise<SmmProviderConfig> {
-  const settings = await getLegacySettingsMap();
   const explicitProviderId =
     providerId !== undefined && providerId !== null ? Math.max(0, Math.trunc(toNumber(providerId, 0))) : null;
-  const defaultProviderId = getSmmDefaultProviderId(settings);
-  const preferredProviderName = normalizeWhitespace(
-    process.env.SMM_PROVIDER_NAME || settings.smm_provider_name || 'SubMetaVip'
-  );
-  const priceMultiplier = getSmmPriceMultiplier(settings);
-  const vatPercent = getVatPercent(settings);
+  const cacheKey = explicitProviderId && explicitProviderId > 0 ? `provider:${explicitProviderId}` : 'provider:default';
+  const now = Date.now();
 
-  let provider =
-    explicitProviderId && explicitProviderId > 0
-      ? await db.api_providers.findFirst({
-          where: {
-            id: explicitProviderId,
-            service_type: 'smm',
-            status: 'active',
-          },
-        })
-      : null;
-
-  if (!provider && !explicitProviderId && preferredProviderName) {
-    provider = await db.api_providers.findFirst({
-      where: {
-        service_type: 'smm',
-        status: 'active',
-        name: { contains: preferredProviderName },
-      },
-      orderBy: { id: 'desc' },
-    });
+  if (providerConfigCache && providerConfigCache.key === cacheKey && providerConfigCache.expiresAt > now) {
+    return providerConfigCache.data;
   }
 
-  if (!provider && !explicitProviderId && defaultProviderId > 0) {
-    provider = await db.api_providers.findFirst({
-      where: {
-        id: defaultProviderId,
-        service_type: 'smm',
-        status: 'active',
-      },
-    });
+  if (providerConfigLoadPromise?.key === cacheKey) {
+    return providerConfigLoadPromise.promise;
   }
 
-  if (!provider) {
-    provider = await db.api_providers.findFirst({
-      where: {
-        service_type: 'smm',
-        status: 'active',
-      },
-      orderBy: { id: 'asc' },
-    });
-  }
+  const loadPromise = (async () => {
+    const settings = await getLegacySettingsMap();
+    const defaultProviderId = getSmmDefaultProviderId(settings);
+    const preferredProviderName = normalizeWhitespace(
+      process.env.SMM_PROVIDER_NAME || settings.smm_provider_name || 'SubMetaVip'
+    );
+    const priceMultiplier = getSmmPriceMultiplier(settings);
+    const vatPercent = getVatPercent(settings);
 
-  if (provider?.api_url && provider.api_key) {
-    const apiUrl = normalizeWhitespace(provider.api_url);
-    const apiKey = String(provider.api_key);
-    const providerType = String(provider.type || 'Standard') === 'BaoStar' ? 'BaoStar' : 'Standard';
+    let provider =
+      explicitProviderId && explicitProviderId > 0
+        ? await db.api_providers.findFirst({
+            where: {
+              id: explicitProviderId,
+              service_type: 'smm',
+              status: 'active',
+            },
+          })
+        : null;
 
-    return {
-      providerId: provider.id,
-      providerName: provider.name,
-      providerType,
-      apiUrl,
-      apiKey,
-      maskedKey: maskApiKey(apiKey),
-      method: 'POST',
-      contentType: 'application/x-www-form-urlencoded',
-      responseType: 'JSON',
-      exchangeRate: toNumber(provider.exchange_rate, 1),
-      marginPercent: getMarginPercent(priceMultiplier),
-      isPerUnit: Boolean(provider.is_per_unit),
-      priceMultiplier,
-      vatPercent,
-      fromLegacySettings: false,
+    if (!provider && !explicitProviderId && preferredProviderName) {
+      provider = await db.api_providers.findFirst({
+        where: {
+          service_type: 'smm',
+          status: 'active',
+          name: { contains: preferredProviderName },
+        },
+        orderBy: { id: 'desc' },
+      });
+    }
+
+    if (!provider && !explicitProviderId && defaultProviderId > 0) {
+      provider = await db.api_providers.findFirst({
+        where: {
+          id: defaultProviderId,
+          service_type: 'smm',
+          status: 'active',
+        },
+      });
+    }
+
+    if (!provider) {
+      provider = await db.api_providers.findFirst({
+        where: {
+          service_type: 'smm',
+          status: 'active',
+        },
+        orderBy: { id: 'asc' },
+      });
+    }
+
+    let resolvedConfig: SmmProviderConfig;
+
+    if (provider?.api_url && provider.api_key) {
+      const apiUrl = normalizeWhitespace(provider.api_url);
+      const apiKey = String(provider.api_key);
+      const providerType = String(provider.type || 'Standard') === 'BaoStar' ? 'BaoStar' : 'Standard';
+
+      resolvedConfig = {
+        providerId: provider.id,
+        providerName: provider.name,
+        providerType,
+        apiUrl,
+        apiKey,
+        maskedKey: maskApiKey(apiKey),
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        responseType: 'JSON',
+        exchangeRate: toNumber(provider.exchange_rate, 1),
+        marginPercent: getMarginPercent(priceMultiplier),
+        isPerUnit: Boolean(provider.is_per_unit),
+        priceMultiplier,
+        vatPercent,
+        fromLegacySettings: false,
+      };
+    } else {
+      const apiUrl = normalizeWhitespace(settings.smm_api_url || '');
+      const apiKey = String(settings.smm_api_key || '');
+
+      if (!apiUrl || !apiKey) {
+        throw new Error('Không tìm thấy cấu hình SMM đang hoạt động');
+      }
+
+      const providerType = String(settings.smm_api_type || 'Standard') === 'BaoStar' ? 'BaoStar' : 'Standard';
+
+      resolvedConfig = {
+        providerId: 0,
+        providerName: 'Legacy SMM',
+        providerType,
+        apiUrl,
+        apiKey,
+        maskedKey: maskApiKey(apiKey),
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        responseType: 'JSON',
+        exchangeRate: toNumber(settings.smm_api_exchange_rate, 1),
+        marginPercent: getMarginPercent(priceMultiplier),
+        isPerUnit: parseBoolean(settings.smm_api_is_per_unit),
+        priceMultiplier,
+        vatPercent,
+        fromLegacySettings: true,
+      };
+    }
+
+    providerConfigCache = {
+      key: cacheKey,
+      expiresAt: Date.now() + PROVIDER_CONFIG_CACHE_TTL_MS,
+      data: resolvedConfig,
     };
-  }
 
-  const apiUrl = normalizeWhitespace(settings.smm_api_url || '');
-  const apiKey = String(settings.smm_api_key || '');
+    return resolvedConfig;
+  })();
 
-  if (!apiUrl || !apiKey) {
-    throw new Error('Không tìm thấy cấu hình SMM đang hoạt động');
-  }
-
-  const providerType = String(settings.smm_api_type || 'Standard') === 'BaoStar' ? 'BaoStar' : 'Standard';
-
-  return {
-    providerId: 0,
-    providerName: 'Legacy SMM',
-    providerType,
-    apiUrl,
-    apiKey,
-    maskedKey: maskApiKey(apiKey),
-    method: 'POST',
-    contentType: 'application/x-www-form-urlencoded',
-    responseType: 'JSON',
-    exchangeRate: toNumber(settings.smm_api_exchange_rate, 1),
-    marginPercent: getMarginPercent(priceMultiplier),
-    isPerUnit: parseBoolean(settings.smm_api_is_per_unit),
-    priceMultiplier,
-    vatPercent,
-    fromLegacySettings: true,
+  providerConfigLoadPromise = {
+    key: cacheKey,
+    promise: loadPromise,
   };
+
+  try {
+    return await loadPromise;
+  } finally {
+    if (providerConfigLoadPromise?.promise === loadPromise) {
+      providerConfigLoadPromise = null;
+    }
+  }
 }
 
 async function requestStandardProvider(
@@ -748,14 +800,20 @@ export async function listSmmServices(forceRefresh = false, providerId?: number 
       });
     }
 
-    const orderCounts = await db.smm_orders.groupBy({
-      by: ['provider_id', 'service_id'],
-      where: { provider_id: config.providerId },
-      _count: { _all: true },
-    });
-    const orderCountMap = new Map(
-      orderCounts.map((row) => [`${row.provider_id ?? 0}:${row.service_id}`, row._count._all])
-    );
+    const hasStoredOrderStats = rows.some((row) => Math.trunc(toNumber(row.total_orders, 0)) > 0);
+    const orderCountMap = new Map<string, number>();
+
+    if (!hasStoredOrderStats) {
+      const orderCounts = await db.smm_orders.groupBy({
+        by: ['provider_id', 'service_id'],
+        where: { provider_id: config.providerId },
+        _count: { _all: true },
+      });
+
+      for (const row of orderCounts) {
+        orderCountMap.set(`${row.provider_id ?? 0}:${row.service_id}`, row._count._all);
+      }
+    }
 
     const services = rows.map((row) =>
       normalizeCachedService(

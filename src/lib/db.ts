@@ -13,7 +13,9 @@ function buildPrismaDatasourceUrl() {
 
   try {
     const url = new URL(rawUrl);
-    const defaultDevConnectionLimit = process.env.NODE_ENV === 'production' ? '' : '1';
+    // Using a single dev connection makes concurrent page requests queue up
+    // behind each other and slows down SMM/service screens noticeably.
+    const defaultDevConnectionLimit = process.env.NODE_ENV === 'production' ? '' : '5';
     const connectionLimit = Number(process.env.PRISMA_CONNECTION_LIMIT || defaultDevConnectionLimit);
     const poolTimeout = Number(process.env.PRISMA_POOL_TIMEOUT || (process.env.NODE_ENV === 'production' ? '' : '20'));
 
