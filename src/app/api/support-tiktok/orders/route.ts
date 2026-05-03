@@ -96,6 +96,90 @@ export async function POST(req: NextRequest) {
     : await req.json().catch(() => null);
   const action = readBodyValue(body, 'action') || 'create';
 
+  if (action === 'update_status') {
+    if (!auth.context!.isSupport) {
+      return NextResponse.json({ success: false, message: 'Không có quyền cập nhật trạng thái đơn' }, { status: 403 });
+    }
+
+    const orderId = Number(readBodyValue(body, 'order_id') || 0);
+    const requestedStatus = readBodyValue(body, 'status').toLowerCase();
+    const statusMap: Record<string, string> = {
+      pending: 'pending',
+      active: 'active',
+      processing: 'processing',
+      success: 'completed',
+      completed: 'completed',
+      canceled: 'canceled',
+      cancelled: 'canceled',
+    };
+    const nextStatus = statusMap[requestedStatus];
+
+    if (!orderId || !nextStatus) {
+      return NextResponse.json({ success: false, message: 'Thiếu order_id hoặc status không hợp lệ' }, { status: 400 });
+    }
+
+    const updated = await db.$transaction(async (tx) => {
+      const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>(
+        `
+          SELECT *
+          FROM tiktok_support_orders
+          WHERE id = ?
+          LIMIT 1
+        `,
+        orderId
+      );
+      const order = rows[0];
+      if (!order) {
+        throw new Error('Không tìm thấy đơn TikTok');
+      }
+
+      if (nextStatus === 'completed' || nextStatus === 'active') {
+        await tx.$executeRawUnsafe(
+          `
+            UPDATE tiktok_support_orders
+            SET status = ?,
+                ngay_gia_han = COALESCE(ngay_gia_han, NOW()),
+                ngay_het_han = CASE
+                  WHEN ngay_het_han IS NULL OR ngay_het_han < NOW() THEN DATE_ADD(NOW(), INTERVAL 30 DAY)
+                  ELSE ngay_het_han
+                END,
+                updated_at = NOW()
+            WHERE id = ?
+          `,
+          nextStatus,
+          orderId
+        );
+      } else {
+        await tx.$executeRawUnsafe(
+          `
+            UPDATE tiktok_support_orders
+            SET status = ?, updated_at = NOW()
+            WHERE id = ?
+          `,
+          nextStatus,
+          orderId
+        );
+      }
+
+      const updatedRows = await tx.$queryRawUnsafe<LegacyOrderRow[]>(
+        `
+          SELECT *
+          FROM tiktok_support_orders
+          WHERE id = ?
+          LIMIT 1
+        `,
+        orderId
+      );
+      return updatedRows[0] || null;
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Đã cập nhật trạng thái đơn TikTok',
+      data: updated,
+    });
+  }
+
   if (action === 'renew') {
     const orderId = Number(readBodyValue(body, 'order_id') || 0);
     if (!orderId) return NextResponse.json({ success: false, message: 'Thiếu order_id' }, { status: 400 });

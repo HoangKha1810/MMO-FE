@@ -660,7 +660,7 @@ export function LandingPage() {
                     <div className="h-3 w-3 rounded-full bg-emerald-400/50" />
                   </div>
                   <div className="rounded-full bg-slate-100 px-3 py-1 text-[8px] font-black uppercase tracking-widest text-slate-400 dark:bg-white/5">
-                    Reseller Panel v4
+                    System Preview
                   </div>
                 </div>
 
@@ -684,19 +684,21 @@ export function LandingPage() {
                   ))}
                 </div>
 
-                {/* User avatars */}
-                <div className="mt-10 flex items-center gap-5">
-                  <div className="flex -space-x-3">
-                    {['bg-blue-500', 'bg-violet-500', 'bg-indigo-400'].map((c, i) => (
-                      <div key={i} className={`h-9 w-9 rounded-full border-4 border-white dark:border-[#0c1529] ${c}`} />
-                    ))}
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                      Cùng 50K+ đại lý
+                <div className="mt-8 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 dark:border-white/[0.05] dark:bg-white/[0.03]">
+                    <div className="text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">
+                      Workflow
                     </div>
-                    <div className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-400">
-                      Sử dụng hệ thống API
+                    <div className="mt-2 text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                      Tự động hóa
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 dark:border-white/[0.05] dark:bg-white/[0.03]">
+                    <div className="text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">
+                      Monitor
+                    </div>
+                    <div className="mt-2 text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                      Theo dõi realtime
                     </div>
                   </div>
                 </div>

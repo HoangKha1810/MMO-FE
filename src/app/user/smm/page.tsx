@@ -318,6 +318,7 @@ function ServiceCard({
 
 function SmmPageContent() {
   const currentUser = useSessionUser();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const user = currentUser.data;
   const [services, setServices] = useState<SmmServiceRecord[]>([]);
@@ -407,6 +408,11 @@ function SmmPageContent() {
       localStorage.setItem('smm_favorites', JSON.stringify(next));
       return next;
     });
+  }
+
+  function openCategory(category: string) {
+    startPageTransition();
+    router.push(`/user/smm/order/${slugify(category)}`);
   }
 
   return (
@@ -567,6 +573,19 @@ function SmmPageContent() {
                     <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-tighter text-slate-400 dark:bg-white/5">
                       {section.groups.length} mục
                     </span>
+                  </div>
+
+                  <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                    {section.groups.map((group) => (
+                      <button
+                        key={`${section.platform.name}-${group.category}-quick`}
+                        type="button"
+                        onClick={() => openCategory(group.category)}
+                        className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition-all hover:border-brand-blue/35 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-brand-blue/30"
+                      >
+                        {group.cleanName}
+                      </button>
+                    ))}
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">

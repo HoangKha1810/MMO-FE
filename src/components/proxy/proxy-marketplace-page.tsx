@@ -89,17 +89,6 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
   const packages = overview?.packages || [];
   const proxies = overview?.proxies || [];
   const orders = overview?.orders || [];
-  const envBadgeLabel = loadError && !overview
-    ? 'Chưa đọc được cấu hình'
-    : overview?.settings.envConfigured
-      ? 'API Proxy đã cấu hình'
-      : 'Thiếu token env';
-  const envBadgeVariant = loadError && !overview
-    ? 'warning'
-    : overview?.settings.envConfigured
-      ? 'info'
-      : 'danger';
-
   const visiblePackages = useMemo(() => {
     if (locationFilter === 'all') {
       return packages.filter((item) => item.enabled);
@@ -283,9 +272,12 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
             <Badge variant={overview?.settings.serviceStatus === 'maintenance' ? 'warning' : 'success'} className="rounded-full px-3 py-1.5">
               {overview?.settings.serviceStatus === 'maintenance' ? 'Đang bảo trì' : 'Đang mở bán'}
             </Badge>
-            <Badge variant={envBadgeVariant} className="rounded-full px-3 py-1.5">
-              {envBadgeLabel}
-            </Badge>
+            {loading ? (
+              <Badge variant="info" className="rounded-full px-3 py-1.5">
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                Loading...
+              </Badge>
+            ) : null}
           </>
         }
       >
