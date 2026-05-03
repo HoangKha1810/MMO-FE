@@ -61,10 +61,10 @@ export default async function UserFindJobPage() {
               <Link
                 key={job.id}
                 href={`/user/find-job/${job.id}`}
-                className={`rounded-[1.75rem] border bg-white p-5 transition-all hover:-translate-y-0.5 dark:bg-slate-900 ${
+                className={`surface-card block overflow-hidden rounded-[1.55rem] p-4 transition-all sm:rounded-[1.75rem] sm:p-5 ${
                   job.is_pinned
                     ? 'border-orange-300 shadow-[0_18px_50px_rgba(251,146,60,0.16)] dark:border-orange-400/40'
-                    : 'border-slate-200 dark:border-white/10'
+                    : ''
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -80,15 +80,26 @@ export default async function UserFindJobPage() {
                     <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase text-emerald-500">{job.status}</span>
                   </div>
                 </div>
-                <h2 className="mt-4 text-xl font-black uppercase tracking-[-0.03em] text-slate-900 dark:text-white">{job.title}</h2>
+                <h2 className="mt-4 text-lg font-black uppercase tracking-[-0.03em] text-slate-900 dark:text-white sm:text-xl">
+                  {job.title}
+                </h2>
                 <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-500 dark:text-slate-400">{job.description}</p>
-                <div className="mt-5 flex flex-wrap gap-4 border-t border-slate-100 pt-4 text-xs font-bold text-slate-400 dark:border-white/5">
-                  <span className="inline-flex items-center gap-2"><UserRound className="h-4 w-4" /> Đăng bởi {job.user_username || `User #${job.user_id}`}</span>
-                  <span className="inline-flex items-center gap-2">
-                    <WalletCards className="h-4 w-4" />
-                    Budget {job.budget_min ? formatCurrency(job.budget_min) : '—'} - {job.budget_max ? formatCurrency(job.budget_max) : '—'}
+                <div className="mt-5 grid gap-2 border-t border-slate-100 pt-4 text-xs font-bold text-slate-400 dark:border-white/5 sm:grid-cols-2">
+                  <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-slate-50/80 px-3 py-2 dark:bg-white/[0.04]">
+                    <UserRound className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Đăng bởi {job.user_username || `User #${job.user_id}`}</span>
                   </span>
-                  {typeof job.application_count === 'number' ? <span>{job.application_count} ứng tuyển</span> : null}
+                  <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-slate-50/80 px-3 py-2 dark:bg-white/[0.04]">
+                    <WalletCards className="h-4 w-4" />
+                    <span className="truncate">
+                      Budget {job.budget_min ? formatCurrency(job.budget_min) : '—'} - {job.budget_max ? formatCurrency(job.budget_max) : '—'}
+                    </span>
+                  </span>
+                  {typeof job.application_count === 'number' ? (
+                    <span className="inline-flex items-center rounded-xl bg-slate-50/80 px-3 py-2 dark:bg-white/[0.04]">
+                      {job.application_count} ứng tuyển
+                    </span>
+                  ) : null}
                 </div>
               </Link>
             ))}
