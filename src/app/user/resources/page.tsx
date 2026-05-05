@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { hideProviderBranding } from '@/lib/provider-branding';
+import { resourceHtmlToText } from '@/lib/resource-content';
 import { formatCurrency } from '@/lib/utils';
 
 interface ResourceItem {
@@ -27,7 +29,7 @@ interface ResourceItem {
 }
 
 function getResourceFilterLabel(item: ResourceItem) {
-  return item.category_name || item.category || item.custom_badge || 'Khác';
+  return hideProviderBranding(item.category_name || item.category || item.custom_badge, 'Khác');
 }
 
 export default function ResourcesPage() {
@@ -247,7 +249,7 @@ export default function ResourcesPage() {
                       {resource.custom_badge ? (
                         <Badge variant="warning" className="rounded-full px-3 py-1.5 text-[9px]">
                           <Sparkles className="h-3 w-3" />
-                          {resource.custom_badge}
+                          {hideProviderBranding(resource.custom_badge)}
                         </Badge>
                       ) : null}
                     </div>
@@ -258,11 +260,11 @@ export default function ResourcesPage() {
                       href={`/user/resources/${resource.id}`}
                       className="block text-lg font-black uppercase leading-tight tracking-[-0.04em] text-slate-950 transition hover:text-brand-blue dark:text-white"
                     >
-                      {resource.title}
+                      {hideProviderBranding(resource.title, `Sản phẩm #${resource.id}`)}
                     </Link>
-                    {resource.description ? (
-                      <p className="line-clamp-3 text-sm font-medium leading-7 text-slate-500 dark:text-slate-400">
-                        {resource.description}
+                      {resource.description ? (
+                        <p className="line-clamp-3 text-sm font-medium leading-7 text-slate-500 dark:text-slate-400">
+                        {resourceHtmlToText(resource.description)}
                       </p>
                     ) : null}
                   </div>

@@ -2,6 +2,7 @@ import { type NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
+import { buildRandom1kResourceWhereSql } from '@/lib/random1k';
 import { toNumber } from '@/lib/utils';
 
 type PricingFieldKind = 'money' | 'percent' | 'number';
@@ -173,6 +174,26 @@ const pricingModuleConfigs: PricingModuleConfig[] = [
     fields: [
       { key: 'price', label: 'Giá bán', column: 'price', kind: 'money', editable: true, primary: true },
       { key: 'original_price', label: 'Giá gốc', column: 'original_price', kind: 'money', editable: true },
+      { key: 'margin_percent', label: 'Margin %', column: 'margin_percent', kind: 'percent', editable: true },
+    ],
+  },
+  {
+    key: 'game-account-api-products',
+    label: 'Tài khoản game API',
+    description: 'Giá bán toàn bộ sản phẩm đồng bộ từ API tài khoản game, hỗ trợ tăng/giảm hàng loạt theo %.',
+    table: 'mmo_resources',
+    icon: 'shuffle',
+    tone: 'cyan',
+    titleExpression: "COALESCE(`title`, CONCAT('Game API product #', `id`))",
+    subtitleExpression: "CONCAT(COALESCE(`category`, 'Tài khoản game'), ' · API ', COALESCE(`api_product_id`, ''))",
+    categoryExpression: "COALESCE(`category`, 'Tài khoản game')",
+    statusColumn: 'status',
+    updatedAtColumn: 'updated_at',
+    searchColumns: ['title', 'description', 'category', 'product_code', 'tags', 'api_product_id', 'custom_badge'],
+    baseWhere: ['COALESCE(`is_deleted`, 0) = 0', buildRandom1kResourceWhereSql(null, null)],
+    fields: [
+      { key: 'price', label: 'Giá bán', column: 'price', kind: 'money', editable: true, primary: true },
+      { key: 'original_price', label: 'Giá vốn API', column: 'original_price', kind: 'money', editable: false },
       { key: 'margin_percent', label: 'Margin %', column: 'margin_percent', kind: 'percent', editable: true },
     ],
   },

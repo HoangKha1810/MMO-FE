@@ -16,6 +16,7 @@ import {
   Search,
   Server,
   SlidersHorizontal,
+  Shuffle,
   Sparkles,
   Workflow,
   Zap,
@@ -98,6 +99,7 @@ const iconMap = {
   'credit-card': CreditCard,
   megaphone: Megaphone,
   server: Server,
+  shuffle: Shuffle,
 };
 
 const toneClasses: Record<PricingModule['tone'], string> = {

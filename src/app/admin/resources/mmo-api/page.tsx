@@ -19,5 +19,5 @@ const sections = [
 ];
 
 export default function AdminResourceMmoApiPage() {
-  return <AdminDataPage title="MMO API chuyên sâu" description="Quản lý provider CloneTut/MMO, bảng giá API, doanh số tài nguyên và đồng bộ biên độ ở tầng chuyên sâu." sections={sections} />;
+  return <AdminDataPage title="MMO API chuyên sâu" description="Quản lý provider API tài khoản game/MMO, bảng giá API, doanh số tài nguyên và đồng bộ biên độ ở tầng chuyên sâu." sections={sections} />;
 }

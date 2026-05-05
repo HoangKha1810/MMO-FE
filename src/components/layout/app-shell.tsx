@@ -38,6 +38,7 @@ import {
   Shield,
   ShieldCheck,
   ShoppingCart,
+  Shuffle,
   Sun,
   ThumbsUp,
   UserCircle2,
@@ -111,6 +112,7 @@ const serviceIconMap = {
   'message-circle': MessageCircle,
   music: Music,
   send: Send,
+  shuffle: Shuffle,
 } as const;
 
 const smmPlatformLinks = [
@@ -306,6 +308,8 @@ function formatBreadcrumb(pathname: string) {
     'support-tiktok': 'Support TikTok',
     forum: 'Forum MMO',
     'game-market': 'Mua Bán Game',
+    'game-accounts': 'Tài khoản game',
+    'random-game-accounts': 'Random tài khoản game',
     'find-job': 'Find Job MMO',
     history: 'Lịch Sử',
     statistics: 'Thông Tin Tài Khoản',

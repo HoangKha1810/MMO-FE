@@ -44,13 +44,13 @@ export interface LegacyServiceControlDefinition {
 const SETTINGS_CACHE_TTL_MS = 60 * 1000;
 const SETTINGS_ERROR_CACHE_TTL_MS = 30 * 1000;
 const LEGACY_SITE_ORIGIN =
-  process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') || 'https://trungtammmo.vn';
+  process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') || 'https://trungtammmo.com';
 
 let settingsCache:
   | {
-      expiresAt: number;
-      data: Record<string, string>;
-    }
+    expiresAt: number;
+    data: Record<string, string>;
+  }
   | null = null;
 
 const homeServiceDefinitions: ServiceDefinition[] = [
@@ -177,6 +177,30 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     defaultDesc: 'Giao dịch game uy tín',
   },
   {
+    key: 'game_accounts',
+    nameKey: 'service_game_accounts_name',
+    descKey: 'service_game_accounts_desc',
+    statusKey: 'service_game_accounts_status',
+    href: '/user/game-accounts',
+    iconKey: 'gamepad-2',
+    color: 'from-emerald-500 to-cyan-600',
+    textColor: 'text-emerald-500',
+    defaultTitle: 'Tài khoản game',
+    defaultDesc: 'Sản phẩm game đồng bộ API',
+  },
+  {
+    key: 'random_game_accounts',
+    nameKey: 'service_random_game_accounts_name',
+    descKey: 'service_random_game_accounts_desc',
+    statusKey: 'service_random_game_accounts_status',
+    href: '/user/random-game-accounts',
+    iconKey: 'shuffle',
+    color: 'from-amber-500 to-rose-600',
+    textColor: 'text-amber-500',
+    defaultTitle: 'Random tài khoản game',
+    defaultDesc: 'Mua random acc game tự động',
+  },
+  {
     key: '7',
     nameKey: 'service_7_name',
     descKey: 'service_7_desc',
@@ -214,19 +238,29 @@ const homeServiceDefinitions: ServiceDefinition[] = [
   },
 ];
 
+function getHomeDefinition(key: string) {
+  const definition = homeServiceDefinitions.find((item) => item.key === key);
+  if (!definition) {
+    throw new Error(`Missing home service definition: ${key}`);
+  }
+  return definition;
+}
+
 const sidebarServiceDefinitions: ServiceDefinition[] = [
-  homeServiceDefinitions[0],
-  homeServiceDefinitions[1],
-  homeServiceDefinitions[2],
-  homeServiceDefinitions[12],
-  homeServiceDefinitions[3],
-  homeServiceDefinitions[5],
-  homeServiceDefinitions[6],
-  homeServiceDefinitions[7],
-  homeServiceDefinitions[8],
-  homeServiceDefinitions[9],
-  homeServiceDefinitions[10],
-  homeServiceDefinitions[11],
+  getHomeDefinition('1'),
+  getHomeDefinition('2'),
+  getHomeDefinition('3'),
+  getHomeDefinition('proxy'),
+  getHomeDefinition('10'),
+  getHomeDefinition('chat_support_tiktok'),
+  getHomeDefinition('5'),
+  getHomeDefinition('9'),
+  getHomeDefinition('8'),
+  getHomeDefinition('6'),
+  getHomeDefinition('game_accounts'),
+  getHomeDefinition('random_game_accounts'),
+  getHomeDefinition('7'),
+  getHomeDefinition('4'),
   {
     key: '11',
     nameKey: 'service_11_name',

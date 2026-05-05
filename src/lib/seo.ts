@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = 'https://trungtammmo.vn';
+const DEFAULT_SITE_URL = 'https://trungtammmo.com';
 
 function normalizeOrigin(value?: string | null) {
   const raw = String(value || '').trim();

@@ -250,6 +250,11 @@ async function runResourceMaintenance() {
   return { expired_orders: Number(expired || 0) };
 }
 
+async function runMmoResourceSync() {
+  const { syncMmoResourcesFromProviders } = await import('@/lib/mmo-provider');
+  return syncMmoResourcesFromProviders();
+}
+
 async function runFindJobMaintenance() {
   if (!(await tableExists('find_job_jobs'))) return { expired_jobs: 0 };
   const expired = await db.$executeRawUnsafe(`
@@ -331,6 +336,7 @@ async function runTask(task: string, options: { force?: boolean } = {}): Promise
   if (shouldRun('providers')) summary.providers = await runProviderHealth();
   if (shouldRun('automxh')) summary.automxh = await runAutoMxhMaintenance();
   if (shouldRun('resources')) summary.resources = await runResourceMaintenance();
+  if (shouldRun('mmo-resources') || shouldRun('game-account-api') || shouldRun('random1k')) summary.mmo_resources_sync = await runMmoResourceSync();
   if (shouldRun('find-job')) summary.find_job = await runFindJobMaintenance();
   if (shouldRun('support-tiktok')) summary.support_tiktok = await runSupportTikTokMaintenance();
   if (shouldRun('forum-ads')) summary.forum_ads = { expired: Number(await runForumAdsExpiry() || 0) };

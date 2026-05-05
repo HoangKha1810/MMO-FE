@@ -2824,6 +2824,64 @@ html.theme-switching .nav-link-shell {
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.resource-rich-content {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: rgb(71 85 105);
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.85;
+}
+
+.dark .resource-rich-content {
+  color: rgb(203 213 225);
+}
+
+.resource-rich-content :where(p, ul, ol, h1, h2, h3, h4, h5, h6) {
+  margin-top: 0.75rem;
+}
+
+.resource-rich-content :where(p, ul, ol, h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
+}
+
+.resource-rich-content :where(h1, h2, h3, h4, h5, h6) {
+  color: rgb(15 23 42);
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.dark .resource-rich-content :where(h1, h2, h3, h4, h5, h6) {
+  color: rgb(248 250 252);
+}
+
+.resource-rich-content :where(strong, b) {
+  color: rgb(30 41 59);
+  font-weight: 900;
+}
+
+.dark .resource-rich-content :where(strong, b) {
+  color: rgb(241 245 249);
+}
+
+.resource-rich-content :where(ul, ol) {
+  padding-left: 1.25rem;
+}
+
+.resource-rich-content ul {
+  list-style: disc;
+}
+
+.resource-rich-content ol {
+  list-style: decimal;
+}
+
+.resource-rich-content :where(li + li) {
+  margin-top: 0.25rem;
+}
+
 @media (hover: hover) {
   .service-card-wrapper:hover .smm-service-card-3d {
     transform: translateY(-8px) rotateX(6deg) rotateY(var(--smm-card-tilt, -6deg));

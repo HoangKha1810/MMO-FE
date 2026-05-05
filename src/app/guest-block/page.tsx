@@ -17,7 +17,7 @@ export default async function GuestBlockPage({ searchParams }: { searchParams: P
         <div className="mt-5 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 font-mono text-sm font-black text-rose-500">{ip}</div>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link href="/auth/login" className="surface-chip rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 dark:text-slate-200">Đăng nhập lại</Link>
-          <a href="mailto:admin@trungtammmo.vn" className="btn-kinetic rounded-full bg-rose-500 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white">Liên hệ admin</a>
+          <a href="mailto:admin@trungtammmo.com" className="btn-kinetic rounded-full bg-rose-500 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white">Liên hệ admin</a>
         </div>
       </section>
     </main>

@@ -97,7 +97,7 @@ export async function purchaseResource(userId: number, resourceId: number, quant
     const providerDetail = await getMmoProviderProductDetail(apiProviderId, apiProductId);
     const providerStock = Math.max(0, Math.trunc(toNumber(providerDetail.product.amount, 0)));
     if (providerStock > 0 && providerStock < normalizedQuantity) {
-      throw new Error('Kho CloneTut không đủ cho sản phẩm này');
+      throw new Error('Kho provider MMO không đủ cho sản phẩm này');
     }
   }
 
@@ -242,7 +242,7 @@ export async function purchaseResource(userId: number, resourceId: number, quant
       provider_lines: providerPurchase.lines.length,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Provider CloneTut xử lý thất bại';
+    const message = error instanceof Error ? error.message : 'Provider MMO xử lý thất bại';
 
     await db.$transaction(async (tx) => {
       const user = await tx.users.findUnique({

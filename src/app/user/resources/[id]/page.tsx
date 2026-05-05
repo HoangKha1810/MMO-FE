@@ -6,6 +6,8 @@ import { ResourceDetailActions } from '@/components/resources/resource-detail-ac
 import { Badge } from '@/components/ui/badge';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { getResourceDetail } from '@/lib/legacy-modules';
+import { hideProviderBranding } from '@/lib/provider-branding';
+import { cleanResourceHtml } from '@/lib/resource-content';
 import { listResourceReviews } from '@/lib/resource-actions';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
@@ -26,6 +28,8 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   const { resource, related, orders } = data;
   const thumbnail = buildLegacyAssetUrl(String(resource.thumbnail || ''));
+  const title = hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`);
+  const descriptionHtml = cleanResourceHtml(resource.description, 'Tài nguyên MMO đang được bán trong hệ thống.');
 
   return (
     <AppShell user={shell}>
@@ -39,7 +43,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
             <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-brand-blue/10 to-emerald-500/10">
               {thumbnail ? (
-                <img src={thumbnail} alt={String(resource.title)} className="h-full w-full object-cover" />
+                <img src={thumbnail} alt={title} className="h-full w-full object-cover" />
               ) : (
                 <Package className="h-24 w-24 text-brand-blue/35" />
               )}
@@ -48,16 +52,17 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
           <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm dark:border-white/10 dark:bg-slate-900">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="info">{String(resource.category_name || resource.category || 'Resource')}</Badge>
-              {resource.custom_badge ? <Badge>{String(resource.custom_badge)}</Badge> : null}
+              <Badge variant="info">{hideProviderBranding(resource.category_name || resource.category, 'Resource')}</Badge>
+              {resource.custom_badge ? <Badge>{hideProviderBranding(resource.custom_badge)}</Badge> : null}
               {resource.product_code ? <Badge variant="muted">{String(resource.product_code)}</Badge> : null}
             </div>
             <h1 className="mt-5 text-3xl font-black uppercase leading-[1.2] tracking-[-0.04em] text-slate-950 dark:text-white md:text-5xl md:leading-[1.16]">
-              {String(resource.title)}
+              {title}
             </h1>
-            <p className="mt-4 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-300">
-              {String(resource.description || 'Tài nguyên MMO đang được bán trong hệ thống.')}
-            </p>
+            <div
+              className="resource-rich-content mt-4"
+              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+            />
 
             <div className="mt-6 grid gap-3 min-[430px]:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
@@ -94,7 +99,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             <div className="grid gap-4 md:grid-cols-3">
               {related.slice(0, 3).map((item) => (
                 <Link key={String(item.id)} href={`/user/resources/${String(item.id)}`} className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
-                  <div className="text-xs font-black uppercase text-slate-900 dark:text-white">{String(item.title)}</div>
+                  <div className="text-xs font-black uppercase text-slate-900 dark:text-white">{hideProviderBranding(item.title, `Sản phẩm #${String(item.id)}`)}</div>
                   <div className="mt-2 font-mono text-sm font-black text-brand-blue">{formatCurrency(toNumber(item.price))}</div>
                 </Link>
               ))}

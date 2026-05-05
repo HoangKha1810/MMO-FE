@@ -1,7 +1,7 @@
 const DEFAULT_LEGACY_SITE_ORIGIN =
   process.env.NEXT_PUBLIC_LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') ||
   process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') ||
-  'https://trungtammmo.vn';
+  'https://trungtammmo.com';
 
 export function buildPublicAssetUrl(path: string | null | undefined): string | null {
   if (!path) {

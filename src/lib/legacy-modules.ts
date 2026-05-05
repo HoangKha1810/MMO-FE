@@ -2,9 +2,15 @@ import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { processBankDepositByCode, processSePayDepositByCode } from '@/lib/deposit-processing';
 import { cleanForumHtml } from '@/lib/forum';
+import {
+  buildDirectGameAccountWhereSql,
+  buildRandom1kResourceWhereSql,
+  buildRandomGameAccountWhereSql,
+} from '@/lib/random1k';
 import { toNumber } from '@/lib/utils';
 
 export type LegacyRow = Record<string, unknown>;
+export type ResourceCollection = 'game-accounts' | 'random-game-accounts';
 
 interface CountRow {
   total: number | bigint;
@@ -80,9 +86,13 @@ export async function listResourceCategories() {
   `);
 }
 
-export async function listResources(input: { search?: string; category?: string; limit?: number } = {}) {
+export async function listResources(input: { search?: string; category?: string; limit?: number; collection?: ResourceCollection } = {}) {
   const values: unknown[] = [];
-  const where = ["r.status = 'active'", 'COALESCE(r.is_deleted, 0) = 0'];
+  const isGameAccountCollection = input.collection === 'game-accounts' || input.collection === 'random-game-accounts';
+  const where = [
+    isGameAccountCollection ? "r.status IN ('active', 'out_of_stock')" : "r.status = 'active'",
+    'COALESCE(r.is_deleted, 0) = 0',
+  ];
 
   if (input.search) {
     where.push('(r.title LIKE ? OR r.description LIKE ? OR r.category LIKE ? OR r.tags LIKE ?)');
@@ -92,6 +102,18 @@ export async function listResources(input: { search?: string; category?: string;
   if (input.category) {
     where.push('(r.category = ? OR rc.slug = ? OR CAST(r.category_id AS CHAR) = ?)');
     values.push(input.category, input.category, input.category);
+  }
+
+  if (isGameAccountCollection) {
+    where.push(buildRandom1kResourceWhereSql('r', 'ap'));
+  }
+
+  if (input.collection === 'game-accounts') {
+    where.push(buildDirectGameAccountWhereSql('r', 'rc'));
+  }
+
+  if (input.collection === 'random-game-accounts') {
+    where.push(buildRandomGameAccountWhereSql('r', 'rc'));
   }
 
   values.push(Math.min(120, Math.max(1, input.limit || 80)));
@@ -117,9 +139,12 @@ export async function listResources(input: { search?: string; category?: string;
       r.created_at,
       rc.name AS category_name,
       rc.slug AS category_slug,
-      rc.image AS category_image
+      rc.image AS category_image,
+      ap.name AS provider_name,
+      ap.api_url AS provider_api_url
     FROM mmo_resources r
     LEFT JOIN resource_categories rc ON rc.id = r.category_id
+    LEFT JOIN api_providers ap ON ap.id = CAST(COALESCE(r.api_provider_id, 0) AS UNSIGNED)
     WHERE ${where.join(' AND ')}
     ORDER BY r.is_pinned DESC, r.featured DESC, r.display_order ASC, r.created_at DESC
     LIMIT ?
@@ -128,9 +153,10 @@ export async function listResources(input: { search?: string; category?: string;
 
 export async function getResourceDetail(id: number, userId?: number) {
   const resource = await safeOne<LegacyRow>(`
-    SELECT r.*, rc.name AS category_name, rc.slug AS category_slug
+    SELECT r.*, rc.name AS category_name, rc.slug AS category_slug, ap.name AS provider_name, ap.api_url AS provider_api_url
     FROM mmo_resources r
     LEFT JOIN resource_categories rc ON rc.id = r.category_id
+    LEFT JOIN api_providers ap ON ap.id = CAST(COALESCE(r.api_provider_id, 0) AS UNSIGNED)
     WHERE r.id = ?
       AND COALESCE(r.is_deleted, 0) = 0
     LIMIT 1

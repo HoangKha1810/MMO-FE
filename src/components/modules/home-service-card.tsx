@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Package,
   ShoppingCart,
+  Shuffle,
   ThumbsUp,
   Zap,
 } from 'lucide-react';
@@ -51,6 +52,7 @@ const serviceIconMap = {
   'gamepad-2': Gamepad2,
   'credit-card': CreditCard,
   'shopping-cart': ShoppingCart,
+  shuffle: Shuffle,
 } as const;
 
 export function HomeServiceCard({ service, className }: HomeServiceCardProps) {

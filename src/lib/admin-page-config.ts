@@ -172,12 +172,12 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'resources',
       title: 'MMO resources',
-      description: 'CRUD tài nguyên, giá, stock, trạng thái, API CloneTut/MMO và margin.',
+      description: 'CRUD tài nguyên, giá, stock, trạng thái, API tài khoản game/MMO và margin.',
       columns: ['id', 'product_code', 'category', 'category_id', 'title', 'price', 'stock', 'sold_count', 'status', 'is_pinned', 'api_provider_id'],
       editableFields: ['product_code', 'title', 'description', 'category', 'category_id', 'price', 'original_price', 'thumbnail', 'resource_type', 'stock', 'sold_count', 'download_url', 'content', 'product_content', 'product_note', 'tags', 'status', 'featured', 'is_pinned', 'api_provider_id', 'api_product_id', 'is_auto', 'is_auto_margin', 'margin_percent', 'custom_badge', 'display_order', 'is_deleted'],
       createFields: ['product_code', 'title', 'description', 'category', 'category_id', 'price', 'original_price', 'thumbnail', 'resource_type', 'stock', 'download_url', 'content', 'product_content', 'product_note', 'tags', 'status', 'featured', 'is_pinned', 'created_by', 'api_provider_id', 'api_product_id', 'is_auto', 'is_auto_margin', 'margin_percent', 'custom_badge', 'display_order'],
       statusOptions: ['active', 'inactive', 'out_of_stock'],
-      actions: [{ key: 'sync', label: 'Sync CloneTut' }],
+      actions: [{ key: 'sync', label: 'Sync MMO/API game' }],
     },
     {
       resource: 'resource-categories',
@@ -199,7 +199,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'providers',
       title: 'MMO API providers',
-      description: 'Provider CloneTut/MMO dùng chung bảng api_providers.',
+      description: 'Provider API tài khoản game/MMO dùng chung bảng api_providers.',
       columns: ['id', 'name', 'type', 'service_type', 'exchange_rate', 'api_url', 'status', 'health_status'],
       editableFields: ['name', 'type', 'service_type', 'exchange_rate', 'api_key', 'api_url', 'status', 'health_status'],
       createFields: ['name', 'type', 'service_type', 'exchange_rate', 'api_key', 'api_url', 'status'],
