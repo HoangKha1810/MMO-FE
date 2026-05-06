@@ -6,8 +6,11 @@ import { ImagePlus, Send, Trash2, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { startPageTransition } from '@/components/layout/navigation-effects';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Input } from '@/components/ui/input';
+import { GAME_MARKET_PLATFORM_FEE, getGameMarketListedPrice } from '@/lib/game-market-pricing';
 import { buildPublicAssetUrl } from '@/lib/public-asset-url';
+import { formatCurrency, toNumber } from '@/lib/utils';
 
 interface GameMarketCategoryOption {
   label: string;
@@ -79,6 +82,7 @@ export function GameMarketItemForm({
   defaults,
 }: GameMarketItemFormProps) {
   const router = useRouter();
+  const { alert } = useConfirmDialog();
   const [loading, setLoading] = useState(false);
   const [values, setValues] = useState<GameMarketItemFormValues>(() => normalizeDefaults(defaults));
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -188,6 +192,19 @@ export function GameMarketItemForm({
 
       toast.success(result.message || 'Đã xử lý bài đăng');
 
+      if (values.action === 'create') {
+        const resultData = (result.data || {}) as Record<string, unknown>;
+        const sellerPrice = toNumber(resultData.sellerPrice, toNumber(values.price, 0));
+        const listedPrice = toNumber(resultData.price, getGameMarketListedPrice(sellerPrice));
+
+        await alert({
+          title: 'Đã cộng tiền sàn',
+          description: `Giá bạn nhập là ${formatCurrency(sellerPrice)}. Hệ thống đã tự cộng ${formatCurrency(GAME_MARKET_PLATFORM_FEE)} tiền sàn, giá hiển thị cho người mua là ${formatCurrency(listedPrice)}.`,
+          confirmText: 'Đã hiểu',
+          tone: 'brand',
+        });
+      }
+
       const nextItemId = Number((result.data as Record<string, unknown>)?.id || values.itemId || 0);
 
       if (redirectTo) {
@@ -207,6 +224,8 @@ export function GameMarketItemForm({
   }
 
   const totalImages = values.existingImages.length + newFiles.length;
+  const sellerInputPrice = toNumber(values.price, 0);
+  const listedPricePreview = sellerInputPrice > 0 ? getGameMarketListedPrice(sellerInputPrice) : 0;
 
   return (
     <form onSubmit={submit} className="space-y-5">
@@ -232,9 +251,18 @@ export function GameMarketItemForm({
         </label>
 
         <label className="space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giá bán</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            {values.action === 'create' ? 'Giá seller nhập' : 'Giá bán'}
+          </span>
           <Input type="number" min={1000} value={values.price} onChange={(event) => updateField('price', event.target.value)} required />
         </label>
+
+        {values.action === 'create' ? (
+          <div className="rounded-[1.25rem] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm font-semibold leading-7 text-amber-700 dark:text-amber-300 md:col-span-2">
+            Hệ thống sẽ tự cộng <span className="font-black">{formatCurrency(GAME_MARKET_PLATFORM_FEE)}</span> tiền sàn khi đăng bài.
+            Giá người mua thấy: <span className="font-black">{listedPricePreview > 0 ? formatCurrency(listedPricePreview) : 'nhập giá để xem'}</span>.
+          </div>
+        ) : null}
 
         <label className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Số lượng</span>

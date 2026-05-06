@@ -4,6 +4,7 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog-provider';
+import { SiteEntryDiscordPopup } from '@/components/layout/site-entry-discord-popup';
 import { ThemeTransitionLayer } from '@/components/layout/theme-transition-layer';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -30,6 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         storageKey="trungtammmo-theme"
       >
         <ConfirmDialogProvider>
+          <SiteEntryDiscordPopup />
           {children}
           <ThemeTransitionLayer />
         </ConfirmDialogProvider>

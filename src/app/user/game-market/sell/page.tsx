@@ -3,6 +3,8 @@ import { ArrowLeft, ShieldCheck, WandSparkles } from 'lucide-react';
 import { GameMarketItemForm } from '@/components/game-market/game-market-item-form';
 import { AppShell } from '@/components/layout/app-shell';
 import { getGameMarketCategoryOptions } from '@/lib/game-market-config';
+import { GAME_MARKET_PLATFORM_FEE } from '@/lib/game-market-pricing';
+import { formatCurrency } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +35,16 @@ export default async function SellGameMarketPage() {
             </div>
             <p className="mt-3 text-sm font-semibold leading-7 text-emerald-700 dark:text-emerald-300">
               Sau khi gửi bài, trạng thái sẽ là <span className="font-black">chờ duyệt</span>. Bạn vẫn có thể sửa lại nội dung, nhưng bài chỉ xuất hiện công khai khi admin chuyển sang trạng thái đã duyệt.
+            </p>
+          </div>
+
+          <div className="mt-4 rounded-[1.5rem] border border-amber-500/20 bg-amber-500/10 p-4">
+            <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-amber-600 dark:text-amber-400">
+              <ShieldCheck className="h-4 w-4" />
+              Tiền sàn tự động
+            </div>
+            <p className="mt-3 text-sm font-semibold leading-7 text-amber-700 dark:text-amber-300">
+              Khi đăng bài mới, hệ thống tự cộng <span className="font-black">{formatCurrency(GAME_MARKET_PLATFORM_FEE)}</span> vào giá bạn nhập để làm tiền sàn. Popup xác nhận sẽ hiện ngay sau khi gửi bài.
             </p>
           </div>
 

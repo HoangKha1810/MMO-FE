@@ -2,6 +2,10 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import {
+  calculateGameAccountApiPrice,
+  clampResourcePrice,
+} from '@/lib/game-account-pricing';
+import {
   buildRandom1kResourceWhereSql,
   buildRandom1kTags,
   getRandom1kResourceType,
@@ -121,7 +125,6 @@ export interface GameAccountAutoSyncSummary extends MmoProviderSyncSummary {
 }
 
 const GAME_ACCOUNT_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
-const MAX_RESOURCE_PRICE = 9_999_999_999_999.99;
 
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, '');
@@ -137,12 +140,6 @@ function asObject(value: unknown) {
 
 function truthy(value: unknown) {
   return value === true || value === 1 || value === '1' || value === 'true';
-}
-
-function clampResourcePrice(value: unknown) {
-  const amount = Math.max(0, toNumber(value, 0));
-  if (!Number.isFinite(amount)) return 0;
-  return Math.min(Math.round(amount * 100) / 100, MAX_RESOURCE_PRICE);
 }
 
 function normalizeMoney(value: unknown, exchangeRate: number) {
@@ -702,9 +699,14 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
       const stock = Math.max(0, Math.trunc(toNumber(entry.product.amount, 0)));
       const isAutoMargin = truthy(existing?.is_auto_margin);
       const marginPercent = toNumber(existing?.margin_percent, 0);
+      const rulePrice = isRandom1kProvider
+        ? calculateGameAccountApiPrice(providerPrice, `${remoteProductId} ${categoryName} ${title}`)
+        : providerPrice;
       const calculatedFinalPrice = isAutoMargin
         ? Math.round(providerPrice * (1 + marginPercent / 100) * 100) / 100
-        : Math.max(providerPrice, toNumber(existing?.price, providerPrice));
+        : isRandom1kProvider
+          ? Math.max(rulePrice, toNumber(existing?.price, rulePrice))
+          : Math.max(providerPrice, toNumber(existing?.price, providerPrice));
       const finalPrice = clampResourcePrice(calculatedFinalPrice);
       const nextStatus = stock > 0 ? 'active' : 'out_of_stock';
       const remoteThumbnail = normalizeProviderAssetUrl(provider, entry.category.icon || '');

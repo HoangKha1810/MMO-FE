@@ -131,7 +131,7 @@ export function NotificationBell({ className }: { className?: string }) {
           {unreadCount > 0 ? (
             <>
               <span className="notification-ping" />
-              <span className="absolute -right-1 -top-1 z-20 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 font-mono text-[9px] font-black leading-none text-white shadow-md shadow-red-500/25">
+              <span className="notification-count-badge">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             </>

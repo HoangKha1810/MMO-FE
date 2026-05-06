@@ -6,6 +6,11 @@ import {
   normalizeGameMarketCategory,
 } from '@/lib/game-market-config';
 import { collectGameMarketImageRefs, parseGameMarketImageRefs } from '@/lib/game-market-media';
+import {
+  GAME_MARKET_PLATFORM_FEE,
+  getGameMarketListedPrice,
+  normalizeGameMarketSellerPrice,
+} from '@/lib/game-market-pricing';
 import { getGameMarketPendingLikeStatus } from '@/lib/game-market-schema';
 import { sendSocialMessage } from '@/lib/social';
 import { toNumber } from '@/lib/utils';
@@ -270,6 +275,8 @@ export async function createOrUpdateGameItem(userId: number, input: {
     thumbnail: input.thumbnail,
     images: imageRefs,
   }, 1)[0] || '';
+  const sellerPrice = normalizeGameMarketSellerPrice(input.price || 0);
+  const isUpdate = Boolean(input.itemId);
 
   const payload = {
     title: input.title.trim(),
@@ -277,7 +284,7 @@ export async function createOrUpdateGameItem(userId: number, input: {
     tag: String(input.tag || '').trim(),
     badge: String(input.badge || '').trim(),
     badgeColor: String(input.badgeColor || '').trim(),
-    price: Math.max(1000, Math.round(input.price || 0)),
+    price: isUpdate ? sellerPrice : getGameMarketListedPrice(sellerPrice),
     stock: Math.max(1, Math.min(9999, Math.round(input.stock || 1))),
     prepTime: String(input.prepTime || '').trim(),
     originalPrice: input.originalPrice ? Math.round(input.originalPrice) : null,
@@ -333,7 +340,13 @@ export async function createOrUpdateGameItem(userId: number, input: {
       userId
     );
 
-    return { id: input.itemId, status: pendingLikeStatus };
+    return {
+      id: input.itemId,
+      status: pendingLikeStatus,
+      price: payload.price,
+      sellerPrice,
+      platformFee: 0,
+    };
   }
 
   const code = `GM${Date.now()}`;
@@ -371,7 +384,13 @@ export async function createOrUpdateGameItem(userId: number, input: {
         payload.deliveryMethod || 'manual'
       );
 
-      return { id: nextId, status: pendingLikeStatus };
+      return {
+        id: nextId,
+        status: pendingLikeStatus,
+        price: payload.price,
+        sellerPrice,
+        platformFee: GAME_MARKET_PLATFORM_FEE,
+      };
     } catch (error) {
       if (attempt < 2 && isDuplicateIdError(error)) {
         continue;

@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: action === 'update'
         ? 'Đã cập nhật bài đăng và chuyển lại chờ admin duyệt'
-        : 'Đã gửi bài đăng mới, vui lòng chờ admin duyệt trước khi hiển thị',
+        : 'Đã gửi bài đăng mới. Hệ thống đã tự cộng 100.000đ tiền sàn vào giá hiển thị, vui lòng chờ admin duyệt trước khi hiển thị',
       data,
     });
   } catch (error) {

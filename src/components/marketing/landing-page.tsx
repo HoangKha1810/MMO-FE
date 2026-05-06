@@ -247,13 +247,13 @@ export function LandingPage() {
           <div className="flex items-center justify-between">
 
             {/* Logo */}
-            <Link href="/" className="group flex items-center gap-3">
-              <div className="relative flex items-center justify-center rounded-[1.35rem] border border-slate-200/70 bg-white/78 px-3 py-2 shadow-[0_18px_44px_-28px_rgba(37,99,235,0.34)] transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-brand-blue/30 group-hover:shadow-[0_26px_60px_-30px_rgba(37,99,235,0.42)] dark:border-white/10 dark:bg-white/[0.04]">
+            <Link href="/" className="group flex min-w-0 items-center gap-3">
+              <div className="relative flex min-w-0 items-center justify-center rounded-[1.35rem] border border-slate-200/70 bg-white/78 px-2.5 py-2 shadow-[0_18px_44px_-28px_rgba(37,99,235,0.34)] transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-brand-blue/30 group-hover:shadow-[0_26px_60px_-30px_rgba(37,99,235,0.42)] dark:border-white/10 dark:bg-white/[0.04] sm:px-3">
                 <div className="absolute inset-0 rounded-[1.35rem] bg-brand-blue/12 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
                 <img
                   src="/logo.gif"
                   alt="TRUNGTAMMMO"
-                  className="relative z-10 h-10 w-auto object-contain sm:h-12"
+                  className="relative z-10 h-8 w-auto object-contain sm:h-12"
                 />
               </div>
               <div className="hidden min-[440px]:block">
@@ -287,7 +287,7 @@ export function LandingPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               {/* Theme toggle */}
               <button
                 type="button"
@@ -307,12 +307,17 @@ export function LandingPage() {
 
               <Link
                 href="/auth/login"
-                className="hidden text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:text-slate-900 sm:inline-flex dark:text-slate-400 dark:hover:text-white"
+                className="hidden text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:text-slate-900 md:inline-flex dark:text-slate-400 dark:hover:text-white"
               >
                 Đăng nhập
               </Link>
 
-              <FlipButton href="/auth/register" size="sm">
+              <FlipButton
+                href="/auth/register"
+                size="sm"
+                className="shrink-0"
+                stageClassName="h-11 min-w-[7.75rem] text-[0.68rem] sm:h-12 sm:min-w-[10.5rem] sm:text-[0.74rem]"
+              >
                 Đăng ký
               </FlipButton>
             </div>
@@ -344,7 +349,7 @@ export function LandingPage() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 </span>
-                TRUNGTAMMMO.VN
+                TRUNGTAMMMO.COM
                 <Sparkles className="h-2.5 w-2.5 text-amber-500" />
               </div>
             </div>
@@ -845,7 +850,7 @@ export function LandingPage() {
             HÀNH TRÌNH MMO?
           </h2>
           <p className="mb-10 text-sm font-medium leading-relaxed text-blue-100">
-            Tham gia cùng hơn 50,000+ thành viên đang kiếm tiền online với TRUNGTAMMMO.VN mỗi ngày.
+            Tham gia cùng hơn 50,000+ thành viên đang kiếm tiền online với TRUNGTAMMMO.COM mỗi ngày.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <FlipButton

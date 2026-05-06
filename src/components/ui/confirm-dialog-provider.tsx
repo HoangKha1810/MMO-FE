@@ -24,6 +24,9 @@ type ConfirmDialogRequest = {
   cancelText?: string;
   tone?: ConfirmTone;
   kind?: 'confirm' | 'alert';
+  linkHref?: string;
+  linkText?: string;
+  linkTarget?: string;
 };
 
 type ConfirmDialogContextValue = {
@@ -34,7 +37,7 @@ type ConfirmDialogContextValue = {
 type QueuedDialogRequest = Required<
   Pick<ConfirmDialogRequest, 'description' | 'confirmText' | 'cancelText' | 'tone' | 'kind'>
 > &
-  Pick<ConfirmDialogRequest, 'title'> & {
+  Pick<ConfirmDialogRequest, 'title' | 'linkHref' | 'linkText' | 'linkTarget'> & {
     resolve: (value: boolean) => void;
   };
 
@@ -80,6 +83,9 @@ function normalizeRequest(
     cancelText: request.cancelText || 'Hủy',
     tone: request.tone || 'brand',
     kind: request.kind || 'confirm',
+    linkHref: request.linkHref,
+    linkText: request.linkText,
+    linkTarget: request.linkTarget,
     resolve,
   };
 }
@@ -164,9 +170,9 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="confirm-dialog-overlay fixed inset-0 z-[120] bg-slate-950/58 backdrop-blur-md" />
+          <Dialog.Overlay className="confirm-dialog-overlay fixed inset-0 z-[300] bg-slate-950/58 backdrop-blur-md" />
           <Dialog.Content
-            className="confirm-dialog-content fixed left-1/2 top-1/2 z-[121] w-[calc(100vw-1.5rem)] max-w-[32rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] p-5 shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] outline-none dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(11,17,31,0.98),rgba(8,13,24,0.96))] sm:p-6"
+            className="confirm-dialog-content fixed left-1/2 top-1/2 z-[301] w-[calc(100vw-1.5rem)] max-w-[32rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] p-5 shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] outline-none dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(11,17,31,0.98),rgba(8,13,24,0.96))] sm:p-6"
           >
             {current ? (
               <>
@@ -204,6 +210,18 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                         className="w-full sm:w-auto"
                       >
                         {current.cancelText}
+                      </Button>
+                    ) : null}
+                    {current.linkHref && current.linkText ? (
+                      <Button asChild variant="outline" className="w-full sm:w-auto">
+                        <a
+                          href={current.linkHref}
+                          target={current.linkTarget || '_self'}
+                          rel={current.linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
+                          onClick={() => resolveCurrent(true)}
+                        >
+                          {current.linkText}
+                        </a>
                       </Button>
                     ) : null}
                     <Button

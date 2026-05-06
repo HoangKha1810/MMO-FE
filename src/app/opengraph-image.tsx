@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'TRUNGTAMMMO.VN';
+export const alt = 'TRUNGTAMMMO.COM';
 export const size = {
   width: 1200,
   height: 630,
