@@ -1,5 +1,6 @@
 // src/app/api/auth/logout/route.ts
 import { NextResponse } from 'next/server';
+import { siteUrl } from '@/lib/seo';
 
 export async function POST() {
   const response = NextResponse.json({ success: true });
@@ -9,5 +10,5 @@ export async function POST() {
 }
 
 export async function GET() {
-  return NextResponse.redirect(new URL('/auth/login', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'));
+  return NextResponse.redirect(new URL('/auth/login', process.env.NEXT_PUBLIC_BASE_URL || siteUrl));
 }

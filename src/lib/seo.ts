@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = 'https://trungtammmo.com';
+const DEFAULT_SITE_URL = 'https://trungtammmo.vn';
 
 function normalizeOrigin(value?: string | null) {
   const raw = String(value || '').trim();
@@ -10,10 +10,10 @@ function normalizeOrigin(value?: string | null) {
   return withProtocol.replace(/\/+$/, '');
 }
 
-export const siteName = 'TRUNGTAMMMO.COM';
+export const siteName = 'TRUNGTAMMMO.VN';
 export const siteShortName = 'TRUNGTAMMMO';
 export const siteDescription =
-  'TRUNGTAMMMO.COM là nền tảng MMO đa dịch vụ gồm SMM, Auto MXH, tài nguyên số, forum MMO, nạp tiền và cụm công cụ vận hành.';
+  'TRUNGTAMMMO.VN là nền tảng MMO đa dịch vụ gồm SMM, Auto MXH, tài nguyên số, forum MMO, nạp tiền và cụm công cụ vận hành.';
 
 function isPreviewHost(value: string) {
   try {
@@ -44,7 +44,7 @@ export const siteUrl = resolveSiteUrl();
 
 export const defaultKeywords = [
   'TRUNGTAMMMO',
-  'TRUNGTAMMMO.COM',
+  'TRUNGTAMMMO.VN',
   'MMO',
   'SMM',
   'Auto MXH',

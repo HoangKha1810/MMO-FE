@@ -44,7 +44,7 @@ export interface LegacyServiceControlDefinition {
 const SETTINGS_CACHE_TTL_MS = 60 * 1000;
 const SETTINGS_ERROR_CACHE_TTL_MS = 30 * 1000;
 const LEGACY_SITE_ORIGIN =
-  process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') || 'https://trungtammmo.com';
+  process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') || 'https://trungtammmo.vn';
 
 let settingsCache:
   | {
@@ -95,7 +95,7 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     nameKey: 'service_10_name',
     descKey: 'service_10_desc',
     statusKey: 'service_10_status',
-    href: 'https://ai.trungtammmo.com',
+    href: 'https://ai.trungtammmo.vn',
     iconKey: 'bot',
     color: 'from-blue-500 to-cyan-500',
     textColor: 'text-blue-500',
@@ -108,7 +108,7 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     nameKey: 'service_12_name',
     descKey: 'service_12_desc',
     statusKey: 'service_12_status',
-    href: 'https://vps.trungtammmo.com/',
+    href: 'https://vps.trungtammmo.vn/',
     iconKey: 'cloud',
     color: 'from-cyan-500 to-blue-600',
     textColor: 'text-cyan-500',
@@ -278,7 +278,7 @@ const sidebarServiceDefinitions: ServiceDefinition[] = [
     nameKey: 'service_12_name',
     descKey: 'service_12_desc',
     statusKey: 'service_12_status',
-    href: 'https://vps.trungtammmo.com/',
+    href: 'https://vps.trungtammmo.vn/',
     iconKey: 'server',
     color: 'from-slate-500 to-slate-700',
     textColor: 'text-slate-500',

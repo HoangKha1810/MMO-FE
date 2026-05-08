@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processBankDepositByCode } from '@/lib/legacy-modules';
+import { siteUrl } from '@/lib/seo';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 function depositRedirect(status: 'success' | 'error' | 'cancel', message?: string) {
-  const url = new URL('/user/deposit', process.env.NEXT_PUBLIC_BASE_URL || process.env.API_DOMAIN || 'http://localhost:3000');
+  const url = new URL('/user/deposit', process.env.NEXT_PUBLIC_BASE_URL || process.env.API_DOMAIN || siteUrl);
   url.searchParams.set('payment', status);
   if (message) url.searchParams.set('message', message);
   return NextResponse.redirect(url);

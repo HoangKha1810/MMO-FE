@@ -5,7 +5,7 @@ import { readPolicySections } from '@/lib/legal-content';
 export const metadata: Metadata = {
   title: 'Điều khoản sử dụng',
   description:
-    'Điều khoản sử dụng hệ thống TRUNGTAMMMO.COM giúp người dùng nắm rõ quyền lợi, trách nhiệm và nguyên tắc giao dịch.',
+    'Điều khoản sử dụng hệ thống TRUNGTAMMMO.VN giúp người dùng nắm rõ quyền lợi, trách nhiệm và nguyên tắc giao dịch.',
   alternates: {
     canonical: '/terms',
   },

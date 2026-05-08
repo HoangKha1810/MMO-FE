@@ -1074,7 +1074,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
               </div>
               <div className="rounded-[1.4rem] border border-white/7 bg-[#1b2742] p-4">
                 <div className="text-sm font-black uppercase tracking-tight text-slate-100">
-                  Cộng Đồng <span className="text-red-400">TRUNGTAMMMO.COM</span>
+                  Cộng Đồng <span className="text-red-400">TRUNGTAMMMO.VN</span>
                 </div>
                 <div className="mt-3 space-y-2 text-sm text-slate-200">
                   {LEGACY_COMMUNITY_LINKS.map((item) => (

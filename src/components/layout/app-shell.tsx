@@ -632,7 +632,7 @@ export function AppShell({
                   <Link href={isAdmin ? '/admin/dashboard' : '/user/home'} className="min-w-0 flex-1">
                     <img
                       src="/logo.gif"
-                      alt="TRUNGTAMMMO.COM Logo"
+                      alt="TRUNGTAMMMO.VN Logo"
                       className="h-14 w-auto object-contain"
                     />
                     <div className="mt-2">

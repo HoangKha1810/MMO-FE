@@ -349,7 +349,7 @@ export function LandingPage() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 </span>
-                TRUNGTAMMMO.COM
+                TRUNGTAMMMO.VN
                 <Sparkles className="h-2.5 w-2.5 text-amber-500" />
               </div>
             </div>
@@ -850,7 +850,7 @@ export function LandingPage() {
             HÀNH TRÌNH MMO?
           </h2>
           <p className="mb-10 text-sm font-medium leading-relaxed text-blue-100">
-            Tham gia cùng hơn 50,000+ thành viên đang kiếm tiền online với TRUNGTAMMMO.COM mỗi ngày.
+            Tham gia cùng hơn 50,000+ thành viên đang kiếm tiền online với TRUNGTAMMMO.VN mỗi ngày.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <FlipButton

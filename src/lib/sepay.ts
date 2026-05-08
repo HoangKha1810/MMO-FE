@@ -62,7 +62,7 @@ function resolveCallbackBase(origin?: string) {
   const preferredOrigin =
     process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
     origin?.trim() ||
-    getLegacyEnv('API_DOMAIN', 'https://trungtammmo.com');
+    getLegacyEnv('API_DOMAIN', 'https://trungtammmo.vn');
 
   return trimTrailingSlash(preferredOrigin);
 }

@@ -4,7 +4,7 @@ import { LegalPage } from '@/components/marketing/legal-page';
 export const metadata: Metadata = {
   title: 'Giới thiệu',
   description:
-    'Giới thiệu TRUNGTAMMMO.COM: nền tảng MMO đa dịch vụ hỗ trợ SMM, Auto MXH, tài nguyên số, thanh toán, forum và công cụ vận hành.',
+    'Giới thiệu TRUNGTAMMMO.VN: nền tảng MMO đa dịch vụ hỗ trợ SMM, Auto MXH, tài nguyên số, thanh toán, forum và công cụ vận hành.',
   alternates: {
     canonical: '/about',
   },
@@ -14,7 +14,7 @@ export default function AboutPage() {
   return (
     <LegalPage
       eyebrow="Giới thiệu"
-      title="TRUNGTAMMMO.COM là trung tâm dịch vụ MMO đa hệ"
+      title="TRUNGTAMMMO.VN là trung tâm dịch vụ MMO đa hệ"
       description="Chúng tôi xây dựng một hệ sinh thái phục vụ tăng trưởng, giao dịch và vận hành MMO với các module SMM, Auto MXH, tài nguyên số, game market, forum và công cụ hỗ trợ chuyên biệt."
       accent="violet"
       stats={[

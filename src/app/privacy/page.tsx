@@ -5,7 +5,7 @@ import { readPolicySections } from '@/lib/legal-content';
 export const metadata: Metadata = {
   title: 'Chính sách riêng tư',
   description:
-    'Chính sách quyền riêng tư và vận hành dữ liệu của TRUNGTAMMMO.COM dành cho người dùng, đối tác và hoạt động nội bộ.',
+    'Chính sách quyền riêng tư và vận hành dữ liệu của TRUNGTAMMMO.VN dành cho người dùng, đối tác và hoạt động nội bộ.',
   alternates: {
     canonical: '/privacy',
   },
