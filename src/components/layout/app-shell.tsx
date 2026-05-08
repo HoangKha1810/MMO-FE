@@ -948,6 +948,10 @@ export function AppShell({
                     <div className="mt-1 font-mono tabular-nums whitespace-nowrap text-[clamp(0.95rem,3.8vw,1.125rem)] font-black leading-none text-brand-blue">
                       {formatCurrency(currentUser.data.balance)} đ
                     </div>
+                    <div className="mt-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Ví game</div>
+                    <div className="mt-1 font-mono tabular-nums whitespace-nowrap text-sm font-black leading-none text-emerald-500">
+                      {formatCurrency(currentUser.data.game_balance || 0)} đ
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -1044,7 +1048,7 @@ export function AppShell({
               {/* Wallet balance */}
               <Link
                 href="/user/deposit"
-                className="interactive-lift relative hidden min-w-[162px] items-center gap-2.5 rounded-[1rem] border border-slate-200/80 bg-white/80 px-3 py-2.5 sm:flex dark:border-white/8 dark:bg-white/[0.04]"
+                className="interactive-lift relative hidden min-w-[162px] items-center gap-2.5 rounded-[1rem] border border-slate-200/80 bg-white/80 px-3 py-2.5 sm:flex lg:min-w-[260px] dark:border-white/8 dark:bg-white/[0.04]"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-blue text-white shadow-md shadow-brand-blue/25">
                   <Wallet className="h-3.5 w-3.5" />
@@ -1055,6 +1059,15 @@ export function AppShell({
                   </span>
                   <span className="mt-0.5 whitespace-nowrap font-mono tabular-nums text-[clamp(0.95rem,2.4vw,1rem)] font-black leading-none text-slate-900 dark:text-white">
                     {formatCurrency(currentUser.data?.balance || 0)}
+                    <span className="ml-0.5 text-xs font-bold text-slate-400 dark:text-white/35">đ</span>
+                  </span>
+                </div>
+                <div className="hidden border-l border-slate-200/80 pl-3 lg:flex lg:flex-col dark:border-white/10">
+                  <span className="text-[8px] font-bold uppercase leading-none tracking-[0.16em] text-slate-400 dark:text-white/35">
+                    Ví game
+                  </span>
+                  <span className="mt-0.5 whitespace-nowrap font-mono tabular-nums text-[0.9rem] font-black leading-none text-emerald-500">
+                    {formatCurrency(currentUser.data?.game_balance || 0)}
                     <span className="ml-0.5 text-xs font-bold text-slate-400 dark:text-white/35">đ</span>
                   </span>
                 </div>
@@ -1149,6 +1162,12 @@ export function AppShell({
                           Số dư:{' '}
                           <span className="whitespace-nowrap font-mono tabular-nums font-black text-brand-blue">
                             {formatCurrency(currentUser.data.balance)}đ
+                          </span>
+                        </div>
+                        <div className="mt-1 text-[10px] font-bold text-slate-500">
+                          Ví game:{' '}
+                          <span className="whitespace-nowrap font-mono tabular-nums font-black text-emerald-500">
+                            {formatCurrency(currentUser.data.game_balance || 0)}đ
                           </span>
                         </div>
                       </div>

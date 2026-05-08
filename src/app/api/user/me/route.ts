@@ -30,6 +30,7 @@ export async function GET() {
         email: true,
         avatar: true,
         balance: true,
+        game_balance: true,
         rank: true,
         role: true,
         is_blue_tick: true,
@@ -46,6 +47,7 @@ export async function GET() {
         ...user,
         avatar: buildLegacyAssetUrl(user.avatar) || undefined,
         balance: toNumber(user.balance, 0),
+        game_balance: toNumber(user.game_balance, 0),
       },
     }, { headers: noStoreHeaders });
   } catch {

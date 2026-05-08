@@ -2,7 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { buyMmoProviderProduct, getMmoProviderProductDetail } from '@/lib/mmo-provider';
+import { buyMmoProviderProduct } from '@/lib/mmo-provider';
 import { toNumber } from '@/lib/utils';
 
 type Row = Record<string, unknown>;
@@ -17,6 +17,20 @@ function normalize<T extends Row>(row: T): T {
     }
     return [key, value];
   })) as T;
+}
+
+function usesGameWallet(resource: Row) {
+  return ['game', 'random'].includes(String(resource.api_account_kind || '').trim().toLowerCase());
+}
+
+function formatVnd(value: number) {
+  return `${new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.ceil(value)))}đ`;
+}
+
+function insufficientBalanceMessage(wallet: 'main' | 'game', missingAmount: number) {
+  return wallet === 'game'
+    ? `Ví game không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để mua sản phẩm này.`
+    : `Số dư không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để mua tài nguyên.`;
 }
 
 async function safeRows<T extends Row>(query: string, ...values: unknown[]) {
@@ -70,7 +84,19 @@ export async function purchaseResource(userId: number, resourceId: number, quant
 
   const resourceRows = await db.$queryRawUnsafe<Array<Row>>(
     `
-      SELECT *
+      SELECT
+        id,
+        price,
+        stock,
+        sold_count,
+        status,
+        download_url,
+        product_content,
+        content,
+        api_provider_id,
+        api_product_id,
+        api_account_kind,
+        is_auto
       FROM mmo_resources
       WHERE id = ?
         AND status IN ('active', 'out_of_stock')
@@ -85,41 +111,53 @@ export async function purchaseResource(userId: number, resourceId: number, quant
   }
 
   const stock = toNumber(resource.stock, 0);
+  const resourceStatus = String(resource.status || '').trim().toLowerCase();
   const apiProviderId = Math.max(0, Math.trunc(toNumber(resource.api_provider_id, 0)));
   const apiProductId = String(resource.api_product_id || '').trim();
   const isAuto = Boolean((resource.is_auto === true || toNumber(resource.is_auto, 0) === 1) && apiProviderId > 0 && apiProductId);
+  const wallet = usesGameWallet(resource) ? 'game' : 'main';
+  const totalPrice = toNumber(resource.price, 0) * normalizedQuantity;
 
-  if (stock > 0 && stock < normalizedQuantity) {
+  if (resourceStatus === 'out_of_stock' || (!isAuto && stock < normalizedQuantity) || (isAuto && stock > 0 && stock < normalizedQuantity)) {
     throw new Error('Kho tài nguyên không đủ');
   }
 
-  if (isAuto) {
-    const providerDetail = await getMmoProviderProductDetail(apiProviderId, apiProductId);
-    const providerStock = Math.max(0, Math.trunc(toNumber(providerDetail.product.amount, 0)));
-    if (providerStock > 0 && providerStock < normalizedQuantity) {
-      throw new Error('Kho provider MMO không đủ cho sản phẩm này');
-    }
+  const balanceSnapshot = await db.users.findUnique({
+    where: { id: userId },
+    select: { balance: true, game_balance: true },
+  });
+  if (!balanceSnapshot) {
+    throw new Error('Không tìm thấy người dùng');
+  }
+
+  const availableBalance = wallet === 'game'
+    ? toNumber(balanceSnapshot.game_balance, 0)
+    : toNumber(balanceSnapshot.balance, 0);
+  if (availableBalance < totalPrice) {
+    throw new Error(insufficientBalanceMessage(wallet, totalPrice - availableBalance));
   }
 
   const pendingResult = await db.$transaction(async (tx) => {
     const user = await tx.users.findUnique({
       where: { id: userId },
-      select: { balance: true, username: true },
+      select: { balance: true, game_balance: true },
     });
 
     if (!user) {
       throw new Error('Không tìm thấy người dùng');
     }
 
-    const totalPrice = toNumber(resource.price, 0) * normalizedQuantity;
-    const nextBalance = toNumber(user.balance, 0) - totalPrice;
+    const currentBalance = wallet === 'game' ? toNumber(user.game_balance, 0) : toNumber(user.balance, 0);
+    const nextBalance = currentBalance - totalPrice;
     if (nextBalance < 0) {
-      throw new Error('Số dư không đủ để mua tài nguyên');
+      throw new Error(insufficientBalanceMessage(wallet, Math.abs(nextBalance)));
     }
 
     await tx.users.update({
       where: { id: userId },
-      data: { balance: nextBalance, last_activity: new Date() },
+      data: wallet === 'game'
+        ? { game_balance: nextBalance, last_activity: new Date() }
+        : { balance: nextBalance, last_activity: new Date() },
     });
 
     await tx.transactions.create({
@@ -127,9 +165,12 @@ export async function purchaseResource(userId: number, resourceId: number, quant
         user_id: userId,
         amount: totalPrice,
         balance_after: nextBalance,
+        wallet_type: wallet,
         type: 'order',
         status: 'success',
-        content: `Mua tài nguyên #${resourceId} x${normalizedQuantity}`,
+        content: wallet === 'game'
+          ? `Mua tài khoản game/random #${resourceId} x${normalizedQuantity} bằng ví game`
+          : `Mua tài nguyên #${resourceId} x${normalizedQuantity}`,
       },
     }).catch(() => undefined);
 
@@ -173,15 +214,15 @@ export async function purchaseResource(userId: number, resourceId: number, quant
       ).catch(() => undefined);
     }
 
-    await tx.activity_logs.create({
-      data: {
-        user_id: userId,
-        activity: `Mua tài nguyên #${resourceId}, order #${orderId}`,
-      },
-    }).catch(() => undefined);
+    return { orderId, totalPrice, nextBalance, wallet };
+  }, { maxWait: 10000, timeout: 15000 });
 
-    return { orderId, totalPrice, nextBalance };
-  });
+  await db.activity_logs.create({
+    data: {
+      user_id: userId,
+      activity: `Mua tài nguyên #${resourceId}, order #${pendingResult.orderId}`,
+    },
+  }).catch(() => undefined);
 
   if (!isAuto) {
     return pendingResult;
@@ -247,13 +288,17 @@ export async function purchaseResource(userId: number, resourceId: number, quant
     await db.$transaction(async (tx) => {
       const user = await tx.users.findUnique({
         where: { id: userId },
-        select: { balance: true },
+        select: { balance: true, game_balance: true },
       });
-      const refundedBalance = toNumber(user?.balance, 0) + pendingResult.totalPrice;
+      const refundedBalance = pendingResult.wallet === 'game'
+        ? toNumber(user?.game_balance, 0) + pendingResult.totalPrice
+        : toNumber(user?.balance, 0) + pendingResult.totalPrice;
 
       await tx.users.update({
         where: { id: userId },
-        data: { balance: refundedBalance, last_activity: new Date() },
+        data: pendingResult.wallet === 'game'
+          ? { game_balance: refundedBalance, last_activity: new Date() }
+          : { balance: refundedBalance, last_activity: new Date() },
       });
 
       await tx.transactions.create({
@@ -261,9 +306,12 @@ export async function purchaseResource(userId: number, resourceId: number, quant
           user_id: userId,
           amount: pendingResult.totalPrice,
           balance_after: refundedBalance,
+          wallet_type: pendingResult.wallet,
           type: 'refund',
           status: 'success',
-          content: `Hoàn tiền đơn tài nguyên auto #${pendingResult.orderId}`,
+          content: pendingResult.wallet === 'game'
+            ? `Hoàn tiền đơn tài khoản game/random auto #${pendingResult.orderId} vào ví game`
+            : `Hoàn tiền đơn tài nguyên auto #${pendingResult.orderId}`,
         },
       }).catch(() => undefined);
 

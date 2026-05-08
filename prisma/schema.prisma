@@ -18,6 +18,7 @@ model users {
   post_count             Int            @default(0)
   status                 users_status?  @default(active)
   balance                Decimal?       @default(0.00) @db.Decimal(15, 2)
+  game_balance           Decimal?       @default(0.00) @db.Decimal(15, 2)
   rank                   String?        @default("Member") @db.VarChar(50)
   remember_token         String?        @db.VarChar(255)
   pin                    String?        @db.VarChar(255)
@@ -102,6 +103,7 @@ model transactions {
   amount        Decimal           @db.Decimal(15, 2)
   balance_after Decimal?          @db.Decimal(15, 2)
   content       String?           @db.Text
+  wallet_type   String            @default("main") @db.VarChar(20)
   type          transactions_type
   status        String            @default("pending") @db.VarChar(20)
   created_at    DateTime          @default(now()) @db.Timestamp(0)

@@ -15,7 +15,7 @@ export async function GET() {
   try {
     const user = await db.users.findUnique({
       where: { id: userId },
-      select: { balance: true, status: true, lock_reason: true, locked_at: true },
+      select: { balance: true, game_balance: true, status: true, lock_reason: true, locked_at: true },
     });
 
     if (!user) {
@@ -25,6 +25,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       balance: toNumber(user.balance, 0),
+      game_balance: toNumber(user.game_balance, 0),
       status: user.status,
       lock_reason: user.lock_reason,
       locked_at: user.locked_at,

@@ -7,6 +7,7 @@ import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
 import { isTrackableIp } from '@/lib/ip-security';
 import { decryptLegacyData } from '@/lib/legacy-crypto';
 import { invalidateLegacySettingsCache } from '@/lib/legacy-settings';
+import { approveDepositById } from '@/lib/deposit-processing';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
 
@@ -45,14 +46,15 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
       role: true,
       status: true,
       balance: true,
+      game_balance: true,
       rank: true,
       last_ip: true,
       last_login: true,
       lock_reason: true,
       created_at: true,
     },
-    createFields: ['username', 'email', 'password', 'fullname', 'role', 'status', 'balance', 'rank'],
-    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'rank', 'lock_reason', 'locked_until', 'is_blue_tick'],
+    createFields: ['username', 'email', 'password', 'fullname', 'role', 'status', 'balance', 'game_balance', 'rank'],
+    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'lock_reason', 'locked_until', 'is_blue_tick'],
   },
   deposits: {
     delegate: 'transactions',
@@ -66,11 +68,12 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
       amount: true,
       balance_after: true,
       content: true,
+      wallet_type: true,
       type: true,
       status: true,
       created_at: true,
     },
-    updateFields: ['status', 'content', 'amount'],
+    updateFields: ['status', 'content', 'amount', 'wallet_type'],
   },
   transactions: {
     delegate: 'transactions',
@@ -1217,7 +1220,7 @@ export async function runAdminAction(resource: string, input: Record<string, unk
       reason: '',
       errors: [error instanceof Error ? error.message : 'SePay reconcile failed'],
     }));
-    const pending = await db.transactions.count({ where: { type: 'deposit', status: 'pending' } });
+    const pending = await db.transactions.count({ where: { type: 'deposit', status: { in: ['pending', 'processing'] } } });
     return { success: true, pending, sepay };
   }
 
@@ -1582,37 +1585,37 @@ async function resolveRegistrationIpTargets(input: Record<string, unknown>, ids:
 }
 
 async function processDeposit(id: number, approve: boolean, adminId: number, req: NextRequest) {
-  return db.$transaction(async (tx) => {
-    const deposit = await tx.transactions.findUnique({ where: { id } });
-    if (!deposit || deposit.type !== 'deposit') {
-      throw new Error('Không tìm thấy giao dịch nạp');
-    }
+  const deposit = await db.transactions.findUnique({ where: { id } });
+  if (!deposit || deposit.type !== 'deposit') {
+    throw new Error('Không tìm thấy giao dịch nạp');
+  }
 
-    if (deposit.status === 'success' || deposit.status === 'failed') {
-      return deposit;
-    }
+  if (deposit.status === 'success' || deposit.status === 'failed') {
+    return deposit;
+  }
 
-    if (!approve) {
-      const rejected = await tx.transactions.update({
-        where: { id },
-        data: { status: 'failed', content: `${deposit.content || ''} | Rejected by admin #${adminId}` },
-      });
-      await logAdminAction({ adminId, action: 'reject deposit', target: `#${id}`, req });
-      return rejected;
-    }
-
-    const user = await tx.users.findUnique({ where: { id: deposit.user_id }, select: { balance: true } });
-    if (!user) throw new Error('Không tìm thấy user');
-
-    const nextBalance = toNumber(user.balance, 0) + toNumber(deposit.amount, 0);
-    await tx.users.update({ where: { id: deposit.user_id }, data: { balance: nextBalance } });
-    const updated = await tx.transactions.update({
+  if (!approve) {
+    const rejected = await db.transactions.update({
       where: { id },
-      data: { status: 'success', balance_after: nextBalance },
+      data: { status: 'failed', content: `${deposit.content || ''} | Rejected by admin #${adminId}` },
     });
-    await logAdminAction({ adminId, action: 'approve deposit', target: `#${id}`, req });
-    return updated;
+    await logAdminAction({ adminId, action: 'reject deposit', target: `#${id}`, req });
+    return rejected;
+  }
+
+  const result = await approveDepositById(id, 'admin');
+  if (result.state !== 'processed' && result.state !== 'already_processed') {
+    throw new Error(`Không thể duyệt giao dịch nạp: ${result.state}`);
+  }
+
+  const updated = await db.transactions.findUnique({ where: { id } });
+  await logAdminAction({
+    adminId,
+    action: `approve ${result.state === 'processed' ? result.wallet : 'deposit'} deposit`,
+    target: `#${id}`,
+    req,
   });
+  return updated || deposit;
 }
 
 async function refundCardOrder(id: number, adminId: number, req: NextRequest) {

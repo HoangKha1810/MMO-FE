@@ -126,6 +126,7 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
               <div className="mt-4">
                 <GameMarketDetailActions
                   itemId={itemId}
+                  itemPrice={toNumber(item.price)}
                   sellerId={Number(item.seller_id || 0)}
                   sellerUsername={String(item.seller_username || '')}
                   itemTitle={String(item.title || '')}
@@ -133,6 +134,7 @@ export default async function GameMarketDetailPage({ params }: { params: Promise
                   isPinned={Boolean(item.is_pinned)}
                   status={String(item.status || '')}
                   orders={myOrders}
+                  gameBalance={shell.game_balance}
                 />
               </div>
             </div>

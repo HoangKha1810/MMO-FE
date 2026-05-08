@@ -24,6 +24,7 @@ interface BuildSePayCheckoutInput {
   orderId: string;
   origin?: string;
   paymentMethod?: 'BANK_TRANSFER' | 'CARD';
+  wallet?: 'main' | 'game';
 }
 
 type SePayFields = Record<string, string>;
@@ -67,22 +68,33 @@ function resolveCallbackBase(origin?: string) {
 }
 
 export function getSePayConfig(origin?: string) {
-  const mode = getLegacyEnv('SEPAY_MODE', 'production').toLowerCase();
-  const callbackBase = resolveCallbackBase(origin);
-  const configuredIpnUrl = getLegacyEnv('SEPAY_IPN_URL');
-  const configuredSuccessUrl = getLegacyEnv('SEPAY_SUCCESS_URL');
-  const configuredErrorUrl = getLegacyEnv('SEPAY_ERROR_URL');
-  const configuredCancelUrl = getLegacyEnv('SEPAY_CANCEL_URL');
+  const wallet = origin === '__game__' ? 'game' : 'main';
+  const prefix = wallet === 'game' ? 'GAME_SEPAY_' : 'SEPAY_';
+  const callbackOrigin = wallet === 'game' ? undefined : origin;
+  const getConfigValue = (key: string, fallback = '', allowDefaultFallback = true) => {
+    const direct = getLegacyEnv(`${prefix}${key}`);
+    if (direct) return direct;
+    if (!allowDefaultFallback) return fallback;
+    return wallet === 'game' ? getLegacyEnv(`SEPAY_${key}`, fallback) : getLegacyEnv(`SEPAY_${key}`, fallback);
+  };
+  const mode = getConfigValue('MODE', 'production').toLowerCase();
+  const callbackBase = resolveCallbackBase(callbackOrigin);
+  const configuredIpnUrl = getConfigValue('IPN_URL', '', wallet !== 'game');
+  const configuredSuccessUrl = getConfigValue('SUCCESS_URL', '', wallet !== 'game');
+  const configuredErrorUrl = getConfigValue('ERROR_URL', '', wallet !== 'game');
+  const configuredCancelUrl = getConfigValue('CANCEL_URL', '', wallet !== 'game');
+  const depositQuery = wallet === 'game' ? '?wallet=game&payment=' : '?payment=';
 
   return {
     mode,
-    merchantId: getLegacyEnv('SEPAY_MERCHANT_ID'),
-    secretKey: getLegacyEnv('SEPAY_SECRET_KEY'),
-    apiToken: getLegacyEnv('SEPAY_API_TOKEN') || getLegacyEnv('SEPAY_API_KEY'),
-    webhookToken: getLegacyEnv('SEPAY_WEBHOOK_TOKEN'),
-    userApiUrl: getLegacyEnv('SEPAY_USER_API_URL', 'https://my.sepay.vn/userapi'),
-    gatewayApiUrl: getLegacyEnv(
-      'SEPAY_GATEWAY_API_URL',
+    wallet,
+    merchantId: getConfigValue('MERCHANT_ID'),
+    secretKey: getConfigValue('SECRET_KEY'),
+    apiToken: getConfigValue('API_TOKEN') || getConfigValue('API_KEY'),
+    webhookToken: getConfigValue('WEBHOOK_TOKEN'),
+    userApiUrl: getConfigValue('USER_API_URL', 'https://my.sepay.vn/userapi'),
+    gatewayApiUrl: getConfigValue(
+      'GATEWAY_API_URL',
       mode === 'production'
         ? 'https://pgapi.sepay.vn/v1'
         : 'https://pgapi-sandbox.sepay.vn/v1'
@@ -99,19 +111,19 @@ export function getSePayConfig(origin?: string) {
     successUrl: normalizeSePayCallbackUrl(
       configuredSuccessUrl,
       callbackBase,
-      '/user/deposit?payment=success',
+      `/user/deposit${depositQuery}success`,
       ['/deposit']
     ),
     errorUrl: normalizeSePayCallbackUrl(
       configuredErrorUrl,
       callbackBase,
-      '/user/deposit?payment=error',
+      `/user/deposit${depositQuery}error`,
       ['/deposit']
     ),
     cancelUrl: normalizeSePayCallbackUrl(
       configuredCancelUrl,
       callbackBase,
-      '/user/deposit?payment=cancel',
+      `/user/deposit${depositQuery}cancel`,
       ['/deposit']
     ),
   };
@@ -127,7 +139,7 @@ export function generateSePaySignature(fields: SePayFields, secretKey: string) {
 }
 
 export function buildSePayCheckout(input: BuildSePayCheckoutInput) {
-  const config = getSePayConfig(input.origin);
+  const config = input.wallet === 'game' ? getSePayConfig('__game__') : getSePayConfig(input.origin);
 
   if (!config.merchantId || !config.secretKey) {
     return {
@@ -202,7 +214,7 @@ export async function createSePayCheckoutSession(input: BuildSePayCheckoutInput)
 }
 
 export function verifySePayIpn(headers: Headers, payload: Record<string, unknown>) {
-  const config = getSePayConfig();
+  const configs = [getSePayConfig(), getSePayConfig('__game__')];
   const authorizationHeader = headers.get('authorization') || headers.get('Authorization') || '';
   const authorizationToken = authorizationHeader
     .replace(/^apikey\s+/i, '')
@@ -217,8 +229,7 @@ export function verifySePayIpn(headers: Headers, payload: Record<string, unknown
   ].filter(Boolean);
 
   const validSecrets = [
-    config.webhookToken,
-    config.secretKey,
+    ...configs.flatMap((config) => [config.webhookToken, config.secretKey]),
   ].filter((value): value is string => Boolean(value && value.trim()));
 
   if (!validSecrets.length) {

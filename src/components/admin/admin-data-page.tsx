@@ -161,6 +161,7 @@ const COLUMN_LABELS: Record<string, string> = {
   role: 'Vai trò',
   status: 'Trạng thái',
   balance: 'Số dư',
+  game_balance: 'Ví game',
   rank: 'Hạng',
   amount: 'Số tiền',
   price: 'Giá bán',
@@ -220,6 +221,7 @@ const COLUMN_LABELS: Record<string, string> = {
   payment_method: 'Thanh toán',
   total_price: 'Tổng tiền',
   balance_after: 'Số dư sau',
+  wallet_type: 'Ví',
   original_price: 'Giá gốc',
   custom_price: 'Giá tùy chỉnh',
   exchange_rate: 'Tỷ giá',
@@ -402,6 +404,9 @@ function formatCell(value: unknown, column?: string) {
   }
   if (typeof value === 'number') return formatNumber(value);
   if (typeof value === 'string') {
+    if (column === 'wallet_type') {
+      return value.toLowerCase() === 'game' ? 'Ví game' : 'Ví chính';
+    }
     if (column && isStatusColumn(column)) {
       return humanizeStatusValue(value);
     }
@@ -411,6 +416,10 @@ function formatCell(value: unknown, column?: string) {
     if ((column?.startsWith('is_') || column?.startsWith('allow_')) && ['0', '1', 'true', 'false'].includes(value.toLowerCase())) {
       return ['1', 'true'].includes(value.toLowerCase()) ? 'Bật' : 'Tắt';
     }
+    if (column && isLongTextField(column)) {
+      const sepayCode = extractPaymentDisplayCode(value);
+      return sepayCode || value;
+    }
     return value.length > 120 ? `${value.slice(0, 120)}...` : value;
   }
   if (typeof value === 'object') {
@@ -418,6 +427,11 @@ function formatCell(value: unknown, column?: string) {
     return String(object.username || object.title || object.name || JSON.stringify(object));
   }
   return String(value);
+}
+
+function extractPaymentDisplayCode(value: string) {
+  const matches = value.match(/\b(?:PAY[0-9A-Z]+|GAMESEP\d+T\d+|SEP\d+T\d+)\b/gi) || [];
+  return matches.find((code) => /^PAY/i.test(code)) || '';
 }
 
 function initialValues(fields: string[], row?: Record<string, unknown>) {
@@ -1991,6 +2005,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                               key={column}
                               className={cn(
                                 'max-w-[260px] px-4 py-3 font-medium leading-7 text-slate-600 dark:text-slate-300',
+                                isLongTextField(column) && 'min-w-[260px] max-w-[380px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
                                 isCodeLikeColumn(column) && 'font-mono text-[13px] tracking-tight text-slate-500 dark:text-slate-200'
                               )}
                             >

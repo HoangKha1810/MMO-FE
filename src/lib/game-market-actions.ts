@@ -30,6 +30,10 @@ function normalize<T extends Row>(row: T): T {
   })) as T;
 }
 
+function formatVnd(value: number) {
+  return `${new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.ceil(value)))}đ`;
+}
+
 async function safeRows<T extends Row>(query: string, ...values: unknown[]) {
   try {
     const rows = await db.$queryRawUnsafe<T[]>(query, ...values);
@@ -447,11 +451,12 @@ export async function purchaseGameItem(userId: number, itemId: number) {
       const result = await db.$transaction(async (tx) => {
         const items = await tx.$queryRawUnsafe<Array<Row>>(
           `
-            SELECT *
+            SELECT id, seller_id, title, price, stock
             FROM game_market_items
             WHERE id = ?
               AND status = 'selling'
             LIMIT 1
+            FOR UPDATE
           `,
           itemId
         );
@@ -470,21 +475,21 @@ export async function purchaseGameItem(userId: number, itemId: number) {
 
         const buyer = await tx.users.findUnique({
           where: { id: userId },
-          select: { balance: true },
+          select: { game_balance: true },
         });
         if (!buyer) {
           throw new Error('Không tìm thấy tài khoản người mua');
         }
 
         const price = toNumber(item.price, 0);
-        const nextBalance = toNumber(buyer.balance, 0) - price;
+        const nextBalance = toNumber(buyer.game_balance, 0) - price;
         if (nextBalance < 0) {
-          throw new Error('Số dư không đủ để mua game');
+          throw new Error(`Ví game không đủ. Vui lòng nạp thêm ${formatVnd(Math.abs(nextBalance))} để mua sản phẩm này.`);
         }
 
         await tx.users.update({
           where: { id: userId },
-          data: { balance: nextBalance, last_activity: new Date() },
+          data: { game_balance: nextBalance, last_activity: new Date() },
         });
 
         await tx.transactions.create({
@@ -492,9 +497,10 @@ export async function purchaseGameItem(userId: number, itemId: number) {
             user_id: userId,
             amount: price,
             balance_after: nextBalance,
+            wallet_type: 'game',
             type: 'order',
             status: 'success',
-            content: `Mua game account #${itemId}`,
+            content: `Mua game account #${itemId} bằng ví game`,
           },
         }).catch(() => undefined);
 
@@ -527,25 +533,25 @@ export async function purchaseGameItem(userId: number, itemId: number) {
         );
         const orderId = nextOrderId;
 
-        await tx.activity_logs.create({
-          data: {
-            user_id: userId,
-            activity: `Mua sản phẩm game-market #${itemId}, order #${orderId}`,
-          },
-        }).catch(() => undefined);
-
         return {
           orderId,
           status,
           sellerId: Number(item.seller_id || 0),
-          sellerUsername: String(item.seller_username || ''),
+          sellerUsername: '',
           itemTitle: String(item.title || `Game #${itemId}`),
           itemId,
         };
       });
 
+      void db.activity_logs.create({
+        data: {
+          user_id: userId,
+          activity: `Mua sản phẩm game-market #${itemId}, order #${result.orderId}`,
+        },
+      }).catch(() => undefined);
+
       if (result.sellerId > 0) {
-        await sendSocialMessage({
+        void sendSocialMessage({
           senderId: userId,
           receiverId: result.sellerId,
           content: `Mình vừa mua bài "${result.itemTitle}" (order #${result.orderId}). Bạn vui lòng bàn giao tài khoản, mật khẩu và thông tin liên quan qua đoạn chat này giúp mình nhé.`,

@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
         role: 'member',
         status: 'active',
         balance: 0,
+        game_balance: 0,
         rank: 'Member',
         last_ip: isTrackableIp(ip) ? ip : null,
       },

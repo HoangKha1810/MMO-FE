@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import {
   calculateGameAccountApiPrice,
   clampResourcePrice,
+  rewriteGameAccountPriceMentions,
 } from '@/lib/game-account-pricing';
 import {
   buildRandom1kResourceWhereSql,
@@ -125,6 +126,7 @@ export interface GameAccountAutoSyncSummary extends MmoProviderSyncSummary {
 }
 
 const GAME_ACCOUNT_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const GAME_ACCOUNT_BACKGROUND_SYNC_DELAY_MS = 1500;
 
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, '');
@@ -194,6 +196,7 @@ async function getMmoProviders(providerId?: number) {
 let random1kEnvProviderPromise: Promise<void> | null = null;
 let gameAccountAutoSyncPromise: Promise<GameAccountAutoSyncSummary> | null = null;
 let lastGameAccountAutoSyncAt = 0;
+let lastGameAccountAutoSyncScheduleAt = 0;
 
 async function ensureRandom1kProviderFromEnv() {
   if (random1kEnvProviderPromise) return random1kEnvProviderPromise;
@@ -521,6 +524,34 @@ export async function syncGameAccountResourcesOnUserVisit(input: { force?: boole
   return gameAccountAutoSyncPromise;
 }
 
+export function scheduleGameAccountResourcesSyncOnUserVisit(input: { force?: boolean } = {}): GameAccountAutoSyncSummary {
+  const apiKey = String(process.env.GAME_ACCOUNT_API_KEY || process.env.RANDOM1K_API_KEY || '').trim();
+  if (!apiKey) {
+    return emptyAutoSyncSummary('missing-api-key');
+  }
+
+  if (!input.force && gameAccountAutoSyncPromise) {
+    return emptyAutoSyncSummary('syncing');
+  }
+
+  const now = Date.now();
+  if (!input.force && lastGameAccountAutoSyncScheduleAt > 0 && now - lastGameAccountAutoSyncScheduleAt < 30 * 1000) {
+    return emptyAutoSyncSummary('recent');
+  }
+
+  lastGameAccountAutoSyncScheduleAt = now;
+  const timer = setTimeout(() => {
+    void syncGameAccountResourcesOnUserVisit(input).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[mmo-provider] background game account sync failed', error);
+      }
+    });
+  }, GAME_ACCOUNT_BACKGROUND_SYNC_DELAY_MS);
+  timer.unref?.();
+
+  return emptyAutoSyncSummary('syncing');
+}
+
 export async function syncMmoResourcesFromProviders(input: { providerId?: number } = {}): Promise<MmoProviderSyncSummary> {
   const providers = await getMmoProviders(input.providerId);
   if (providers.length === 0) {
@@ -692,15 +723,15 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
       const rawTitle = String(entry.product.name || `Product ${remoteProductId}`).trim();
       const rawDescription = String(entry.product.description || '').trim();
       const rawCategoryName = String(entry.category.name || existing?.category || 'Tài nguyên').trim();
-      const title = isRandom1kProvider ? hideProviderBranding(rawTitle, `Product ${remoteProductId}`) : rawTitle;
-      const description = cleanResourceHtml(isRandom1kProvider ? hideProviderBranding(rawDescription) : rawDescription);
+      const baseTitle = isRandom1kProvider ? hideProviderBranding(rawTitle, `Product ${remoteProductId}`) : rawTitle;
+      const baseDescription = cleanResourceHtml(isRandom1kProvider ? hideProviderBranding(rawDescription) : rawDescription);
       const categoryName = isRandom1kProvider ? hideProviderBranding(rawCategoryName, 'Tài nguyên') : rawCategoryName;
       const providerPrice = normalizeMoney(entry.product.price, exchangeRate);
       const stock = Math.max(0, Math.trunc(toNumber(entry.product.amount, 0)));
       const isAutoMargin = truthy(existing?.is_auto_margin);
       const marginPercent = toNumber(existing?.margin_percent, 0);
       const rulePrice = isRandom1kProvider
-        ? calculateGameAccountApiPrice(providerPrice, `${remoteProductId} ${categoryName} ${title}`)
+        ? calculateGameAccountApiPrice(providerPrice, `${remoteProductId} ${categoryName} ${baseTitle}`)
         : providerPrice;
       const calculatedFinalPrice = isAutoMargin
         ? Math.round(providerPrice * (1 + marginPercent / 100) * 100) / 100
@@ -708,15 +739,21 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
           ? Math.max(rulePrice, toNumber(existing?.price, rulePrice))
           : Math.max(providerPrice, toNumber(existing?.price, providerPrice));
       const finalPrice = clampResourcePrice(calculatedFinalPrice);
+      const title = isRandom1kProvider
+        ? rewriteGameAccountPriceMentions(baseTitle, { sourcePrice: providerPrice, displayPrice: finalPrice })
+        : baseTitle;
+      const description = isRandom1kProvider
+        ? rewriteGameAccountPriceMentions(baseDescription, { sourcePrice: providerPrice, displayPrice: finalPrice })
+        : baseDescription;
       const nextStatus = stock > 0 ? 'active' : 'out_of_stock';
       const remoteThumbnail = normalizeProviderAssetUrl(provider, entry.category.icon || '');
       const thumbnail = String(existing?.thumbnail || remoteThumbnail || '');
       const resourceType = String(existing?.resource_type || (
-        isRandom1kProvider ? getRandom1kResourceType(categoryName, title) : guessResourceType(categoryName, title)
+        isRandom1kProvider ? getRandom1kResourceType(categoryName, baseTitle) : guessResourceType(categoryName, baseTitle)
       ));
       const customBadge = existing?.custom_badge || (isRandom1kProvider ? 'API tự động' : null);
       const tags = isRandom1kProvider
-        ? buildRandom1kTags({ providerName: provider.name, categoryName, productName: title, resourceType })
+        ? buildRandom1kTags({ providerName: provider.name, categoryName, productName: baseTitle, resourceType })
         : existing?.tags || [categoryName, provider.name.replace(/\.com$/i, ''), resourceType].filter(Boolean).join(', ');
 
       if (existing?.id) {

@@ -43,7 +43,7 @@ export default async function UserProfilePage() {
             { label: 'Username', value: raw.username, hint: raw.email, tone: 'blue' },
             { label: 'Rank', value: raw.rank || 'Member', hint: 'Phân hạng hiện tại', tone: 'emerald' },
             { label: 'Số dư', value: new Intl.NumberFormat('vi-VN').format(shell.balance) + ' ₫', hint: 'Đọc từ session shell', tone: 'amber' },
-            { label: 'Hoạt động', value: String(logs.length), hint: '20 log gần nhất', tone: 'violet' },
+            { label: 'Ví game', value: new Intl.NumberFormat('vi-VN').format(shell.game_balance) + ' ₫', hint: 'Dùng cho tài khoản game', tone: 'violet' },
           ]}
         >
           <div className="flex flex-wrap items-center gap-3">
@@ -102,6 +102,13 @@ export default async function UserProfilePage() {
             hint="Ngày tham gia hệ thống."
             tone="emerald"
             icon={<CalendarClock className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="Ví game"
+            value={new Intl.NumberFormat('vi-VN').format(shell.game_balance) + ' ₫'}
+            hint="Ví riêng cho mua bán game, random game và tài khoản game."
+            tone="violet"
+            icon={<Wallet className="h-4 w-4" />}
           />
           <MetricCard
             label="Liên hệ"

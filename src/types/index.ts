@@ -8,6 +8,7 @@ export interface User {
   phone?: string;
   avatar?: string;
   balance: number;
+  game_balance: number;
   rank: string;
   role: string;
   status: string;
@@ -36,6 +37,7 @@ export interface ServiceCard {
 
 export interface DashboardStats {
   balance: number;
+  game_balance: number;
   rank: string;
   totalDeposit: number;
   monthlyDeposit: number;

@@ -3,7 +3,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { processSePayDepositByCode } from '@/lib/deposit-processing';
-import { extractSePayReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
+import { extractSePayPaymentReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
 import { logSePayDiagnostic } from '@/lib/sepay-debug';
 import { getSePayConfig } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
@@ -13,6 +13,7 @@ interface PendingDepositRow {
   user_id: number;
   amount: unknown;
   content: string | null;
+  wallet_type?: string | null;
   created_at: Date;
 }
 
@@ -38,8 +39,8 @@ interface ReconcilePendingSePayDepositsInput {
   userId?: number;
 }
 
-function buildSePayApiAuthHeader() {
-  const config = getSePayConfig();
+function buildSePayApiAuthHeader(wallet: 'main' | 'game' = 'main') {
+  const config = wallet === 'game' ? getSePayConfig('__game__') : getSePayConfig();
   if (!config.apiToken || !config.userApiUrl) {
     return null;
   }
@@ -50,6 +51,19 @@ function buildSePayApiAuthHeader() {
     config,
     authorization: `Bearer ${normalizedToken}`,
   };
+}
+
+function buildSePayApiAuthCandidates(wallet: 'main' | 'game' = 'main') {
+  const orderedWallets: Array<'main' | 'game'> = wallet === 'game' ? ['game', 'main'] : ['main', 'game'];
+  const seen = new Set<string>();
+  return orderedWallets.flatMap((candidateWallet) => {
+    const auth = buildSePayApiAuthHeader(candidateWallet);
+    if (!auth) return [];
+    const key = `${auth.config.userApiUrl}|${auth.authorization}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [auth];
+  });
 }
 
 function formatSePayDateTime(value: Date) {
@@ -64,11 +78,11 @@ function normalizeText(value: unknown) {
   return String(value || '').trim().toUpperCase();
 }
 
-function matchesInvoiceNumber(row: SePayTransactionRow, referenceCodes: string[]) {
-  const normalizedCodes = referenceCodes
-    .map(normalizeText)
-    .filter(Boolean);
-  if (!normalizedCodes.length) return false;
+function findMatchingReferenceCode(row: SePayTransactionRow, referenceCodes: string[]) {
+  const codes = referenceCodes
+    .map((code) => ({ raw: code, normalized: normalizeText(code) }))
+    .filter((code) => Boolean(code.normalized));
+  if (!codes.length) return '';
 
   const candidates = [
     row.code,
@@ -80,63 +94,90 @@ function matchesInvoiceNumber(row: SePayTransactionRow, referenceCodes: string[]
     row.sub_account,
   ].map(normalizeText);
 
-  return normalizedCodes.some((normalizedCode) => (
-    candidates.some((candidate) => candidate.includes(normalizedCode))
-  ));
+  return codes.find((code) => (
+    candidates.some((candidate) => candidate.includes(code.normalized))
+  ))?.raw || '';
 }
 
 async function findSePayTransactionByInvoiceNumber(input: {
   referenceCodes: string[];
   amount: number;
   createdAt: Date;
+  wallet?: 'main' | 'game';
 }) {
-  const auth = buildSePayApiAuthHeader();
-  if (!auth) {
+  const authCandidates = buildSePayApiAuthCandidates(input.wallet || 'main');
+  if (!authCandidates.length) {
     return { transaction: null, skipped: 'missing_api_key' as const };
   }
 
-  const url = new URL(`${auth.config.userApiUrl}/transactions/list`);
-  url.searchParams.set('limit', '200');
-  url.searchParams.set('amount_in', String(Math.trunc(input.amount)));
-  url.searchParams.set('transaction_date_min', formatSePayDateTime(addHours(input.createdAt, -24)));
-  url.searchParams.set('transaction_date_max', formatSePayDateTime(addHours(new Date(), 2)));
+  let lastError: Error | null = null;
+  let hasSuccessfulLookup = false;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      Authorization: auth.authorization,
-    },
-    cache: 'no-store',
-  });
+  for (const auth of authCandidates) {
+    const url = new URL(`${auth.config.userApiUrl}/transactions/list`);
+    url.searchParams.set('limit', '200');
+    url.searchParams.set('amount_in', String(Math.trunc(input.amount)));
+    url.searchParams.set('transaction_date_min', formatSePayDateTime(addHours(input.createdAt, -24)));
+    url.searchParams.set('transaction_date_max', formatSePayDateTime(addHours(new Date(), 2)));
 
-  if (!response.ok) {
-    const bodyPreview = clampResponseText(await response.text().catch(() => ''));
-    await logSePayDiagnostic({
-      channel: 'sync',
-      level: 'error',
-      message: 'SePay transaction lookup failed',
-      details: {
-        referenceCodes: input.referenceCodes,
-        status: response.status,
-        body: bodyPreview,
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: auth.authorization,
       },
+      cache: 'no-store',
     });
-    throw new Error(`SePay transaction lookup failed with HTTP ${response.status}`);
+
+    if (!response.ok) {
+      const bodyPreview = clampResponseText(await response.text().catch(() => ''));
+      await logSePayDiagnostic({
+        channel: 'sync',
+        level: 'error',
+        message: 'SePay transaction lookup failed',
+        details: {
+          wallet: auth.config.wallet,
+          referenceCodes: input.referenceCodes,
+          status: response.status,
+          body: bodyPreview,
+        },
+      });
+      lastError = new Error(`SePay transaction lookup failed with HTTP ${response.status}`);
+      continue;
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    hasSuccessfulLookup = true;
+    const rows = Array.isArray(payload.transactions)
+      ? payload.transactions as SePayTransactionRow[]
+      : [];
+
+    let matchedCode = '';
+    const exactMatch = rows.find((row) => {
+      if (toNumber(row.amount_in, 0) !== Math.trunc(input.amount)) {
+        return false;
+      }
+
+      matchedCode = findMatchingReferenceCode(row, input.referenceCodes);
+      return Boolean(matchedCode);
+    });
+
+    if (exactMatch) {
+      return {
+        transaction: exactMatch,
+        matchedCode,
+        skipped: null,
+      };
+    }
   }
 
-  const payload = await response.json().catch(() => ({}));
-  const rows = Array.isArray(payload.transactions)
-    ? payload.transactions as SePayTransactionRow[]
-    : [];
-
-  const exactMatch = rows.find((row) => (
-    toNumber(row.amount_in, 0) === Math.trunc(input.amount) &&
-    matchesInvoiceNumber(row, input.referenceCodes)
-  ));
+  if (lastError && !hasSuccessfulLookup) {
+    throw lastError;
+  }
 
   return {
-    transaction: exactMatch || null,
+    transaction: null,
+    matchedCode: '',
     skipped: null,
   };
 }
@@ -146,8 +187,7 @@ function clampResponseText(value: string, max = 500) {
 }
 
 export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePayDepositsInput = {}) {
-  const auth = buildSePayApiAuthHeader();
-  if (!auth) {
+  if (!buildSePayApiAuthCandidates('main').length) {
     await logSePayDiagnostic({
       channel: 'sync',
       level: 'warn',
@@ -173,8 +213,12 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
   const pendingDeposits = await db.transactions.findMany({
     where: {
       type: 'deposit',
-      status: 'pending',
-      content: { startsWith: 'SEP' },
+      status: { in: ['pending', 'processing'] },
+      OR: [
+        { content: { startsWith: 'SEP' } },
+        { content: { startsWith: 'GAMESEP' } },
+        { content: { startsWith: 'PAY' } },
+      ],
       ...(input.userId ? { user_id: input.userId } : {}),
     },
     orderBy: { created_at: 'desc' },
@@ -184,6 +228,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
       user_id: true,
       amount: true,
       content: true,
+      wallet_type: true,
       created_at: true,
     },
   });
@@ -196,17 +241,24 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
   const errors: string[] = [];
 
   for (const deposit of pendingDeposits as PendingDepositRow[]) {
-    const referenceCodes = extractSePayReferenceCodes(deposit.content);
+    const referenceCodes = extractSePayPaymentReferenceCodes(deposit.content);
     const invoiceNumber = getPrimarySePayReferenceCode(deposit.content);
+    const normalizedContent = String(deposit.content || '').toUpperCase();
+    const wallet = String(deposit.wallet_type || '').toLowerCase() === 'game' ||
+      normalizedContent.startsWith('GAMESEP') ||
+      normalizedContent.includes('WALLET:GAME')
+      ? 'game'
+      : 'main';
     if (!referenceCodes.length) {
       continue;
     }
 
     try {
-      const { transaction } = await findSePayTransactionByInvoiceNumber({
+      const { transaction, matchedCode } = await findSePayTransactionByInvoiceNumber({
         referenceCodes,
         amount: toNumber(deposit.amount, 0),
         createdAt: deposit.created_at,
+        wallet,
       });
 
       if (!transaction) {
@@ -229,7 +281,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
       }
 
       const result = await processSePayDepositByCode(
-        invoiceNumber,
+        matchedCode || invoiceNumber,
         toNumber(deposit.amount, 0)
       );
 
@@ -243,6 +295,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
             depositId: deposit.id,
             userId: deposit.user_id,
             invoiceNumber,
+            matchedCode: matchedCode || null,
             referenceCodes,
             amount: toNumber(deposit.amount, 0),
           },
@@ -260,6 +313,7 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
             depositId: deposit.id,
             userId: deposit.user_id,
             invoiceNumber,
+            matchedCode: matchedCode || null,
             referenceCodes,
             state: result.state,
           },

@@ -11,6 +11,7 @@ type OrderRow = Record<string, unknown>;
 
 interface GameMarketDetailActionsProps {
   itemId: number;
+  itemPrice: number;
   sellerId: number;
   sellerUsername?: string;
   itemTitle?: string;
@@ -18,6 +19,7 @@ interface GameMarketDetailActionsProps {
   isPinned: boolean;
   status: string;
   orders: OrderRow[];
+  gameBalance?: number;
 }
 
 function buildConversationHref(sellerId: number, itemId: number, compose: string, orderId?: number) {
@@ -35,6 +37,7 @@ function buildConversationHref(sellerId: number, itemId: number, compose: string
 
 export function GameMarketDetailActions({
   itemId,
+  itemPrice,
   sellerId,
   sellerUsername,
   itemTitle,
@@ -42,6 +45,7 @@ export function GameMarketDetailActions({
   isPinned,
   status,
   orders,
+  gameBalance = 0,
 }: GameMarketDetailActionsProps) {
   const router = useRouter();
   const { confirm } = useConfirmDialog();
@@ -61,6 +65,22 @@ export function GameMarketDetailActions({
   function purchase() {
     startTransition(async () => {
       try {
+        if (gameBalance < itemPrice) {
+          const missingAmount = Math.max(0, itemPrice - gameBalance);
+          const goDeposit = await confirm({
+            title: 'Ví game không đủ',
+            description: `Bạn cần nạp thêm ${new Intl.NumberFormat('vi-VN').format(missingAmount)}đ vào ví game để mua sản phẩm này.`,
+            confirmText: 'Nạp ví game',
+            cancelText: 'Để sau',
+            tone: 'danger',
+          });
+
+          if (goDeposit) {
+            router.push('/user/deposit?wallet=game');
+          }
+          return;
+        }
+
         const accepted = await confirm({
           title: 'Lưu ý trước khi mua game',
           description: `Hãy chat với ${sellerUsername || 'người đăng bài'} trước để chốt tình trạng tài khoản, hình thức bàn giao và các thông tin cần thiết. Nếu bạn muốn giao dịch trung gian, nhớ liên hệ Admin trước khi mua để được hỗ trợ đứng giữa xác nhận. Sau khi mua xong, toàn bộ tài khoản, mật khẩu, mail hoặc dữ liệu liên quan nên được gửi qua chính đoạn chat này để dễ đối soát.`,
@@ -70,6 +90,19 @@ export function GameMarketDetailActions({
         });
 
         if (!accepted) {
+          return;
+        }
+
+        const useGameWallet = await confirm({
+          title: 'Thanh toán dịch vụ game',
+          description: `Khu mua bán game dùng ví game riêng. Bạn có thể thanh toán bằng ví game hiện có (${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ), hoặc liên hệ Admin để rút/chuyển tiền từ tài khoản chính sang ví game. Mỗi lần rút/chuyển từ tài khoản chính có phí 10%.`,
+          confirmText: 'Sử dụng ví game',
+          cancelText: 'Liên hệ admin',
+          tone: 'brand',
+        });
+
+        if (!useGameWallet) {
+          router.push('/user/support-tiktok');
           return;
         }
 
@@ -181,7 +214,7 @@ export function GameMarketDetailActions({
           </Button>
           <Button loading={isPending} onClick={purchase}>
             <ShoppingCart className="mr-2 h-4 w-4" />
-            Mua bằng số dư
+            Mua bằng ví game
           </Button>
         </div>
         <div className="rounded-2xl border border-brand-blue/15 bg-brand-blue/5 px-4 py-3 text-sm font-semibold leading-7 text-slate-600 dark:border-brand-blue/20 dark:bg-brand-blue/10 dark:text-slate-300">

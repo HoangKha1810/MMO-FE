@@ -7,6 +7,7 @@ export interface SessionUser {
   username: string;
   email: string;
   balance: number;
+  game_balance: number;
   rank: string;
   role: string;
   avatar?: string;

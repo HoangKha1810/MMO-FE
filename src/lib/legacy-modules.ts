@@ -2,11 +2,6 @@ import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { processBankDepositByCode, processSePayDepositByCode } from '@/lib/deposit-processing';
 import { cleanForumHtml } from '@/lib/forum';
-import {
-  buildDirectGameAccountWhereSql,
-  buildRandom1kResourceWhereSql,
-  buildRandomGameAccountWhereSql,
-} from '@/lib/random1k';
 import { toNumber } from '@/lib/utils';
 
 export type LegacyRow = Record<string, unknown>;
@@ -86,12 +81,11 @@ export async function listResourceCategories() {
   `);
 }
 
-export async function listResources(input: { search?: string; category?: string; limit?: number; collection?: ResourceCollection } = {}) {
-  const values: unknown[] = [];
+function buildResourceListWhere(input: { search?: string; category?: string; collection?: ResourceCollection }, values: unknown[] = []) {
   const isGameAccountCollection = input.collection === 'game-accounts' || input.collection === 'random-game-accounts';
   const where = [
     isGameAccountCollection ? "r.status IN ('active', 'out_of_stock')" : "r.status = 'active'",
-    'COALESCE(r.is_deleted, 0) = 0',
+    '(r.is_deleted = 0 OR r.is_deleted IS NULL)',
   ];
 
   if (input.search) {
@@ -105,25 +99,41 @@ export async function listResources(input: { search?: string; category?: string;
   }
 
   if (isGameAccountCollection) {
-    where.push(buildRandom1kResourceWhereSql('r', 'ap'));
+    where.push("r.api_account_kind IN ('game', 'random')");
   }
 
   if (input.collection === 'game-accounts') {
-    where.push(buildDirectGameAccountWhereSql('r', 'rc'));
+    where.push("r.api_account_kind = 'game'");
   }
 
   if (input.collection === 'random-game-accounts') {
-    where.push(buildRandomGameAccountWhereSql('r', 'rc'));
+    where.push("r.api_account_kind = 'random'");
   }
 
+  return { where, values, isGameAccountCollection };
+}
+
+export async function listResources(input: { search?: string; category?: string; limit?: number; collection?: ResourceCollection } = {}) {
+  const { where, values, isGameAccountCollection } = buildResourceListWhere(input);
+
   values.push(Math.min(120, Math.max(1, input.limit || 80)));
+  const orderSql = isGameAccountCollection
+    ? `
+      CASE WHEN COALESCE(r.stock, 0) > 0 THEN 0 ELSE 1 END ASC,
+      r.is_pinned DESC,
+      r.featured DESC,
+      COALESCE(r.stock, 0) DESC,
+      r.display_order ASC,
+      r.created_at DESC
+    `
+    : 'r.is_pinned DESC, r.featured DESC, r.display_order ASC, r.created_at DESC';
 
   return safeRows<LegacyRow>(`
     SELECT
       r.id,
       r.product_code,
       r.title,
-      r.description,
+      LEFT(COALESCE(r.description, ''), 1400) AS description,
       r.category,
       r.category_id,
       r.price,
@@ -146,8 +156,22 @@ export async function listResources(input: { search?: string; category?: string;
     LEFT JOIN resource_categories rc ON rc.id = r.category_id
     LEFT JOIN api_providers ap ON ap.id = CAST(COALESCE(r.api_provider_id, 0) AS UNSIGNED)
     WHERE ${where.join(' AND ')}
-    ORDER BY r.is_pinned DESC, r.featured DESC, r.display_order ASC, r.created_at DESC
+    ORDER BY ${orderSql}
     LIMIT ?
+  `, ...values);
+}
+
+export async function listResourceFilterLabels(input: { search?: string; collection?: ResourceCollection } = {}) {
+  const { where, values } = buildResourceListWhere(input);
+
+  return safeRows<LegacyRow>(`
+    SELECT DISTINCT
+      COALESCE(rc.name, r.category, r.custom_badge, 'Tài khoản game') AS label
+    FROM mmo_resources r
+    LEFT JOIN resource_categories rc ON rc.id = r.category_id
+    WHERE ${where.join(' AND ')}
+    ORDER BY label ASC
+    LIMIT 80
   `, ...values);
 }
 

@@ -4,8 +4,9 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { listResources, type ResourceCollection } from '@/lib/legacy-modules';
-import { syncGameAccountResourcesOnUserVisit } from '@/lib/mmo-provider';
+import { listResourceFilterLabels, listResources, type ResourceCollection } from '@/lib/legacy-modules';
+import { rewriteGameAccountPriceMentions } from '@/lib/game-account-pricing';
+import { scheduleGameAccountResourcesSyncOnUserVisit } from '@/lib/mmo-provider';
 import { hideProviderBranding } from '@/lib/provider-branding';
 import { resourceHtmlToText } from '@/lib/resource-content';
 import { formatCurrency, toNumber } from '@/lib/utils';
@@ -69,17 +70,17 @@ export async function ResourceCollectionPage({ collection, search = '', category
   const { shell } = await getCurrentUserForShell();
   const copy = collectionCopy[collection];
   const Icon = copy.icon;
-  const syncResult = await syncGameAccountResourcesOnUserVisit().catch(() => null);
-  const [resources, categoryPool] = await Promise.all([
+  const syncResult = scheduleGameAccountResourcesSyncOnUserVisit();
+  const [resources, categoryRows] = await Promise.all([
     listResources({ collection, search, category, limit: 120 }),
-    listResources({ collection, search, limit: 120 }),
+    listResourceFilterLabels({ collection, search }),
   ]);
-  const categories = Array.from(new Set(categoryPool.map(getFilterLabel).filter(Boolean)));
+  const categories = Array.from(new Set(categoryRows.map((item) => hideProviderBranding(item.label, 'Tài khoản game')).filter(Boolean)));
   const totalStock = resources.reduce((sum, item) => sum + toNumber(item.stock, 0), 0);
   const totalSold = resources.reduce((sum, item) => sum + toNumber(item.sold_count, 0), 0);
   const emptyDescription = syncResult?.reason === 'missing-api-key'
     ? 'Hệ thống chưa đọc được API key. Hãy cấu hình GAME_ACCOUNT_API_KEY trong .env.local rồi restart server.'
-    : 'Hệ thống đã tự đồng bộ khi bạn mở trang. Nếu vẫn chưa có sản phẩm, admin cần kiểm tra API key/provider hoặc dữ liệu API nguồn.';
+    : 'Hệ thống đang đọc dữ liệu đã đồng bộ và tự chạy sync API ở nền. Nếu vẫn chưa có sản phẩm, admin cần kiểm tra API key/provider hoặc dữ liệu API nguồn.';
 
   return (
     <AppShell user={shell}>
@@ -167,7 +168,7 @@ export async function ResourceCollectionPage({ collection, search = '', category
           <SectionHeader
             eyebrow="Live Inventory"
             title="Danh sách sản phẩm API"
-            description="Giá và tồn kho được lấy từ dữ liệu API đã đồng bộ, đơn mua sẽ tự động gọi API khi sản phẩm còn hàng."
+            description="Trang mở nhanh từ dữ liệu đã đồng bộ, hệ thống tự sync API ở nền và vẫn kiểm tra tồn kho thật trước khi mua."
             actions={
               <div className="flex flex-wrap gap-2">
                 <Badge variant="muted" className="rounded-full px-3 py-1.5">
@@ -197,8 +198,16 @@ export async function ResourceCollectionPage({ collection, search = '', category
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
               {resources.map((resource) => {
                 const thumbnail = buildLegacyAssetUrl(String(resource.thumbnail || resource.category_image || ''));
-                const description = resourceHtmlToText(resource.description);
-                const title = hideProviderBranding(resource.title, `Sản phẩm #${String(resource.id)}`);
+                const price = toNumber(resource.price);
+                const sourcePrice = toNumber(resource.original_price);
+                const description = rewriteGameAccountPriceMentions(
+                  hideProviderBranding(resourceHtmlToText(resource.description), 'Sản phẩm API đang mở bán tự động trên hệ thống.'),
+                  { sourcePrice, displayPrice: price }
+                );
+                const title = rewriteGameAccountPriceMentions(
+                  hideProviderBranding(resource.title, `Sản phẩm #${String(resource.id)}`),
+                  { sourcePrice, displayPrice: price }
+                );
                 const stock = toNumber(resource.stock);
 
                 return (
@@ -232,13 +241,13 @@ export async function ResourceCollectionPage({ collection, search = '', category
                         {title}
                       </Link>
                       <p className="line-clamp-3 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
-                        {hideProviderBranding(description, 'Sản phẩm API đang mở bán tự động trên hệ thống.')}
+                        {description}
                       </p>
                     </div>
 
                     <div className="mt-5 grid grid-cols-2 gap-3">
                       <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
-                        <div className="font-mono text-lg font-black text-brand-blue">{formatCurrency(toNumber(resource.price))}</div>
+                        <div className="font-mono text-lg font-black text-brand-blue">{formatCurrency(price)}</div>
                         <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-400">Giá bán</div>
                       </div>
                       <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">

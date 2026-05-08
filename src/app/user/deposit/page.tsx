@@ -12,11 +12,14 @@ import {
   AlertCircle,
   CheckCircle2,
   CreditCard,
+  Gamepad2,
   History,
+  Info,
   QrCode,
   ReceiptText,
   Smartphone,
   Wallet,
+  X,
 } from 'lucide-react';
 
 const paymentMethods = [
@@ -45,11 +48,37 @@ interface DepositTransaction {
   amount: number;
   balance_after: number;
   content: string;
+  wallet: 'main' | 'game';
   payment_method: string;
   type: string;
   status: string;
   created_at: string;
 }
+
+type WalletType = 'main' | 'game';
+
+const walletOptions: Record<WalletType, {
+  title: string;
+  button: string;
+  description: string;
+  noticeTitle: string;
+  noticeBody: string;
+}> = {
+  main: {
+    title: 'Ví dịch vụ khác',
+    button: 'Nạp tiền cho dịch vụ khác',
+    description: 'Dùng cho SMM, Auto MXH, proxy, tài nguyên MMO và các module không thuộc tài khoản game.',
+    noticeTitle: 'Nạp tiền cho dịch vụ khác',
+    noticeBody: 'Số tiền này được cộng vào ví chính. Ví chính không dùng trực tiếp để mua tài khoản game, random game hoặc mua bán game.',
+  },
+  game: {
+    title: 'Ví mua bán game',
+    button: 'Nạp tiền cho mua bán game',
+    description: 'Dùng riêng cho mua bán game, random game và tài khoản game API. Ví này tách biệt với ví chính.',
+    noticeTitle: 'Nạp tiền cho mua bán game',
+    noticeBody: 'Số tiền này được cộng vào ví game. Khi mua tài khoản game, random game hoặc mua bài ở chợ game, hệ thống sẽ trừ ví game.',
+  },
+};
 
 function submitExternalForm(url: string, fields: Record<string, string>) {
   const form = document.createElement('form');
@@ -74,6 +103,8 @@ export default function DepositPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
   const [amount, setAmount] = useState('');
+  const [walletType, setWalletType] = useState<WalletType>('main');
+  const [walletNotice, setWalletNotice] = useState<WalletType | null>(null);
   const [method, setMethod] = useState('sepay');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DepositFeedback | null>(null);
@@ -83,13 +114,21 @@ export default function DepositPage() {
   const hasPendingDeposits = recentDeposits.some((item) => item.status === 'pending');
 
   useEffect(() => {
-    const paymentStatus = new URLSearchParams(window.location.search).get('payment');
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const returnedWallet = params.get('wallet') === 'game' ? 'game' : 'main';
+    setWalletType(returnedWallet);
     if (!paymentStatus) {
       return;
     }
 
     if (paymentStatus === 'success') {
-      setResult({ success: true, message: 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ tự đối soát SePay và cộng tiền vào tài khoản.' });
+      setResult({
+        success: true,
+        message: returnedWallet === 'game'
+          ? 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ cộng tiền vào ví game sau khi SePay xác nhận.'
+          : 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ tự đối soát SePay và cộng tiền vào tài khoản.',
+      });
       void loadRecentDeposits({ sync: true });
       const timer = window.setTimeout(() => {
         void loadRecentDeposits({ sync: true, silent: true });
@@ -161,7 +200,7 @@ export default function DepositPage() {
       const res = await fetch('/api/user/deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, payment_method: method }),
+        body: JSON.stringify({ amount, payment_method: method, wallet_type: walletType }),
       });
       const data = await res.json();
       setResult({ success: Boolean(data.success), message: String(data.message || 'Đã xử lý yêu cầu nạp tiền') });
@@ -198,6 +237,49 @@ export default function DepositPage() {
           <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1">
             Chọn phương thức thanh toán và nhập số tiền nạp
           </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {(['main', 'game'] as WalletType[]).map((item) => {
+            const selected = walletType === item;
+            const Icon = item === 'game' ? Gamepad2 : Wallet;
+
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() => {
+                  setWalletType(item);
+                  setWalletNotice(item);
+                }}
+                className={`relative overflow-hidden rounded-2xl border p-5 text-left transition-all ${
+                  selected
+                    ? 'border-brand-blue bg-brand-blue/5 shadow-lg shadow-brand-blue/10'
+                    : 'border-slate-200 bg-white hover:border-brand-blue/25 dark:border-white/10 dark:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${selected ? 'bg-brand-blue text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/8 dark:text-slate-300'}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-black uppercase tracking-[-0.02em] text-slate-950 dark:text-white">
+                      {walletOptions[item].button}
+                    </div>
+                    <div className="mt-1 font-mono text-xs font-black text-brand-blue">
+                      {new Intl.NumberFormat('vi-VN').format(item === 'game' ? user?.game_balance || 0 : user?.balance || 0)}đ
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm font-semibold leading-6 text-slate-500 dark:text-slate-400">
+                  {walletOptions[item].description}
+                </p>
+                {selected ? (
+                  <CheckCircle2 className="absolute right-4 top-4 h-4 w-4 text-brand-blue" />
+                ) : null}
+              </button>
+            );
+          })}
         </div>
 
         {/* Payment Methods */}
@@ -249,8 +331,8 @@ export default function DepositPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Wallet className="w-5 h-5" />
-              Số tiền nạp
+              {walletType === 'game' ? <Gamepad2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
+              Số tiền nạp vào {walletOptions[walletType].title.toLowerCase()}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -343,7 +425,7 @@ export default function DepositPage() {
             <Button onClick={handleSubmit} className="w-full" size="xl" disabled={loading || !amount} loading={loading} loadingText="Đang xử lý...">
               <>
                 <Wallet className="w-5 h-5" />
-                Tạo QR thanh toán
+                Tạo QR thanh toán cho {walletType === 'game' ? 'ví game' : 'ví chính'}
               </>
             </Button>
           </CardContent>
@@ -379,11 +461,11 @@ export default function DepositPage() {
                     className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="font-black text-slate-900 dark:text-white">
+                      <div className="break-words font-black text-slate-900 [overflow-wrap:anywhere] dark:text-white">
                         {item.content || item.transaction_id}
                       </div>
                       <div className="mt-1 text-xs font-bold text-slate-400">
-                        {formatDatabaseDateTime(item.created_at)} · {item.payment_method === 'sepay_qr' ? 'Thanh Toán QR Code' : item.payment_method}
+                        {formatDatabaseDateTime(item.created_at)} · {item.payment_method === 'sepay_qr' ? 'Thanh Toán QR Code' : item.payment_method} · {item.wallet === 'game' ? 'Ví game' : 'Ví chính'}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -423,7 +505,7 @@ export default function DepositPage() {
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">3</span>
-              <p>Nhấn "Nạp tiền ngay" để tạo transaction `pending` trong bảng `transactions` trước khi chuyển sang cổng thanh toán</p>
+              <p>Chọn đúng ví trước khi tạo QR: ví chính cho dịch vụ khác, ví game cho mua bán game và random game.</p>
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">4</span>
@@ -431,11 +513,45 @@ export default function DepositPage() {
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">5</span>
-              <p>Ngay khi SePay xác nhận `CAPTURED`, transaction sẽ chuyển sang `success` và số dư user được cộng tự động.</p>
+              <p>Ngay khi SePay xác nhận `CAPTURED`, transaction sẽ chuyển sang `success` và số dư ở đúng ví được cộng tự động.</p>
             </div>
           </CardContent>
         </Card>
       </div>
+      {walletNotice ? (
+        <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-md">
+          <div className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_36px_120px_-44px_rgba(15,23,42,0.55)] dark:border-white/10 dark:bg-slate-950">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-blue/10 text-brand-blue">
+                  {walletNotice === 'game' ? <Gamepad2 className="h-6 w-6" /> : <Info className="h-6 w-6" />}
+                </div>
+                <div>
+                  <div className="text-lg font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">
+                    {walletOptions[walletNotice].noticeTitle}
+                  </div>
+                  <p className="mt-2 text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
+                    {walletOptions[walletNotice].noticeBody}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWalletNotice(null)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-brand-blue hover:text-white dark:bg-white/10 dark:text-slate-300"
+                aria-label="Đóng thông báo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Button type="button" onClick={() => setWalletNotice(null)}>
+                Đã hiểu
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }

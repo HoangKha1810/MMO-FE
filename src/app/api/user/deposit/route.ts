@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
-import { buildSePayReferenceContent, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
+import { buildSePayReferenceContent, extractSePayPaymentReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { createSePayCheckoutSession } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
@@ -21,17 +21,25 @@ function normalizeTransaction(row: {
   amount: unknown;
   balance_after: unknown;
   content: string | null;
+  wallet_type?: string | null;
   type: string;
   status: string;
   created_at: Date;
 }) {
+  const wallet = String(row.wallet_type || '').toLowerCase() === 'game' ||
+    String(row.content || '').toUpperCase().includes('WALLET:GAME') ||
+    String(row.content || '').toUpperCase().startsWith('GAMESEP')
+    ? 'game'
+    : 'main';
+
   return {
     id: row.id,
     transaction_id: `TX-${row.id}`,
     amount: toNumber(row.amount, 0),
     balance_after: toNumber(row.balance_after, 0),
     content: getPrimarySePayReferenceCode(row.content),
-    payment_method: row.content?.startsWith('SEP') ? 'sepay_qr' : 'legacy_deposit',
+    wallet,
+    payment_method: extractSePayPaymentReferenceCodes(row.content).length > 0 ? 'sepay_qr' : 'legacy_deposit',
     bank: '',
     type: row.type,
     status: row.status,
@@ -91,6 +99,7 @@ export async function GET(req: NextRequest) {
           amount: true,
           balance_after: true,
           content: true,
+          wallet_type: true,
           type: true,
           status: true,
           created_at: true,
@@ -123,10 +132,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { amount, payment_method, content } = await req.json();
+    const { amount, payment_method, content, wallet_type, wallet } = await req.json();
     const normalizedAmount = Math.round(toNumber(amount, 0));
     const requestedMethod = String(payment_method || 'sepay').trim().toLowerCase();
     const method = requestedMethod === 'bank_transfer' ? 'bank' : requestedMethod;
+    const walletType = ['game', 'game_wallet'].includes(String(wallet_type || wallet || '').trim().toLowerCase())
+      ? 'game'
+      : 'main';
 
     if (!normalizedAmount || normalizedAmount < 10000) {
       return NextResponse.json({ success: false, message: 'Số tiền nạp tối thiểu là 10,000đ' }, { status: 400, headers: noStoreHeaders });
@@ -145,12 +157,13 @@ export async function POST(req: NextRequest) {
         select: { username: true },
       });
 
-      const transactionCode = `SEP${userId}T${Date.now()}`;
+      const transactionCode = `${walletType === 'game' ? 'GAMESEP' : 'SEP'}${userId}T${Date.now()}`;
       const deposit = await db.transactions.create({
         data: {
           user_id: userId,
           amount: normalizedAmount,
           balance_after: 0,
+          wallet_type: walletType,
           type: 'deposit',
           status: 'pending',
           content: transactionCode,
@@ -160,6 +173,7 @@ export async function POST(req: NextRequest) {
           amount: true,
           balance_after: true,
           content: true,
+          wallet_type: true,
           type: true,
           status: true,
           created_at: true,
@@ -169,9 +183,12 @@ export async function POST(req: NextRequest) {
       const sepayCheckout = await createSePayCheckoutSession({
         amount: normalizedAmount,
         customerId: String(userId),
-        description: `Nap tien vi ${user?.username || `User#${userId}`} (UID ${userId})`,
+        description: walletType === 'game'
+          ? `Nap tien vi game ${user?.username || `User#${userId}`} (UID ${userId})`
+          : `Nap tien vi ${user?.username || `User#${userId}`} (UID ${userId})`,
         orderId: transactionCode,
         origin: req.nextUrl.origin,
+        wallet: walletType,
       });
 
       if (!sepayCheckout.success) {
@@ -187,20 +204,22 @@ export async function POST(req: NextRequest) {
       }
 
       const storedContent = buildSePayReferenceContent([
-        transactionCode,
         sepayCheckout.sepayOrderId,
+        transactionCode,
       ]);
 
       const updatedDeposit = await db.transactions.update({
         where: { id: deposit.id },
         data: {
           content: storedContent || transactionCode,
+          wallet_type: walletType,
         },
         select: {
           id: true,
           amount: true,
           balance_after: true,
           content: true,
+          wallet_type: true,
           type: true,
           status: true,
           created_at: true,
@@ -209,7 +228,9 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Đã tạo yêu cầu Thanh Toán QR Code',
+        message: walletType === 'game'
+          ? 'Đã tạo yêu cầu nạp ví game bằng Thanh Toán QR Code'
+          : 'Đã tạo yêu cầu Thanh Toán QR Code',
         method: 'sepay',
         data: normalizeTransaction(updatedDeposit),
         payment: {
@@ -219,6 +240,7 @@ export async function POST(req: NextRequest) {
           checkout_redirect_url: sepayCheckout.redirectUrl,
           fields: sepayCheckout.fields,
           ipn_url: sepayCheckout.config.ipnUrl,
+          wallet: walletType,
         },
       }, { headers: noStoreHeaders });
     }
@@ -243,6 +265,7 @@ export async function POST(req: NextRequest) {
           amount: true,
           balance_after: true,
           content: true,
+          wallet_type: true,
           type: true,
           status: true,
           created_at: true,
@@ -277,6 +300,7 @@ export async function POST(req: NextRequest) {
         user_id: userId,
         amount: normalizedAmount,
         balance_after: 0,
+        wallet_type: 'main',
         type: 'deposit',
         status: 'pending',
         content:
@@ -288,6 +312,7 @@ export async function POST(req: NextRequest) {
         amount: true,
         balance_after: true,
         content: true,
+        wallet_type: true,
         type: true,
         status: true,
         created_at: true,

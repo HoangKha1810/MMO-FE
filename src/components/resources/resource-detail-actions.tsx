@@ -5,42 +5,83 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, MessageSquareQuote, ShoppingCart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 
 type ReviewRow = Record<string, unknown>;
 type OrderRow = Record<string, unknown>;
 
 interface ResourceDetailActionsProps {
   resourceId: number;
+  price: number;
   stock: number;
   orders: OrderRow[];
   reviews: ReviewRow[];
+  paymentWallet?: 'main' | 'game';
+  gameBalance?: number;
 }
 
-export function ResourceDetailActions({ resourceId, stock, orders, reviews }: ResourceDetailActionsProps) {
+export function ResourceDetailActions({ resourceId, price, stock, orders, reviews, paymentWallet = 'main', gameBalance = 0 }: ResourceDetailActionsProps) {
   const router = useRouter();
+  const { confirm } = useConfirmDialog();
   const [isPending, startTransition] = useTransition();
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [quantity, setQuantity] = useState('1');
   const [rating, setRating] = useState('5');
   const [comment, setComment] = useState('');
 
-  function purchase() {
-    startTransition(async () => {
-      try {
-        const response = await fetch('/api/resources/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resource_id: resourceId, quantity: Number(quantity || 1) }),
-        });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.message || 'Không thể mua tài nguyên');
+  async function purchase() {
+    const requestedQuantity = Math.max(1, Math.min(10, Math.trunc(Number(quantity || 1))));
+    const totalPrice = Math.max(0, price * requestedQuantity);
+
+    try {
+      if (paymentWallet === 'game') {
+        if (gameBalance < totalPrice) {
+          const missingAmount = Math.max(0, totalPrice - gameBalance);
+          const goDeposit = await confirm({
+            title: 'Ví game không đủ',
+            description: `Bạn cần nạp thêm ${new Intl.NumberFormat('vi-VN').format(missingAmount)}đ vào ví game để mua sản phẩm này.`,
+            confirmText: 'Nạp ví game',
+            cancelText: 'Để sau',
+            tone: 'danger',
+          });
+
+          if (goDeposit) {
+            router.push('/user/deposit?wallet=game');
+          }
+          return;
         }
-        toast.success(payload.message || 'Mua thành công');
-        router.refresh();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Không thể mua tài nguyên');
+
+        const useGameWallet = await confirm({
+          title: 'Thanh toán dịch vụ game',
+          description: `Sản phẩm này dùng ví game riêng. Bạn có thể thanh toán bằng ví game hiện có (${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ), hoặc liên hệ Admin để rút/chuyển tiền từ tài khoản chính sang ví game. Mỗi lần rút/chuyển từ tài khoản chính có phí 10%.`,
+          confirmText: 'Sử dụng ví game',
+          cancelText: 'Liên hệ admin',
+          tone: 'brand',
+        });
+
+        if (!useGameWallet) {
+          window.location.href = '/user/support-tiktok';
+          return;
+        }
       }
-    });
+
+      setPurchaseLoading(true);
+      const response = await fetch('/api/resources/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resource_id: resourceId, quantity: requestedQuantity }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không thể mua tài nguyên');
+      }
+      toast.success(payload.message || 'Mua thành công');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể mua tài nguyên');
+    } finally {
+      setPurchaseLoading(false);
+    }
   }
 
   function submitReview() {
@@ -77,9 +118,9 @@ export function ResourceDetailActions({ resourceId, stock, orders, reviews }: Re
             onChange={(event) => setQuantity(event.target.value)}
             className="h-11 w-28 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black outline-none dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
           />
-          <Button disabled={stock <= 0} loading={isPending} onClick={purchase}>
+          <Button disabled={stock <= 0 || purchaseLoading} loading={purchaseLoading} onClick={purchase}>
             <ShoppingCart className="mr-2 h-4 w-4" />
-            Mua bằng số dư
+            {paymentWallet === 'game' ? 'Mua bằng ví game' : 'Mua bằng số dư'}
           </Button>
           <Button variant="outline" asChild>
             <a href="/user/resources/history">

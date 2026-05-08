@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import {
   ArrowUpRight,
-  Headset,
   Layers3,
   Sparkles,
   Wallet,
@@ -37,6 +36,7 @@ async function getUser(userId: number) {
         fullname: true,
         avatar: true,
         balance: true,
+        game_balance: true,
         rank: true,
         role: true,
         is_blue_tick: true,
@@ -51,6 +51,7 @@ async function getUser(userId: number) {
       ...user,
       avatar: buildLegacyAssetUrl(user.avatar) || undefined,
       balance: toNumber(user.balance, 0),
+      game_balance: toNumber(user.game_balance, 0),
     };
   } catch {
     return null;
@@ -136,6 +137,7 @@ export default async function HomePage() {
         username: user.username,
         email: user.email,
         balance: user.balance,
+        game_balance: user.game_balance,
         rank: user.rank || 'Member',
         role: String(user.role || 'member'),
         avatar: user.avatar || undefined,
@@ -219,13 +221,14 @@ export default async function HomePage() {
             <div className="dashboard-metric min-w-0 rounded-[1.4rem] border border-slate-200/80 bg-white/70 p-4 backdrop-blur-sm dark:border-white/8 dark:bg-white/[0.04] sm:p-5 md:p-6">
               <div className="relative z-10 min-w-0">
                 <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/35 sm:text-[10px] sm:tracking-[0.34em]">
-                  Rank
+                  Game Wallet
                 </div>
                 <label className="mt-3 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-white/45 sm:mt-4 sm:text-xs sm:tracking-[0.28em]">
-                  Cấp Bậc tài khoản
+                  Ví mua bán game
                 </label>
-                <div className="mt-3 w-full font-mono tabular-nums whitespace-nowrap text-[min(1.5rem,4.8vw)] font-black uppercase leading-[1.08] tracking-[-0.05em] text-slate-950 dark:text-white">
-                  {user.rank || 'Member'}
+                <div className="mt-3 w-full font-mono tabular-nums whitespace-nowrap text-[min(1.5rem,4.8vw)] font-black uppercase leading-[1.08] tracking-[-0.05em] text-emerald-500">
+                  {new Intl.NumberFormat('vi-VN').format(user.game_balance || 0)}
+                  <span className="ml-1 text-[0.65em] font-black uppercase tracking-tight">đ</span>
                 </div>
               </div>
             </div>
@@ -244,10 +247,10 @@ export default async function HomePage() {
               <div className="grid w-full grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:w-auto md:grid-cols-4">
                 {[
                   { label: 'Balance', value: new Intl.NumberFormat('vi-VN').format(user.balance), icon: Wallet },
+                  { label: 'Game Wallet', value: new Intl.NumberFormat('vi-VN').format(user.game_balance || 0), icon: Wallet },
                   { label: 'Total Deposit', value: new Intl.NumberFormat('vi-VN').format(depositStats.totalDeposit), icon: Sparkles },
                   { label: 'Service Blocks', value: String(services.length), icon: Layers3 },
-                  { label: 'Support', value: '24/7', icon: Headset },
-                ].map((item) => (
+                ].slice(0, 4).map((item) => (
                   <div key={item.label} className="min-w-0 rounded-[1.2rem] border border-slate-200/80 bg-white/72 px-4 py-3 dark:border-white/8 dark:bg-white/[0.04]">
                     <div className="flex items-center gap-2 text-slate-400 dark:text-white/35">
                       <item.icon className="h-3.5 w-3.5" />

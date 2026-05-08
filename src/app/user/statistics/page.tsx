@@ -89,7 +89,7 @@ export default async function UserStatisticsPage() {
           description="Theo dõi số dư, tổng nạp và nhịp mua dịch vụ trên TRUNGTAMMMO trong một màn hình rõ ràng, giúp bạn kiểm soát chi tiêu và hiệu quả vận hành tài khoản nhanh hơn."
           stats={[
             { label: 'Số dư', value: formatCurrency(shell.balance), hint: 'Giá trị ví hiện tại', tone: 'blue' },
-            { label: 'Tổng nạp', value: formatCurrency(toNumber(depositSum[0]?.total, 0)), hint: 'Deposit success', tone: 'emerald' },
+            { label: 'Ví game', value: formatCurrency(shell.game_balance), hint: 'Dùng riêng cho tài khoản game', tone: 'emerald' },
             { label: 'Chi SMM', value: formatCurrency(toNumber(smmSum[0]?.total, 0)), hint: 'Tổng spending SMM', tone: 'amber' },
             { label: 'Tổng order', value: totalOrders.toLocaleString('vi-VN'), hint: 'Cộng tất cả module bán hàng', tone: 'violet' },
           ]}

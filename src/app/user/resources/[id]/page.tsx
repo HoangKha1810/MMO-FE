@@ -5,8 +5,10 @@ import { AppShell } from '@/components/layout/app-shell';
 import { ResourceDetailActions } from '@/components/resources/resource-detail-actions';
 import { Badge } from '@/components/ui/badge';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { rewriteGameAccountPriceMentions } from '@/lib/game-account-pricing';
 import { getResourceDetail } from '@/lib/legacy-modules';
 import { hideProviderBranding } from '@/lib/provider-branding';
+import { isRandom1kProviderLike } from '@/lib/random1k';
 import { cleanResourceHtml } from '@/lib/resource-content';
 import { listResourceReviews } from '@/lib/resource-actions';
 import { formatCurrency, toNumber } from '@/lib/utils';
@@ -28,8 +30,18 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   const { resource, related, orders } = data;
   const thumbnail = buildLegacyAssetUrl(String(resource.thumbnail || ''));
-  const title = hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`);
-  const descriptionHtml = cleanResourceHtml(resource.description, 'Tài nguyên MMO đang được bán trong hệ thống.');
+  const price = toNumber(resource.price);
+  const sourcePrice = toNumber(resource.original_price);
+  const shouldRewriteApiPrices =
+    isRandom1kProviderLike({ name: resource.provider_name, api_url: resource.provider_api_url }) ||
+    String(resource.tags || '').toLowerCase().includes('api-account');
+  const title = shouldRewriteApiPrices
+    ? rewriteGameAccountPriceMentions(hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`), { sourcePrice, displayPrice: price })
+    : hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`);
+  const descriptionHtml = shouldRewriteApiPrices
+    ? rewriteGameAccountPriceMentions(cleanResourceHtml(resource.description, 'Tài nguyên MMO đang được bán trong hệ thống.'), { sourcePrice, displayPrice: price })
+    : cleanResourceHtml(resource.description, 'Tài nguyên MMO đang được bán trong hệ thống.');
+  const usesGameWallet = ['game', 'random'].includes(String(resource.api_account_kind || '').toLowerCase());
 
   return (
     <AppShell user={shell}>
@@ -67,7 +79,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             <div className="mt-6 grid gap-3 min-[430px]:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
                 <Tag className="h-4 w-4 text-brand-blue" />
-                <div className="mt-2 font-mono text-xl font-black text-brand-blue">{formatCurrency(toNumber(resource.price))}</div>
+                <div className="mt-2 font-mono text-xl font-black text-brand-blue">{formatCurrency(price)}</div>
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giá</div>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
@@ -85,9 +97,12 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             <div className="mt-6">
               <ResourceDetailActions
                 resourceId={resourceId}
+                price={price}
                 stock={toNumber(resource.stock)}
                 orders={orders as Array<Record<string, unknown>>}
                 reviews={reviews}
+                paymentWallet={usesGameWallet ? 'game' : 'main'}
+                gameBalance={shell.game_balance}
               />
             </div>
           </div>
@@ -99,7 +114,12 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             <div className="grid gap-4 md:grid-cols-3">
               {related.slice(0, 3).map((item) => (
                 <Link key={String(item.id)} href={`/user/resources/${String(item.id)}`} className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
-                  <div className="text-xs font-black uppercase text-slate-900 dark:text-white">{hideProviderBranding(item.title, `Sản phẩm #${String(item.id)}`)}</div>
+                  <div className="text-xs font-black uppercase text-slate-900 dark:text-white">
+                    {rewriteGameAccountPriceMentions(
+                      hideProviderBranding(item.title, `Sản phẩm #${String(item.id)}`),
+                      { sourcePrice: item.original_price, displayPrice: item.price }
+                    )}
+                  </div>
                   <div className="mt-2 font-mono text-sm font-black text-brand-blue">{formatCurrency(toNumber(item.price))}</div>
                 </Link>
               ))}
