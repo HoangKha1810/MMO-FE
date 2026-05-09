@@ -527,7 +527,9 @@ function normalizePublicAssetPath(value: unknown) {
   if (!raw) return '';
   if (/^data:/i.test(raw) || /^blob:/i.test(raw)) return raw;
   if (/^https?:\/\//i.test(raw)) return raw;
-  return raw.startsWith('public/') ? `/${raw.slice('public/'.length)}` : raw.startsWith('/') ? raw : `/${raw}`;
+  if (raw.startsWith('public/')) return `/${raw.slice('public/'.length)}`;
+  if (raw.startsWith('assets/') || raw.startsWith('uploads/') || raw.startsWith('automxh/')) return `/${raw}`;
+  return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
 function parseStringArray(value: unknown) {
@@ -548,6 +550,46 @@ function parseStringArray(value: unknown) {
   }
 
   return [raw];
+}
+
+function parseAssetEntries(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item && typeof item === 'object') {
+          const record = item as Record<string, unknown>;
+          return {
+            url: normalizePublicAssetPath(record.url || record.path || ''),
+            name: String(record.name || record.filename || '').trim(),
+          };
+        }
+        return {
+          url: normalizePublicAssetPath(item),
+          name: '',
+        };
+      })
+      .filter((item) => item.url);
+  }
+
+  const raw = String(value || '').trim();
+  if (!raw) return [] as Array<{ url: string; name: string }>;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parseAssetEntries(parsed);
+    }
+    if (parsed && typeof parsed === 'object') {
+      const record = parsed as Record<string, unknown>;
+      const url = normalizePublicAssetPath(record.url || record.path || '');
+      return url ? [{ url, name: String(record.name || record.filename || '').trim() }] : [];
+    }
+  } catch {
+    // Ignore and fallback below.
+  }
+
+  const url = normalizePublicAssetPath(raw);
+  return url ? [{ url, name: '' }] : [];
 }
 
 function parseCustomInputs(value: unknown) {
@@ -1618,8 +1660,16 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
               ) : rows.map((row) => {
                 const id = rowId(row);
                 const orderInputs = extractOrderInputRows(row);
-                const avatarUrl = normalizePublicAssetPath(row.avatar_path);
-                const attachmentUrls = parseStringArray(row.additional_files_list || row.additional_files).map(normalizePublicAssetPath).filter(Boolean);
+                const avatarCandidates = [
+                  normalizePublicAssetPath(row.avatar_path),
+                  ...parseAssetEntries(row.perfection_image).map((item) => item.url),
+                  ...parseAssetEntries(row.additional_files_list || row.additional_files).map((item) => item.url),
+                ].filter(Boolean);
+                const avatarUrl = avatarCandidates[0] || '';
+                const attachmentUrls = Array.from(new Set([
+                  ...parseAssetEntries(row.perfection_image).map((item) => item.url),
+                  ...parseAssetEntries(row.additional_files_list || row.additional_files).map((item) => item.url),
+                ].filter(Boolean)));
                 const consentAccepted = isTruthy(row.confirm_1) || isTruthy(row.confirm_2);
                 const completionNote = String(row.perfection_content || '').trim();
                 return (

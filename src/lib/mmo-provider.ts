@@ -7,8 +7,10 @@ import {
   rewriteGameAccountPriceMentions,
 } from '@/lib/game-account-pricing';
 import {
+  buildGameAccountProviderSourceWhereSql,
   buildRandom1kResourceWhereSql,
   buildRandom1kTags,
+  getGameAccountProviderKind,
   getRandom1kResourceType,
   isRandom1kProviderLike,
   normalizeProviderAssetUrl,
@@ -172,7 +174,7 @@ function buildProductCode(id: number) {
 }
 
 async function getMmoProviders(providerId?: number) {
-  await ensureRandom1kProviderFromEnv();
+  await ensureGameAccountProvidersFromEnv();
 
   return db.api_providers.findMany({
     where: {
@@ -193,65 +195,116 @@ async function getMmoProviders(providerId?: number) {
   });
 }
 
-let random1kEnvProviderPromise: Promise<void> | null = null;
+let gameAccountEnvProviderPromise: Promise<void> | null = null;
 let gameAccountAutoSyncPromise: Promise<GameAccountAutoSyncSummary> | null = null;
 let lastGameAccountAutoSyncAt = 0;
 let lastGameAccountAutoSyncScheduleAt = 0;
 
-async function ensureRandom1kProviderFromEnv() {
-  if (random1kEnvProviderPromise) return random1kEnvProviderPromise;
+type GameAccountEnvSeed = {
+  kind: 'random1k' | 'shopreg61';
+  apiUrl: string;
+  apiKey: string;
+  exchangeRate: number;
+};
 
-  random1kEnvProviderPromise = (async () => {
-    const apiKey = String(process.env.GAME_ACCOUNT_API_KEY || process.env.RANDOM1K_API_KEY || '').trim();
-    if (!apiKey) return;
+function getGameAccountEnvSeeds(): GameAccountEnvSeed[] {
+  const seeds: GameAccountEnvSeed[] = [];
+  const legacyApiKey = String(process.env.GAME_ACCOUNT_API_KEY || '').trim();
+  const legacyApiUrl = String(process.env.GAME_ACCOUNT_API_URL || '').trim();
+  const legacyExchangeRate = Math.max(1, toNumber(process.env.GAME_ACCOUNT_EXCHANGE_RATE, 1));
 
-    const apiUrl = String(process.env.GAME_ACCOUNT_API_URL || process.env.RANDOM1K_API_URL || 'https://random1k.com/api').trim().replace(/\/+$/, '');
-    const exchangeRate = Math.max(1, toNumber(process.env.GAME_ACCOUNT_EXCHANGE_RATE || process.env.RANDOM1K_EXCHANGE_RATE, 1));
-    const existing = await db.api_providers.findFirst({
-      where: {
-        service_type: 'mmo',
-        OR: [
-          { name: { contains: 'Random1k' } },
-          { api_url: { contains: 'random1k.com' } },
-        ],
-      },
-      select: { id: true },
+  const random1kApiKey = String(process.env.RANDOM1K_API_KEY || '').trim();
+  const random1kApiUrl = String(process.env.RANDOM1K_API_URL || '').trim();
+  const random1kExchangeRate = Math.max(1, toNumber(process.env.RANDOM1K_EXCHANGE_RATE || legacyExchangeRate, 1));
+
+  const shopregApiKey = String(process.env.SHOPREG61_API_KEY || process.env.SHOPREG_API_KEY || '').trim();
+  const shopregApiUrl = String(process.env.SHOPREG61_API_URL || process.env.SHOPREG_API_URL || '').trim();
+  const shopregExchangeRate = Math.max(1, toNumber(process.env.SHOPREG61_EXCHANGE_RATE || process.env.SHOPREG_EXCHANGE_RATE || legacyExchangeRate, 1));
+
+  if (random1kApiKey || (legacyApiKey && /random1k/i.test(legacyApiUrl))) {
+    seeds.push({
+      kind: 'random1k',
+      apiKey: random1kApiKey || legacyApiKey,
+      apiUrl: normalizeBaseUrl(random1kApiUrl || legacyApiUrl || 'https://random1k.com/api'),
+      exchangeRate: random1kExchangeRate,
     });
+  }
 
-    if (existing?.id) {
-      await db.api_providers.update({
-        where: { id: existing.id },
-        data: {
-          name: 'API Tài khoản game',
-          type: 'GameAccount',
-          api_url: apiUrl,
-          api_key: apiKey,
+  if (shopregApiKey || (legacyApiKey && /shopreg61/i.test(legacyApiUrl))) {
+    seeds.push({
+      kind: 'shopreg61',
+      apiKey: shopregApiKey || legacyApiKey,
+      apiUrl: normalizeBaseUrl(shopregApiUrl || legacyApiUrl || 'https://www.shopreg61.com/api'),
+      exchangeRate: shopregExchangeRate,
+    });
+  }
+
+  if (seeds.length === 0 && legacyApiKey) {
+    const kind = /shopreg61/i.test(legacyApiUrl) ? 'shopreg61' : 'random1k';
+    seeds.push({
+      kind,
+      apiKey: legacyApiKey,
+      apiUrl: normalizeBaseUrl(legacyApiUrl || (kind === 'shopreg61' ? 'https://www.shopreg61.com/api' : 'https://random1k.com/api')),
+      exchangeRate: legacyExchangeRate,
+    });
+  }
+
+  return seeds.filter((seed) => seed.apiKey && seed.apiUrl);
+}
+
+async function ensureGameAccountProvidersFromEnv() {
+  if (gameAccountEnvProviderPromise) return gameAccountEnvProviderPromise;
+
+  gameAccountEnvProviderPromise = (async () => {
+    const seeds = getGameAccountEnvSeeds();
+    if (seeds.length === 0) return;
+
+    for (const seed of seeds) {
+      const existing = await db.api_providers.findFirst({
+        where: {
           service_type: 'mmo',
-          exchange_rate: exchangeRate,
-          status: 'active',
+          OR: seed.kind === 'shopreg61'
+            ? [
+                { name: { contains: 'shopreg61' } },
+                { api_url: { contains: 'shopreg61.com' } },
+              ]
+            : [
+                { name: { contains: 'Random1k' } },
+                { name: { contains: 'random 1k' } },
+                { api_url: { contains: 'random1k.com' } },
+              ],
         },
-      }).catch(() => undefined);
-      return;
-    }
+        select: { id: true },
+      });
 
-    await db.api_providers.create({
-      data: {
+      const providerData = {
         name: 'API Tài khoản game',
-        type: 'GameAccount',
-        api_url: apiUrl,
-        api_key: apiKey,
-        service_type: 'mmo',
-        exchange_rate: exchangeRate,
-        status: 'active',
-        health_status: 'online',
-      },
-    }).catch(() => undefined);
+        type: seed.kind === 'shopreg61' ? 'GameAccountShopreg' : 'GameAccountRandom1k',
+        api_url: seed.apiUrl,
+        api_key: seed.apiKey,
+        service_type: 'mmo' as const,
+        exchange_rate: seed.exchangeRate,
+        status: 'active' as const,
+        health_status: 'online' as const,
+      };
+
+      if (existing?.id) {
+        await db.api_providers.update({
+          where: { id: existing.id },
+          data: providerData,
+        }).catch(() => undefined);
+      } else {
+        await db.api_providers.create({
+          data: providerData,
+        }).catch(() => undefined);
+      }
+    }
   })().catch((error) => {
-    random1kEnvProviderPromise = null;
+    gameAccountEnvProviderPromise = null;
     throw error;
   });
 
-  return random1kEnvProviderPromise;
+  return gameAccountEnvProviderPromise;
 }
 
 async function getFallbackAdminId() {
@@ -467,7 +520,7 @@ async function countGameAccountApiResources() {
       LEFT JOIN api_providers ap ON ap.id = CAST(COALESCE(r.api_provider_id, 0) AS UNSIGNED)
       WHERE r.status IN ('active', 'out_of_stock')
         AND COALESCE(r.is_deleted, 0) = 0
-        AND ${buildRandom1kResourceWhereSql('r', 'ap')}
+        AND ${buildGameAccountProviderSourceWhereSql('all', 'r', 'ap')}
     `
   ).catch(() => [{ total: 0 }]);
 
@@ -475,8 +528,7 @@ async function countGameAccountApiResources() {
 }
 
 export async function syncGameAccountResourcesOnUserVisit(input: { force?: boolean } = {}): Promise<GameAccountAutoSyncSummary> {
-  const apiKey = String(process.env.GAME_ACCOUNT_API_KEY || process.env.RANDOM1K_API_KEY || '').trim();
-  if (!apiKey) {
+  if (getGameAccountEnvSeeds().length === 0) {
     return emptyAutoSyncSummary('missing-api-key');
   }
 
@@ -525,8 +577,7 @@ export async function syncGameAccountResourcesOnUserVisit(input: { force?: boole
 }
 
 export function scheduleGameAccountResourcesSyncOnUserVisit(input: { force?: boolean } = {}): GameAccountAutoSyncSummary {
-  const apiKey = String(process.env.GAME_ACCOUNT_API_KEY || process.env.RANDOM1K_API_KEY || '').trim();
-  if (!apiKey) {
+  if (getGameAccountEnvSeeds().length === 0) {
     return emptyAutoSyncSummary('missing-api-key');
   }
 
@@ -572,6 +623,7 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
     const categories = asArray<CloneTutCategory>(payload.categories);
     const exchangeRate = Math.max(1, toNumber(provider.exchange_rate, 1));
     const isRandom1kProvider = isRandom1kProviderLike(provider);
+    const gameAccountProviderKind = getGameAccountProviderKind(provider);
 
     const existingCategories = await db.$queryRawUnsafe<ExistingCategoryRow[]>(
       `
@@ -751,7 +803,7 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
       const resourceType = String(existing?.resource_type || (
         isRandom1kProvider ? getRandom1kResourceType(categoryName, baseTitle) : guessResourceType(categoryName, baseTitle)
       ));
-      const customBadge = existing?.custom_badge || (isRandom1kProvider ? 'API tự động' : null);
+      const customBadge = existing?.custom_badge || ((isRandom1kProvider || gameAccountProviderKind) ? 'API tự động' : null);
       const tags = isRandom1kProvider
         ? buildRandom1kTags({ providerName: provider.name, categoryName, productName: baseTitle, resourceType })
         : existing?.tags || [categoryName, provider.name.replace(/\.com$/i, ''), resourceType].filter(Boolean).join(', ');

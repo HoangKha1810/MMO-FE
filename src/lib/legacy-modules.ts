@@ -193,7 +193,7 @@ export async function listResourceFilterLabels(input: { search?: string; collect
 
 export async function getResourceDetail(id: number, userId?: number) {
   const resource = await safeOne<LegacyRow>(`
-    SELECT r.*, rc.name AS category_name, rc.slug AS category_slug, ap.name AS provider_name, ap.api_url AS provider_api_url
+    SELECT r.*, rc.name AS category_name, rc.slug AS category_slug, rc.image AS category_image, ap.name AS provider_name, ap.api_url AS provider_api_url
     FROM mmo_resources r
     LEFT JOIN resource_categories rc ON rc.id = r.category_id
     LEFT JOIN api_providers ap ON ap.id = CAST(COALESCE(r.api_provider_id, 0) AS UNSIGNED)

@@ -3,10 +3,10 @@ import { Boxes, Gamepad2, Package, Search, ShoppingCart, Shuffle, Sparkles, Stor
 import { AppShell } from '@/components/layout/app-shell';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
-import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { listResourceFilterLabels, listResources, type ResourceCollection } from '@/lib/legacy-modules';
 import { rewriteGameAccountPriceMentions } from '@/lib/game-account-pricing';
 import { scheduleGameAccountResourcesSyncOnUserVisit } from '@/lib/mmo-provider';
+import { sanitizeProviderMedia } from '@/lib/provider-media';
 import { hideProviderBranding } from '@/lib/provider-branding';
 import { resourceHtmlToText } from '@/lib/resource-content';
 import { formatCurrency, toNumber } from '@/lib/utils';
@@ -197,7 +197,7 @@ export async function ResourceCollectionPage({ collection, search = '', category
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
               {resources.map((resource) => {
-                const thumbnail = buildLegacyAssetUrl(String(resource.thumbnail || resource.category_image || ''));
+                const thumbnail = sanitizeProviderMedia(resource.thumbnail, resource.category_image);
                 const price = toNumber(resource.price);
                 const sourcePrice = toNumber(resource.original_price);
                 const description = rewriteGameAccountPriceMentions(

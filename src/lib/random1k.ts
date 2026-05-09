@@ -2,11 +2,14 @@ import 'server-only';
 import { hideProviderBranding } from '@/lib/provider-branding';
 
 type ProviderLike = {
+  id?: unknown;
   name?: unknown;
   type?: unknown;
   api_url?: unknown;
   apiUrl?: unknown;
 };
+
+export type GameAccountProviderKind = 'random1k' | 'shopreg61' | null;
 
 const randomKeywords = [
   'random',
@@ -112,6 +115,8 @@ function hideProviderBrandingSql(expression: string) {
     'random 1k.com',
     'random 1k.vn',
     'random 1k',
+    'shopreg61.com',
+    'shopreg61',
   ].reduce(
     (current, keyword) => `REPLACE(${current}, '${keyword}', 'api')`,
     expression
@@ -126,9 +131,33 @@ export function isRandom1kProviderLike(provider: ProviderLike) {
   return (
     name.includes('random1k') ||
     name.includes('random 1k') ||
+    name.includes('shopreg61') ||
+    type.includes('gameaccount') ||
+    type.includes('random1k') ||
+    apiUrl.includes('random1k.com') ||
+    apiUrl.includes('shopreg61.com')
+  );
+}
+
+export function getGameAccountProviderKind(provider: ProviderLike): GameAccountProviderKind {
+  const name = lowerText(provider.name);
+  const type = lowerText(provider.type);
+  const apiUrl = lowerText(provider.api_url || provider.apiUrl);
+
+  if (name.includes('shopreg61') || apiUrl.includes('shopreg61.com')) {
+    return 'shopreg61';
+  }
+
+  if (
+    name.includes('random1k') ||
+    name.includes('random 1k') ||
     type.includes('random1k') ||
     apiUrl.includes('random1k.com')
-  );
+  ) {
+    return 'random1k';
+  }
+
+  return null;
 }
 
 export function getProviderOrigin(provider: ProviderLike) {
@@ -242,6 +271,61 @@ export function buildRandom1kResourceWhereSql(resourceAlias: string | null = 'r'
   }
 
   return `(${directProviderSql.join(' OR ')})`;
+}
+
+function buildProviderSourceWhereSql(
+  providerKind: Exclude<GameAccountProviderKind, null>,
+  resourceAlias: string | null = 'r',
+  providerAlias: string | null = 'ap'
+) {
+  const apiProviderId = sqlColumn(resourceAlias, 'api_provider_id');
+  const providerNameLikes = providerKind === 'shopreg61'
+    ? [`%shopreg61%`, `%shopreg61.com%`]
+    : [`%random1k%`, `%random 1k%`, `%random1k.com%`];
+  const providerTypeLikes = providerKind === 'shopreg61'
+    ? [`%gameaccount%`]
+    : [`%random1k%`, `%gameaccount%`];
+  const providerUrlLikes = providerKind === 'shopreg61'
+    ? [`%shopreg61.com%`]
+    : [`%random1k.com%`];
+
+  const directProviderSql: string[] = [];
+  if (providerAlias) {
+    directProviderSql.push(
+      ...providerNameLikes.map((pattern) => `LOWER(COALESCE(${providerAlias}.\`name\`, '')) LIKE '${pattern}'`),
+      ...providerTypeLikes.map((pattern) => `LOWER(COALESCE(${providerAlias}.\`type\`, '')) LIKE '${pattern}'`),
+      ...providerUrlLikes.map((pattern) => `LOWER(COALESCE(${providerAlias}.\`api_url\`, '')) LIKE '${pattern}'`)
+    );
+  } else {
+    const checks = [
+      ...providerNameLikes.map((pattern) => `LOWER(COALESCE(game_provider.name, '')) LIKE '${pattern}'`),
+      ...providerTypeLikes.map((pattern) => `LOWER(COALESCE(game_provider.type, '')) LIKE '${pattern}'`),
+      ...providerUrlLikes.map((pattern) => `LOWER(COALESCE(game_provider.api_url, '')) LIKE '${pattern}'`),
+    ].join(' OR ');
+
+    directProviderSql.push(`
+      EXISTS (
+        SELECT 1
+        FROM api_providers game_provider
+        WHERE game_provider.id = CAST(COALESCE(${apiProviderId}, 0) AS UNSIGNED)
+          AND (${checks})
+      )
+    `);
+  }
+
+  return `(${directProviderSql.join(' OR ')})`;
+}
+
+export function buildGameAccountProviderSourceWhereSql(
+  providerKind: Exclude<GameAccountProviderKind, null> | 'all' = 'all',
+  resourceAlias: string | null = 'r',
+  providerAlias: string | null = 'ap'
+) {
+  if (providerKind === 'all') {
+    return `(${buildProviderSourceWhereSql('random1k', resourceAlias, providerAlias)} OR ${buildProviderSourceWhereSql('shopreg61', resourceAlias, providerAlias)})`;
+  }
+
+  return buildProviderSourceWhereSql(providerKind, resourceAlias, providerAlias);
 }
 
 export function buildRandomGameAccountWhereSql(resourceAlias: string | null = 'r', categoryAlias: string | null = 'rc') {
