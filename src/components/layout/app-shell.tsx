@@ -63,6 +63,7 @@ import { NotificationBell } from '@/components/layout/notification-bell';
 import { useSessionUser, type SessionUser } from '@/hooks/use-session-user';
 import type { LegacyServiceItem } from '@/lib/legacy-settings';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
+import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 
 const mainLinks = [
   { href: '/user/home', label: 'Trang Chủ', icon: Grid3x3 },
@@ -115,11 +116,11 @@ const serviceIconMap = {
   shuffle: Shuffle,
 } as const;
 
-const smmPlatformLinks = [
-  { href: '/user/smm?platform=Facebook', label: 'Facebook', icon: Globe, color: 'text-blue-500' },
-  { href: '/user/smm?platform=TikTok', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300' },
-  { href: '/user/smm?platform=Instagram', label: 'Instagram', icon: MessageCircle, color: 'text-pink-500' },
-  { href: '/user/smm?platform=YouTube', label: 'YouTube', icon: Video, color: 'text-red-500' },
+const smmPlatformLinks: Array<{ href: string; label: string; icon: typeof Globe; color: string; gif?: string }> = [
+  { href: '/user/smm?platform=Facebook', label: 'Facebook', icon: Globe, color: 'text-blue-500', gif: 'facebook_gif.gif' },
+  { href: '/user/smm?platform=TikTok', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300', gif: 'tiktok_gif.gif' },
+  { href: '/user/smm?platform=Instagram', label: 'Instagram', icon: MessageCircle, color: 'text-pink-500', gif: 'ig_gif.gif' },
+  { href: '/user/smm?platform=YouTube', label: 'YouTube', icon: Video, color: 'text-red-500', gif: 'youtube_gif.gif' },
   { href: '/user/smm?platform=Telegram', label: 'Telegram', icon: Send, color: 'text-sky-500' },
   { href: '/user/smm?platform=Shopee', label: 'Shopee', icon: ShoppingCart, color: 'text-orange-500' },
   { href: '/user/smm?platform=Threads', label: 'Threads', icon: MessageCircle, color: 'text-slate-500' },
@@ -157,12 +158,12 @@ const smmPlatformTags: Record<string, string[]> = {
   Threads: ['threads', '[threads]'],
 };
 
-const autoMxhPlatformLinks = [
-  { href: '/user/automxh', label: 'Facebook', icon: Globe, color: 'text-blue-500' },
-  { href: '/user/automxh', label: 'INSTAGRAM', icon: MessageCircle, color: 'text-pink-500' },
-  { href: '/user/automxh', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300' },
-  { href: '/user/automxh', label: 'X TWITTER', icon: MessageCircle, color: 'text-slate-500 dark:text-slate-300' },
-  { href: '/user/automxh', label: 'YOUTUBE', icon: Video, color: 'text-red-500' },
+const autoMxhPlatformLinks: Array<{ href: string; label: string; icon: typeof Globe; color: string; gif?: string }> = [
+  { href: '/user/automxh', label: 'Facebook', icon: Globe, color: 'text-blue-500', gif: 'facebook_gif.gif' },
+  { href: '/user/automxh', label: 'INSTAGRAM', icon: MessageCircle, color: 'text-pink-500', gif: 'ig_gif.gif' },
+  { href: '/user/automxh', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300', gif: 'tiktok_gif.gif' },
+  { href: '/user/automxh', label: 'X TWITTER', icon: MessageCircle, color: 'text-slate-500 dark:text-slate-300', gif: 'tw_gif.gif' },
+  { href: '/user/automxh', label: 'YOUTUBE', icon: Video, color: 'text-red-500', gif: 'youtube_gif.gif' },
 ];
 
 const utilityLinks = [
@@ -398,6 +399,7 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+  const { balance: liveBalance, gameBalance: liveGameBalance, pulse, soundTick } = useWalletBalance();
   const currentUser = useSessionUser(user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -418,6 +420,29 @@ export function AppShell({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!soundTick || typeof window === 'undefined') return;
+    try {
+      const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtor) return;
+      const ctx = new AudioCtor();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'triangle';
+      oscillator.frequency.value = pulse === 'up' ? 920 : 540;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.03, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.13);
+      void ctx.close().catch(() => undefined);
+    } catch {
+      // ignore audio limitations
+    }
+  }, [pulse, soundTick]);
 
   useEffect(() => {
     if (sidebarServices?.length) {
@@ -638,13 +663,6 @@ export function AppShell({
                     <div className="mt-2">
                       <BrandForestWordmark className="text-[0.74rem] text-slate-900 dark:text-white" />
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="tag-pill">control deck</span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-emerald-500">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        online
-                      </span>
-                    </div>
                   </Link>
                   <button
                     type="button"
@@ -833,7 +851,11 @@ export function AppShell({
                       className={getNavLinkClass(false, 'justify-between')}
                     >
                       <div className="flex min-w-0 items-center space-x-3">
-                        <item.icon className={cn('h-4 w-4 shrink-0', item.color)} />
+                        {item.gif ? (
+                          <img src={`/assets/images/gif/${item.gif}`} alt="" className="h-4 w-4 shrink-0 rounded-full object-cover" />
+                        ) : (
+                          <item.icon className={cn('h-4 w-4 shrink-0', item.color)} />
+                        )}
                         <span className="truncate whitespace-nowrap text-sm font-bold">{item.label}</span>
                       </div>
                       <ChevronDown className="h-3.5 w-3.5 shrink-0 rotate-[-90deg] opacity-40" />
@@ -945,12 +967,16 @@ export function AppShell({
                   </div>
                   <div className="mt-3 rounded-[1rem] border border-slate-200/80 bg-slate-50/80 px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]">
                     <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Số dư khả dụng</div>
-                    <div className="mt-1 font-mono tabular-nums whitespace-nowrap text-[clamp(0.95rem,3.8vw,1.125rem)] font-black leading-none text-brand-blue">
-                      {formatCurrency(currentUser.data.balance)} đ
+                    <div className={cn(
+                      'mt-1 font-mono tabular-nums whitespace-nowrap text-[clamp(0.95rem,3.8vw,1.125rem)] font-black leading-none text-brand-blue transition-all duration-500',
+                      pulse === 'down' && 'scale-[1.04] text-rose-500',
+                      pulse === 'up' && 'scale-[1.04] text-emerald-500'
+                    )}>
+                      {formatCurrency((liveBalance ?? currentUser.data.balance))} đ
                     </div>
                     <div className="mt-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Ví game</div>
-                    <div className="mt-1 font-mono tabular-nums whitespace-nowrap text-sm font-black leading-none text-emerald-500">
-                      {formatCurrency(currentUser.data.game_balance || 0)} đ
+                    <div className="mt-1 font-mono tabular-nums whitespace-nowrap text-sm font-black leading-none text-emerald-500 transition-all duration-500">
+                      {formatCurrency((liveGameBalance ?? currentUser.data.game_balance) || 0)} đ
                     </div>
                   </div>
                 </div>
@@ -995,9 +1021,6 @@ export function AppShell({
               </button>
 
               <div className="hidden max-w-3xl flex-1 items-center gap-3 lg:flex">
-                <div className="shell-toolbar-cluster hidden items-center gap-2 rounded-[1.1rem] px-3 py-2 xl:flex">
-                  <span className="text-[9px] font-black uppercase tracking-[0.34em] text-slate-400 dark:text-white/35">workspace</span>
-                </div>
                 {/* Forum search */}
                 <form className="group relative hidden flex-1 lg:block" onSubmit={(event) => submitSearch(event, 'forum')}>
                   <MessageSquare className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-brand-blue" />
@@ -1057,8 +1080,12 @@ export function AppShell({
                   <span className="text-[8px] font-bold uppercase leading-none tracking-[0.16em] text-slate-400 dark:text-white/35">
                     Số dư
                   </span>
-                  <span className="mt-0.5 whitespace-nowrap font-mono tabular-nums text-[clamp(0.95rem,2.4vw,1rem)] font-black leading-none text-slate-900 dark:text-white">
-                    {formatCurrency(currentUser.data?.balance || 0)}
+                  <span className={cn(
+                    'mt-0.5 whitespace-nowrap font-mono tabular-nums text-[clamp(0.95rem,2.4vw,1rem)] font-black leading-none text-slate-900 transition-all duration-500 dark:text-white',
+                    pulse === 'down' && 'scale-[1.06] text-rose-500',
+                    pulse === 'up' && 'scale-[1.06] text-emerald-500'
+                  )}>
+                    {formatCurrency((liveBalance ?? currentUser.data?.balance) || 0)}
                     <span className="ml-0.5 text-xs font-bold text-slate-400 dark:text-white/35">đ</span>
                   </span>
                 </div>
@@ -1066,8 +1093,8 @@ export function AppShell({
                   <span className="text-[8px] font-bold uppercase leading-none tracking-[0.16em] text-slate-400 dark:text-white/35">
                     Ví game
                   </span>
-                  <span className="mt-0.5 whitespace-nowrap font-mono tabular-nums text-[0.9rem] font-black leading-none text-emerald-500">
-                    {formatCurrency(currentUser.data?.game_balance || 0)}
+                  <span className="mt-0.5 whitespace-nowrap font-mono tabular-nums text-[0.9rem] font-black leading-none text-emerald-500 transition-all duration-500">
+                    {formatCurrency((liveGameBalance ?? currentUser.data?.game_balance) || 0)}
                     <span className="ml-0.5 text-xs font-bold text-slate-400 dark:text-white/35">đ</span>
                   </span>
                 </div>
@@ -1160,14 +1187,18 @@ export function AppShell({
                         </div>
                         <div className="mt-1 text-[10px] font-bold text-slate-500">
                           Số dư:{' '}
-                          <span className="whitespace-nowrap font-mono tabular-nums font-black text-brand-blue">
-                            {formatCurrency(currentUser.data.balance)}đ
+                          <span className={cn(
+                            'whitespace-nowrap font-mono tabular-nums font-black text-brand-blue transition-all duration-500',
+                            pulse === 'down' && 'text-rose-500',
+                            pulse === 'up' && 'text-emerald-500'
+                          )}>
+                            {formatCurrency((liveBalance ?? currentUser.data.balance))}đ
                           </span>
                         </div>
                         <div className="mt-1 text-[10px] font-bold text-slate-500">
                           Ví game:{' '}
-                          <span className="whitespace-nowrap font-mono tabular-nums font-black text-emerald-500">
-                            {formatCurrency(currentUser.data.game_balance || 0)}đ
+                          <span className="whitespace-nowrap font-mono tabular-nums font-black text-emerald-500 transition-all duration-500">
+                            {formatCurrency((liveGameBalance ?? currentUser.data.game_balance) || 0)}đ
                           </span>
                         </div>
                       </div>

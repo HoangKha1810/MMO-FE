@@ -10,6 +10,7 @@ import { invalidateLegacySettingsCache } from '@/lib/legacy-settings';
 import { approveDepositById } from '@/lib/deposit-processing';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
+import { tableExists } from '@/lib/legacy-modules';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -904,6 +905,23 @@ async function listRegistrationIps(config: ResourceConfig, params: URLSearchPara
 async function listRawTable(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
   const table = await getActualRawTable(config);
   const hasFindJobPinColumn = config.table === 'find_jobs' ? await ensureFindJobPinColumn(table as 'find_job_jobs' | 'find_jobs') : false;
+  if (!(await tableExists(table))) {
+    return {
+      success: true,
+      title: config.title,
+      data: [],
+      pagination: {
+        page,
+        per_page: perPage,
+        total: 0,
+        total_pages: 1,
+      },
+      readonly: Boolean(config.readonly),
+      create_fields: config.createFields || [],
+      update_fields: config.updateFields || [],
+      warning: `Bảng ${table} chưa tồn tại trong cơ sở dữ liệu hiện tại`,
+    };
+  }
   const search = (params.get('search') || '').trim();
   const status = (params.get('status') || '').trim();
   const values: unknown[] = [];
@@ -1013,6 +1031,20 @@ export async function updateAdminResource(resource: string, id: number, input: R
     throw new Error('Không có dữ liệu cập nhật hợp lệ');
   }
 
+  if (resource === 'smm-orders' && typeof data.status === 'string') {
+    const requestedStatus = String(data.status || '').trim().toLowerCase();
+    if (requestedStatus === 'canceled' || requestedStatus === 'cancelled') {
+      return cancelAndRefundSmmOrder(id, adminId, req, data);
+    }
+  }
+
+  if (resource === 'automxh-orders' && typeof data.status === 'string') {
+    const requestedStatus = String(data.status || '').trim().toLowerCase();
+    if (requestedStatus === 'canceled' || requestedStatus === 'cancelled') {
+      return cancelAndRefundAutoMxhOrder(id, adminId, req, data);
+    }
+  }
+
   let updated: unknown;
   if (config.table) {
     updated = await updateRawTable(config, id, data);
@@ -1027,6 +1059,187 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   await logAdminAction({ adminId, action: `update ${resource}`, target: `#${id}`, req });
   return { success: true, data: normalizeValue(updated) };
+}
+
+async function cancelAndRefundSmmOrder(
+  id: number,
+  adminId: number,
+  req: NextRequest,
+  patch: Record<string, unknown>
+) {
+  const result = await db.$transaction(async (tx) => {
+    const order = await tx.smm_orders.findUnique({ where: { id } });
+    if (!order) {
+      throw new Error('Không tìm thấy đơn SMM');
+    }
+
+    const alreadyRefunded =
+      Boolean(order.is_refunded) ||
+      ['refund', 'refunded'].includes(String(order.status || '').trim().toLowerCase());
+
+    const normalizedStatus = String(patch.status || 'Canceled').trim() || 'Canceled';
+    const reason = typeof patch.reason === 'string' ? patch.reason.trim() : '';
+
+    if (alreadyRefunded) {
+      const updatedOrder = await tx.smm_orders.update({
+        where: { id },
+        data: {
+          status: normalizedStatus,
+          reason: reason || order.reason || `Canceled by admin #${adminId}`,
+        },
+      });
+      return updatedOrder;
+    }
+
+    const user = await tx.users.findUnique({
+      where: { id: order.user_id },
+      select: { balance: true },
+    });
+
+    if (!user) {
+      throw new Error('Không tìm thấy user của đơn SMM');
+    }
+
+    const refundAmount = toNumber(order.price, 0);
+    const nextBalance = toNumber(user.balance, 0) + refundAmount;
+
+    await tx.users.update({
+      where: { id: order.user_id },
+      data: {
+        balance: nextBalance,
+        last_activity: new Date(),
+      },
+    });
+
+    const updatedOrder = await tx.smm_orders.update({
+      where: { id },
+      data: {
+        status: normalizedStatus,
+        reason: reason || `Canceled & refunded by admin #${adminId}`,
+        is_refunded: true,
+        refund_amount: refundAmount,
+      },
+    });
+
+    await tx.transactions.create({
+      data: {
+        user_id: order.user_id,
+        amount: refundAmount,
+        balance_after: nextBalance,
+        type: 'refund',
+        status: 'success',
+        content: `Hoàn tiền đơn SMM #${id} do admin hủy`,
+      },
+    }).catch(() => undefined);
+
+    return updatedOrder;
+  });
+
+  await logAdminAction({ adminId, action: 'cancel refund smm order', target: `#${id}`, req });
+  return { success: true, data: normalizeValue(result) };
+}
+
+async function cancelAndRefundAutoMxhOrder(
+  id: number,
+  adminId: number,
+  req: NextRequest,
+  patch: Record<string, unknown>
+) {
+  const result = await db.$transaction(async (tx) => {
+    const rows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
+      'SELECT * FROM `automxh_orders` WHERE id = ? LIMIT 1',
+      id
+    );
+    const order = rows[0];
+    if (!order) {
+      throw new Error('Không tìm thấy đơn Auto MXH');
+    }
+
+    const currentStatus = String(order.status || '').trim().toLowerCase();
+    const alreadyRefunded =
+      currentStatus === 'refunded' ||
+      Boolean(toNumber(order.is_refunded, 0)) ||
+      toNumber(order.refund_amount, 0) > 0;
+
+    const normalizedStatus = String(patch.status || 'canceled').trim() || 'canceled';
+    const reason = typeof patch.reason === 'string' ? patch.reason.trim() : '';
+
+    if (alreadyRefunded) {
+      await tx.$executeRawUnsafe(
+        'UPDATE `automxh_orders` SET `status` = ?, `updated_at` = NOW() WHERE id = ?',
+        normalizedStatus,
+        id
+      );
+      const updatedRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
+        'SELECT * FROM `automxh_orders` WHERE id = ? LIMIT 1',
+        id
+      );
+      return updatedRows[0] || order;
+    }
+
+    const refundAmount = Math.max(
+      toNumber(order.amount, 0),
+      toNumber(order.price, 0),
+    );
+
+    const user = await tx.users.findUnique({
+      where: { id: Number(order.user_id || 0) },
+      select: { balance: true },
+    });
+
+    if (!user) {
+      throw new Error('Không tìm thấy user của đơn Auto MXH');
+    }
+
+    const nextBalance = toNumber(user.balance, 0) + refundAmount;
+    await tx.users.update({
+      where: { id: Number(order.user_id || 0) },
+      data: {
+        balance: nextBalance,
+        last_activity: new Date(),
+      },
+    });
+
+    const orderColumns = await getRawTableColumns('automxh_orders');
+    const nextPatch: Record<string, unknown> = {
+      status: normalizedStatus,
+      updated_at: new Date(),
+      refund_amount: refundAmount,
+      is_refunded: 1,
+      reason: reason || `Canceled & refunded by admin #${adminId}`,
+    };
+    const filteredPatch = Object.fromEntries(
+      Object.entries(nextPatch).filter(([field]) => orderColumns.has(field))
+    );
+    const fields = Object.keys(filteredPatch);
+    if (fields.length > 0) {
+      await tx.$executeRawUnsafe(
+        `UPDATE \`automxh_orders\` SET ${fields.map((field) => `\`${field}\` = ?`).join(', ')} WHERE id = ?`,
+        ...fields.map((field) => filteredPatch[field]),
+        id
+      );
+    }
+
+    await tx.transactions.create({
+      data: {
+        user_id: Number(order.user_id || 0),
+        amount: refundAmount,
+        balance_after: nextBalance,
+        type: 'refund',
+        status: 'success',
+        content: `Hoàn tiền đơn Auto MXH #${id} do admin hủy`,
+      },
+    }).catch(() => undefined);
+
+    const updatedRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
+      'SELECT * FROM `automxh_orders` WHERE id = ? LIMIT 1',
+      id
+    );
+    return updatedRows[0] || order;
+  });
+
+  await logAdminAction({ adminId, action: 'cancel refund automxh order', target: `#${id}`, req });
+  return { success: true, data: normalizeValue(result) };
 }
 
 export async function deleteAdminResource(resource: string, id: number, adminId: number, req: NextRequest) {
@@ -1619,6 +1832,10 @@ async function processDeposit(id: number, approve: boolean, adminId: number, req
 }
 
 async function refundCardOrder(id: number, adminId: number, req: NextRequest) {
+  if (!(await tableExists('card_orders'))) {
+    throw new Error('Bảng card_orders chưa tồn tại trong cơ sở dữ liệu hiện tại');
+  }
+
   return db.$transaction(async (tx) => {
     const order = await tx.card_orders.findUnique({ where: { id } });
     if (!order) throw new Error('Không tìm thấy đơn thẻ');

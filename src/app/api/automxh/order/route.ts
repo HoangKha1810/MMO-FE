@@ -33,18 +33,33 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const imageExtensions = new Set(['jpg', 'jpeg', 'png', 'webp']);
 const additionalExtensions = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt', 'csv', 'zip', 'rar']);
 
+type UploadFileLike = {
+  name: string;
+  size: number;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
+
 function getFormString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function getSafeExtension(file: File) {
+function isUploadFileLike(value: unknown): value is UploadFileLike {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const file = value as Partial<UploadFileLike>;
+  return typeof file.name === 'string' && typeof file.size === 'number' && typeof file.arrayBuffer === 'function';
+}
+
+function getSafeExtension(file: UploadFileLike) {
   const ext = path.extname(file.name || '').replace('.', '').toLowerCase();
   return ext.replace(/[^a-z0-9]/g, '');
 }
 
 async function saveUploadFile(input: {
-  file: File;
+  file: UploadFileLike;
   orderId: number;
   subdir: 'avatars' | 'additional_files';
   prefix: string;
@@ -72,6 +87,45 @@ async function saveUploadFile(input: {
     name: file.name || filename,
     path: `public/${relativeDir}/${filename}`,
   };
+}
+
+async function getTableColumns(table: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ Field: string }>>(`SHOW COLUMNS FROM \`${table}\``);
+  return new Set(rows.map((row) => String(row.Field || '').trim()).filter(Boolean));
+}
+
+function addColumnValue(
+  columns: Set<string>,
+  targetColumns: string[],
+  targetValues: unknown[],
+  column: string,
+  value: unknown
+) {
+  if (!columns.has(column)) {
+    return;
+  }
+
+  targetColumns.push(`\`${column}\``);
+  targetValues.push(value);
+}
+
+async function updateAutomxhOrderColumns(
+  orderId: number,
+  columns: Set<string>,
+  updates: Record<string, unknown>
+) {
+  const entries = Object.entries(updates).filter(([key]) => columns.has(key));
+  if (entries.length === 0) {
+    return;
+  }
+
+  const assignments = entries.map(([key]) => `\`${key}\` = ?`);
+  const values = entries.map(([, value]) => value);
+  await db.$executeRawUnsafe(
+    `UPDATE automxh_orders SET ${assignments.join(', ')} WHERE id = ?`,
+    ...values,
+    orderId
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -141,14 +195,16 @@ export async function POST(req: NextRequest) {
     const secureToken = randomBytes(16).toString('hex');
     const allowAvatar = variant.allow_avatar === true || toNumber(variant.allow_avatar, 0) === 1;
     const allowFiles = variant.allow_files === true || toNumber(variant.allow_files, 0) === 1;
+    const automxhOrderColumns = await getTableColumns('automxh_orders');
 
-    const avatarFile = formData.get('avatar');
+    const avatarFileRaw = formData.get('avatar');
+    const avatarFile = isUploadFileLike(avatarFileRaw) && avatarFileRaw.size > 0 ? avatarFileRaw : null;
     const additionalFiles = [
       ...formData.getAll('additional_files[]'),
       ...formData.getAll('additional_files'),
-    ].filter((file): file is File => file instanceof File && file.size > 0);
+    ].filter((file): file is FormDataEntryValue & UploadFileLike => isUploadFileLike(file) && file.size > 0);
 
-    if (avatarFile instanceof File && avatarFile.size > 0 && !allowAvatar) {
+    if (avatarFile && !allowAvatar) {
       return NextResponse.json({ success: false, error: 'Gói này không hỗ trợ avatar' }, { status: 400 });
     }
 
@@ -181,12 +237,42 @@ export async function POST(req: NextRequest) {
       });
       const newBalance = toNumber(updatedUser?.balance, 0);
 
-      await tx.$executeRaw`
-        INSERT INTO automxh_orders
-          (user_id, product_id, variant_id, api_provider_id, api_order_id, link, buyer_info, custom_value, confirm_1, confirm_2, price, cost_price, status, file_delete_at, secure_token)
-        VALUES
-          (${userId}, ${productId}, ${variantId}, ${apiProviderId}, '', ${link}, ${encryptLegacyData(buyerInfo)}, ${encryptLegacyData(customValue)}, ${confirm1}, ${confirm2}, ${subtotal}, ${costPrice}, 'pending', DATE_ADD(NOW(), INTERVAL 7 DAY), ${secureToken})
-      `;
+      const insertColumns: string[] = [];
+      const insertValues: unknown[] = [];
+      const now = new Date();
+      const fileDeleteAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'user_id', userId);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'category_id', null);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'product_id', productId);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'variant_id', variantId);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'title', variant.product_name || variant.name);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'link', link);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'quantity', Math.max(1, Math.trunc(toNumber(variant.quantity, 1))));
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'amount', totalToPay);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'buyer_info', encryptLegacyData(buyerInfo));
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'custom_value', encryptLegacyData(customValue));
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'status', 'pending');
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'created_at', now);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'updated_at', now);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'api_provider_id', apiProviderId);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'api_order_id', '');
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'confirm_1', confirm1);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'confirm_2', confirm2);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'price', subtotal);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'cost_price', costPrice);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'file_delete_at', fileDeleteAt);
+      addColumnValue(automxhOrderColumns, insertColumns, insertValues, 'secure_token', secureToken);
+
+      if (insertColumns.length === 0) {
+        throw new Error('Bảng automxh_orders không có cột hợp lệ để tạo đơn');
+      }
+
+      const placeholders = insertColumns.map(() => '?').join(', ');
+      await tx.$executeRawUnsafe(
+        `INSERT INTO automxh_orders (${insertColumns.join(', ')}) VALUES (${placeholders})`,
+        ...insertValues
+      );
 
       const inserted = await tx.$queryRaw<Array<{ id: bigint | number }>>`SELECT LAST_INSERT_ID() AS id`;
       const orderId = Number(inserted[0]?.id || 0);
@@ -194,7 +280,7 @@ export async function POST(req: NextRequest) {
       let avatarPath: string | null = null;
       const savedAdditionalFiles: Array<{ name: string; path: string }> = [];
 
-      if (avatarFile instanceof File && avatarFile.size > 0 && allowAvatar) {
+      if (avatarFile && allowAvatar) {
         const saved = await saveUploadFile({
           file: avatarFile,
           orderId,
@@ -220,11 +306,25 @@ export async function POST(req: NextRequest) {
       }
 
       if (avatarPath || savedAdditionalFiles.length > 0) {
-        await tx.$executeRaw`
-          UPDATE automxh_orders
-          SET avatar_path = ${avatarPath}, additional_files = ${savedAdditionalFiles.length ? JSON.stringify(savedAdditionalFiles) : null}
-          WHERE id = ${orderId}
-        `;
+        const updateEntries: string[] = [];
+        const updateValues: unknown[] = [];
+        addColumnValue(automxhOrderColumns, updateEntries, updateValues, 'avatar_path', avatarPath);
+        addColumnValue(
+          automxhOrderColumns,
+          updateEntries,
+          updateValues,
+          'additional_files',
+          savedAdditionalFiles.length ? JSON.stringify(savedAdditionalFiles) : null
+        );
+
+        if (updateEntries.length > 0) {
+          const assignmentSql = updateEntries.map((column) => `${column} = ?`).join(', ');
+          await tx.$executeRawUnsafe(
+            `UPDATE automxh_orders SET ${assignmentSql} WHERE id = ?`,
+            ...updateValues,
+            orderId
+          );
+        }
       }
 
       await tx.transactions.create({
@@ -252,21 +352,21 @@ export async function POST(req: NextRequest) {
             quantity: Math.max(1, Math.trunc(toNumber(variant.quantity, 1))),
           });
 
-          await db.$executeRaw`
-            UPDATE automxh_orders
-            SET api_order_id = ${providerOrder.orderId}, status = 'processing', api_response = ${JSON.stringify(providerOrder)}
-            WHERE id = ${result.orderId}
-          `;
+          await updateAutomxhOrderColumns(result.orderId, automxhOrderColumns, {
+            api_order_id: providerOrder.orderId,
+            status: 'processing',
+            api_response: JSON.stringify(providerOrder),
+            updated_at: new Date(),
+          });
         }
       } catch (providerError) {
-        await db.$executeRaw`
-          UPDATE automxh_orders
-          SET api_response = ${JSON.stringify({
+        await updateAutomxhOrderColumns(result.orderId, automxhOrderColumns, {
+          api_response: JSON.stringify({
             success: false,
             error: providerError instanceof Error ? providerError.message : 'Provider error',
-          })}
-          WHERE id = ${result.orderId}
-        `;
+          }),
+          updated_at: new Date(),
+        });
       }
     }
 

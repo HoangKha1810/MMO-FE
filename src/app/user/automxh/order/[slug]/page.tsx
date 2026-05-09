@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
+import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { cn, formatCurrency } from '@/lib/utils';
 
@@ -102,6 +103,7 @@ function readCustomValue(order: AutoMxhOrder) {
 export default function AutoMxhOrderPage() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
+  const { setBalances } = useWalletBalance();
   const currentUser = useSessionUser();
   const user = currentUser.data;
   const slug = String(params.slug || '');
@@ -282,6 +284,10 @@ export default function AutoMxhOrderPage() {
 
       if (!response.ok || !payload.success) {
         throw new Error(payload.error || payload.message || 'Không thể tạo đơn');
+      }
+
+      if (typeof payload.new_balance === 'number') {
+        setBalances({ balance: payload.new_balance });
       }
 
       toast.success('Đơn hàng của bạn đã được khởi tạo');

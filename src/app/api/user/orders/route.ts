@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
-import { safeRows } from '@/lib/legacy-modules';
+import { safeRows, safeRowsFromTable } from '@/lib/legacy-modules';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         safeRows('SELECT id, product_id, variant_id, price, status, created_at FROM automxh_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', userId),
         safeRows('SELECT o.id, o.resource_id, o.quantity, o.total_price, o.status, o.created_at, r.title FROM resource_orders o LEFT JOIN mmo_resources r ON r.id = o.resource_id WHERE o.user_id = ? ORDER BY o.created_at DESC LIMIT 100', userId),
         safeRows('SELECT o.id, o.item_id, o.amount, o.status, o.created_at, i.title FROM game_market_orders o LEFT JOIN game_market_items i ON i.id = o.item_id WHERE o.buyer_id = ? ORDER BY o.created_at DESC LIMIT 100', userId),
-        safeRows('SELECT id, type, telco, serial, amount, status, created_at FROM card_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', userId),
+        safeRowsFromTable('card_orders', 'SELECT id, type, telco, serial, amount, status, created_at FROM card_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', userId),
       ]);
 
       const rows = [

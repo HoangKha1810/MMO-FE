@@ -11,12 +11,14 @@ import {
   Link as LinkIcon,
   Loader2,
   RefreshCw,
+  Sparkles,
   ShieldCheck,
   Wallet,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
+import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { FlipButton } from '@/components/ui/flip-button';
 import { useSessionUser } from '@/hooks/use-session-user';
@@ -91,6 +93,13 @@ function getCommentLines(value: string) {
     .filter(Boolean);
 }
 
+const platformVisuals: Record<string, { gif?: string; accent: string }> = {
+  facebook: { gif: 'facebook_gif.gif', accent: 'text-blue-500' },
+  tiktok: { gif: 'tiktok_gif.gif', accent: 'text-slate-900 dark:text-white' },
+  instagram: { gif: 'ig_gif.gif', accent: 'text-pink-500' },
+  youtube: { gif: 'youtube_gif.gif', accent: 'text-red-500' },
+};
+
 function isCommentCategory(category: string) {
   const normalized = category.toLowerCase();
   const isLikeComment =
@@ -108,6 +117,7 @@ function isCommentCategory(category: string) {
 
 export default function SmmOrderPage() {
   const { confirm } = useConfirmDialog();
+  const { setBalances } = useWalletBalance();
   const params = useParams<{ slug: string }>();
   const currentUser = useSessionUser();
   const user = currentUser.data;
@@ -232,29 +242,50 @@ export default function SmmOrderPage() {
     }
 
     const timer = window.setTimeout(async () => {
-      setDetectingId(true);
-      try {
-        const response = await fetch('/api/social/get-id', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: value }),
-        });
-        const payload = await response.json();
-        const resultId = payload.id || payload.uid;
-
-        if (payload.success && resultId) {
-          setOrderLink(String(resultId));
-          toast.success(`Đã tự động lấy ID ${payload.platform || 'Facebook'}`);
-        }
-      } catch {
-        // Giữ nguyên link nếu không parse được.
-      } finally {
-        setDetectingId(false);
-      }
+      await resolveObjectId(value, { silent: true });
     }, 800);
 
     return () => window.clearTimeout(timer);
   }, [orderLink, slug]);
+
+  async function resolveObjectId(source = orderLink, options?: { silent?: boolean }) {
+    const input = String(source || '').trim();
+    if (!input) {
+      if (!options?.silent) {
+        toast.error('Vui lòng nhập Link hoặc ID đối tượng');
+      }
+      return;
+    }
+
+    setDetectingId(true);
+    try {
+      const response = await fetch('/api/social/get-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: input }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      const resultId = payload.id || payload.uid;
+
+      if (!response.ok || !payload.success || !resultId) {
+        if (!options?.silent) {
+          toast.error(payload.message || payload.error || 'Không lấy được UID từ liên kết này');
+        }
+        return;
+      }
+
+      setOrderLink(String(resultId));
+      if (!options?.silent) {
+        toast.success(`Đã lấy ID ${payload.platform || platform || 'Facebook'}`);
+      }
+    } catch {
+      if (!options?.silent) {
+        toast.error('Không thể lấy UID lúc này');
+      }
+    } finally {
+      setDetectingId(false);
+    }
+  }
 
   function handleServiceChange(serviceId: number) {
     const nextService = services.find((service) => service.service === serviceId);
@@ -327,6 +358,10 @@ export default function SmmOrderPage() {
         throw new Error(payload.message || 'Không thể tạo đơn');
       }
 
+      if (typeof payload.new_balance === 'number') {
+        setBalances({ balance: payload.new_balance });
+      }
+
       toast.success('Đơn hàng đã được gửi lên hệ thống');
       setOrderLink('');
       setComments('');
@@ -358,9 +393,23 @@ export default function SmmOrderPage() {
             <div className="order-2 lg:order-1 lg:col-span-8">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/5 dark:bg-slate-900">
                 <div className="border-b border-slate-100 bg-slate-50/50 p-6 dark:border-white/5 dark:bg-white/5">
-                  <h1 className="text-lg font-semibold tracking-tight text-slate-800 dark:text-white">
-                    {platform || 'SMM'} : {cleanCategory}
-                  </h1>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {platformVisuals[String(platform || '').trim().toLowerCase()]?.gif ? (
+                      <img
+                        src={`/assets/images/gif/${platformVisuals[String(platform || '').trim().toLowerCase()].gif}`}
+                        alt=""
+                        className="h-10 w-10 rounded-2xl object-cover"
+                      />
+                    ) : null}
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                        {platform || 'SMM'}
+                      </div>
+                      <h1 className="mt-1 text-lg font-semibold tracking-tight text-slate-800 dark:text-white">
+                        {cleanCategory}
+                      </h1>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-8 p-5 sm:p-8">
@@ -390,8 +439,35 @@ export default function SmmOrderPage() {
                         >
                           Dán
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => void resolveObjectId()}
+                          className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-500 transition-all hover:bg-emerald-500 hover:text-white"
+                        >
+                          <span className="inline-flex items-center gap-1.5">
+                            <Sparkles className="h-3 w-3" />
+                            Lấy UID
+                          </span>
+                        </button>
                         <LinkIcon className="h-5 w-5 text-slate-300" />
                       </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] font-bold text-slate-400">
+                      <button
+                        type="button"
+                        onClick={() => void resolveObjectId()}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-slate-500 transition hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:text-slate-400"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Tự lấy UID từ link
+                      </button>
+                      <a
+                        href="/get_uid_fb"
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-slate-500 transition hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:text-slate-400"
+                      >
+                        <LinkIcon className="h-3 w-3" />
+                        Mở tool lấy UID
+                      </a>
                     </div>
                   </div>
 

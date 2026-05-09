@@ -31,7 +31,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Input } from '@/components/ui/input';
 import { EmptyState, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import type { AdminSectionConfig } from '@/lib/admin-page-config';
-import { formatDatabaseDateTime } from '@/lib/date-time';
+import { formatDatabaseDateTime, formatDatabaseTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { cn, formatCurrency, formatNumber, toNumber } from '@/lib/utils';
 
 interface AdminDataPageProps {
@@ -476,23 +476,46 @@ function isLegacyAutoMxhOrdersResource(resource: string) {
   return resource === 'automxh-orders';
 }
 
+function sortAutomxhEditorEntries(entries: Array<[string, unknown]>) {
+  const preferredOrder = [
+    'status',
+    'price',
+    'cost_price',
+    'buyer_info',
+    'api_order_id',
+    'api_response',
+    'api_status_log',
+    'perfection_content',
+    'perfection_image',
+    'avatar_path',
+    'additional_files',
+    'confirm_1',
+    'confirm_2',
+    'is_exported',
+  ];
+
+  return [...entries].sort((a, b) => {
+    const aIndex = preferredOrder.indexOf(a[0]);
+    const bIndex = preferredOrder.indexOf(b[0]);
+    const normalizedA = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+    const normalizedB = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+    return normalizedA - normalizedB;
+  });
+}
+
 function formatCompactTimestamp(value: unknown) {
   if (!value) return '—';
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('vi-VN', {
-    hour12: false,
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const serialized = serializeDatabaseDateTime(value);
+  const match = serialized.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return '—';
+
+  const [, year, month, day, hour, minute] = match;
+  return `${hour}:${minute} ${day}/${month}/${year}`;
 }
 
 function formatCompactClock(value: Date | null) {
   if (!value) return 'Chưa đồng bộ';
-  return value.toLocaleTimeString('vi-VN', { hour12: false });
+  return formatDatabaseTime(value);
 }
 
 function formatPriceValue(value: unknown) {
@@ -1735,7 +1758,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                           onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
                         >
                           <Eye className="mr-2 h-4 w-4" />
-                          Chi Tiết
+                          Sửa
                         </Button>
                       </div>
                     </div>
@@ -2119,33 +2142,60 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
       {editor ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[12px] border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#1a1a1a]">
+          <div
+            className={cn(
+              'max-h-[90vh] w-full overflow-y-auto shadow-2xl',
+              isLegacyAutoMxhOrders
+                ? 'max-w-4xl rounded-[1.9rem] border border-white/8 bg-[#171717] p-6 text-white'
+                : 'max-w-2xl rounded-[12px] border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-[#1a1a1a]'
+            )}
+          >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-[-0.04em] text-slate-900 dark:text-white">
+                <h3 className={cn(
+                  'text-xl font-black uppercase tracking-[-0.04em]',
+                  isLegacyAutoMxhOrders ? 'text-white' : 'text-slate-900 dark:text-white'
+                )}>
                   {editor.mode === 'create' ? 'Thêm mới' : `Sửa #${editor.row?.id}`}
                 </h3>
-                <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{localizeAdminText(section.title)}</p>
+                <p className={cn(
+                  'mt-1 text-sm font-medium',
+                  isLegacyAutoMxhOrders ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'
+                )}>{localizeAdminText(section.title)}</p>
               </div>
-              <Button type="button" size="sm" variant="outline" onClick={() => setEditor(null)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={cn(isLegacyAutoMxhOrders && 'rounded-full border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]')}
+                onClick={() => setEditor(null)}
+              >
                 Đóng
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {Object.keys(editor.values).map((field) => (
+            <div className={cn('grid gap-4 sm:grid-cols-2', isLegacyAutoMxhOrders && 'gap-5')}>
+              {sortAutomxhEditorEntries(Object.entries(editor.values)).map(([field, fieldValue]) => (
                 <label key={field} className="space-y-2">
-                  <span className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">
+                  <span className={cn(
+                    'text-[10px] font-black uppercase tracking-[0.26em]',
+                    isLegacyAutoMxhOrders ? 'text-slate-500' : 'text-slate-400'
+                  )}>
                     {humanizeFieldName(field)}
                   </span>
                   {field === 'status' && section.statusOptions?.length ? (
                     <select
-                      value={String(editor.values[field] ?? '')}
+                      value={String(fieldValue ?? '')}
                       onChange={(event) => setEditor((current) => current ? {
                         ...current,
                         values: { ...current.values, [field]: event.target.value },
                       } : current)}
-                      className="w-full rounded-[9px] border border-slate-200 bg-white px-3 py-2 text-sm font-bold outline-none transition-all dark:border-white/10 dark:bg-[#111] dark:text-white"
+                      className={cn(
+                        'w-full px-3 py-2 text-sm font-bold outline-none transition-all',
+                        isLegacyAutoMxhOrders
+                          ? 'rounded-[1rem] border border-white/8 bg-[#232323] text-white'
+                          : 'rounded-[9px] border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111] dark:text-white'
+                      )}
                     >
                       {section.statusOptions.map((option) => (
                         <option key={option} value={option}>
@@ -2155,21 +2205,27 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                     </select>
                   ) : isLongTextField(field) ? (
                     <textarea
-                      value={String(editor.values[field] ?? '')}
+                      value={String(fieldValue ?? '')}
                       onChange={(event) => setEditor((current) => current ? {
                         ...current,
                         values: { ...current.values, [field]: event.target.value },
                       } : current)}
                       rows={4}
-                      className="w-full rounded-[9px] border border-slate-200 bg-white px-3 py-2 text-sm font-bold outline-none transition-all dark:border-white/10 dark:bg-[#111] dark:text-white"
+                      className={cn(
+                        'w-full px-3 py-2 text-sm font-bold outline-none transition-all',
+                        isLegacyAutoMxhOrders
+                          ? 'rounded-[1rem] border border-white/8 bg-[#232323] text-white'
+                          : 'rounded-[9px] border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111] dark:text-white'
+                      )}
                     />
                   ) : (
                     <Input
-                      value={String(editor.values[field] ?? '')}
+                      value={String(fieldValue ?? '')}
                       onChange={(event) => setEditor((current) => current ? {
                         ...current,
                         values: { ...current.values, [field]: event.target.value },
                       } : current)}
+                      className={cn(isLegacyAutoMxhOrders && 'rounded-[1rem] border-white/8 bg-[#232323] text-white placeholder:text-slate-500')}
                     />
                   )}
                 </label>
@@ -2177,7 +2233,12 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setEditor(null)}>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(isLegacyAutoMxhOrders && 'rounded-full border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]')}
+                onClick={() => setEditor(null)}
+              >
                 Hủy
               </Button>
               <Button
@@ -2185,6 +2246,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 disabled={saving}
                 loading={saving}
                 loadingText="Đang lưu..."
+                className={cn(isLegacyAutoMxhOrders && 'rounded-full bg-[linear-gradient(135deg,#2563eb_0%,#38bdf8_100%)] text-white')}
                 onClick={saveEditor}
               >
                 {!saving ? <Save className="mr-2 h-4 w-4" /> : null}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   ArrowUpRight,
   BookOpen,
@@ -58,9 +58,75 @@ const serviceIconMap = {
 export function HomeServiceCard({ service, className }: HomeServiceCardProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const targetRef = useRef({ rx: 0, ry: 0, mx: 50, my: 50, tx: 0, ty: 0 });
+  const currentRef = useRef({ rx: 0, ry: 0, mx: 50, my: 50, tx: 0, ty: 0 });
+  const interactionEnabledRef = useRef(false);
   const Icon =
     serviceIconMap[service.iconKey as keyof typeof serviceIconMap] || Package;
   const clickable = !service.maintenance && service.href !== '#';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    interactionEnabledRef.current = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  function commitFrame() {
+    const node = cardRef.current;
+    if (!node) {
+      rafRef.current = null;
+      return;
+    }
+
+    const current = currentRef.current;
+    const target = targetRef.current;
+    const smoothing = 0.18;
+
+    current.rx += (target.rx - current.rx) * smoothing;
+    current.ry += (target.ry - current.ry) * smoothing;
+    current.mx += (target.mx - current.mx) * smoothing;
+    current.my += (target.my - current.my) * smoothing;
+    current.tx += (target.tx - current.tx) * smoothing;
+    current.ty += (target.ty - current.ty) * smoothing;
+
+    node.style.setProperty('--card-rx', `${current.rx.toFixed(2)}deg`);
+    node.style.setProperty('--card-ry', `${current.ry.toFixed(2)}deg`);
+    node.style.setProperty('--card-mx', `${current.mx.toFixed(2)}%`);
+    node.style.setProperty('--card-my', `${current.my.toFixed(2)}%`);
+    node.style.setProperty('--card-tx', `${current.tx.toFixed(2)}px`);
+    node.style.setProperty('--card-ty', `${current.ty.toFixed(2)}px`);
+
+    const stillAnimating =
+      Math.abs(target.rx - current.rx) > 0.02 ||
+      Math.abs(target.ry - current.ry) > 0.02 ||
+      Math.abs(target.mx - current.mx) > 0.05 ||
+      Math.abs(target.my - current.my) > 0.05 ||
+      Math.abs(target.tx - current.tx) > 0.05 ||
+      Math.abs(target.ty - current.ty) > 0.05;
+
+    if (stillAnimating) {
+      rafRef.current = requestAnimationFrame(commitFrame);
+    } else {
+      rafRef.current = null;
+    }
+  }
+
+  function scheduleFrame() {
+    if (rafRef.current !== null) {
+      return;
+    }
+
+    rafRef.current = requestAnimationFrame(commitFrame);
+  }
 
   function navigateToService() {
     if (!clickable) {
@@ -77,28 +143,29 @@ export function HomeServiceCard({ service, className }: HomeServiceCardProps) {
   }
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!interactionEnabledRef.current) {
+      return;
+    }
+
     const node = cardRef.current;
     if (!node) return;
     const rect = node.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width;
     const y = (event.clientY - rect.top) / rect.height;
-    node.style.setProperty('--card-rx', `${(0.5 - y) * 14}deg`);
-    node.style.setProperty('--card-ry', `${(x - 0.5) * 16}deg`);
-    node.style.setProperty('--card-mx', `${x * 100}%`);
-    node.style.setProperty('--card-my', `${y * 100}%`);
-    node.style.setProperty('--card-tx', `${(x - 0.5) * 18}px`);
-    node.style.setProperty('--card-ty', `${(y - 0.5) * 14}px`);
+    targetRef.current = {
+      rx: (0.5 - y) * 7,
+      ry: (x - 0.5) * 8,
+      mx: x * 100,
+      my: y * 100,
+      tx: (x - 0.5) * 10,
+      ty: (y - 0.5) * 8,
+    };
+    scheduleFrame();
   }
 
   function handlePointerLeave() {
-    const node = cardRef.current;
-    if (!node) return;
-    node.style.setProperty('--card-rx', '0deg');
-    node.style.setProperty('--card-ry', '0deg');
-    node.style.setProperty('--card-mx', '50%');
-    node.style.setProperty('--card-my', '50%');
-    node.style.setProperty('--card-tx', '0px');
-    node.style.setProperty('--card-ty', '0px');
+    targetRef.current = { rx: 0, ry: 0, mx: 50, my: 50, tx: 0, ty: 0 };
+    scheduleFrame();
   }
 
   function handleClickCapture(event: React.MouseEvent<HTMLDivElement>) {

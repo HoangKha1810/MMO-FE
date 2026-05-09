@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog-provider';
 import { SiteEntryDiscordPopup } from '@/components/layout/site-entry-discord-popup';
 import { ThemeTransitionLayer } from '@/components/layout/theme-transition-layer';
+import { WalletBalanceProvider } from '@/components/layout/wallet-balance-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -31,9 +32,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         storageKey="trungtammmo-theme"
       >
         <ConfirmDialogProvider>
-          <SiteEntryDiscordPopup />
-          {children}
-          <ThemeTransitionLayer />
+          <WalletBalanceProvider>
+            <SiteEntryDiscordPopup />
+            {children}
+            <ThemeTransitionLayer />
+          </WalletBalanceProvider>
         </ConfirmDialogProvider>
       </NextThemesProvider>
     </QueryClientProvider>

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { LiveRefresh } from '@/components/live/live-refresh';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { formatDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
-import { safeRows } from '@/lib/legacy-modules';
+import { safeRows, safeRowsFromTable } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -70,7 +70,7 @@ export default async function UserOrdersPage() {
       ORDER BY o.created_at DESC
       LIMIT 50
     `, raw.id),
-    safeRows(`
+    safeRowsFromTable('card_orders', `
       SELECT id, type, telco, serial, amount, status, created_at
       FROM card_orders
       WHERE user_id = ?

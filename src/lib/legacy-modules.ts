@@ -71,6 +71,22 @@ export async function safeCount(query: string, ...values: unknown[]) {
   return Number(rows[0]?.total || 0);
 }
 
+export async function safeRowsFromTable<T extends LegacyRow>(table: string, query: string, ...values: unknown[]) {
+  if (!(await tableExists(table))) {
+    return [] as T[];
+  }
+
+  return safeRows<T>(query, ...values);
+}
+
+export async function safeCountFromTable(table: string, query: string, ...values: unknown[]) {
+  if (!(await tableExists(table))) {
+    return 0;
+  }
+
+  return safeCount(query, ...values);
+}
+
 export async function listResourceCategories() {
   if (!(await tableExists('resource_categories'))) return [];
   return safeRows<LegacyRow>(`

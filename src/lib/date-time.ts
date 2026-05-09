@@ -31,17 +31,6 @@ function partsFromAbsoluteDate(value: Date) {
   };
 }
 
-function partsFromDatabaseDriverDate(value: Date) {
-  return {
-    year: value.getUTCFullYear(),
-    month: value.getUTCMonth() + 1,
-    day: value.getUTCDate(),
-    hour: value.getUTCHours(),
-    minute: value.getUTCMinutes(),
-    second: value.getUTCSeconds(),
-  };
-}
-
 function formatDateParts(parts: {
   year: number;
   month: number;
@@ -55,7 +44,7 @@ function formatDateParts(parts: {
 
 export function serializeDatabaseDateTime(value: unknown) {
   if (value instanceof Date) {
-    return formatDateParts(partsFromDatabaseDriverDate(value));
+    return formatDateParts(partsFromAbsoluteDate(value));
   }
 
   const raw = String(value ?? '').trim();

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 
 export interface SessionUser {
   id?: number;
@@ -78,6 +79,7 @@ function setCachedSessionUser(user: SessionUser) {
 }
 
 export function useSessionUser(initialUser?: SessionUser): SessionUserState {
+  const { setBalances } = useWalletBalance();
   const [data, setData] = useState<SessionUser | undefined>(initialUser);
   const [loading, setLoading] = useState(!initialUser);
 
@@ -103,6 +105,10 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
           setData(payload.user);
           if (payload.user) {
             setCachedSessionUser(payload.user);
+            setBalances({
+              balance: payload.user.balance,
+              gameBalance: payload.user.game_balance,
+            });
           }
           setLoading(false);
         }
@@ -116,11 +122,19 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
     if (initialUser) {
       setData(initialUser);
       setCachedSessionUser(initialUser);
+      setBalances({
+        balance: initialUser.balance,
+        gameBalance: initialUser.game_balance,
+      });
       setLoading(false);
     } else {
       const cachedUser = getCachedSessionUser();
       if (cachedUser) {
         setData(cachedUser);
+        setBalances({
+          balance: cachedUser.balance,
+          gameBalance: cachedUser.game_balance,
+        });
         setLoading(false);
       } else {
         void loadUser();
@@ -136,7 +150,7 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
       active = false;
       window.clearInterval(timer);
     };
-  }, [initialUser]);
+  }, [initialUser, setBalances]);
 
   return { data, loading };
 }

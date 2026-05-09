@@ -1,6 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { MetricCard, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
-import { safeCount, safeRows } from '@/lib/legacy-modules';
+import { safeCount, safeCountFromTable, safeRows } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 import { Boxes, CreditCard, HandCoins, ShieldCheck, Wallet, Zap } from 'lucide-react';
@@ -14,7 +14,7 @@ export default async function UserStatisticsPage() {
     safeRows('SELECT COALESCE(SUM(price), 0) AS total FROM smm_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM smm_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM automxh_orders WHERE user_id = ?', raw.id),
-    safeCount('SELECT COUNT(*) AS total FROM card_orders WHERE user_id = ?', raw.id),
+    safeCountFromTable('card_orders', 'SELECT COUNT(*) AS total FROM card_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM resource_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM game_market_orders WHERE buyer_id = ?', raw.id),
   ]);

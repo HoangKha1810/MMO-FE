@@ -12,11 +12,20 @@ import {
   Server,
   ShieldCheck,
   ShoppingCart,
+  ChevronDown,
   Wallet,
 } from 'lucide-react';
 import { useSessionUser, type SessionUser } from '@/hooks/use-session-user';
+import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, MetricCard, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
@@ -42,6 +51,8 @@ function buildProxyLine(item: ProxyOwnedItem) {
 }
 
 export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps) {
+  const { confirm } = useConfirmDialog();
+  const { setBalances } = useWalletBalance();
   const session = useSessionUser(initialUser);
   const user = session.data;
   const [overview, setOverview] = useState<ProxyMarketplaceOverview | null>(null);
@@ -166,6 +177,9 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
       if (!response.ok || !payload.success) {
         throw new Error(payload.message || 'Thao tác proxy thất bại');
       }
+      if (payload.data && typeof payload.data.balanceAfter === 'number') {
+        setBalances({ balance: payload.data.balanceAfter });
+      }
       toast.success(successMessage);
       await loadOverview();
       return payload.data;
@@ -180,6 +194,18 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
   async function handleBuy() {
     if (!selectedPackage) {
       toast.error('Bạn chưa chọn gói proxy');
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: 'Xác nhận mua proxy',
+      description: `Bạn sắp thanh toán ${formatCurrency(estimatedTotal)} cho gói ${selectedPackage.name} (${Math.max(selectedPackage.minDays, Number(days || 0))} ngày · ${Math.max(1, Number(quantity || 0))} proxy). Hệ thống sẽ trừ tiền ngay khi bạn xác nhận.`,
+      confirmText: 'Thanh toán ngay',
+      cancelText: 'Kiểm tra lại',
+      tone: 'brand',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -448,22 +474,35 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
           <Card>
             <CardHeader>
               <CardTitle>Mua Proxy</CardTitle>
-              <CardDescription>Chọn package, số ngày, số lượng và thông tin bảo mật để tạo đơn mua mới.</CardDescription>
+              <CardDescription>Chọn package, số ngày, số lượng và thông tin bảo mật để tạo đơn mua mới. Hệ thống sẽ hiện popup xác nhận tổng tiền trước khi trừ số dư.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <label className="space-y-2">
                 <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Package</span>
-                <select
-                  value={selectedPackage?.id || ''}
-                  onChange={(event) => setSelectedPackageId(event.target.value)}
-                  className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
-                >
-                  {packages.filter((item) => item.enabled).map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} - {formatLocation(item.location)}
-                    </option>
-                  ))}
-                </select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="field-elevated flex h-11 w-full items-center justify-between rounded-[1rem] px-4 text-left text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
+                    >
+                      <span className="truncate">
+                        {selectedPackage ? `${selectedPackage.name} - ${formatLocation(selectedPackage.location)}` : 'Chọn package'}
+                      </span>
+                      <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-slate-400" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-[1rem]">
+                    {packages.filter((item) => item.enabled).map((item) => (
+                      <DropdownMenuItem
+                        key={item.id}
+                        className={selectedPackage?.id === item.id ? 'bg-brand-blue/10 text-brand-blue' : ''}
+                        onClick={() => setSelectedPackageId(item.id)}
+                      >
+                        {item.name} - {formatLocation(item.location)}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </label>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -491,14 +530,28 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-2">
                   <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Protocol</span>
-                  <select
-                    value={protocol}
-                    onChange={(event) => setProtocol(event.target.value === 'SOCKS5' ? 'SOCKS5' : 'HTTP')}
-                    className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
-                  >
-                    <option value="HTTP">HTTP</option>
-                    <option value="SOCKS5">SOCKS5</option>
-                  </select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="field-elevated flex h-11 w-full items-center justify-between rounded-[1rem] px-4 text-left text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
+                      >
+                        <span>{protocol}</span>
+                        <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-slate-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-[1rem]">
+                      {(['HTTP', 'SOCKS5'] as const).map((item) => (
+                        <DropdownMenuItem
+                          key={item}
+                          className={protocol === item ? 'bg-brand-blue/10 text-brand-blue' : ''}
+                          onClick={() => setProtocol(item)}
+                        >
+                          {item}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </label>
                 <div className="rounded-[1.2rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tổng thanh toán</div>

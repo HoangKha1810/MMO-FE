@@ -501,9 +501,9 @@
       rotateY(var(--card-ry))
       translateZ(0);
     transition:
-      transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 320ms ease;
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 220ms ease;
     will-change: transform;
   }
 
@@ -517,9 +517,9 @@
     position: absolute;
     inset: -20%;
     opacity: 0.16;
-    filter: blur(26px);
+    filter: blur(18px);
     transform: translate3d(calc(var(--card-tx) * 0.65), calc(var(--card-ty) * 0.5), 10px) scale(1.02);
-    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
     pointer-events: none;
   }
 
@@ -532,10 +532,9 @@
     inset: 0;
     pointer-events: none;
     background:
-      radial-gradient(circle at var(--card-mx) var(--card-my), rgba(255, 255, 255, 0.22), transparent 24%),
+      radial-gradient(circle at var(--card-mx) var(--card-my), rgba(255, 255, 255, 0.18), transparent 20%),
       radial-gradient(circle at 80% 12%, rgba(255, 255, 255, 0.1), transparent 18%);
-    opacity: 0.9;
-    mix-blend-mode: screen;
+    opacity: 0.72;
   }
 
   .service-tilt-grid {
@@ -563,8 +562,8 @@
     height: 16px;
     border-radius: 999px;
     background: radial-gradient(circle at center, rgba(15, 23, 42, 0.65), transparent 72%);
-    filter: blur(7px);
-    opacity: 0.65;
+    filter: blur(5px);
+    opacity: 0.55;
     transform: translateZ(4px);
     pointer-events: none;
   }

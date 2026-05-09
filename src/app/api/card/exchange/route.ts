@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
+import { tableExists } from '@/lib/legacy-modules';
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
@@ -11,6 +12,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (!(await tableExists('card_orders'))) {
+      return NextResponse.json(
+        { success: false, message: 'Module thẻ cào chưa được cấu hình trong cơ sở dữ liệu hiện tại' },
+        { status: 503 }
+      );
+    }
+
     const { telco, amount, serial, pin, type } = await req.json();
 
     if (!telco || !amount || !serial || !pin) {
