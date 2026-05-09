@@ -19,6 +19,91 @@ function extractFacebookId(url: string) {
   return '';
 }
 
+function normalizeFacebookUrl(url: string) {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  try {
+    const normalized = new URL(raw);
+    normalized.search = '';
+    return normalized.toString().replace(/\/+$/, '');
+  } catch {
+    return raw.split('?')[0]?.replace(/\/+$/, '') || raw;
+  }
+}
+
+async function postForm(requestUrl: string, body: Record<string, string>, headers: Record<string, string> = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch(requestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        ...headers,
+      },
+      body: new URLSearchParams(body),
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+
+    return response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveFacebookUid(url: string) {
+  const originalUrl = String(url || '').trim();
+  const cleanedUrl = normalizeFacebookUrl(originalUrl);
+
+  const directUid = extractFacebookId(originalUrl) || extractFacebookId(cleanedUrl);
+  if (directUid) {
+    return directUid;
+  }
+
+  try {
+    const tdsResponse = await postForm(
+      'https://id.traodoisub.com/api.php',
+      { link: originalUrl },
+      { Referer: 'https://id.traodoisub.com/' }
+    );
+    if (tdsResponse) {
+      const payload = JSON.parse(tdsResponse) as { id?: string | number };
+      const candidate = String(payload?.id || '').trim();
+      if (/^\d{6,}$/.test(candidate)) {
+        return candidate;
+      }
+    }
+  } catch {
+    // Fallback below.
+  }
+
+  try {
+    const atpResponse = await postForm('https://id.atpsoftware.vn/api/getUID', { link: originalUrl });
+    if (atpResponse) {
+      try {
+        const payload = JSON.parse(atpResponse) as { id?: string | number };
+        const candidate = String(payload?.id || '').trim();
+        if (/^\d{6,}$/.test(candidate)) {
+          return candidate;
+        }
+      } catch {
+        const cleaned = atpResponse.trim();
+        if (/^\d{6,}$/.test(cleaned)) {
+          return cleaned;
+        }
+      }
+    }
+  } catch {
+    // Final failure handled by caller.
+  }
+
+  return '';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -29,11 +114,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (/facebook\.com|fb\.com|fb\.watch/i.test(url)) {
-      const uid = extractFacebookId(url);
+      const uid = await resolveFacebookUid(url);
 
       if (uid) {
         return NextResponse.json({ success: true, uid, id: uid, platform: 'Facebook' });
       }
+
+      return NextResponse.json({
+        success: false,
+        message: 'Không tìm thấy UID. Hãy đảm bảo link công khai hoặc thử lại sau.',
+      });
     }
 
     const tiktok = url.match(/tiktok\.com\/@([a-zA-Z0-9._-]+)/i);

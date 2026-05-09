@@ -774,7 +774,15 @@ export function AppShell({
                             className={getNavLinkClass(active, 'w-full justify-between')}
                           >
                             <div className="flex min-w-0 items-center space-x-3">
-                              <item.icon className={cn('h-4 w-4 shrink-0', item.color)} />
+                              {item.gif ? (
+                                <img
+                                  src={`/assets/images/gif/${item.gif}`}
+                                  alt=""
+                                  className="h-4 w-4 shrink-0 rounded-full object-cover"
+                                />
+                              ) : (
+                                <item.icon className={cn('h-4 w-4 shrink-0', item.color)} />
+                              )}
                               <span className="truncate whitespace-nowrap text-sm font-bold">{item.label}</span>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
