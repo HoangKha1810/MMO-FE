@@ -18,9 +18,50 @@ interface ResourceDetailActionsProps {
   reviews: ReviewRow[];
   paymentWallet?: 'main' | 'game';
   gameBalance?: number;
+  resourceTitle?: string;
+  resourceCategory?: string;
+  resourceTags?: string;
 }
 
-export function ResourceDetailActions({ resourceId, price, stock, orders, reviews, paymentWallet = 'main', gameBalance = 0 }: ResourceDetailActionsProps) {
+const FREE_FIRE_LOGIN_GUIDE_TEXT = `Huong dan dang nhap Free Fire
+
+Cach 1 ios/adr ( Ti le 50% , TuT cu tuy acc duoc ) Link Video:
+https://drive.google.com/file/d/1dh82ZehjelPCqTXlypAQFMadQ_BauebA/view?usp=drivesdk
+
+Cach 2 ios/adr ( 30% - 80 % ):
+Su dung 2 may cung dung mot mang 4g ( May nay phat mang cho may kia - ip phat mang cho adr hoac nguoc lai ) roi cung log 1 luc
+
+Cach 3 TuT new ti le cao:
+https://drive.google.com/file/d/103Z2ktErtSQrh_QcT9ZU5hv2W7p9sYSU/view?usp=drive_link
+(Voi may khong co 2 sim thi dung 2 may 1 may phat mang 4g cho may kia r lam theo c2 hoac video
+Voi adr lam tuong tu nhu tren neu khong co 2 sim)
+
+Cach 4 ( New ):
+B1: log acc cp vao 3 tab fb.com ( Tab la may cai the tren gg a )
+B2: bat tab limited.facebook.com duc tao tk moi nhap y si thong tin cua acc cp (giong cach 1) neu no load ra cp la duc duoc con no dung im la da bi duc tach
+Video minh hoa:
+https://drive.google.com/file/d/1vnKgNdSXaIynZm38SuiGvFhWknXyfBwv/view?usp=drive_link
+`;
+
+function normalizeText(input: string) {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+export function ResourceDetailActions({
+  resourceId,
+  price,
+  stock,
+  orders,
+  reviews,
+  paymentWallet = 'main',
+  gameBalance = 0,
+  resourceTitle = '',
+  resourceCategory = '',
+  resourceTags = '',
+}: ResourceDetailActionsProps) {
   const router = useRouter();
   const { confirm } = useConfirmDialog();
   const [isPending, startTransition] = useTransition();
@@ -28,6 +69,24 @@ export function ResourceDetailActions({ resourceId, price, stock, orders, review
   const [quantity, setQuantity] = useState('1');
   const [rating, setRating] = useState('5');
   const [comment, setComment] = useState('');
+  const [showFreeFireGuide, setShowFreeFireGuide] = useState(false);
+
+  const resourceSearchText = normalizeText(`${resourceTitle} ${resourceCategory} ${resourceTags}`);
+  const shouldShowFreeFireGuide =
+    resourceSearchText.includes('free fire') &&
+    (resourceSearchText.includes('random') || resourceSearchText.includes('acc') || resourceSearchText.includes('tai khoan'));
+
+  function downloadFreeFireGuideTxt() {
+    const blob = new Blob([FREE_FIRE_LOGIN_GUIDE_TEXT], { type: 'text/plain;charset=utf-8' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = downloadUrl;
+    anchor.download = 'huong-dan-dang-nhap-free-fire.txt';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(downloadUrl);
+  }
 
   async function purchase() {
     const requestedQuantity = Math.max(1, Math.min(10, Math.trunc(Number(quantity || 1))));
@@ -76,6 +135,9 @@ export function ResourceDetailActions({ resourceId, price, stock, orders, review
         throw new Error(payload.message || 'Không thể mua tài nguyên');
       }
       toast.success(payload.message || 'Mua thành công');
+      if (shouldShowFreeFireGuide) {
+        setShowFreeFireGuide(true);
+      }
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể mua tài nguyên');
@@ -199,6 +261,67 @@ export function ResourceDetailActions({ resourceId, price, stock, orders, review
                 <p className="mt-3 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">{String(review.comment || '')}</p>
               </div>
             ))}
+          </div>
+        </div>
+      ) : null}
+
+      {showFreeFireGuide ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-900">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-brand-blue">
+                  Huong dan dang nhap Free Fire
+                </div>
+                <h3 className="mt-1 text-lg font-black text-slate-950 dark:text-white">
+                  Cach dang nhap sau khi mua acc/random Free Fire
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFreeFireGuide(false)}
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-rose-500 dark:border-white/10"
+              >
+                Dong
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-[56vh] space-y-3 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-300">
+              <p>
+                <strong>Cach 1 ios/adr (Ti le 50%, TuT cu tuy acc duoc):</strong><br />
+                <a className="text-brand-blue underline" href="https://drive.google.com/file/d/1dh82ZehjelPCqTXlypAQFMadQ_BauebA/view?usp=drivesdk" target="_blank" rel="noreferrer">
+                  Xem video huong dan
+                </a>
+              </p>
+              <p>
+                <strong>Cach 2 ios/adr (30% - 80%):</strong><br />
+                Su dung 2 may cung dung mot mang 4g (mot may phat mang cho may kia), sau do dang nhap cung luc.
+              </p>
+              <p>
+                <strong>Cach 3 TuT new ti le cao:</strong><br />
+                <a className="text-brand-blue underline" href="https://drive.google.com/file/d/103Z2ktErtSQrh_QcT9ZU5hv2W7p9sYSU/view?usp=drive_link" target="_blank" rel="noreferrer">
+                  Xem video huong dan
+                </a><br />
+                Neu may khong co 2 sim thi dung 2 may (1 may phat 4g cho may kia) va lam theo cach 2/video.
+              </p>
+              <p>
+                <strong>Cach 4 (New):</strong><br />
+                B1: Dang nhap acc CP vao 3 tab <code>fb.com</code>.<br />
+                B2: Mo tab <code>limited.facebook.com</code>, tao tai khoan moi va nhap dung thong tin acc CP (giong cach 1).<br />
+                Neu load ra CP la thanh cong, neu dung im la that bai.<br />
+                <a className="text-brand-blue underline" href="https://drive.google.com/file/d/1vnKgNdSXaIynZm38SuiGvFhWknXyfBwv/view?usp=drive_link" target="_blank" rel="noreferrer">
+                  Xem video minh hoa
+                </a>
+              </p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={downloadFreeFireGuideTxt}>
+                <Download className="mr-2 h-4 w-4" />
+                Download txt cach dang nhap
+              </Button>
+              <Button onClick={() => setShowFreeFireGuide(false)}>Da hieu</Button>
+            </div>
           </div>
         </div>
       ) : null}

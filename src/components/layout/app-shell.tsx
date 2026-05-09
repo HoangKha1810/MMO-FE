@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import {
@@ -625,6 +625,16 @@ export function AppShell({
     }
   }
 
+  function handleBrandHomeClick(event: MouseEvent<HTMLAnchorElement>) {
+    const homeHref = isAdmin ? '/admin/dashboard' : '/user/home';
+    setSidebarOpen(false);
+    startPageTransition();
+    if (pathname !== homeHref) {
+      event.preventDefault();
+      router.push(homeHref);
+    }
+  }
+
   return (
     <div className="site-shell h-dvh overflow-hidden">
       <div className="flex h-dvh overflow-hidden">
@@ -654,7 +664,11 @@ export function AppShell({
             <div className="relative z-10">
               <div className="shell-brand-card p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <Link href={isAdmin ? '/admin/dashboard' : '/user/home'} className="min-w-0 flex-1">
+                  <Link
+                    href={isAdmin ? '/admin/dashboard' : '/user/home'}
+                    onClick={handleBrandHomeClick}
+                    className="min-w-0 flex-1"
+                  >
                     <img
                       src="/logo.gif"
                       alt="TRUNGTAMMMO.VN Logo"

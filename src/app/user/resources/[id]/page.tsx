@@ -112,6 +112,9 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                 reviews={reviews}
                 paymentWallet={usesGameWallet ? 'game' : 'main'}
                 gameBalance={shell.game_balance}
+                resourceTitle={String(resource.title || '')}
+                resourceCategory={String(resource.category_name || resource.category || '')}
+                resourceTags={String(resource.tags || '')}
               />
             </div>
           </div>
