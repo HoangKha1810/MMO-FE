@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import {
   AlertTriangle,
   CheckCircle,
+  ChevronDown,
   ChevronRight,
   HelpCircle,
   History,
@@ -139,6 +140,7 @@ export default function SmmOrderPage() {
   const [orders, setOrders] = useState<SmmOrderRecord[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [detectingId, setDetectingId] = useState(false);
+  const [expandedServices, setExpandedServices] = useState<number[]>([]);
 
   const selectedService = useMemo(
     () => services.find((service) => service.service === selectedServiceId) || services[0] || null,
@@ -292,6 +294,15 @@ export default function SmmOrderPage() {
     setSelectedServiceId(serviceId);
     setQuantity(String(nextService?.min || 1));
     setComments('');
+    setExpandedServices((current) => (current.includes(serviceId) ? current : [...current, serviceId]));
+  }
+
+  function toggleServiceExpand(serviceId: number) {
+    setExpandedServices((current) =>
+      current.includes(serviceId)
+        ? current.filter((item) => item !== serviceId)
+        : [...current, serviceId]
+    );
   }
 
   async function pasteLink() {
@@ -478,33 +489,114 @@ export default function SmmOrderPage() {
                     <div className="flex flex-col gap-2.5">
                       {services.map((service, index) => {
                         const checked = selectedService?.service === service.service;
+                        const expanded = checked || expandedServices.includes(service.service);
                         return (
-                          <label key={`${service.provider_id}-${service.service}`} className="group relative flex cursor-pointer items-start gap-4 py-1">
-                            <input
-                              type="radio"
-                              name="service_id"
-                              checked={checked}
-                              onChange={() => handleServiceChange(service.service)}
-                              className="mt-1 h-5 w-5 cursor-pointer border-2 border-slate-300 text-brand-blue focus:ring-brand-blue/20 dark:border-white/10"
-                            />
-                            <div className="flex-1 text-[13px] font-semibold leading-relaxed">
-                              <span className="font-bold text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white">
-                                SV{service.service}
-                              </span>
-                              <span className="mx-1.5 text-slate-400 opacity-50 dark:text-slate-500">•</span>
-                              <span className="text-slate-600 dark:text-slate-400">{service.name}</span>
-                              <span className="mx-1.5 text-slate-400 opacity-50 dark:text-slate-500">•</span>
-                              <span className="font-bold italic text-rose-500 underline decoration-rose-500/10 dark:text-rose-400">
-                                {(service.price_per_1k_vnd / 1000).toFixed(1)} đ
-                              </span>
-                              <CheckCircle className="ml-1.5 inline h-3.5 w-3.5 text-emerald-500 opacity-60" />
-                              {index === 0 ? (
-                                <span className="ml-2 rounded bg-blue-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-tighter text-white">
-                                  Gợi ý
-                                </span>
-                              ) : null}
+                          <div
+                            key={`${service.provider_id}-${service.service}`}
+                            className={cn(
+                              'overflow-hidden rounded-2xl border transition-all',
+                              checked
+                                ? 'border-brand-blue/30 bg-brand-blue/5'
+                                : 'border-slate-200/80 bg-white/60 dark:border-white/8 dark:bg-white/[0.03]'
+                            )}
+                          >
+                            <div className="group flex items-start gap-4 px-4 py-4">
+                              <input
+                                type="radio"
+                                name="service_id"
+                                checked={checked}
+                                onChange={() => handleServiceChange(service.service)}
+                                className="mt-1 h-5 w-5 cursor-pointer border-2 border-slate-300 text-brand-blue focus:ring-brand-blue/20 dark:border-white/10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => toggleServiceExpand(service.service)}
+                                className="flex flex-1 items-start justify-between gap-4 text-left"
+                              >
+                                <div className="flex-1 text-[13px] font-semibold leading-relaxed">
+                                  <span className="font-bold text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white">
+                                    SV{service.service}
+                                  </span>
+                                  <span className="mx-1.5 text-slate-400 opacity-50 dark:text-slate-500">•</span>
+                                  <span className="text-slate-600 dark:text-slate-400">{service.name}</span>
+                                  <span className="mx-1.5 text-slate-400 opacity-50 dark:text-slate-500">•</span>
+                                  <span className="font-bold italic text-rose-500 underline decoration-rose-500/10 dark:text-rose-400">
+                                    {(service.price_per_1k_vnd / 1000).toFixed(1)} đ
+                                  </span>
+                                  <CheckCircle className="ml-1.5 inline h-3.5 w-3.5 text-emerald-500 opacity-60" />
+                                  {index === 0 ? (
+                                    <span className="ml-2 rounded bg-blue-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-tighter text-white">
+                                      Gợi ý
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <ChevronDown
+                                  className={cn(
+                                    'mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform',
+                                    expanded && 'rotate-180 text-brand-blue'
+                                  )}
+                                />
+                              </button>
                             </div>
-                          </label>
+
+                            {expanded ? (
+                              <div className="border-t border-slate-200/70 px-4 py-4 dark:border-white/8">
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Giá / 1K</div>
+                                    <div className="mt-2 text-sm font-black text-brand-blue">{formatCurrency(service.price_per_1k_vnd)}</div>
+                                  </div>
+                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Giá / 1 lượt</div>
+                                    <div className="mt-2 text-sm font-black text-emerald-500">
+                                      {service.price_per_unit_vnd > 0 ? `${service.price_per_unit_vnd.toFixed(2)} đ` : `${(service.price_per_1k_vnd / 1000).toFixed(1)} đ`}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Giới hạn số lượng</div>
+                                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
+                                      {formatNumber(service.min)} - {formatNumber(service.max)}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Tổng đơn đã chạy</div>
+                                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
+                                      {formatNumber(service.total_orders || 0)}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Refill</div>
+                                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
+                                      {service.refill ? 'Có hỗ trợ' : 'Không hỗ trợ'}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Provider</div>
+                                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
+                                      #{service.provider_id} / SV{service.service}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {service.description ? (
+                                  <div className="mt-3 rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-medium leading-7 text-slate-600 dark:border-white/8 dark:bg-white/[0.03] dark:text-slate-300">
+                                    {service.description}
+                                  </div>
+                                ) : null}
+
+                                {service.provider_data ? (
+                                  <details className="mt-3 rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3 dark:border-white/8 dark:bg-white/[0.03]">
+                                    <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                                      Payload provider
+                                    </summary>
+                                    <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-all text-[11px] font-medium leading-6 text-slate-500 dark:text-slate-300">
+                                      {service.provider_data}
+                                    </pre>
+                                  </details>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
                         );
                       })}
                     </div>
