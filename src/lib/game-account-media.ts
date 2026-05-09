@@ -1,4 +1,4 @@
-import { sanitizeProviderMedia } from '@/lib/provider-media';
+import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 
 type GameKey = 'lien-quan-mobile' | 'free-fire' | 'pubg-mobile' | 'fc-mobile' | 'tft';
 
@@ -165,5 +165,7 @@ export function getGameAccountThumbnailUrl(input: {
     return gameThumbnailMap[gameKey];
   }
 
-  return sanitizeProviderMedia(input.primary, input.fallback);
+  return buildLegacyAssetUrl(String(input.primary || '').trim())
+    || buildLegacyAssetUrl(String(input.fallback || '').trim())
+    || null;
 }
