@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { listResourceFilterLabels, listResources, type ResourceCollection } from '@/lib/legacy-modules';
 import { rewriteGameAccountPriceMentions } from '@/lib/game-account-pricing';
+import { getGameAccountThumbnailUrl } from '@/lib/game-account-media';
 import { scheduleGameAccountResourcesSyncOnUserVisit } from '@/lib/mmo-provider';
-import { sanitizeProviderMedia } from '@/lib/provider-media';
 import { hideProviderBranding } from '@/lib/provider-branding';
 import { resourceHtmlToText } from '@/lib/resource-content';
 import { formatCurrency, toNumber } from '@/lib/utils';
@@ -197,7 +197,16 @@ export async function ResourceCollectionPage({ collection, search = '', category
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
               {resources.map((resource) => {
-                const thumbnail = sanitizeProviderMedia(resource.thumbnail, resource.category_image);
+                const thumbnail = getGameAccountThumbnailUrl({
+                  title: resource.title,
+                  category: resource.category,
+                  categoryName: resource.category_name,
+                  tags: resource.tags,
+                  description: resource.description,
+                  customBadge: resource.custom_badge,
+                  primary: resource.thumbnail,
+                  fallback: resource.category_image,
+                });
                 const price = toNumber(resource.price);
                 const sourcePrice = toNumber(resource.original_price);
                 const description = rewriteGameAccountPriceMentions(

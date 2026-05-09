@@ -5,8 +5,8 @@ import { AppShell } from '@/components/layout/app-shell';
 import { ResourceDetailActions } from '@/components/resources/resource-detail-actions';
 import { Badge } from '@/components/ui/badge';
 import { rewriteGameAccountPriceMentions } from '@/lib/game-account-pricing';
+import { getGameAccountThumbnailUrl } from '@/lib/game-account-media';
 import { getResourceDetail } from '@/lib/legacy-modules';
-import { sanitizeProviderMedia } from '@/lib/provider-media';
 import { hideProviderBranding } from '@/lib/provider-branding';
 import { isRandom1kProviderLike } from '@/lib/random1k';
 import { cleanResourceHtml } from '@/lib/resource-content';
@@ -29,7 +29,16 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   if (!data) notFound();
 
   const { resource, related, orders } = data;
-  const thumbnail = sanitizeProviderMedia(resource.thumbnail, resource.category_image);
+  const thumbnail = getGameAccountThumbnailUrl({
+    title: resource.title,
+    category: resource.category,
+    categoryName: resource.category_name,
+    tags: resource.tags,
+    description: resource.description,
+    customBadge: resource.custom_badge,
+    primary: resource.thumbnail,
+    fallback: resource.category_image,
+  });
   const price = toNumber(resource.price);
   const sourcePrice = toNumber(resource.original_price);
   const shouldRewriteApiPrices =

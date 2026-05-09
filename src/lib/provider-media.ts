@@ -13,7 +13,8 @@ export function isBlockedProviderMedia(value: unknown) {
 }
 
 export function sanitizeProviderMedia(primary: unknown, fallback?: unknown) {
-  const fallbackUrl = buildLegacyAssetUrl(normalizeRawMediaPath(fallback));
+  const fallbackRaw = normalizeRawMediaPath(fallback);
+  const fallbackUrl = isBlockedProviderMedia(fallbackRaw) ? null : buildLegacyAssetUrl(fallbackRaw);
   const primaryRaw = normalizeRawMediaPath(primary);
 
   if (!primaryRaw) {
