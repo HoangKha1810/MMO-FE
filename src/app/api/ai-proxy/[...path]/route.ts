@@ -4,7 +4,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 function buildTargetUrl(request: NextRequest, path: string[]) {
-  const targetBase = String(process.env.AI_ARENA_API_BASE_URL || '').trim().replace(/\/+$/, '');
+  const targetBase = String(
+    process.env.AI_ARENA_API_BASE_URL ||
+      process.env.NEXT_PUBLIC_AI_ARENA_API_BASE_URL ||
+      process.env.INTEGRATED_AI_API_BASE_URL ||
+      ''
+  ).trim().replace(/\/+$/, '');
   if (!targetBase) {
     throw new Error('Thiếu AI_ARENA_API_BASE_URL');
   }

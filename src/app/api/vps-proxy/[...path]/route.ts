@@ -4,7 +4,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 function buildTargetUrl(request: NextRequest, path: string[]) {
-  const targetBase = String(process.env.VPS_PORTAL_API_BASE_URL || '').trim().replace(/\/+$/, '');
+  const targetBase = String(
+    process.env.VPS_PORTAL_API_BASE_URL ||
+      process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL ||
+      process.env.INTEGRATED_VPS_API_BASE_URL ||
+      ''
+  ).trim().replace(/\/+$/, '');
   if (!targetBase) {
     throw new Error('Thiếu VPS_PORTAL_API_BASE_URL');
   }
