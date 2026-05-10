@@ -8,6 +8,7 @@ function buildTargetUrl(request: NextRequest, path: string[]) {
     process.env.AI_ARENA_API_BASE_URL ||
       process.env.NEXT_PUBLIC_AI_ARENA_API_BASE_URL ||
       process.env.INTEGRATED_AI_API_BASE_URL ||
+      process.env.VITE_API_BASE_URL ||
       ''
   ).trim().replace(/\/+$/, '');
   if (!targetBase) {

@@ -8,6 +8,7 @@ function buildTargetUrl(request: NextRequest, path: string[]) {
     process.env.VPS_PORTAL_API_BASE_URL ||
       process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL ||
       process.env.INTEGRATED_VPS_API_BASE_URL ||
+      process.env.VITE_API_BASE_URL ||
       ''
   ).trim().replace(/\/+$/, '');
   if (!targetBase) {
