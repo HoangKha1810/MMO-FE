@@ -5,6 +5,11 @@ import {
   getSmmPriceMultiplier,
   getVatPercent,
 } from '@/lib/legacy-settings';
+import {
+  buildSmmPriceFromMargin,
+  buildSmmPriceFromMultiplier,
+  getSmmMarginPercentFromMultiplier,
+} from '@/lib/smm-pricing';
 import { toNumber } from '@/lib/utils';
 
 const DEFAULT_SMM_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -233,10 +238,6 @@ function ensureObjectPayload(payload: unknown, fallbackMessage: string): Record<
   return payload as Record<string, unknown>;
 }
 
-function getMarginPercent(multiplier: number): number {
-  return Math.max(0, Math.round((Math.max(multiplier, 1) - 1) * 10000) / 100);
-}
-
 async function loadProviderConfig(providerId?: number | null): Promise<SmmProviderConfig> {
   const explicitProviderId =
     providerId !== undefined && providerId !== null ? Math.max(0, Math.trunc(toNumber(providerId, 0))) : null;
@@ -320,7 +321,7 @@ async function loadProviderConfig(providerId?: number | null): Promise<SmmProvid
         contentType: 'application/x-www-form-urlencoded',
         responseType: 'JSON',
         exchangeRate: toNumber(provider.exchange_rate, 1),
-        marginPercent: getMarginPercent(priceMultiplier),
+        marginPercent: getSmmMarginPercentFromMultiplier(priceMultiplier),
         isPerUnit: Boolean(provider.is_per_unit),
         priceMultiplier,
         vatPercent,
@@ -347,7 +348,7 @@ async function loadProviderConfig(providerId?: number | null): Promise<SmmProvid
         contentType: 'application/x-www-form-urlencoded',
         responseType: 'JSON',
         exchangeRate: toNumber(settings.smm_api_exchange_rate, 1),
-        marginPercent: getMarginPercent(priceMultiplier),
+        marginPercent: getSmmMarginPercentFromMultiplier(priceMultiplier),
         isPerUnit: parseBoolean(settings.smm_api_is_per_unit),
         priceMultiplier,
         vatPercent,
@@ -599,7 +600,7 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
       let customPrice = toNumber(existing.custom_price, 0);
 
       if (changed && isAutoMargin) {
-        customPrice = newRate * (1 + marginPercent / 100);
+        customPrice = buildSmmPriceFromMargin(newRate, marginPercent);
       }
 
       await db.smm_services_cache.update({
@@ -686,7 +687,7 @@ function normalizeCachedService(
   const type = normalizeWhitespace(String(row.type || 'Default')) || 'Default';
   const cachedRate = toNumber(row.rate, 0);
   const customPrice = toNumber(row.custom_price, 0);
-  const finalRate = customPrice > 0 ? customPrice : cachedRate * Math.max(config.priceMultiplier, 1);
+  const finalRate = customPrice > 0 ? customPrice : buildSmmPriceFromMultiplier(cachedRate, config.priceMultiplier);
 
   return {
     id: row.id,

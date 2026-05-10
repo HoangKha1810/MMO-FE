@@ -2,6 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
 import { buyMmoProviderProduct } from '@/lib/mmo-provider';
 import { toNumber } from '@/lib/utils';
 
@@ -116,7 +117,11 @@ export async function purchaseResource(userId: number, resourceId: number, quant
   const apiProductId = String(resource.api_product_id || '').trim();
   const isAuto = Boolean((resource.is_auto === true || toNumber(resource.is_auto, 0) === 1) && apiProviderId > 0 && apiProductId);
   const wallet = usesGameWallet(resource) ? 'game' : 'main';
-  const totalPrice = toNumber(resource.price, 0) * normalizedQuantity;
+  const settings = await getLegacySettingsMap();
+  const vatPercent = getVatPercent(settings);
+  const subtotal = toNumber(resource.price, 0) * normalizedQuantity;
+  const vatAmount = Math.round((subtotal * vatPercent) / 100);
+  const totalPrice = subtotal + vatAmount;
 
   if (resourceStatus === 'out_of_stock' || (!isAuto && stock < normalizedQuantity) || (isAuto && stock > 0 && stock < normalizedQuantity)) {
     throw new Error('Kho tài nguyên không đủ');
@@ -214,7 +219,7 @@ export async function purchaseResource(userId: number, resourceId: number, quant
       ).catch(() => undefined);
     }
 
-    return { orderId, totalPrice, nextBalance, wallet };
+    return { orderId, subtotal, vatAmount, totalPrice, nextBalance, wallet };
   }, { maxWait: 10000, timeout: 15000 });
 
   await db.activity_logs.create({

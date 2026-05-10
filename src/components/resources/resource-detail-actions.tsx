@@ -13,6 +13,7 @@ type OrderRow = Record<string, unknown>;
 interface ResourceDetailActionsProps {
   resourceId: number;
   price: number;
+  vatPercent?: number;
   stock: number;
   orders: OrderRow[];
   reviews: ReviewRow[];
@@ -53,6 +54,7 @@ function normalizeText(input: string) {
 export function ResourceDetailActions({
   resourceId,
   price,
+  vatPercent = 8,
   stock,
   orders,
   reviews,
@@ -90,7 +92,7 @@ export function ResourceDetailActions({
 
   async function purchase() {
     const requestedQuantity = Math.max(1, Math.min(10, Math.trunc(Number(quantity || 1))));
-    const totalPrice = Math.max(0, price * requestedQuantity);
+    const totalPrice = Math.max(0, Math.round(price * requestedQuantity * (1 + vatPercent / 100)));
 
     try {
       if (paymentWallet === 'game') {

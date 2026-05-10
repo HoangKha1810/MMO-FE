@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
 import { JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
+import 'katex/dist/katex.min.css';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { Providers } from '@/components/layout/providers';

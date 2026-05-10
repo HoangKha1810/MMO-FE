@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { listResources, type ResourceCollection } from '@/lib/legacy-modules';
 import { hideProviderBranding } from '@/lib/provider-branding';
 import { cleanResourceHtml } from '@/lib/resource-content';
+import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
+import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,8 +21,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const resources = await listResources({ search, category, collection, limit: 100 });
+    const vatPercent = getVatPercent(await getLegacySettingsMap());
     const data = resources.map((resource) => ({
       ...resource,
+      price: Math.round(toNumber(resource.price, 0) * (1 + vatPercent / 100)),
       title: hideProviderBranding(resource.title, String(resource.title || '')),
       description: cleanResourceHtml(resource.description),
       category: hideProviderBranding(resource.category, String(resource.category || '')),

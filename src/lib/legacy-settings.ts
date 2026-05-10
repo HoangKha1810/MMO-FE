@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { DEFAULT_SMM_PRICE_MULTIPLIER, normalizeSmmPriceMultiplier } from '@/lib/smm-pricing';
 import { toNumber } from '@/lib/utils';
 
 export interface LegacyServiceItem {
@@ -477,13 +478,13 @@ export function getSmmDefaultProviderId(settings: Record<string, string>): numbe
 }
 
 export function getSmmPriceMultiplier(settings: Record<string, string>): number {
-  const multiplier = toNumber(settings.smm_price_multiplier, 1);
-  return multiplier > 0 ? multiplier : 1;
+  const multiplier = toNumber(settings.smm_price_multiplier, DEFAULT_SMM_PRICE_MULTIPLIER);
+  return normalizeSmmPriceMultiplier(multiplier);
 }
 
 export function getVatPercent(settings: Record<string, string>): number {
-  const vat = toNumber(settings.vat_percent, 0);
-  return vat > 0 ? vat : 0;
+  void settings;
+  return 8;
 }
 
 export function getHomeServiceGrid(settings: Record<string, string>): LegacyServiceItem[] {

@@ -1,0 +1,26 @@
+{
+  "name": "TrungTamMMO AI Arena",
+  "short_name": "TTMMO AI",
+  "description": "Không gian chat AI đa mô hình của TrungTamMMO với trò chuyện trực tiếp, so sánh song song và battle mode.",
+  "lang": "vi-VN",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#181512",
+  "theme_color": "#181512",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

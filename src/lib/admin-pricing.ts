@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { buildRandom1kResourceWhereSql } from '@/lib/random1k';
+import { DEFAULT_SMM_PRICE_MULTIPLIER, buildSmmPriceFromMargin } from '@/lib/smm-pricing';
 import { toNumber } from '@/lib/utils';
 
 type PricingFieldKind = 'money' | 'percent' | 'number';
@@ -108,8 +109,8 @@ const pricingModuleConfigs: PricingModuleConfig[] = [
         kind: 'money',
         editable: true,
         primary: true,
-        selectExpression: 'COALESCE(NULLIF(`custom_price`, 0), `rate`)',
-        hint: 'Lưu vào custom_price để sync provider không ghi đè.',
+        selectExpression: `COALESCE(NULLIF(\`custom_price\`, 0), ROUND(COALESCE(\`rate\`, 0) * ${DEFAULT_SMM_PRICE_MULTIPLIER}, 4))`,
+        hint: 'Giá bán mặc định = giá gốc SubMetaVip + 60%. Lưu vào custom_price để sync provider không ghi đè.',
       },
       {
         key: 'rate',
@@ -764,7 +765,7 @@ export async function updatePricingItem(input: PricingActionInput, adminId: numb
       id
     );
     const providerRate = toNumber(currentRows[0]?.provider_rate, 0);
-    nextCustomPriceForSmm = Math.round(providerRate * (1 + requestedMarginValue / 100) * 10000) / 10000;
+    nextCustomPriceForSmm = buildSmmPriceFromMargin(providerRate, requestedMarginValue);
   }
 
   for (const [key, value] of Object.entries(fieldPatch)) {
@@ -880,16 +881,43 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
     if (!Number.isFinite(percent) || percent <= -100 || percent > 1000) {
       throw new Error('Phần trăm điều chỉnh không hợp lệ');
     }
-    const factor = Math.round((1 + percent / 100) * 1000000) / 1000000;
-    const sourceExpression = targetField.selectExpression || escapeIdentifier(targetField.column);
-    affected = Number(await db.$executeRawUnsafe(
-      `UPDATE ${escapeIdentifier(config.table)}
-       SET ${escapeIdentifier(targetField.column)} = ROUND(COALESCE(${sourceExpression}, 0) * ?, 4)
-       ${columns.has('updated_at') ? ', `updated_at` = NOW()' : columns.has('cached_at') ? ', `cached_at` = NOW()' : ''}
-       ${whereSql}`,
-      factor,
-      ...whereValues
-    ) || 0);
+    if (moduleKey === 'smm' && targetField.key === 'margin_percent') {
+      const rateField = fields.find((field) => field.key === 'rate');
+      const customPriceField = fields.find((field) => field.key === 'custom_price');
+      const marginValue = Math.round(percent * 10000) / 10000;
+      const assignments = [`${escapeIdentifier('margin_percent')} = ?`];
+      const assignmentValues: unknown[] = [marginValue];
+
+      if (columns.has('is_auto_margin')) {
+        assignments.push(`${escapeIdentifier('is_auto_margin')} = ?`);
+        assignmentValues.push(1);
+      }
+
+      if (rateField && customPriceField) {
+        assignments.push(`${escapeIdentifier(customPriceField.column)} = ROUND(COALESCE(${escapeIdentifier(rateField.column)}, 0) * (1 + (? / 100)), 4)`);
+        assignmentValues.push(marginValue);
+      }
+
+      affected = Number(await db.$executeRawUnsafe(
+        `UPDATE ${escapeIdentifier(config.table)}
+         SET ${assignments.join(', ')}
+         ${columns.has('updated_at') ? ', `updated_at` = NOW()' : columns.has('cached_at') ? ', `cached_at` = NOW()' : ''}
+         ${whereSql}`,
+        ...assignmentValues,
+        ...whereValues
+      ) || 0);
+    } else {
+      const factor = Math.round((1 + percent / 100) * 1000000) / 1000000;
+      const sourceExpression = targetField.selectExpression || escapeIdentifier(targetField.column);
+      affected = Number(await db.$executeRawUnsafe(
+        `UPDATE ${escapeIdentifier(config.table)}
+         SET ${escapeIdentifier(targetField.column)} = ROUND(COALESCE(${sourceExpression}, 0) * ?, 4)
+         ${columns.has('updated_at') ? ', \`updated_at\` = NOW()' : columns.has('cached_at') ? ', \`cached_at\` = NOW()' : ''}
+         ${whereSql}`,
+        factor,
+        ...whereValues
+      ) || 0);
+    }
   } else if (action === 'bulk-set') {
     const nextValue = normalizeNumericInput(input.fields?.[targetField.key], targetField.kind);
     if (moduleKey === 'smm' && targetField.key === 'margin_percent') {
@@ -904,8 +932,7 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
       }
 
       if (rateField && customPriceField) {
-        const rateExpression = rateField.selectExpression || escapeIdentifier(rateField.column);
-        assignments.push(`${escapeIdentifier(customPriceField.column)} = ROUND(COALESCE(${rateExpression}, 0) * (1 + (? / 100)), 4)`);
+        assignments.push(`${escapeIdentifier(customPriceField.column)} = ROUND(COALESCE(${escapeIdentifier(rateField.column)}, 0) * (1 + (? / 100)), 4)`);
         assignmentValues.push(nextValue);
       }
 

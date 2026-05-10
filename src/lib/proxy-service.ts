@@ -608,8 +608,11 @@ function mapPackageRecord(input: ProviderPackagePayload, rules: Record<string, P
   const providerDailyPrice = providerPrice > 0 ? providerPrice / Math.max(durationDays, 1) : 0;
   const suggestedPricePerDay = Math.max(0, Math.ceil(providerDailyPrice * Math.max(multiplier, 1)));
   const rule = rules[id] || {};
-  const sellPricePerDay = Math.max(0, Math.ceil(toNumber(rule.sellPricePerDay, suggestedPricePerDay)));
-  const renewPricePerDay = Math.max(0, Math.ceil(toNumber(rule.renewPricePerDay, sellPricePerDay)));
+  const vatMultiplier = 1.08;
+  const sellBasePricePerDay = Math.max(0, Math.ceil(toNumber(rule.sellPricePerDay, suggestedPricePerDay)));
+  const renewBasePricePerDay = Math.max(0, Math.ceil(toNumber(rule.renewPricePerDay, sellBasePricePerDay)));
+  const sellPricePerDay = Math.max(0, Math.ceil(sellBasePricePerDay * vatMultiplier));
+  const renewPricePerDay = Math.max(0, Math.ceil(renewBasePricePerDay * vatMultiplier));
 
   return {
     id,
@@ -1028,7 +1031,10 @@ export async function purchaseProxy(userId: number, input: {
   const username = String(input.username || 'random').trim() || 'random';
   const password = String(input.password || 'random').trim() || 'random';
   const unitPrice = selectedPackage.sellPricePerDay;
-  const totalPrice = unitPrice * days * quantity;
+  const subtotal = unitPrice * days * quantity;
+  const vatPercent = 8;
+  const vatAmount = Math.round((subtotal * vatPercent) / 100);
+  const totalPrice = subtotal + vatAmount;
 
   const pending = await db.$transaction(async (tx) => {
     const user = await tx.users.findUnique({
@@ -1147,7 +1153,9 @@ export async function purchaseProxy(userId: number, input: {
       .filter((item) => item.providerProxyId);
 
     const successCount = normalizedItems.length;
-    const successTotal = unitPrice * days * successCount;
+    const successSubtotal = unitPrice * days * successCount;
+    const successVat = Math.round((successSubtotal * 8) / 100);
+    const successTotal = successSubtotal + successVat;
     const refundAmount = Math.max(0, totalPrice - successTotal);
     const finalStatus = successCount === quantity ? 'completed' : successCount > 0 ? 'partial' : 'failed';
 
@@ -1340,10 +1348,13 @@ export async function renewProxy(userId: number, input: ProxyActionInput) {
   const packages = await listProxyPackages();
   const packageMap = new Map(packages.map((item) => [item.id, item]));
 
-  const totalPrice = items.reduce((sum, item) => {
+  const subtotal = items.reduce((sum, item) => {
     const pack = packageMap.get(item.packageId);
     return sum + (pack?.renewPricePerDay || 0) * days;
   }, 0);
+  const vatPercent = 8;
+  const vatAmount = Math.round((subtotal * vatPercent) / 100);
+  const totalPrice = subtotal + vatAmount;
 
   if (totalPrice <= 0) {
     throw new Error('Chưa cấu hình giá gia hạn cho các proxy đã chọn');
@@ -1470,10 +1481,12 @@ export async function renewProxy(userId: number, input: ProxyActionInput) {
 
     const successIds = new Set(updatedItems.map((item) => item.providerProxyId));
     const successSourceItems = items.filter((item) => successIds.has(item.providerProxyId));
-    const successTotal = successSourceItems.reduce((sum, item) => {
+    const successSubtotal = successSourceItems.reduce((sum, item) => {
       const pack = packageMap.get(item.packageId);
       return sum + (pack?.renewPricePerDay || 0) * days;
     }, 0);
+    const successVat = Math.round((successSubtotal * vatPercent) / 100);
+    const successTotal = successSubtotal + successVat;
     const refundAmount = Math.max(0, totalPrice - successTotal);
     const finalStatus = successSourceItems.length === items.length ? 'completed' : successSourceItems.length > 0 ? 'partial' : 'failed';
 

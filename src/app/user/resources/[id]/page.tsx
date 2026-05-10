@@ -11,6 +11,7 @@ import { hideProviderBranding } from '@/lib/provider-branding';
 import { isRandom1kProviderLike } from '@/lib/random1k';
 import { cleanResourceHtml } from '@/lib/resource-content';
 import { listResourceReviews } from '@/lib/resource-actions';
+import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -26,6 +27,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
     getResourceDetail(resourceId, raw.id),
     listResourceReviews(resourceId),
   ]);
+  const vatPercent = getVatPercent(await getLegacySettingsMap());
   if (!data) notFound();
 
   const { resource, related, orders } = data;
@@ -40,15 +42,16 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
     fallback: resource.category_image,
   });
   const price = toNumber(resource.price);
+  const displayPrice = Math.round(price * (1 + vatPercent / 100));
   const sourcePrice = toNumber(resource.original_price);
   const shouldRewriteApiPrices =
     isRandom1kProviderLike({ name: resource.provider_name, api_url: resource.provider_api_url }) ||
     String(resource.tags || '').toLowerCase().includes('api-account');
   const title = shouldRewriteApiPrices
-    ? rewriteGameAccountPriceMentions(hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`), { sourcePrice, displayPrice: price })
+    ? rewriteGameAccountPriceMentions(hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`), { sourcePrice, displayPrice })
     : hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`);
   const descriptionHtml = shouldRewriteApiPrices
-    ? rewriteGameAccountPriceMentions(cleanResourceHtml(resource.description, 'Tài nguyên MMO đang được bán trong hệ thống.'), { sourcePrice, displayPrice: price })
+    ? rewriteGameAccountPriceMentions(cleanResourceHtml(resource.description, 'Tài nguyên MMO đang được bán trong hệ thống.'), { sourcePrice, displayPrice })
     : cleanResourceHtml(resource.description, 'Tài nguyên MMO đang được bán trong hệ thống.');
   const usesGameWallet = ['game', 'random'].includes(String(resource.api_account_kind || '').toLowerCase());
 
@@ -88,7 +91,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             <div className="mt-6 grid gap-3 min-[430px]:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
                 <Tag className="h-4 w-4 text-brand-blue" />
-                <div className="mt-2 font-mono text-xl font-black text-brand-blue">{formatCurrency(price)}</div>
+                <div className="mt-2 font-mono text-xl font-black text-brand-blue">{formatCurrency(displayPrice)}</div>
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giá</div>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
@@ -104,10 +107,11 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             </div>
 
             <div className="mt-6">
-              <ResourceDetailActions
-                resourceId={resourceId}
-                price={price}
-                stock={toNumber(resource.stock)}
+                <ResourceDetailActions
+                  resourceId={resourceId}
+                  price={price}
+                  vatPercent={vatPercent}
+                  stock={toNumber(resource.stock)}
                 orders={orders as Array<Record<string, unknown>>}
                 reviews={reviews}
                 paymentWallet={usesGameWallet ? 'game' : 'main'}
@@ -129,10 +133,10 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                   <div className="text-xs font-black uppercase text-slate-900 dark:text-white">
                     {rewriteGameAccountPriceMentions(
                       hideProviderBranding(item.title, `Sản phẩm #${String(item.id)}`),
-                      { sourcePrice: item.original_price, displayPrice: item.price }
+                      { sourcePrice: item.original_price, displayPrice: Math.round(toNumber(item.price) * (1 + vatPercent / 100)) }
                     )}
                   </div>
-                  <div className="mt-2 font-mono text-sm font-black text-brand-blue">{formatCurrency(toNumber(item.price))}</div>
+                  <div className="mt-2 font-mono text-sm font-black text-brand-blue">{formatCurrency(Math.round(toNumber(item.price) * (1 + vatPercent / 100)))}</div>
                 </Link>
               ))}
             </div>

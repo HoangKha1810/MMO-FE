@@ -6,7 +6,7 @@ import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
 import { isTrackableIp } from '@/lib/ip-security';
 import { decryptLegacyData } from '@/lib/legacy-crypto';
-import { invalidateLegacySettingsCache } from '@/lib/legacy-settings';
+import { getLegacySettingsMap, getVatPercent, invalidateLegacySettingsCache } from '@/lib/legacy-settings';
 import { approveDepositById } from '@/lib/deposit-processing';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
@@ -1443,7 +1443,10 @@ async function cancelAndRefundSmmOrder(
       throw new Error('Không tìm thấy user của đơn SMM');
     }
 
-    const refundAmount = toNumber(order.price, 0);
+    const settings = await getLegacySettingsMap();
+    const vatPercent = getVatPercent(settings);
+    const subtotal = toNumber(order.price, 0);
+    const refundAmount = Math.round(subtotal + (subtotal * vatPercent) / 100);
     const nextBalance = toNumber(user.balance, 0) + refundAmount;
 
     await tx.users.update({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { tableExists } from '@/lib/legacy-modules';
+import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
 import { getSupportTiktokContext } from '@/lib/support-tiktok';
 import { toNumber } from '@/lib/utils';
 
@@ -198,17 +199,36 @@ export async function POST(req: NextRequest) {
       const order = rows[0];
       if (!order) throw new Error('Không tìm thấy đơn TikTok');
 
-      const price = Math.max(0, toNumber(order.price, 0));
+      const settings = await getLegacySettingsMap();
+      const vatPercent = getVatPercent(settings);
+      const serviceRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
+        `
+          SELECT price
+          FROM tiktok_region_services
+          WHERE region_slug = ?
+            AND service_key = ?
+            AND status = 'active'
+          LIMIT 1
+        `,
+        String(order.region || ''),
+        String(order.service_key || '')
+      );
+      const renewSubtotal = Math.max(
+        0,
+        toNumber(serviceRows[0]?.price, toNumber(order.price, 0))
+      );
+      const renewVatAmount = Math.round((renewSubtotal * vatPercent) / 100);
+      const totalPrice = renewSubtotal + renewVatAmount;
       const user = await tx.users.findUnique({ where: { id: Number(order.user_id) }, select: { balance: true } });
       if (!user) throw new Error('Không tìm thấy user');
-      const nextBalance = toNumber(user.balance, 0) - price;
+      const nextBalance = toNumber(user.balance, 0) - totalPrice;
       if (nextBalance < 0) throw new Error('Số dư không đủ để gia hạn');
 
       await tx.users.update({ where: { id: Number(order.user_id) }, data: { balance: nextBalance, last_activity: new Date() } });
       await tx.transactions.create({
         data: {
           user_id: Number(order.user_id),
-          amount: price,
+          amount: totalPrice,
           balance_after: nextBalance,
           type: 'order',
           status: 'success',
@@ -262,17 +282,21 @@ export async function POST(req: NextRequest) {
     const service = serviceRows[0];
     if (!service) throw new Error('Không tìm thấy dịch vụ TikTok đang bật');
 
-    const price = Math.max(0, toNumber(service.price, 0));
+    const settings = await getLegacySettingsMap();
+    const vatPercent = getVatPercent(settings);
+    const subtotal = Math.max(0, toNumber(service.price, 0));
+    const vatAmount = Math.round((subtotal * vatPercent) / 100);
+    const totalPrice = subtotal + vatAmount;
     const user = await tx.users.findUnique({ where: { id: auth.userId! }, select: { balance: true } });
     if (!user) throw new Error('Không tìm thấy user');
-    const nextBalance = toNumber(user.balance, 0) - price;
+    const nextBalance = toNumber(user.balance, 0) - totalPrice;
     if (nextBalance < 0) throw new Error('Số dư không đủ để tạo đơn');
 
     await tx.users.update({ where: { id: auth.userId! }, data: { balance: nextBalance, last_activity: new Date() } });
     await tx.transactions.create({
       data: {
         user_id: auth.userId!,
-        amount: price,
+        amount: totalPrice,
         balance_after: nextBalance,
         type: 'order',
         status: 'success',
@@ -292,10 +316,10 @@ export async function POST(req: NextRequest) {
       tiktokId,
       buyerName,
       buyerContact,
-      price
+      totalPrice
     );
     const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>('SELECT * FROM tiktok_support_orders WHERE id = LAST_INSERT_ID() LIMIT 1');
-    return { order: rows[0] || null, balance_after: nextBalance };
+    return { order: rows[0] || null, balance_after: nextBalance, subtotal, vat_amount: vatAmount, total_to_pay: totalPrice };
   });
 
   return NextResponse.json({
