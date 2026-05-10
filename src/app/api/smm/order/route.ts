@@ -8,6 +8,23 @@ import {
 } from '@/lib/smm-provider';
 import { toNumber } from '@/lib/utils';
 
+function sanitizeProviderCreateOrderMessage(reason: string) {
+  const normalized = String(reason || '').trim();
+  if (!normalized) {
+    return 'Nguồn SMM đang bận. Đơn chưa được tạo và hệ thống đã hoàn lại tiền.';
+  }
+
+  if (/telegram|api\.telegram\.org|curl|timed out|timeout|ssl connection timeout|failed to connect/i.test(normalized)) {
+    return 'Nguồn SMM đang lỗi kết nối nội bộ. Đơn chưa được tạo và hệ thống đã hoàn lại tiền cho bạn.';
+  }
+
+  if (/incorrect order id|incorrect service|service not found|invalid service/i.test(normalized)) {
+    return 'Provider SMM từ chối dịch vụ hoặc dữ liệu gửi lên không hợp lệ. Đơn chưa được tạo và tiền đã hoàn lại.';
+  }
+
+  return normalized;
+}
+
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const userId = Number(cookieStore.get('user_id')?.value || 0);
@@ -224,13 +241,15 @@ export async function POST(req: NextRequest) {
         return toNumber(refundedUser?.balance, currentBalance);
       });
 
-      const message =
+      const rawMessage =
         providerError instanceof Error ? providerError.message : 'Provider từ chối tạo đơn';
+      const message = sanitizeProviderCreateOrderMessage(rawMessage);
 
       return NextResponse.json(
         {
           success: false,
           message,
+          provider_error: rawMessage,
           new_balance: revertedBalance,
         },
         { status: 502 }

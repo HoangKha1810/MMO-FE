@@ -44,6 +44,7 @@ interface ApiResponse {
   success: boolean;
   message?: string;
   data?: Array<Record<string, unknown>>;
+  meta?: Record<string, unknown>;
   pagination?: {
     page: number;
     per_page: number;
@@ -53,6 +54,13 @@ interface ApiResponse {
   readonly?: boolean;
   create_fields?: string[];
   update_fields?: string[];
+}
+
+interface DetailResponse {
+  success: boolean;
+  message?: string;
+  data?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -191,6 +199,8 @@ const COLUMN_LABELS: Record<string, string> = {
   api_order_id: 'Mã API order',
   service_name: 'Tên dịch vụ',
   service_key: 'Mã dịch vụ',
+  product_count: 'Số product',
+  variant_count: 'Số variant',
   tiktok_id: 'TikTok ID',
   buyer_name: 'Người mua',
   buyer_contact: 'Liên hệ mua',
@@ -290,7 +300,13 @@ const STATUS_LABELS: Record<string, string> = {
   suspended: 'Tạm treo',
   banned: 'Đã ban',
   processing: 'Đang xử lý',
+  'in progress': 'Đang chạy',
+  running: 'Đang chạy',
+  open: 'Đã duyệt',
+  approved: 'Đã duyệt',
+  selling: 'Đã duyệt',
   completed: 'Hoàn thành',
+  done: 'Đã hoàn',
   partial: 'Một phần',
   canceled: 'Đã hủy',
   cancelled: 'Đã hủy',
@@ -353,8 +369,8 @@ function humanizeStatusValue(value: unknown) {
 
 function statusBadgeVariant(value: unknown): 'muted' | 'info' | 'warning' | 'success' | 'danger' {
   const normalized = String(value || '').trim().toLowerCase();
-  if (['active', 'success', 'completed', 'approved', 'clear', 'healthy'].includes(normalized)) return 'success';
-  if (['pending', 'processing', 'review', 'reviewed', 'degraded', 'partial'].includes(normalized)) return 'info';
+  if (['active', 'success', 'completed', 'approved', 'clear', 'healthy', 'open', 'selling', 'done'].includes(normalized)) return 'success';
+  if (['pending', 'processing', 'review', 'reviewed', 'degraded', 'partial', 'running', 'in progress'].includes(normalized)) return 'info';
   if (['high', 'critical', 'blacklisted', 'banned', 'locked', 'suspended', 'failed', 'error', 'deleted', 'rejected', 'canceled', 'cancelled', 'inactive', 'down'].includes(normalized)) return 'danger';
   if (['medium', 'warning', 'out_of_stock'].includes(normalized)) return 'warning';
   return 'muted';
@@ -429,6 +445,25 @@ function formatCell(value: unknown, column?: string) {
   return String(value);
 }
 
+function resolveDisplayValue(row: Record<string, unknown>, column: string) {
+  if (column === 'user_id') {
+    const username = String(row.username || row.display_name || '').trim();
+    if (username) return username;
+  }
+
+  if (column === 'category_id') {
+    const categoryPath = String(row.category_path || row.category_name || '').trim();
+    if (categoryPath) return categoryPath;
+  }
+
+  if (column === 'parent_id') {
+    const parentName = String(row.parent_name || '').trim();
+    if (parentName) return parentName;
+  }
+
+  return row[column];
+}
+
 function extractPaymentDisplayCode(value: string) {
   const matches = value.match(/\b(?:PAY[0-9A-Z]+|GAMESEP\d+T\d+|SEP\d+T\d+)\b/gi) || [];
   return matches.find((code) => /^PAY/i.test(code)) || '';
@@ -444,6 +479,29 @@ function isTruthy(value: unknown) {
 
 function rowId(row: Record<string, unknown>) {
   return Number(row.id || 0);
+}
+
+function shouldHideEditorField(resource: string, field: string) {
+  if (resource === 'users') {
+    return field === 'id' || field === 'username' || field === 'created_at' || field === 'updated_at' || field === 'last_ip' || field === 'last_login';
+  }
+  return false;
+}
+
+function buildDirtyValues(
+  resource: string,
+  baseline: Record<string, unknown> | undefined,
+  values: Record<string, unknown>
+) {
+  if (!baseline) return values;
+
+  const nextEntries = Object.entries(values).filter(([field, value]) => {
+    if (shouldHideEditorField(resource, field)) return false;
+    const previous = baseline[field];
+    return String(previous ?? '') !== String(value ?? '');
+  });
+
+  return Object.fromEntries(nextEntries);
 }
 
 function mergeIncomingRows(
@@ -629,6 +687,20 @@ function parseCustomValueEntries(value: unknown) {
   }
 }
 
+function detailEntries(value: unknown) {
+  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
+}
+
+function renderTimelineValue(value: Record<string, unknown>) {
+  if (value.activity) return String(value.activity);
+  if (value.content) return String(value.content);
+  if (value.description) return String(value.description);
+  if (value.message) return String(value.message);
+  if (value.service_name) return String(value.service_name);
+  if (value.title) return String(value.title);
+  return `#${value.id || ''}`;
+}
+
 function extractOrderInputRows(row: Record<string, unknown>) {
   const definitions = parseCustomInputs(row.custom_inputs);
   const values = parseCustomValueEntries(row.custom_value_display);
@@ -692,6 +764,48 @@ function getSmmCategoryAccent(value: unknown) {
   return 'text-slate-200';
 }
 
+function getQuickStatusOptions(resource: string) {
+  if (resource === 'find-jobs') {
+    return [
+      { value: '', label: 'Tất cả' },
+      { value: 'pending', label: 'Đang chờ' },
+      { value: 'open', label: 'Đã duyệt' },
+      { value: 'rejected', label: 'Từ chối' },
+    ];
+  }
+
+  if (resource === 'forum-threads' || resource === 'forum-posts') {
+    return [
+      { value: '', label: 'Tất cả' },
+      { value: 'pending', label: 'Đang chờ' },
+      { value: 'active', label: 'Đã duyệt' },
+      { value: 'rejected', label: 'Từ chối' },
+    ];
+  }
+
+  if (resource === 'game-items') {
+    return [
+      { value: '', label: 'Tất cả' },
+      { value: 'pending', label: 'Đang chờ' },
+      { value: 'selling', label: 'Đã duyệt' },
+      { value: 'rejected', label: 'Từ chối' },
+    ];
+  }
+
+  if (resource === 'smm-orders') {
+    return [
+      { value: '', label: 'Tất cả' },
+      { value: 'Pending', label: 'Đang xử lý' },
+      { value: 'Processing', label: 'Đang chạy' },
+      { value: 'Completed', label: 'Hoàn Thành' },
+      { value: 'Refunded', label: 'Đã Hoàn' },
+      { value: 'Canceled', label: 'Đã Hủy' },
+    ];
+  }
+
+  return [];
+}
+
 export function AdminDataPage({ title, description, sections }: AdminDataPageProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSection = sections[activeIndex] || sections[0];
@@ -750,6 +864,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   const isLegacySmmServices = isLegacySmmServicesResource(section.resource);
   const isLegacyAutoMxhOrders = isLegacyAutoMxhOrdersResource(section.resource);
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
+  const [meta, setMeta] = useState<Record<string, unknown>>({});
   const [pagination, setPagination] = useState<ApiResponse['pagination']>();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -766,6 +881,9 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     mode: 'create' | 'edit';
     row?: Record<string, unknown>;
     values: Record<string, unknown>;
+    baseline?: Record<string, unknown>;
+    detail?: Record<string, unknown>;
+    detailMeta?: Record<string, unknown>;
   } | null>(null);
 
   const editableFields = section.editableFields || [];
@@ -822,6 +940,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       }
       const nextRows = payload.data || [];
       setRows((current) => (options?.merge ? mergeIncomingRows(current, nextRows) : nextRows));
+      setMeta(payload.meta || {});
       setPagination(payload.pagination);
       if (payload.pagination?.per_page) {
         setPerPage(payload.pagination.per_page);
@@ -881,14 +1000,18 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     );
   }, [rows]);
   const smmCategoryOptions = useMemo(() => {
+    const remoteOptions = Array.isArray(meta.category_options)
+      ? meta.category_options.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
     return Array.from(
       new Set(
-        rows
+        [...remoteOptions, ...rows
           .map((row) => String(row.category || '').trim())
-          .filter(Boolean)
+          .filter(Boolean)]
       )
     ).sort((left, right) => left.localeCompare(right, 'vi'));
-  }, [rows]);
+  }, [meta, rows]);
+  const quickStatusOptions = useMemo(() => getQuickStatusOptions(section.resource), [section.resource]);
 
   function toggleSelected(id: number) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -974,12 +1097,15 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     setSaving(true);
     try {
       const id = Number(editor.row?.id || 0);
+      const payloadValues = editor.mode === 'edit'
+        ? buildDirtyValues(section.resource, editor.baseline || editor.row, editor.values)
+        : editor.values;
       const response = await fetch(
         editor.mode === 'create' ? `/api/admin/${section.resource}` : `/api/admin/${section.resource}/${id}`,
         {
           method: editor.mode === 'create' ? 'POST' : 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(editor.values),
+          body: JSON.stringify(payloadValues),
         }
       );
       const payload = await response.json();
@@ -993,6 +1119,62 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       toast.error(error instanceof Error ? error.message : 'Không thể lưu dữ liệu');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function openEditor(row?: Record<string, unknown>, mode: 'create' | 'edit' = 'edit') {
+    if (mode === 'create') {
+      setEditor({
+        mode,
+        values: initialValues(createFields),
+        baseline: {},
+        detail: {},
+        detailMeta: {},
+      });
+      return;
+    }
+
+    const baseValues = initialValues(editableFields, row);
+    setEditor({
+      mode,
+      row,
+      values: baseValues,
+      baseline: { ...baseValues },
+      detail: row || {},
+      detailMeta: {},
+    });
+
+    if (section.resource !== 'users') {
+      return;
+    }
+
+    const id = Number(row?.id || 0);
+    if (!id) return;
+
+    try {
+      const response = await fetch(`/api/admin/${section.resource}/${id}`, { cache: 'no-store' });
+      const payload: DetailResponse = await response.json();
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(payload.message || 'Không thể tải chi tiết user');
+      }
+
+      setEditor((current) => {
+        if (!current || current.mode !== 'edit' || Number(current.row?.id || 0) !== id) {
+          return current;
+        }
+
+        const mergedValues = initialValues(editableFields, payload.data);
+        return {
+          ...current,
+          row: { ...current.row, ...payload.data },
+          values: mergedValues,
+          baseline: { ...mergedValues },
+          detail: payload.data,
+          detailMeta: payload.meta || {},
+        };
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể tải chi tiết user');
     }
   }
 
@@ -1436,7 +1618,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                                   size="sm"
                                   variant="outline"
                                   className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
-                                  onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
+                                  onClick={() => void openEditor(row, 'edit')}
                                 >
                                   <Pencil className="mr-2 h-3.5 w-3.5" />
                                   Sửa
@@ -1805,7 +1987,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                           size="sm"
                           variant="outline"
                           className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
-                          onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
+                          onClick={() => void openEditor(row, 'edit')}
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           Sửa
@@ -1885,7 +2067,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                     <Button
                       type="button"
                       size="sm"
-                      onClick={() => setEditor({ mode: 'create', values: initialValues(createFields) })}
+                      onClick={() => void openEditor(undefined, 'create')}
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Thêm mới
@@ -1965,6 +2147,22 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 Lọc dữ liệu
               </Button>
             </form>
+
+            {quickStatusOptions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {quickStatusOptions.map((option) => (
+                  <Button
+                    key={`${section.resource}-${option.value || 'all'}`}
+                    type="button"
+                    size="sm"
+                    variant={status === option.value ? 'default' : 'outline'}
+                    onClick={() => setStatus(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
 
             <div className="flex flex-wrap gap-2">
               <Badge variant="muted" className="rounded-lg px-3 py-1.5">
@@ -2090,7 +2288,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                                 <Badge variant={statusBadgeVariant(row[column])} className="w-fit rounded-full px-3 py-1.5">
                                   {formatCell(row[column], column)}
                                 </Badge>
-                              ) : formatCell(row[column], column)}
+                              ) : formatCell(resolveDisplayValue(row, column), column)}
                             </td>
                           ))}
                           <td className="px-4 py-3">
@@ -2112,7 +2310,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => setEditor({ mode: 'edit', row, values: initialValues(editableFields, row) })}
+                                  onClick={() => void openEditor(row, 'edit')}
                                 >
                                   <Pencil className="mr-2 h-3.5 w-3.5" />
                                   Sửa
@@ -2225,7 +2423,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
             </div>
 
             <div className={cn('grid gap-4 sm:grid-cols-2', isLegacyAutoMxhOrders && 'gap-5')}>
-              {sortAutomxhEditorEntries(Object.entries(editor.values)).map(([field, fieldValue]) => (
+              {sortAutomxhEditorEntries(Object.entries(editor.values)).filter(([field]) => !shouldHideEditorField(section.resource, field)).map(([field, fieldValue]) => (
                 <label key={field} className="space-y-2">
                   <span className={cn(
                     'text-[10px] font-black uppercase tracking-[0.26em]',
@@ -2281,6 +2479,63 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 </label>
               ))}
             </div>
+
+            {section.resource === 'users' ? (
+              <div className="mt-6 space-y-4">
+                <div className="grid gap-3 sm:grid-cols-4">
+                  {[
+                    { label: 'Username', value: String(editor.detail?.username || editor.row?.username || '—') },
+                    { label: 'Trạng thái', value: humanizeStatusValue(editor.detail?.status || editor.row?.status) },
+                    { label: 'Số dư', value: formatPriceValue(editor.detail?.balance || editor.row?.balance) },
+                    { label: 'Ví game', value: formatPriceValue(editor.detail?.game_balance || editor.row?.game_balance) },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-[9px] border border-slate-200 bg-slate-50/70 p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{item.label}</div>
+                      <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {[
+                    { key: 'activity_history', title: 'Lịch sử hoạt động' },
+                    { key: 'recent_transactions', title: 'Giao dịch gần đây' },
+                    { key: 'smm_orders', title: 'Đơn SMM gần đây' },
+                    { key: 'automxh_orders', title: 'Đơn Auto MXH gần đây' },
+                    { key: 'audit_logs', title: 'Nhật ký admin' },
+                    { key: 'private_messages', title: 'Tin nhắn admin' },
+                  ].map((block) => {
+                    const items = detailEntries(editor.detailMeta?.[block.key]);
+                    return (
+                      <div key={block.key} className="rounded-[12px] border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                        <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                          {block.title}
+                        </div>
+                        <div className="space-y-2">
+                          {items.length === 0 ? (
+                            <div className="rounded-[9px] border border-dashed border-slate-200 px-3 py-4 text-sm font-semibold text-slate-400 dark:border-white/10">
+                              Chưa có dữ liệu.
+                            </div>
+                          ) : items.map((item, index) => (
+                            <div key={`${block.key}-${item.id || index}`} className="rounded-[9px] border border-slate-200 bg-white px-3 py-3 dark:border-white/8 dark:bg-[#111]">
+                              <div className="text-sm font-bold text-slate-900 dark:text-white">
+                                {renderTimelineValue(item)}
+                              </div>
+                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-400">
+                                {'status' in item ? <span>{humanizeStatusValue(item.status)}</span> : null}
+                                {'amount' in item ? <span>{formatPriceValue(item.amount)}</span> : null}
+                                {'price' in item ? <span>{formatPriceValue(item.price)}</span> : null}
+                                <span>{formatCompactTimestamp(item.created_at)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-6 flex justify-end gap-3">
               <Button

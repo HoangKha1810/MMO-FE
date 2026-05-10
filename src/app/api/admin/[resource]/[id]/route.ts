@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   deleteAdminResource,
+  getAdminResourceDetail,
   updateAdminResource,
 } from '@/lib/admin-data';
 import { requireAdminApi } from '@/lib/admin-auth';
@@ -28,6 +29,23 @@ export async function PATCH(
     return NextResponse.json(data, { headers: noStoreHeaders });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Không thể cập nhật dữ liệu admin';
+    return NextResponse.json({ success: false, message }, { status: 400, headers: noStoreHeaders });
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ resource: string; id: string }> }
+) {
+  const auth = await requireAdminApi(req);
+  if (auth.response) return auth.response;
+
+  try {
+    const { resource, id } = await context.params;
+    const data = await getAdminResourceDetail(resource, Number(id));
+    return NextResponse.json(data, { headers: noStoreHeaders });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Không thể tải chi tiết dữ liệu admin';
     return NextResponse.json({ success: false, message }, { status: 400, headers: noStoreHeaders });
   }
 }

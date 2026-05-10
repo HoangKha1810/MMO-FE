@@ -565,10 +565,18 @@ function buildPrismaWhere(resource: string, config: ResourceConfig, params: URLS
 
   if (search && config.searchFields.length > 0) {
     const numericSearch = Number(search);
-    where.OR = [
+    const orFilters: Array<Record<string, unknown>> = [
       ...config.searchFields.map((field) => ({ [field]: { contains: search } })),
-      ...(!Number.isNaN(numericSearch) ? [{ id: numericSearch }, { user_id: numericSearch }] : []),
     ];
+
+    if (!Number.isNaN(numericSearch)) {
+      orFilters.push({ id: numericSearch });
+      if (config.select && 'user_id' in config.select) {
+        orFilters.push({ user_id: numericSearch });
+      }
+    }
+
+    where.OR = orFilters;
   }
 
   if (status && config.statusField) {
@@ -580,6 +588,38 @@ function buildPrismaWhere(resource: string, config: ResourceConfig, params: URLS
   }
 
   return where;
+}
+
+const SMM_STATUS_VARIANTS: Record<string, string[]> = {
+  Pending: ['pending'],
+  Processing: ['processing', 'in progress', 'in_progress', 'inprogress', 'running', 'active'],
+  Completed: ['completed', 'complete', 'success', '200', 'done'],
+  Refunded: ['refunded', 'refund', 'partial'],
+  Canceled: ['canceled', 'cancelled', 'failed', 'error'],
+};
+
+function normalizeSmmStatus(value: unknown) {
+  const normalized = String(value || '').trim().toLowerCase();
+  for (const [canonical, variants] of Object.entries(SMM_STATUS_VARIANTS)) {
+    if (variants.includes(normalized)) {
+      return canonical;
+    }
+  }
+
+  return normalized ? String(value).trim() : 'Pending';
+}
+
+function getSmmStatusFilterVariants(value: string) {
+  const canonical = normalizeSmmStatus(value);
+  return SMM_STATUS_VARIANTS[canonical] || [String(value || '').trim().toLowerCase()];
+}
+
+interface CategoryTreeNode extends Record<string, unknown> {
+  id: number;
+  name: string;
+  slug?: string | null;
+  sort_order?: number | null;
+  status?: string | null;
 }
 
 export async function listAdminResource(resource: string, params: URLSearchParams) {
@@ -594,6 +634,18 @@ export async function listAdminResource(resource: string, params: URLSearchParam
 
   if (resource === 'smm-services') {
     return listLegacySmmServices(config, params, page, perPage, skip);
+  }
+
+  if (resource === 'smm-orders') {
+    return listLegacySmmOrders(config, params, page, perPage, skip);
+  }
+
+  if (resource === 'automxh-categories') {
+    return listAutoMxhCategories(config, params, page, perPage, skip);
+  }
+
+  if (resource === 'automxh-products') {
+    return listAutoMxhProducts(config, params, page, perPage, skip);
   }
 
   if (resource === 'automxh-orders') {
@@ -626,6 +678,96 @@ export async function listAdminResource(resource: string, params: URLSearchParam
     success: true,
     title: config.title,
     data: normalizeValue(rows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listLegacySmmOrders(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(`(
+      CAST(so.id AS CHAR) LIKE ?
+      OR CAST(so.user_id AS CHAR) LIKE ?
+      OR COALESCE(so.api_order_id, '') LIKE ?
+      OR COALESCE(so.service_name, '') LIKE ?
+      OR COALESCE(so.link, '') LIKE ?
+      OR COALESCE(u.username, '') LIKE ?
+      OR COALESCE(ap.name, '') LIKE ?
+    )`);
+    values.push(like, like, like, like, like, like, like);
+  }
+
+  if (status) {
+    const normalized = normalizeSmmStatus(status);
+    const variants = getSmmStatusFilterVariants(normalized);
+    if (normalized === 'Refunded') {
+      conditions.push(`(
+        LOWER(COALESCE(so.status, '')) IN (${variants.map(() => '?').join(', ')})
+        OR COALESCE(so.is_refunded, 0) = 1
+        OR COALESCE(so.refund_amount, 0) > 0
+      )`);
+      values.push(...variants);
+    } else {
+      conditions.push(`LOWER(COALESCE(so.status, '')) IN (${variants.map(() => '?').join(', ')})`);
+      values.push(...variants);
+    }
+  }
+
+  const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const fromSql = `
+    FROM smm_orders so
+    LEFT JOIN users u ON u.id = so.user_id
+    LEFT JOIN api_providers ap ON ap.id = so.provider_id
+    ${whereSql}
+  `;
+
+  const [rows, countRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT
+          so.*,
+          u.username,
+          u.fullname,
+          ap.name AS provider_name
+        ${fromSql}
+        ORDER BY so.updated_at DESC, so.id DESC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `SELECT COUNT(*) AS total ${fromSql}`,
+      ...values
+    ),
+  ]);
+
+  const data = rows.map((row) => ({
+    ...row,
+    username: String(row.username || row.fullname || `user_${row.user_id || '0'}`),
+    provider_name: String(row.provider_name || `Provider #${row.provider_id || 0}`),
+    status: normalizeSmmStatus(row.status),
+  }));
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(data),
     pagination: {
       page,
       per_page: perPage,
@@ -671,8 +813,8 @@ async function listLegacySmmServices(config: ResourceConfig, params: URLSearchPa
   }
 
   if (category) {
-    conditions.push('s.category = ?');
-    values.push(category);
+    conditions.push('(s.category = ? OR s.category LIKE ?)');
+    values.push(category, `${category}%`);
   }
 
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -704,10 +846,24 @@ async function listLegacySmmServices(config: ResourceConfig, params: URLSearchPa
   ]);
 
   const total = Number(countRows[0]?.total || 0);
+  const categoryRows = await db.$queryRawUnsafe<Array<{ category: string | null }>>(
+    `
+      SELECT DISTINCT s.category
+      ${fromSql}
+      ORDER BY s.category ASC
+      LIMIT 400
+    `,
+    ...values
+  ).catch(() => []);
   return {
     success: true,
     title: config.title,
     data: normalizeValue(rows),
+    meta: {
+      category_options: categoryRows
+        .map((row) => String(row.category || '').trim())
+        .filter(Boolean),
+    },
     pagination: {
       page,
       per_page: perPage,
@@ -798,6 +954,193 @@ async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearch
     success: true,
     title: config.title,
     data: normalizeValue(hydratedRows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listAutoMxhCategories(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const table = await getActualRawTable(config);
+  if (!(await tableExists(table))) {
+    return {
+      success: true,
+      title: config.title,
+      data: [],
+      pagination: { page, per_page: perPage, total: 0, total_pages: 1 },
+      readonly: Boolean(config.readonly),
+      create_fields: config.createFields || [],
+      update_fields: config.updateFields || [],
+    };
+  }
+
+  const columns = await getRawTableColumns(table);
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (columns.has('is_deleted')) {
+    conditions.push('COALESCE(`is_deleted`, 0) = 0');
+  }
+
+  if (search) {
+    conditions.push('(`name` LIKE ? OR COALESCE(`slug`, \'\') LIKE ? OR COALESCE(`description`, \'\') LIKE ?)');
+    values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  if (status && columns.has('status')) {
+    conditions.push('COALESCE(`status`, \'active\') = ?');
+    values.push(status);
+  }
+
+  const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const rows = await db.$queryRawUnsafe<CategoryTreeNode[]>(
+    `
+      SELECT c.*,
+             (
+               SELECT COUNT(*)
+               FROM automxh_products p
+               WHERE p.category_id = c.id
+                 AND COALESCE(p.is_deleted, 0) = 0
+             ) AS product_count
+      FROM \`${table}\` c
+      ${whereSql}
+      ORDER BY COALESCE(c.\`sort_order\`, 0) ASC, c.\`id\` ASC
+    `,
+    ...values
+  );
+  const pageRows = rows.slice(skip, skip + perPage);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(pageRows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total: rows.length,
+      total_pages: Math.max(1, Math.ceil(rows.length / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listAutoMxhProducts(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const table = await getActualRawTable(config);
+  if (!(await tableExists(table))) {
+    return {
+      success: true,
+      title: config.title,
+      data: [],
+      meta: { category_options: [] },
+      pagination: { page, per_page: perPage, total: 0, total_pages: 1 },
+      readonly: Boolean(config.readonly),
+      create_fields: config.createFields || [],
+      update_fields: config.updateFields || [],
+    };
+  }
+
+  const columns = await getRawTableColumns(table);
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (columns.has('is_deleted')) {
+    conditions.push('COALESCE(`is_deleted`, 0) = 0');
+  }
+
+  if (search) {
+    conditions.push('(`name` LIKE ? OR COALESCE(`slug`, \'\') LIKE ? OR COALESCE(`description`, \'\') LIKE ? OR CAST(COALESCE(`api_service_id`, \'\') AS CHAR) LIKE ?)');
+    values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  if (status && columns.has('status')) {
+    conditions.push('COALESCE(`status`, \'active\') = ?');
+    values.push(status);
+  }
+
+  const prefixedWhereSql = conditions.length
+    ? `WHERE ${conditions
+        .map((condition) =>
+          condition
+            .replace(/COALESCE\(`is_deleted`/g, 'COALESCE(p.`is_deleted`')
+            .replace(/COALESCE\(`status`/g, 'COALESCE(p.`status`')
+            .replace(/\(`name`/g, '(p.`name`')
+            .replace(/COALESCE\(`slug`/g, 'COALESCE(p.`slug`')
+            .replace(/COALESCE\(`description`/g, 'COALESCE(p.`description`')
+            .replace(/COALESCE\(`api_service_id`/g, 'COALESCE(p.`api_service_id`')
+        )
+        .join(' AND ')}`
+    : '';
+  const hasAutomxhCategoriesTable = await tableExists('automxh_categories');
+  const [rows, countRows, categoryRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT p.*,
+               c.name AS category_name,
+               (
+                 SELECT COUNT(*)
+                 FROM automxh_variants v
+                 WHERE v.product_id = p.id
+                   AND COALESCE(v.is_deleted, 0) = 0
+               ) AS variant_count
+        FROM \`${table}\` p
+        LEFT JOIN automxh_categories c ON c.id = p.category_id
+        ${prefixedWhereSql}
+        ORDER BY p.updated_at DESC, p.id DESC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `SELECT COUNT(*) AS total FROM \`${table}\` ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}`,
+      ...values
+    ),
+    hasAutomxhCategoriesTable
+      ? db.$queryRawUnsafe<CategoryTreeNode[]>(
+          `
+            SELECT id, name, slug, sort_order, status
+            FROM \`automxh_categories\`
+            WHERE COALESCE(\`is_deleted\`, 0) = 0 OR \`is_deleted\` IS NULL
+            ORDER BY COALESCE(\`sort_order\`, 0) ASC, \`id\` ASC
+          `
+        ).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  const options = categoryRows
+    .map((row) => ({
+      value: String(row.id),
+      label: String(row.name || `#${row.id}`),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, 'vi'));
+  const enrichedRows = rows.map((row) => {
+    return {
+      ...row,
+      category_name: String(row.category_name || ''),
+      category_path: String(row.category_name || ''),
+    };
+  });
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(enrichedRows),
+    meta: {
+      category_options: options,
+    },
     pagination: {
       page,
       per_page: perPage,
@@ -1033,14 +1376,14 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   if (resource === 'smm-orders' && typeof data.status === 'string') {
     const requestedStatus = String(data.status || '').trim().toLowerCase();
-    if (requestedStatus === 'canceled' || requestedStatus === 'cancelled') {
+    if (['canceled', 'cancelled', 'refunded', 'refund'].includes(requestedStatus)) {
       return cancelAndRefundSmmOrder(id, adminId, req, data);
     }
   }
 
   if (resource === 'automxh-orders' && typeof data.status === 'string') {
     const requestedStatus = String(data.status || '').trim().toLowerCase();
-    if (requestedStatus === 'canceled' || requestedStatus === 'cancelled') {
+    if (['canceled', 'cancelled', 'refunded', 'refund'].includes(requestedStatus)) {
       return cancelAndRefundAutoMxhOrder(id, adminId, req, data);
     }
   }
@@ -1077,7 +1420,7 @@ async function cancelAndRefundSmmOrder(
       Boolean(order.is_refunded) ||
       ['refund', 'refunded'].includes(String(order.status || '').trim().toLowerCase());
 
-    const normalizedStatus = String(patch.status || 'Canceled').trim() || 'Canceled';
+    const normalizedStatus = normalizeSmmStatus(String(patch.status || 'Canceled').trim() || 'Canceled');
     const reason = typeof patch.reason === 'string' ? patch.reason.trim() : '';
 
     if (alreadyRefunded) {
@@ -1128,7 +1471,15 @@ async function cancelAndRefundSmmOrder(
         balance_after: nextBalance,
         type: 'refund',
         status: 'success',
-        content: `Hoàn tiền đơn SMM #${id} do admin hủy`,
+        content: `Hoàn tiền đơn SMM #${id} do admin ${normalizedStatus === 'Refunded' ? 'hoàn tiền' : 'hủy'}`,
+      },
+    }).catch(() => undefined);
+
+    await tx.activity_logs.create({
+      data: {
+        user_id: order.user_id,
+        activity: `Hoàn tiền đơn SMM #${id}: +${refundAmount}`,
+        user_agent: `admin_refund_${adminId}`,
       },
     }).catch(() => undefined);
 
@@ -1231,6 +1582,14 @@ async function cancelAndRefundAutoMxhOrder(
       },
     }).catch(() => undefined);
 
+    await tx.activity_logs.create({
+      data: {
+        user_id: Number(order.user_id || 0),
+        activity: `Hoàn tiền đơn Auto MXH #${id}: +${refundAmount}`,
+        user_agent: `admin_refund_${adminId}`,
+      },
+    }).catch(() => undefined);
+
     const updatedRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
       'SELECT * FROM `automxh_orders` WHERE id = ? LIMIT 1',
       id
@@ -1279,6 +1638,150 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
 
   await logAdminAction({ adminId, action: `delete ${resource}`, target: `#${id}`, req });
   return { success: true };
+}
+
+export async function getAdminResourceDetail(resource: string, id: number) {
+  if (!id) {
+    throw new Error('Thiếu ID dữ liệu');
+  }
+
+  if (resource !== 'users') {
+    throw new Error('Resource chưa hỗ trợ xem chi tiết');
+  }
+
+  const user = await db.users.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      fullname: true,
+      role: true,
+      status: true,
+      balance: true,
+      game_balance: true,
+      rank: true,
+      last_ip: true,
+      last_login: true,
+      lock_reason: true,
+      locked_at: true,
+      locked_until: true,
+      is_blue_tick: true,
+      telegram_id: true,
+      telegram_username: true,
+      created_at: true,
+      updated_at: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error('Không tìm thấy user');
+  }
+
+  const [hasSmmOrdersTable, hasAutomxhOrdersTable, hasAdminAuditLogsTable, hasAdminPrivateMessagesTable] = await Promise.all([
+    tableExists('smm_orders'),
+    tableExists('automxh_orders'),
+    tableExists('admin_audit_logs'),
+    tableExists('admin_private_messages'),
+  ]);
+
+  const [activityHistory, recentTransactions, smmOrders, automxhOrders, auditLogs, privateMessages] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT id, activity, ip_address, user_agent, created_at
+        FROM activity_logs
+        WHERE user_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 25
+      `,
+      id
+    ).catch(() => []),
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT id, type, amount, balance_after, status, content, created_at
+        FROM transactions
+        WHERE user_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 15
+      `,
+      id
+    ).catch(() => []),
+    hasSmmOrdersTable
+      ? db.$queryRawUnsafe<Record<string, unknown>[]>(
+          `
+            SELECT id, service_name, quantity, price, status, created_at
+            FROM smm_orders
+            WHERE user_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 10
+          `,
+          id
+        ).catch(() => [])
+      : Promise.resolve([]),
+    hasAutomxhOrdersTable
+      ? db.$queryRawUnsafe<Record<string, unknown>[]>(
+          `
+            SELECT id, title, amount, status, created_at
+            FROM automxh_orders
+            WHERE user_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 10
+          `,
+          id
+        ).catch(() => [])
+      : Promise.resolve([]),
+    hasAdminAuditLogsTable
+      ? db.$queryRawUnsafe<Record<string, unknown>[]>(
+          `
+            SELECT id, action, description, created_at
+            FROM admin_audit_logs
+            WHERE target_user_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 12
+          `,
+          id
+        ).catch(() => [])
+      : Promise.resolve([]),
+    hasAdminPrivateMessagesTable
+      ? db.$queryRawUnsafe<Record<string, unknown>[]>(
+          `
+            SELECT id, message, show_limit, shown_count, status, created_at
+            FROM admin_private_messages
+            WHERE user_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 12
+          `,
+          id
+        ).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  const stats = {
+    activity_count: activityHistory.length,
+    transaction_count: recentTransactions.length,
+    smm_order_count: smmOrders.length,
+    automxh_order_count: automxhOrders.length,
+    total_deposit: recentTransactions
+      .filter((row) => String(row.type || '').trim() === 'deposit')
+      .reduce((sum, row) => sum + toNumber(row.amount, 0), 0),
+    total_refund: recentTransactions
+      .filter((row) => String(row.type || '').trim() === 'refund')
+      .reduce((sum, row) => sum + toNumber(row.amount, 0), 0),
+  };
+
+  return {
+    success: true,
+    data: normalizeValue(user),
+    meta: {
+      stats: normalizeValue(stats),
+      activity_history: normalizeValue(activityHistory),
+      recent_transactions: normalizeValue(recentTransactions),
+      smm_orders: normalizeValue(smmOrders),
+      automxh_orders: normalizeValue(automxhOrders),
+      audit_logs: normalizeValue(auditLogs),
+      private_messages: normalizeValue(privateMessages),
+    },
+  };
 }
 
 export async function runAdminAction(resource: string, input: Record<string, unknown>, adminId: number, req: NextRequest) {

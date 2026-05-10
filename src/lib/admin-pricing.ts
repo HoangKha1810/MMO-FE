@@ -56,6 +56,9 @@ export interface PricingModule {
 interface PricingListParams {
   module?: string;
   search?: string;
+  platform?: string;
+  provider?: string;
+  category?: string;
   page?: number;
   perPage?: number;
 }
@@ -75,6 +78,12 @@ interface PricingActionInput {
 }
 
 const tableColumnCache = new Map<string, Set<string> | null>();
+
+interface PricingCategoryRow {
+  id: number;
+  parent_id: number | null;
+  name: string;
+}
 
 const pricingModuleConfigs: PricingModuleConfig[] = [
   {
@@ -127,7 +136,7 @@ const pricingModuleConfigs: PricingModuleConfig[] = [
     tone: 'amber',
     titleExpression: "COALESCE(`name`, CONCAT('Auto product #', `id`))",
     subtitleExpression: "CONCAT('Category ', COALESCE(`category_id`, 0), ' · API ', COALESCE(`api_service_id`, ''))",
-    categoryExpression: "CONCAT('Category ', COALESCE(`category_id`, 0))",
+    categoryExpression: "CAST(COALESCE(`category_id`, 0) AS CHAR)",
     statusColumn: 'status',
     updatedAtColumn: 'updated_at',
     searchColumns: ['name', 'description', 'type', 'api_service_id'],
@@ -146,7 +155,7 @@ const pricingModuleConfigs: PricingModuleConfig[] = [
     tone: 'amber',
     titleExpression: "COALESCE(`name`, CONCAT('Variant #', `id`))",
     subtitleExpression: "CONCAT('Product ', COALESCE(`product_id`, 0), ' · Qty ', COALESCE(`quantity`, 0), ' · API ', COALESCE(`api_service_id`, ''))",
-    categoryExpression: "CONCAT('Product ', COALESCE(`product_id`, 0))",
+    categoryExpression: "CAST(COALESCE(`product_id`, 0) AS CHAR)",
     statusColumn: 'status',
     updatedAtColumn: 'updated_at',
     searchColumns: ['name', 'description', 'badge', 'type', 'api_service_id'],
@@ -367,6 +376,10 @@ function buildWhereSql(
   columns: Set<string>,
   input: {
     search?: string;
+    platform?: string;
+    provider?: string;
+    category?: string;
+    categoryValues?: string[];
     ids?: number[];
   } = {}
 ) {
@@ -401,10 +414,107 @@ function buildWhereSql(
     values.push(...input.ids);
   }
 
+  const category = String(input.category || '').trim();
+  if (category && columns.has('category')) {
+    conditions.push(`${escapeIdentifier('category')} = ?`);
+    values.push(category);
+  }
+
+  const categoryValues = (input.categoryValues || []).map((item) => String(item || '').trim()).filter(Boolean);
+  if (categoryValues.length > 0) {
+    if (config.key === 'automxh-products' && columns.has('category_id')) {
+      conditions.push(`${escapeIdentifier('category_id')} IN (${categoryValues.map(() => '?').join(', ')})`);
+      values.push(...categoryValues);
+    } else if (config.key === 'automxh-variants' && columns.has('product_id')) {
+      conditions.push(`${escapeIdentifier('product_id')} IN (${categoryValues.map(() => '?').join(', ')})`);
+      values.push(...categoryValues);
+    }
+  }
+
+  const provider = String(input.provider || '').trim();
+  if (provider && config.key === 'smm' && columns.has('provider_id')) {
+    conditions.push(`CAST(${escapeIdentifier('provider_id')} AS CHAR) = ?`);
+    values.push(provider);
+  }
+
+  const platform = String(input.platform || '').trim().toLowerCase();
+  if (platform && config.key === 'smm' && columns.has('category')) {
+    const categorySql = escapeIdentifier('category');
+    if (platform === 'facebook') conditions.push(`(${categorySql} LIKE '[FB]%' OR ${categorySql} LIKE '%Facebook%')`);
+    if (platform === 'tiktok') conditions.push(`(${categorySql} LIKE '[TT]%' OR ${categorySql} LIKE '%TikTok%')`);
+    if (platform === 'instagram') conditions.push(`(${categorySql} LIKE '[IG]%' OR ${categorySql} LIKE '%Instagram%')`);
+    if (platform === 'youtube') conditions.push(`(${categorySql} LIKE '[YT]%' OR ${categorySql} LIKE '%Youtube%' OR ${categorySql} LIKE '%YouTube%')`);
+  }
+
   return {
     whereSql: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
     values,
   };
+}
+
+function buildCategoryMeta(rows: PricingCategoryRow[]) {
+  const byId = new Map<number, PricingCategoryRow>();
+  rows.forEach((row) => byId.set(Number(row.id), row));
+
+  const resolvePath = (id: number): string => {
+    const visited = new Set<number>();
+    const parts: string[] = [];
+    let current = byId.get(id);
+
+    while (current && !visited.has(Number(current.id))) {
+      visited.add(Number(current.id));
+      const name = String(current.name || '').trim();
+      if (name) parts.unshift(name);
+      const parentId = toNumber(current.parent_id, 0);
+      current = parentId > 0 ? byId.get(parentId) : undefined;
+    }
+
+    return parts.join(' > ');
+  };
+
+  const descendantMap = new Map<number, number[]>();
+  for (const row of rows) {
+    const rowId = Number(row.id);
+    const path = resolvePath(rowId);
+    descendantMap.set(rowId, [rowId]);
+    for (const other of rows) {
+      const otherId = Number(other.id);
+      const otherPath = resolvePath(otherId);
+      if (otherId !== rowId && otherPath.startsWith(`${path} > `)) {
+        descendantMap.set(rowId, [...(descendantMap.get(rowId) || [rowId]), otherId]);
+      }
+    }
+  }
+
+  return {
+    options: rows
+      .map((row) => ({
+        value: String(row.id),
+        label: resolvePath(Number(row.id)) || String(row.name || `#${row.id}`),
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label, 'vi')),
+    descendants: descendantMap,
+    resolvePath,
+  };
+}
+
+async function getAutoMxhCategoryMeta() {
+  const columns = await getTableColumns('automxh_categories');
+  if (!columns?.has('id') || !columns.has('name')) {
+    return null;
+  }
+
+  const rows = await db.$queryRawUnsafe<PricingCategoryRow[]>(
+    `
+      SELECT id, ${columns.has('parent_id') ? 'parent_id' : 'NULL AS parent_id'}, name
+      FROM \`automxh_categories\`
+      ${columns.has('is_deleted') ? 'WHERE COALESCE(`is_deleted`, 0) = 0' : ''}
+      ORDER BY ${columns.has('sort_order') ? 'COALESCE(`sort_order`, 0), ' : ''}id ASC
+    `
+  ).catch(() => []);
+
+  if (!rows.length) return null;
+  return buildCategoryMeta(rows);
 }
 
 function buildFieldSelect(field: PricingFieldConfig) {
@@ -490,10 +600,20 @@ export async function listPricingItems(params: PricingListParams) {
     ? params.module
     : modules[0].key;
   const { config, columns } = await resolveConfig(requestedModule);
+  const autoMxhCategoryMeta = requestedModule.startsWith('automxh-') ? await getAutoMxhCategoryMeta() : null;
   const page = Math.max(1, Math.trunc(params.page || 1));
   const perPage = Math.min(100, Math.max(10, Math.trunc(params.perPage || 50)));
   const skip = (page - 1) * perPage;
-  const { whereSql, values } = buildWhereSql(config, columns, { search: params.search });
+  const categoryValues = autoMxhCategoryMeta && params.category
+    ? autoMxhCategoryMeta.descendants.get(Number(params.category))?.map((item) => String(item)) || [String(params.category)]
+    : [];
+  const { whereSql, values } = buildWhereSql(config, columns, {
+    search: params.search,
+    platform: params.platform,
+    provider: params.provider,
+    category: params.category,
+    categoryValues,
+  });
   const selectSql = buildListSelect(config, columns);
   const primaryField = getPrimaryField(config, columns);
   const primaryExpression = primaryField?.selectExpression || (primaryField ? escapeIdentifier(primaryField.column) : '0');
@@ -535,7 +655,9 @@ export async function listPricingItems(params: PricingListParams) {
       module_label: row.module_label,
       name: normalizeRecord(row.name),
       subtitle: normalizeRecord(row.subtitle),
-      category: normalizeRecord(row.category),
+      category: requestedModule.startsWith('automxh-') && autoMxhCategoryMeta
+        ? autoMxhCategoryMeta.resolvePath(toNumber(row.category, 0)) || normalizeRecord(row.category)
+        : normalizeRecord(row.category),
       status: normalizeRecord(row.status),
       updated_at: normalizeRecord(row.updated_at),
       values: valuesByField,
@@ -547,6 +669,30 @@ export async function listPricingItems(params: PricingListParams) {
     modules,
     active_module: activeModule,
     data,
+    filters: requestedModule === 'smm'
+      ? {
+          provider_options: Array.from(new Set(
+            rows
+              .map((row) => String(row.subtitle || ''))
+              .map((text) => {
+                const match = text.match(/Provider\s+([^·]+)/i);
+                return match?.[1]?.trim() || '';
+              })
+              .filter(Boolean)
+          )).sort((left, right) => left.localeCompare(right, 'vi')),
+          platform_options: ['Facebook', 'TikTok', 'Instagram', 'YouTube'],
+          category_options: Array.from(new Set(
+            rows
+              .map((row) => String(row.category || '').trim())
+              .filter(Boolean)
+          )).sort((left, right) => left.localeCompare(right, 'vi')),
+        }
+      : requestedModule.startsWith('automxh-') && autoMxhCategoryMeta
+        ? {
+            category_options: autoMxhCategoryMeta.options.map((item) => item.label),
+            category_map: Object.fromEntries(autoMxhCategoryMeta.options.map((item) => [item.label, item.value])),
+          }
+      : undefined,
     pagination: {
       page,
       per_page: perPage,
@@ -599,11 +745,45 @@ export async function updatePricingItem(input: PricingActionInput, adminId: numb
   const values: unknown[] = [];
 
   const fieldPatch = input.fields && typeof input.fields === 'object' ? input.fields : {};
+  const isSmmModule = moduleKey === 'smm';
+  const hasMarginColumn = columns.has('margin_percent');
+  const hasAutoMarginColumn = columns.has('is_auto_margin');
+  const priceField = fields.find((field) => field.key === 'custom_price') || fields.find((field) => field.primary);
+  const providerRateField = fields.find((field) => field.key === 'rate');
+  const requestedMarginValue = Object.prototype.hasOwnProperty.call(fieldPatch, 'margin_percent')
+    ? normalizeNumericInput(fieldPatch.margin_percent, 'percent')
+    : null;
+  let nextCustomPriceForSmm: number | null = null;
+
+  if (isSmmModule && requestedMarginValue !== null && priceField && providerRateField) {
+    const currentRows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+      `SELECT ${providerRateField.selectExpression || escapeIdentifier(providerRateField.column)} AS provider_rate
+       FROM ${escapeIdentifier(config.table)}
+       WHERE ${escapeIdentifier(config.idColumn || 'id')} = ?
+       LIMIT 1`,
+      id
+    );
+    const providerRate = toNumber(currentRows[0]?.provider_rate, 0);
+    nextCustomPriceForSmm = Math.round(providerRate * (1 + requestedMarginValue / 100) * 10000) / 10000;
+  }
+
   for (const [key, value] of Object.entries(fieldPatch)) {
     const field = editableFields.get(key);
     if (!field) continue;
+    if (isSmmModule && key === 'custom_price' && requestedMarginValue !== null) continue;
     setSql.push(`${escapeIdentifier(field.column)} = ?`);
     values.push(normalizeNumericInput(value, field.kind));
+  }
+
+  if (isSmmModule && requestedMarginValue !== null && hasMarginColumn) {
+    if (hasAutoMarginColumn) {
+      setSql.push(`${escapeIdentifier('is_auto_margin')} = ?`);
+      values.push(1);
+    }
+    if (priceField && nextCustomPriceForSmm !== null) {
+      setSql.push(`${escapeIdentifier(priceField.column)} = ?`);
+      values.push(nextCustomPriceForSmm);
+    }
   }
 
   if (input.status !== undefined && config.statusColumn && columns.has(config.statusColumn)) {
@@ -660,9 +840,11 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
   const moduleKey = String(input.module || '').trim();
   if (!moduleKey) throw new Error('Thiếu module giá');
   const { config, columns } = await resolveConfig(moduleKey);
+  const autoMxhCategoryMeta = moduleKey.startsWith('automxh-') ? await getAutoMxhCategoryMeta() : null;
   const ids = normalizeIds(input.ids);
   const search = String(input.search || '').trim();
   const scope = input.scope || 'selected';
+  const category = String((input as Record<string, unknown>).category || '').trim();
 
   if (scope === 'selected' && ids.length === 0) {
     throw new Error('Chọn ít nhất một dịch vụ để xử lý');
@@ -674,6 +856,10 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
 
   const { whereSql, values: whereValues } = buildWhereSql(config, columns, {
     search,
+    category,
+    categoryValues: autoMxhCategoryMeta && category
+      ? autoMxhCategoryMeta.descendants.get(Number(category))?.map((item) => String(item)) || [category]
+      : [],
     ids: scope === 'selected' ? ids : undefined,
   });
 
@@ -706,14 +892,41 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
     ) || 0);
   } else if (action === 'bulk-set') {
     const nextValue = normalizeNumericInput(input.fields?.[targetField.key], targetField.kind);
-    affected = Number(await db.$executeRawUnsafe(
-      `UPDATE ${escapeIdentifier(config.table)}
-       SET ${escapeIdentifier(targetField.column)} = ?
-       ${columns.has('updated_at') ? ', `updated_at` = NOW()' : columns.has('cached_at') ? ', `cached_at` = NOW()' : ''}
-       ${whereSql}`,
-      nextValue,
-      ...whereValues
-    ) || 0);
+    if (moduleKey === 'smm' && targetField.key === 'margin_percent') {
+      const rateField = fields.find((field) => field.key === 'rate');
+      const customPriceField = fields.find((field) => field.key === 'custom_price');
+      const assignments = [`${escapeIdentifier('margin_percent')} = ?`];
+      const assignmentValues: unknown[] = [nextValue];
+
+      if (columns.has('is_auto_margin')) {
+        assignments.push(`${escapeIdentifier('is_auto_margin')} = ?`);
+        assignmentValues.push(1);
+      }
+
+      if (rateField && customPriceField) {
+        const rateExpression = rateField.selectExpression || escapeIdentifier(rateField.column);
+        assignments.push(`${escapeIdentifier(customPriceField.column)} = ROUND(COALESCE(${rateExpression}, 0) * (1 + (? / 100)), 4)`);
+        assignmentValues.push(nextValue);
+      }
+
+      affected = Number(await db.$executeRawUnsafe(
+        `UPDATE ${escapeIdentifier(config.table)}
+         SET ${assignments.join(', ')}
+         ${columns.has('updated_at') ? ', `updated_at` = NOW()' : columns.has('cached_at') ? ', `cached_at` = NOW()' : ''}
+         ${whereSql}`,
+        ...assignmentValues,
+        ...whereValues
+      ) || 0);
+    } else {
+      affected = Number(await db.$executeRawUnsafe(
+        `UPDATE ${escapeIdentifier(config.table)}
+         SET ${escapeIdentifier(targetField.column)} = ?
+         ${columns.has('updated_at') ? ', `updated_at` = NOW()' : columns.has('cached_at') ? ', `cached_at` = NOW()' : ''}
+         ${whereSql}`,
+        nextValue,
+        ...whereValues
+      ) || 0);
+    }
   } else {
     throw new Error('Action giá chưa được hỗ trợ');
   }

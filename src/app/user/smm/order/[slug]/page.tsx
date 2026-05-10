@@ -40,6 +40,7 @@ interface SmmOrderRecord {
   id: number;
   api_order_id: string;
   service_id: number;
+  service_name?: string;
   link: string;
   quantity: number;
   price: number;
@@ -85,6 +86,10 @@ function cleanStatus(status = '') {
   };
 
   return map[normalized] || { label: status || '---', className: 'bg-slate-400' };
+}
+
+function formatOrderCreatedAt(value: string) {
+  return new Date(value).toLocaleString('vi-VN');
 }
 
 function getCommentLines(value: string) {
@@ -782,69 +787,91 @@ export default function SmmOrderPage() {
                 Làm mới
               </button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full whitespace-nowrap text-left text-[11px]">
-                <thead className="bg-slate-50/50 font-bold uppercase tracking-wider text-slate-400 dark:bg-white/5">
-                  <tr>
-                    <th className="px-6 py-4">Mã đơn</th>
-                    <th className="px-6 py-4">Link / Đối tượng</th>
-                    <th className="px-6 py-4">Máy chủ</th>
-                    <th className="px-6 py-4 text-center">Số lượng</th>
-                    <th className="px-6 py-4 text-center">Bắt đầu</th>
-                    <th className="px-6 py-4 text-center">Đã chạy</th>
-                    <th className="px-6 py-4 text-center">Thanh toán</th>
-                    <th className="px-6 py-4 text-center">Trạng thái</th>
-                    <th className="px-6 py-4 text-right">Ngày tạo</th>
-                  </tr>
-                </thead>
-                <tbody className="font-bold text-slate-600 dark:text-slate-300">
-                  {orders.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-20 text-center font-medium italic tracking-widest text-slate-400">
-                        Chưa có lịch sử đơn hàng cho mục này.
-                      </td>
-                    </tr>
-                  ) : (
-                    orders.map((order) => {
-                      const status = cleanStatus(order.status);
-                      const remains = Number(order.remains || 0);
-                      const done = Math.max(0, Number(order.quantity || 0) - remains);
+            <div className="divide-y divide-slate-100 dark:divide-white/5">
+              {orders.length === 0 ? (
+                <div className="py-20 text-center text-[11px] font-medium italic tracking-widest text-slate-400">
+                  Chưa có lịch sử đơn hàng cho mục này.
+                </div>
+              ) : (
+                orders.map((order) => {
+                  const status = cleanStatus(order.status);
+                  const quantityValue = Number(order.quantity || 0);
+                  const startCountValue = Math.max(0, Number(order.start_count || 0));
+                  const remainsValue = Math.max(0, Number(order.remains || 0));
+                  const currentCountValue = Math.max(startCountValue, quantityValue - remainsValue + startCountValue);
+                  const deliveredValue = Math.max(0, currentCountValue - startCountValue);
+                  const progressValue = quantityValue > 0 ? Math.min(100, Math.round((deliveredValue / quantityValue) * 100)) : 0;
 
-                      return (
-                        <tr key={order.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/5">
-                          <td className="px-6 py-4 font-mono text-[10px] text-slate-400">
-                            #{order.api_order_id || order.id}
-                          </td>
-                          <td className="max-w-[220px] truncate px-6 py-4 underline decoration-brand-blue/30" title={order.link}>
-                            {order.link}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-black dark:bg-white/10">
-                              SV{order.service_id}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-center font-black">{formatNumber(order.quantity)}</td>
-                          <td className="px-6 py-4 text-center text-slate-400">
-                            {formatNumber(Number(order.start_count || 0))}
-                          </td>
-                          <td className="px-6 py-4 text-center text-brand-blue">{formatNumber(done)}</td>
-                          <td className="px-6 py-4 text-center font-black text-emerald-600">
-                            {formatCurrency(order.price)}
-                          </td>
-                          <td className="px-6 py-4 text-center">
+                  return (
+                    <div key={order.id} className="p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-[10px] text-slate-400">#{order.api_order_id || order.id}</span>
                             <span className={cn('rounded px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white', status.className)}>
                               {status.label}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 text-right font-mono text-[10px] opacity-50">
-                            {new Date(order.created_at).toLocaleString('vi-VN')}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-black dark:bg-white/10">
+                              SV{order.service_id}
+                            </span>
+                          </div>
+                          <div className="max-w-2xl break-all text-sm font-black text-slate-900 dark:text-white">
+                            {order.link}
+                          </div>
+                          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                            {order.service_name || `Dịch vụ #${order.service_id}`}
+                          </div>
+                        </div>
+
+                        <div className="text-left lg:text-right">
+                          <div className="text-lg font-black text-emerald-600">{formatCurrency(order.price)}</div>
+                          <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            {formatOrderCreatedAt(order.created_at)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-4">
+                        <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Số lượng đặt</div>
+                          <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{formatNumber(quantityValue)}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Số trước khi tăng</div>
+                          <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{formatNumber(startCountValue)}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Số sau khi tăng</div>
+                          <div className="mt-2 text-sm font-black text-brand-blue">{formatNumber(currentCountValue)}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
+                          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Còn thiếu</div>
+                          <div className="mt-2 text-sm font-black text-amber-500">{formatNumber(remainsValue)}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                          <span>Tiến độ đơn</span>
+                          <span>{progressValue}%</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+                          <div
+                            className={cn(
+                              'h-full rounded-full transition-all',
+                              status.className.replace('bg-', 'bg-')
+                            )}
+                            style={{ width: `${progressValue}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                          Đã chạy <span className="font-black text-brand-blue">{formatNumber(deliveredValue)}</span> / {formatNumber(quantityValue)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 

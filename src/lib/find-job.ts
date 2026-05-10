@@ -85,6 +85,7 @@ export async function listOpenFindJobs(limit = 50) {
         FROM find_job_jobs j
         LEFT JOIN users u ON u.id = j.posted_by
         WHERE j.status = 'open'
+          AND COALESCE(j.approval_status, 'pending') = 'approved'
         ORDER BY ${hasPinColumn ? 'j.is_pinned DESC,' : ''} j.posted_at DESC, j.id DESC
         LIMIT ?
       `,

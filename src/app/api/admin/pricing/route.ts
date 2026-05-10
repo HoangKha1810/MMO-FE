@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
     const data = await listPricingItems({
       module: params.get('module') || undefined,
       search: params.get('search') || undefined,
+      platform: params.get('platform') || undefined,
+      provider: params.get('provider') || undefined,
+      category: params.get('category') || undefined,
       page: Number(params.get('page') || 1),
       perPage: Number(params.get('per_page') || 50),
     });

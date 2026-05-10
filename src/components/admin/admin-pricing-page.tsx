@@ -75,6 +75,12 @@ interface PricingResponse {
   modules?: PricingModule[];
   active_module?: PricingModule | null;
   data?: PricingItem[];
+  filters?: {
+    provider_options?: string[];
+    platform_options?: string[];
+    category_options?: string[];
+    category_map?: Record<string, string>;
+  };
   pagination?: {
     page: number;
     per_page: number;
@@ -127,6 +133,16 @@ function getPrimaryField(module?: PricingModule | null) {
   return module?.fields.find((field) => field.primary) || module?.fields.find((field) => field.editable) || module?.fields[0];
 }
 
+function getPreferredTargetField(module?: PricingModule | null) {
+  if (!module) return '';
+  if (module.key === 'smm') {
+    return module.fields.find((field) => field.key === 'margin_percent')?.key
+      || getPrimaryField(module)?.key
+      || '';
+  }
+  return getPrimaryField(module)?.key || '';
+}
+
 function buildDraft(item: PricingItem, module?: PricingModule | null) {
   const draft: Record<string, string> = {};
   for (const field of module?.fields || []) {
@@ -146,9 +162,13 @@ export function AdminPricingPage() {
   const [summary, setSummary] = useState({ min: 0, max: 0, avg: 0 });
   const [pagination, setPagination] = useState<PricingResponse['pagination']>();
   const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
+  const [filters, setFilters] = useState<PricingResponse['filters']>({});
   const [selected, setSelected] = useState<number[]>([]);
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
+  const [platformFilter, setPlatformFilter] = useState('');
+  const [providerFilter, setProviderFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
@@ -184,6 +204,11 @@ export function AdminPricingPage() {
       });
       if (activeModuleKey) params.set('module', activeModuleKey);
       if (search.trim()) params.set('search', search.trim());
+      if (activeModuleKey === 'smm') {
+        if (platformFilter.trim()) params.set('platform', platformFilter.trim());
+        if (providerFilter.trim()) params.set('provider', providerFilter.trim());
+        if (categoryFilter.trim()) params.set('category', categoryFilter.trim());
+      }
 
       const response = await fetch(`/api/admin/pricing?${params.toString()}`, { cache: 'no-store' });
       const payload: PricingResponse = await response.json();
@@ -197,6 +222,7 @@ export function AdminPricingPage() {
       setModules(nextModules);
       setActiveModuleKey((current) => nextModules.some((module) => module.key === current) ? current : nextActive);
       setItems(nextItems);
+      setFilters(payload.filters || {});
       setPagination(payload.pagination);
       setSummary(payload.summary || { min: 0, max: 0, avg: 0 });
       if (!options?.silent) {
@@ -207,7 +233,7 @@ export function AdminPricingPage() {
       setDrafts(Object.fromEntries(nextItems.map((item) => [rowKey(item), buildDraft(item, moduleForDraft)])));
 
       if (!targetFieldKey && moduleForDraft) {
-        setTargetFieldKey(getPrimaryField(moduleForDraft)?.key || '');
+        setTargetFieldKey(getPreferredTargetField(moduleForDraft));
       }
       setLastSyncedAt(new Date());
     } catch (error) {
@@ -225,7 +251,7 @@ export function AdminPricingPage() {
 
   useEffect(() => {
     void loadPricing();
-  }, [activeModuleKey, search, page]);
+  }, [activeModuleKey, search, page, platformFilter, providerFilter, categoryFilter]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -240,9 +266,12 @@ export function AdminPricingPage() {
   }, [activeModuleKey, search, page, bulkLoading, savingRow, selected.length]);
 
   useEffect(() => {
-    const nextField = getPrimaryField(activeModule)?.key || '';
+    const nextField = getPreferredTargetField(activeModule);
     setTargetFieldKey(nextField);
     setPage(1);
+    setCategoryFilter('');
+    setProviderFilter('');
+    setPlatformFilter('');
   }, [activeModuleKey]);
 
   function updateDraft(item: PricingItem, key: string, value: string) {
@@ -325,6 +354,7 @@ export function AdminPricingPage() {
               ids: selected,
               scope: hasSelected ? 'selected' : 'filtered',
               search,
+              category: categoryFilter,
               confirm: applyFiltered,
             }
           : {
@@ -335,6 +365,7 @@ export function AdminPricingPage() {
               ids: selected,
               scope: hasSelected ? 'selected' : 'filtered',
               search,
+              category: categoryFilter,
               confirm: applyFiltered,
             };
 
@@ -458,7 +489,7 @@ export function AdminPricingPage() {
           description="Cập nhật từng dịch vụ hoặc xử lý hàng loạt theo phần trăm hay mức giá cố định sau khi xác nhận."
         />
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_190px_190px_220px]">
           <form
             className="relative"
             onSubmit={(event) => {
@@ -471,10 +502,68 @@ export function AdminPricingPage() {
             <Input
               value={searchDraft}
               onChange={(event) => setSearchDraft(event.target.value)}
-              placeholder="Tìm theo tên, category, service id, provider..."
+              placeholder={activeModule?.key === 'smm' ? 'Tìm theo tên dịch vụ...' : 'Tìm theo tên, category, service id, provider...'}
               className="pl-11"
             />
           </form>
+          {activeModule?.key === 'smm' ? (
+            <>
+              <select
+                value={platformFilter}
+                onChange={(event) => setPlatformFilter(event.target.value)}
+                className="field-elevated h-11 rounded-[1rem] px-3 text-xs font-black uppercase tracking-wider outline-none dark:text-white"
+              >
+                <option value="">Nền tảng</option>
+                {(filters?.platform_options || []).map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <select
+                value={providerFilter}
+                onChange={(event) => setProviderFilter(event.target.value)}
+                className="field-elevated h-11 rounded-[1rem] px-3 text-xs font-black uppercase tracking-wider outline-none dark:text-white"
+              >
+                <option value="">Provider</option>
+                {(filters?.provider_options || []).map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                className="field-elevated h-11 rounded-[1rem] px-3 text-xs font-black uppercase tracking-wider outline-none dark:text-white"
+              >
+                <option value="">Mục dịch vụ</option>
+                {(filters?.category_options || []).map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </>
+          ) : activeModule?.key.startsWith('automxh-') ? (
+            <>
+              <div />
+              <div />
+              <select
+                value={categoryFilter}
+                onChange={(event) => {
+                  const rawValue = event.target.value;
+                  const mappedValue = filters?.category_map?.[rawValue] || rawValue;
+                  setCategoryFilter(mappedValue);
+                }}
+                className="field-elevated h-11 rounded-[1rem] px-3 text-xs font-black uppercase tracking-wider outline-none dark:text-white"
+              >
+                <option value="">Category mẹ/con</option>
+                {(filters?.category_options || []).map((option) => {
+                  const mappedValue = filters?.category_map?.[option] || option;
+                  return (
+                    <option key={mappedValue} value={mappedValue}>
+                      {option}
+                    </option>
+                  );
+                })}
+              </select>
+            </>
+          ) : null}
 
           <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-[1fr_1fr_auto]">
             <select

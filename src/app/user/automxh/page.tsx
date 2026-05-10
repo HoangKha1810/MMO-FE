@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Loader2, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
@@ -28,6 +28,13 @@ interface AutoMxhCatalogSection {
   products: AutoMxhProduct[];
 }
 
+interface AutoMxhGroupedSection {
+  groupKey: string;
+  groupLabel: string;
+  sections: AutoMxhCatalogSection[];
+  totalProducts: number;
+}
+
 interface CatalogResponse {
   success: boolean;
   message?: string;
@@ -40,12 +47,44 @@ function assetUrl(value: string) {
   return `/${value.replace(/^\/+/, '').replace(/^public\//, '')}`;
 }
 
+function normalizePlatformGroup(name: string) {
+  const lower = String(name || '').toLowerCase();
+  if (lower.includes('facebook') || lower.includes('fb')) return 'Facebook';
+  if (lower.includes('instagram') || lower.includes('ig')) return 'Instagram';
+  if (lower.includes('tiktok') || lower.includes('tik tok')) return 'TikTok';
+  if (lower.includes('twitter') || lower.includes('x twitter') || lower.includes('x / twitter')) return 'X Twitter';
+  if (lower.includes('youtube') || lower.includes('yt')) return 'YouTube';
+  return name || 'Khác';
+}
+
 export default function UserAutomxhPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
   const [sections, setSections] = useState<AutoMxhCatalogSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const groupedSections = useMemo<AutoMxhGroupedSection[]>(() => {
+    const groups = new Map<string, AutoMxhGroupedSection>();
+
+    for (const section of sections) {
+      const groupLabel = normalizePlatformGroup(section.category.name);
+      const groupKey = slugify(groupLabel);
+      const existing = groups.get(groupKey);
+      if (existing) {
+        existing.sections.push(section);
+        existing.totalProducts += section.products.length;
+      } else {
+        groups.set(groupKey, {
+          groupKey,
+          groupLabel,
+          sections: [section],
+          totalProducts: section.products.length,
+        });
+      }
+    }
+
+    return Array.from(groups.values());
+  }, [sections]);
 
   useEffect(() => {
     let active = true;
@@ -99,7 +138,7 @@ export default function UserAutomxhPage() {
               Đang tải Auto MXH
             </div>
           </div>
-        ) : sections.length === 0 ? (
+        ) : groupedSections.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
             <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-orange-500/20 bg-orange-500/10 text-orange-500 shadow-xl shadow-orange-500/5">
               <Zap className="h-12 w-12" />
@@ -112,58 +151,73 @@ export default function UserAutomxhPage() {
             </p>
           </div>
         ) : (
-          sections.map((section) => (
-            <section key={section.category.id} className="category-section space-y-5 scroll-mt-28">
+          groupedSections.map((group: AutoMxhGroupedSection) => (
+            <section key={group.groupKey} className="category-section space-y-6 scroll-mt-28">
               <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/5">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 shadow-sm dark:bg-white/5">
-                    {section.category.gif ? (
-                      <img src={assetUrl(section.category.gif)} className="h-6 w-6 object-contain" alt="" />
+                    {group.sections[0]?.category.gif ? (
+                      <img src={assetUrl(group.sections[0].category.gif)} className="h-6 w-6 object-contain" alt="" />
                     ) : (
                       <Zap className="h-5 w-5 text-orange-500" />
                     )}
                   </div>
                   <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                    {section.category.name}
+                    {group.groupLabel}
                   </h2>
                 </div>
                 <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-400 dark:bg-white/5">
-                  {section.products.length} dịch vụ
+                  {group.totalProducts} dịch vụ
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-                {section.products.map((product) => (
-                  <div key={product.id} className="service-card-wrapper h-full">
-                    <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
-                      <Link
-                        href={`/user/automxh/order/${slugify(section.category.name)}?product=${product.id}`}
-                        className="group/link flex flex-1 flex-col p-4"
-                      >
-                        <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-transform duration-300 group-hover:scale-110 dark:bg-white/5">
-                          <Zap className="h-5 w-5 text-orange-500" />
-                        </div>
-
-                        <h3 className="mb-2 text-[12px] font-black uppercase leading-tight text-slate-800 dark:text-white">
-                          {product.name}
-                        </h3>
-
-                        <div className="mb-4">
-                          <p className="line-clamp-2 text-[10px] italic text-slate-500">
-                            {product.description || 'Cung cấp đa dạng các gói dịch vụ chất lượng cao.'}
-                          </p>
-                        </div>
-
-                        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover/link:bg-brand-blue group-hover/link:text-white">
-                            <ArrowRight className="h-3 w-3" />
-                          </div>
-                        </div>
-                      </Link>
+              {group.sections.map((section: AutoMxhCatalogSection) => (
+                <div key={section.category.id} className="space-y-4">
+                  {group.sections.length > 1 ? (
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
+                        {section.category.name}
+                      </h3>
+                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-400 dark:bg-white/5">
+                        {section.products.length} dịch vụ
+                      </span>
                     </div>
+                  ) : null}
+
+                  <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                    {section.products.map((product: AutoMxhProduct) => (
+                      <div key={product.id} className="service-card-wrapper h-full">
+                        <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
+                          <Link
+                            href={`/user/automxh/order/${slugify(section.category.name)}?product=${product.id}`}
+                            className="group/link flex flex-1 flex-col p-4"
+                          >
+                            <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-transform duration-300 group-hover:scale-110 dark:bg-white/5">
+                              <Zap className="h-5 w-5 text-orange-500" />
+                            </div>
+
+                            <h3 className="mb-2 text-[12px] font-black uppercase leading-tight text-slate-800 dark:text-white">
+                              {product.name}
+                            </h3>
+
+                            <div className="mb-4">
+                              <p className="line-clamp-2 text-[10px] italic text-slate-500">
+                                {product.description || 'Cung cấp đa dạng các gói dịch vụ chất lượng cao.'}
+                              </p>
+                            </div>
+
+                            <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover/link:bg-brand-blue group-hover/link:text-white">
+                                <ArrowRight className="h-3 w-3" />
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </section>
           ))
         )}

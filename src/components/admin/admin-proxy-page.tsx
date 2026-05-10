@@ -412,6 +412,14 @@ export function AdminProxyPage() {
                 </div>
 
                 <div className="mt-5 grid gap-4 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
+                  <div className="rounded-[1rem] border border-slate-200/70 bg-slate-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Vendor / ngày</div>
+                    <div className="mt-2 text-sm font-black text-slate-950 dark:text-white">{formatCurrency(item.providerDailyPrice)}</div>
+                  </div>
+                  <div className="rounded-[1rem] border border-slate-200/70 bg-slate-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Giá gợi ý / ngày</div>
+                    <div className="mt-2 text-sm font-black text-brand-blue">{formatCurrency(item.suggestedPricePerDay)}</div>
+                  </div>
                   <label className="space-y-2">
                     <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Giá bán / ngày</span>
                     <Input
