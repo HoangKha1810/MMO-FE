@@ -41,6 +41,11 @@ export async function GET() {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404, headers: noStoreHeaders });
     }
 
+    await db.users.update({
+      where: { id: userId },
+      data: { last_activity: new Date() },
+    }).catch(() => undefined);
+
     return NextResponse.json({
       success: true,
       user: {

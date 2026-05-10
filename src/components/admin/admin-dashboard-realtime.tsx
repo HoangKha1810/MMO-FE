@@ -77,6 +77,13 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
 
   const pulseCards = [
     {
+      label: 'Đang online',
+      value: number(pulse.online_users),
+      hint: '5 phút gần nhất',
+      icon: Activity,
+      accent: 'from-emerald-500/16 to-teal-500/8 text-emerald-500',
+    },
+    {
       label: 'Thành viên',
       value: number(pulse.total_users),
       hint: `${number(pulse.locked_users)} bị khóa`,
@@ -163,11 +170,12 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
               ) : null}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {[
-              { label: '2FA', value: number(pulse.twofa_users), icon: ShieldCheck },
-              { label: 'Locked', value: number(pulse.locked_users), icon: LockKeyhole },
-              { label: 'Reports', value: number(pulse.pending_reports), icon: AlertTriangle },
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                { label: 'Online', value: number(pulse.online_users), icon: Activity },
+                { label: '2FA', value: number(pulse.twofa_users), icon: ShieldCheck },
+                { label: 'Locked', value: number(pulse.locked_users), icon: LockKeyhole },
+                { label: 'Reports', value: number(pulse.pending_reports), icon: AlertTriangle },
               { label: 'SMM', value: number(pulse.realtime_orders), icon: ShoppingBag },
               { label: 'Pending', value: number(pulse.pending_deposits), icon: WalletCards },
             ].map((item) => (

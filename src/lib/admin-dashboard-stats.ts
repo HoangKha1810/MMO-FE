@@ -39,6 +39,7 @@ export interface AdminPeriodStats {
 export interface AdminDashboardStats {
   pulse: {
     total_users: number;
+    online_users: number;
     locked_users: number;
     twofa_users: number;
     total_liability: number;
@@ -267,6 +268,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       stats7d,
       stats30d,
       totalUsersRows,
+      onlineUsersRows,
       lockedUsersRows,
       twofaRows,
       liabilityRows,
@@ -281,6 +283,12 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       getPeriodStats('DATE_SUB(CURDATE(), INTERVAL 7 DAY)'),
       getPeriodStats('DATE_SUB(CURDATE(), INTERVAL 30 DAY)'),
       safeRows<MetricRow>('SELECT COUNT(*) AS total FROM users'),
+      safeRows<MetricRow>(`
+        SELECT COUNT(*) AS total
+        FROM users
+        WHERE status = 'active'
+          AND COALESCE(last_activity, last_login, updated_at, created_at) >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+      `),
       safeRows<MetricRow>("SELECT COUNT(*) AS total FROM users WHERE status IN ('banned', 'locked', 'suspended')"),
       safeRows<MetricRow>('SELECT COUNT(*) AS total FROM users WHERE COALESCE(`2fa_enabled`, 0) = 1 OR COALESCE(telegram_2fa_enabled, 0) = 1'),
       safeRows<MetricRow>('SELECT COALESCE(SUM(balance), 0) AS total FROM users'),
@@ -319,6 +327,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     return {
       pulse: {
         total_users: numberFrom(first(totalUsersRows), 'total'),
+        online_users: numberFrom(first(onlineUsersRows), 'total'),
         locked_users: numberFrom(first(lockedUsersRows), 'total'),
         twofa_users: numberFrom(first(twofaRows), 'total'),
         total_liability: numberFrom(first(liabilityRows), 'total'),
@@ -356,6 +365,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     return {
       pulse: {
         total_users: 0,
+        online_users: 0,
         locked_users: 0,
         twofa_users: 0,
         total_liability: 0,
