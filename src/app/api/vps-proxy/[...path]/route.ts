@@ -8,14 +8,14 @@ function buildTargetUrl(request: NextRequest, path: string[]) {
     process.env.VPS_PORTAL_API_BASE_URL ||
       process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL ||
       process.env.INTEGRATED_VPS_API_BASE_URL ||
-      process.env.VITE_API_BASE_URL ||
       ''
   ).trim().replace(/\/+$/, '');
   if (!targetBase) {
     throw new Error('Thiếu VPS_PORTAL_API_BASE_URL');
   }
 
-  const upstreamUrl = new URL(`${targetBase}/api/${path.join('/')}`);
+  const normalizedBase = targetBase.replace(/\/api\/?$/, '');
+  const upstreamUrl = new URL(`${normalizedBase}/api/${path.join('/')}`);
   request.nextUrl.searchParams.forEach((value, key) => {
     upstreamUrl.searchParams.set(key, value);
   });
