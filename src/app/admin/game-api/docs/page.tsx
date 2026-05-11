@@ -1,6 +1,6 @@
 import { AdminGameApiDocsPage } from '@/components/admin/admin-game-api-docs-page';
-import { buildAbsoluteUrl } from '@/lib/seo';
+import { getGameApiPublicBaseUrl } from '@/lib/game-api-public-url';
 
 export default function AdminGameApiDocumentationPage() {
-  return <AdminGameApiDocsPage baseUrl={buildAbsoluteUrl('/api/external/game')} />;
+  return <AdminGameApiDocsPage baseUrl={getGameApiPublicBaseUrl()} />;
 }
