@@ -104,6 +104,82 @@ export function AdminGameApiDocsPage({ baseUrl }: AdminGameApiDocsPageProps) {
         backgroundColor: '#020617',
         logging: false,
         windowWidth: Math.max(target.scrollWidth, 1440),
+        onclone: (document) => {
+          const exportNode = document.querySelector('[data-game-api-export-root="true"]');
+          if (!exportNode) {
+            return;
+          }
+
+          const style = document.createElement('style');
+          style.textContent = `
+            [data-game-api-export-root="true"] {
+              background: #020617 !important;
+              color: #e2e8f0 !important;
+            }
+
+            [data-game-api-export-root="true"] *,
+            [data-game-api-export-root="true"] *::before,
+            [data-game-api-export-root="true"] *::after {
+              box-shadow: none !important;
+              text-shadow: none !important;
+              backdrop-filter: none !important;
+              filter: none !important;
+            }
+
+            [data-game-api-export-root="true"] section,
+            [data-game-api-export-root="true"] article,
+            [data-game-api-export-root="true"] div,
+            [data-game-api-export-root="true"] pre,
+            [data-game-api-export-root="true"] table,
+            [data-game-api-export-root="true"] thead,
+            [data-game-api-export-root="true"] tbody,
+            [data-game-api-export-root="true"] tr,
+            [data-game-api-export-root="true"] td,
+            [data-game-api-export-root="true"] th {
+              border-color: rgba(148, 163, 184, 0.28) !important;
+            }
+
+            [data-game-api-export-root="true"] .surface-panel,
+            [data-game-api-export-root="true"] .surface-panel-strong,
+            [data-game-api-export-root="true"] article,
+            [data-game-api-export-root="true"] .rounded-\\[1\\.4rem\\],
+            [data-game-api-export-root="true"] .rounded-\\[1\\.5rem\\],
+            [data-game-api-export-root="true"] .rounded-\\[1\\.2rem\\] {
+              background: #0f172a !important;
+            }
+
+            [data-game-api-export-root="true"] pre,
+            [data-game-api-export-root="true"] code {
+              background: #020617 !important;
+              color: #f8fafc !important;
+            }
+
+            [data-game-api-export-root="true"] .bg-amber-50\\/80,
+            [data-game-api-export-root="true"] .bg-amber-50\\/70 {
+              background: #2a1f0f !important;
+              color: #fde68a !important;
+            }
+
+            [data-game-api-export-root="true"] .bg-emerald-50\\/70,
+            [data-game-api-export-root="true"] .bg-emerald-50\\/80 {
+              background: #0f2a22 !important;
+              color: #bbf7d0 !important;
+            }
+
+            [data-game-api-export-root="true"] .bg-slate-50\\/70,
+            [data-game-api-export-root="true"] .bg-slate-50\\/90,
+            [data-game-api-export-root="true"] .bg-white,
+            [data-game-api-export-root="true"] .bg-white\\/5,
+            [data-game-api-export-root="true"] .bg-white\\/10 {
+              background: #111827 !important;
+            }
+
+            [data-game-api-export-root="true"] img {
+              object-fit: contain !important;
+            }
+          `;
+          document.head.appendChild(style);
+        },
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -137,7 +213,7 @@ export function AdminGameApiDocsPage({ baseUrl }: AdminGameApiDocsPageProps) {
   }
 
   return (
-    <div ref={exportRef} className="space-y-6">
+    <div ref={exportRef} data-game-api-export-root="true" className="space-y-6">
       <PageHero
         eyebrow="Admin API Docs"
         title="Tài Liệu Tích Hợp Game API"
