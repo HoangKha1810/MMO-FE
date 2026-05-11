@@ -8,6 +8,7 @@ import { isTrackableIp } from '@/lib/ip-security';
 import { decryptLegacyData } from '@/lib/legacy-crypto';
 import { getLegacySettingsMap, getVatPercent, invalidateLegacySettingsCache } from '@/lib/legacy-settings';
 import { approveDepositById } from '@/lib/deposit-processing';
+import { ensureGameApiKeyForUser } from '@/lib/game-integration-api';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
@@ -49,13 +50,16 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
       balance: true,
       game_balance: true,
       rank: true,
+      fa_enabled: true,
+      telegram_2fa_enabled: true,
+      fa_type: true,
       last_ip: true,
       last_login: true,
       lock_reason: true,
       created_at: true,
     },
     createFields: ['username', 'email', 'password', 'fullname', 'role', 'status', 'balance', 'game_balance', 'rank'],
-    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'lock_reason', 'locked_until', 'is_blue_tick'],
+    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick'],
   },
   deposits: {
     delegate: 'transactions',
@@ -1357,6 +1361,13 @@ export async function createAdminResource(resource: string, input: Record<string
 
   if (resource === 'settings') {
     invalidateLegacySettingsCache();
+  }
+
+  if (resource === 'users' && created && typeof created === 'object' && 'id' in (created as Record<string, unknown>)) {
+    const userId = Number((created as Record<string, unknown>).id || 0);
+    if (userId > 0) {
+      await ensureGameApiKeyForUser(userId).catch(() => undefined);
+    }
   }
 
   await logAdminAction({ adminId, action: `create ${resource}`, target: JSON.stringify(data), req });

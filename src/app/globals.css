@@ -259,6 +259,68 @@
     background: linear-gradient(90deg, rgba(37, 99, 235, 0.48), transparent);
   }
 
+  @keyframes support-fab-float {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-4px) scale(1.01);
+    }
+  }
+
+  @keyframes support-fab-shine {
+    0% {
+      transform: translateX(-140%) skewX(-18deg);
+      opacity: 0;
+    }
+    18% {
+      opacity: 0.22;
+    }
+    50% {
+      opacity: 0.32;
+    }
+    100% {
+      transform: translateX(220%) skewX(-18deg);
+      opacity: 0;
+    }
+  }
+
+  .support-fab {
+    min-width: 4rem;
+    min-height: 4rem;
+    animation: support-fab-float 4.5s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .support-fab__shine {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.24), transparent 80%);
+    animation: support-fab-shine 3.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .support-fab__shine--alt {
+    animation-delay: 1.1s;
+  }
+
+  @media (max-width: 640px) {
+    .support-fab {
+      padding-inline: 0.75rem;
+      min-width: 3.4rem;
+      min-height: 3.4rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .support-fab,
+    .support-fab__shine {
+      animation: none !important;
+    }
+  }
+
   .dark .shell-brand-card {
     border-color: rgba(148, 163, 184, 0.08);
     background:

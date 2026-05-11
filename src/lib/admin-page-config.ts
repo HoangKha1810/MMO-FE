@@ -16,7 +16,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       title: 'Người dùng',
       description: 'List/search/filter user, chỉnh số dư, rank, role, trạng thái và khóa/mở tài khoản.',
       columns: ['id', 'username', 'email', 'fullname', 'role', 'status', 'balance', 'game_balance', 'rank', 'last_ip', 'created_at'],
-      editableFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'lock_reason', 'locked_until', 'is_blue_tick'],
+      editableFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick'],
       createFields: ['username', 'email', 'password', 'fullname', 'role', 'status', 'balance', 'game_balance', 'rank'],
       statusOptions: ['active', 'locked', 'suspended', 'banned'],
       actions: [

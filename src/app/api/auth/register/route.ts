@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { ensureGameApiKeyForUser } from '@/lib/game-integration-api';
 import {
   MAX_ACCOUNTS_PER_IP,
   autoBanRegistrationIp,
@@ -139,6 +140,8 @@ export async function POST(req: NextRequest) {
         user_agent: req.headers.get('user-agent') || undefined,
       },
     }).catch(() => undefined);
+
+    await ensureGameApiKeyForUser(user.id).catch(() => undefined);
 
     return NextResponse.json({
       success: true,

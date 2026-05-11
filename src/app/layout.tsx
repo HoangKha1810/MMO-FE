@@ -5,6 +5,7 @@ import 'katex/dist/katex.min.css';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { Providers } from '@/components/layout/providers';
+import { FloatingSupportButtons } from '@/components/layout/floating-support-buttons';
 import { NavigationEffects, RouteStage } from '@/components/layout/navigation-effects';
 import { buildAbsoluteUrl, defaultKeywords, siteDescription, siteName, siteShortName, siteUrl } from '@/lib/seo';
 
@@ -136,6 +137,7 @@ export default function RootLayout({
         <Providers>
           <NavigationEffects />
           <RouteStage>{children}</RouteStage>
+          <FloatingSupportButtons />
           <Toaster
             position="top-right"
             toastOptions={{

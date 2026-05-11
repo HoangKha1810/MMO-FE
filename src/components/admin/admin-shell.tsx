@@ -12,6 +12,7 @@ import {
   Cloud,
   CreditCard,
   ExternalLink,
+  FileText,
   EyeOff,
   Flag,
   FolderOpen,
@@ -140,6 +141,8 @@ const adminNavSections: NavSection[] = [
     title: 'Thương mại',
     accent: 'rose',
     items: [
+      { href: '/admin/game-api', label: 'Game API & Key', icon: Key, accent: 'blue' },
+      { href: '/admin/game-api/docs', label: 'Game API Docs', icon: FileText, accent: 'blue' },
       { href: '/admin/game-market', label: 'Chợ tài khoản Game', icon: Gamepad2 },
       { href: '/admin/orders', label: 'Đơn hàng hệ thống', icon: ShoppingCart },
       { href: '/admin/deposits', label: 'Lịch sử nạp tiền', icon: Wallet },
