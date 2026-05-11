@@ -11,6 +11,7 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit --incremental false",
     "docs:chatbot": "tsx scripts/generate-chatbot-docs.ts",
+    "docs:game-api-pdf": "tsx scripts/generate-game-api-docs-pdf.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts"

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Copy,
@@ -19,15 +19,6 @@ interface AdminGameApiDocsPageProps {
   baseUrl: string;
 }
 
-function escapeHtml(value: string) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 async function copyText(value: string, successMessage: string) {
   try {
     await navigator.clipboard.writeText(value);
@@ -35,17 +26,6 @@ async function copyText(value: string, successMessage: string) {
   } catch {
     toast.error('Không thể copy vào clipboard');
   }
-}
-
-function normalizePdfFilenamePart(value: string) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, 'd')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase();
 }
 
 function CodeBlock({
@@ -82,138 +62,9 @@ function CodeBlock({
 
 export function AdminGameApiDocsPage({ baseUrl }: AdminGameApiDocsPageProps) {
   const docs = useMemo(() => buildGameApiDocs(baseUrl), [baseUrl]);
-  const [exporting, setExporting] = useState(false);
-  const exportRef = useRef<HTMLDivElement | null>(null);
-
-  async function handleExportPdf() {
-    setExporting(true);
-    try {
-      const target = exportRef.current;
-      if (!target) {
-        throw new Error('Không tìm thấy nội dung để xuất PDF.');
-      }
-
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ]);
-
-      const canvas = await html2canvas(target, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#020617',
-        logging: false,
-        windowWidth: Math.max(target.scrollWidth, 1440),
-        onclone: (document) => {
-          const exportNode = document.querySelector('[data-game-api-export-root="true"]');
-          if (!exportNode) {
-            return;
-          }
-
-          const style = document.createElement('style');
-          style.textContent = `
-            [data-game-api-export-root="true"] {
-              background: #020617 !important;
-              color: #e2e8f0 !important;
-            }
-
-            [data-game-api-export-root="true"] *,
-            [data-game-api-export-root="true"] *::before,
-            [data-game-api-export-root="true"] *::after {
-              box-shadow: none !important;
-              text-shadow: none !important;
-              backdrop-filter: none !important;
-              filter: none !important;
-            }
-
-            [data-game-api-export-root="true"] section,
-            [data-game-api-export-root="true"] article,
-            [data-game-api-export-root="true"] div,
-            [data-game-api-export-root="true"] pre,
-            [data-game-api-export-root="true"] table,
-            [data-game-api-export-root="true"] thead,
-            [data-game-api-export-root="true"] tbody,
-            [data-game-api-export-root="true"] tr,
-            [data-game-api-export-root="true"] td,
-            [data-game-api-export-root="true"] th {
-              border-color: rgba(148, 163, 184, 0.28) !important;
-            }
-
-            [data-game-api-export-root="true"] .surface-panel,
-            [data-game-api-export-root="true"] .surface-panel-strong,
-            [data-game-api-export-root="true"] article,
-            [data-game-api-export-root="true"] .rounded-\\[1\\.4rem\\],
-            [data-game-api-export-root="true"] .rounded-\\[1\\.5rem\\],
-            [data-game-api-export-root="true"] .rounded-\\[1\\.2rem\\] {
-              background: #0f172a !important;
-            }
-
-            [data-game-api-export-root="true"] pre,
-            [data-game-api-export-root="true"] code {
-              background: #020617 !important;
-              color: #f8fafc !important;
-            }
-
-            [data-game-api-export-root="true"] .bg-amber-50\\/80,
-            [data-game-api-export-root="true"] .bg-amber-50\\/70 {
-              background: #2a1f0f !important;
-              color: #fde68a !important;
-            }
-
-            [data-game-api-export-root="true"] .bg-emerald-50\\/70,
-            [data-game-api-export-root="true"] .bg-emerald-50\\/80 {
-              background: #0f2a22 !important;
-              color: #bbf7d0 !important;
-            }
-
-            [data-game-api-export-root="true"] .bg-slate-50\\/70,
-            [data-game-api-export-root="true"] .bg-slate-50\\/90,
-            [data-game-api-export-root="true"] .bg-white,
-            [data-game-api-export-root="true"] .bg-white\\/5,
-            [data-game-api-export-root="true"] .bg-white\\/10 {
-              background: #111827 !important;
-            }
-
-            [data-game-api-export-root="true"] img {
-              object-fit: contain !important;
-            }
-          `;
-          document.head.appendChild(style);
-        },
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= pageHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= pageHeight;
-      }
-
-      const filename = `trungtammmo-game-api-docs-${normalizePdfFilenamePart(new Date().toISOString().slice(0, 10))}.pdf`;
-      pdf.save(filename);
-      toast.success('Đã tải xuống file PDF tài liệu Game API.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể xuất file PDF');
-    } finally {
-      setExporting(false);
-    }
-  }
 
   return (
-    <div ref={exportRef} data-game-api-export-root="true" className="space-y-6">
+    <div className="space-y-6">
       <PageHero
         eyebrow="Admin API Docs"
         title="Tài Liệu Tích Hợp Game API"
@@ -252,9 +103,11 @@ export function AdminGameApiDocsPage({ baseUrl }: AdminGameApiDocsPageProps) {
                 Quay về quản lý key
               </Link>
             </Button>
-            <Button onClick={() => void handleExportPdf()} loading={exporting}>
-              <Download className="h-4 w-4" />
-              Xuất PDF đẹp
+            <Button asChild>
+              <a href="/docs/trungtammmo-game-api-docs.pdf" download="trungtammmo-game-api-docs.pdf">
+                <Download className="h-4 w-4" />
+                Tải PDF
+              </a>
             </Button>
           </>
         }
