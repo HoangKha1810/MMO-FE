@@ -17,8 +17,22 @@ import {
 import { storefrontFallback } from "./sample-data";
 import { siteConfig } from "./site";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL ?? "/api/vps-proxy";
+function normalizeApiBaseUrl(rawValue: string | undefined) {
+  const trimmed = String(rawValue || "").trim();
+  if (!trimmed) {
+    return "/api/vps-proxy";
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/\/+$/, "").replace(/\/api$/i, "") + "/api";
+  }
+
+  return trimmed.replace(/\/+$/, "");
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(
+  process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL
+);
 const SESSION_KEY = "vncloud-vps-session";
 export const DEPOSIT_URL = "https://trungtammmo.vn/deposit";
 export const API_ACTIVITY_EVENT = "vncloud-vps-api-activity";
