@@ -75,19 +75,19 @@ export function buildGameApiDocs(baseUrl: string): GameApiDocsContent {
     baseUrl: normalizedBaseUrl,
     apiKeyPlaceholder,
     authNotes: [
-      'Moi request phai gui API key theo 1 trong 3 cach: x-api-key, Authorization: Bearer, hoac query api_key.',
-      'Tat ca lenh mua game/random/game-market deu tru dung vi game cua account gan voi API key.',
-      'Gia tra ve la gia dang ban tren web, da tinh dung VAT/phi dang hien thi cua he thong.',
-      'Tai lieu nay chi hien thi trong admin; API key khong xuat hien o khu vuc public.',
+      'Mọi request phải gửi API key theo 1 trong 3 cách: x-api-key, Authorization: Bearer, hoặc query api_key.',
+      'Tất cả lệnh mua game/random/game-market đều trừ đúng ví game của account gắn với API key.',
+      'Giá trả về là giá đang bán trên web, đã tính đúng VAT/phí đang hiển thị của hệ thống.',
+      'Tài liệu này chỉ hiển thị trong admin; API key không xuất hiện ở khu vực public.',
     ],
     deployment: {
       serverIp,
       bePort,
       apiPrefix: '/api',
       warnings: [
-        'Neu trang FE dang chay o trungtammmo.vn thi KHONG nen repoint root domain ve BE. Dung subdomain api.trungtammmo.vn cho BE la dung hon.',
-        'Chi mo cong 80 va 443 public. Port 4000 nen chi nghe noi bo tren server Windows.',
-        'BE trong repo dang mount router tai /api va default listen o PORT=4000.',
+        'Nếu trang FE đang chạy ở trungtammmo.vn thì KHÔNG nên repoint root domain về BE. Dùng subdomain api.trungtammmo.vn cho BE là đúng hơn.',
+        'Chỉ mở cổng 80 và 443 public. Port 4000 nên chỉ nghe nội bộ trên server Windows.',
+        'BE trong repo đang mount router tại /api và mặc định listen ở PORT=4000.',
       ],
       dnsRecords: [
         {
@@ -96,7 +96,7 @@ export function buildGameApiDocs(baseUrl: string): GameApiDocsContent {
           target: serverIp,
           proxy: 'DNS only',
           ttl: 'Auto',
-          note: `Dung cho BE/IIS reverse proxy. Domain final se la https://${deployDomain}`,
+          note: `Dùng cho BE/IIS reverse proxy. Domain final sẽ là https://${deployDomain}`,
         },
         {
           host: '@',
@@ -104,27 +104,27 @@ export function buildGameApiDocs(baseUrl: string): GameApiDocsContent {
           target: serverIp,
           proxy: 'Off',
           ttl: 'Auto',
-          note: 'Chi doi root domain neu anh MUON cho trungtammmo.vn cung vao BE. Neu FE dang song o root thi GIU NGUYEN record nay.',
+          note: 'Chỉ đổi root domain nếu anh MUỐN cho trungtammmo.vn cùng vào BE. Nếu FE đang sống ở root thì GIỮ NGUYÊN record này.',
         },
       ],
       steps: [
         {
-          title: '1. Chot record DNS',
-          description: 'Tai nha cung cap DNS/Cloudflare, tao record A cho subdomain api tro ve server Windows BE.',
+          title: '1. Chốt record DNS',
+          description: 'Tại nhà cung cấp DNS/Cloudflare, tạo record A cho subdomain api trỏ về server Windows BE.',
           language: 'text',
           code: `api.trungtammmo.vn  ->  ${serverIp}`,
         },
         {
-          title: '2. Mo firewall tren server Windows',
-          description: 'Cho phep HTTP/HTTPS di vao IIS. Port 4000 chi can noi bo neu IIS reverse proxy local.',
+          title: '2. Mở firewall trên server Windows',
+          description: 'Cho phép HTTP/HTTPS đi vào IIS. Port 4000 chỉ cần nội bộ nếu IIS reverse proxy local.',
           language: 'powershell',
           code: `New-NetFirewallRule -DisplayName "HTTP 80" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
 New-NetFirewallRule -DisplayName "HTTPS 443" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow
 New-NetFirewallRule -DisplayName "BE 4000 localhost" -Direction Inbound -Protocol TCP -LocalPort 4000 -Action Allow`,
         },
         {
-          title: '3. Build va chay BE tren port 4000',
-          description: 'BE trong repo dang listen o PORT=4000. Chay service truoc, sau do moi reverse proxy bang IIS.',
+          title: '3. Build và chạy BE trên port 4000',
+          description: 'BE trong repo đang listen ở PORT=4000. Chạy service trước, sau đó mới reverse proxy bằng IIS.',
           language: 'powershell',
           code: `cd C:\\path\\to\\mmo\\BE
 npm install
@@ -136,21 +136,21 @@ npm run start
 curl http://127.0.0.1:4000/api/health`,
         },
         {
-          title: '4. Cai IIS + URL Rewrite + ARR',
-          description: 'Can IIS, URL Rewrite va Application Request Routing de reverse proxy domain vao Node/Express.',
+          title: '4. Cài IIS + URL Rewrite + ARR',
+          description: 'Cần IIS, URL Rewrite và Application Request Routing để reverse proxy domain vào Node/Express.',
           language: 'text',
-          code: `Bat role: Web Server (IIS)
-Cai them:
+          code: `Bật role: Web Server (IIS)
+Cài thêm:
 - URL Rewrite 2
 - Application Request Routing (ARR) 3`,
         },
         {
-          title: '5. Bat reverse proxy trong ARR',
-          description: 'Mo IIS Manager -> server node -> Application Request Routing Cache -> Server Proxy Settings -> tick Enable proxy.',
+          title: '5. Bật reverse proxy trong ARR',
+          description: 'Mở IIS Manager -> server node -> Application Request Routing Cache -> Server Proxy Settings -> tick Enable proxy.',
         },
         {
-          title: '6. Tao site IIS cho api.trungtammmo.vn',
-          description: 'Tao site moi hoac dung Default Web Site, nhung binding phai tach rieng theo host header.',
+          title: '6. Tạo site IIS cho api.trungtammmo.vn',
+          description: 'Tạo site mới hoặc dùng Default Web Site, nhưng binding phải tách riêng theo host header.',
           language: 'text',
           code: `Site name: trungtammmo-api
 Physical path: C:\\inetpub\\trungtammmo-api
@@ -161,8 +161,8 @@ HTTP binding:
 - Host name: ${deployDomain}`,
         },
         {
-          title: '7. Them rule reverse proxy ve BE port 4000',
-          description: 'Dung URL Rewrite de forward tat ca request domain API ve Node app dang nghe o 127.0.0.1:4000.',
+          title: '7. Thêm rule reverse proxy về BE port 4000',
+          description: 'Dùng URL Rewrite để forward tất cả request domain API về Node app đang nghe ở 127.0.0.1:4000.',
           language: 'xml',
           code: `<configuration>
   <system.webServer>
@@ -183,26 +183,26 @@ HTTP binding:
 </configuration>`,
         },
         {
-          title: '8. Tao SSL Lets Encrypt bang win-acme',
-          description: 'De nhanh va ben tren Windows IIS, dung win-acme de cap cert va auto renewal.',
+          title: '8. Tạo SSL Let’s Encrypt bằng win-acme',
+          description: 'Để nhanh và bền trên Windows IIS, dùng win-acme để cấp cert và auto renewal.',
           language: 'text',
-          code: `Download win-acme (wacs) -> chay wacs.exe voi Administrator
-Chon:
+          code: `Download win-acme (wacs) -> chạy wacs.exe với Administrator
+Chọn:
 N - Create certificate (full options)
 1 - Single binding of an IIS site
 Site: trungtammmo-api
-Email: email cua anh
+Email: email của anh
 Agree TOS
 Finish
 
-win-acme se:
+win-acme sẽ:
 - xin cert Let's Encrypt
-- bind SSL vao site IIS
-- tao scheduled task auto renew`,
+- bind SSL vào site IIS
+- tạo scheduled task auto renew`,
         },
         {
-          title: '9. Them HTTPS binding va redirect 80 -> 443',
-          description: 'Sau khi co cert, site can binding 443 dung SNI dung host api.trungtammmo.vn.',
+          title: '9. Thêm HTTPS binding và redirect 80 -> 443',
+          description: 'Sau khi có cert, site cần binding 443 dùng SNI đúng host api.trungtammmo.vn.',
           language: 'text',
           code: `HTTPS binding:
 - Type: https
@@ -210,55 +210,55 @@ win-acme se:
 - Port: 443
 - Host name: ${deployDomain}
 - Require Server Name Indication (SNI): checked
-- SSL certificate: Let's Encrypt certificate cua ${deployDomain}
+- SSL certificate: Let's Encrypt certificate của ${deployDomain}
 
-Sau do them HTTP Redirect hoac URL Rewrite de redirect http -> https.`,
+Sau đó thêm HTTP Redirect hoặc URL Rewrite để redirect http -> https.`,
         },
         {
           title: '10. Test domain public',
-          description: 'Sau khi DNS resolve xong va IIS proxy on, test health endpoint tu ngoai internet.',
+          description: 'Sau khi DNS resolve xong và IIS proxy on, test health endpoint từ ngoài internet.',
           language: 'bash',
           code: `curl https://${deployDomain}/api/health
 
-# ket qua mong doi
+# kết quả mong đợi
 {
   "success": true,
   "name": "trungtammmo-be"
 }`,
         },
         {
-          title: '11. Neu muon root domain cung vao BE',
-          description: 'Chi lam neu anh muon trungtammmo.vn phuc vu BE thay vi FE. Neu FE dang chay root thi bo qua buoc nay.',
+          title: '11. Nếu muốn root domain cùng vào BE',
+          description: 'Chỉ làm nếu anh muốn trungtammmo.vn phục vụ BE thay vì FE. Nếu FE đang chạy root thì bỏ qua bước này.',
           language: 'text',
-          code: `Them them binding host:
+          code: `Thêm thêm binding host:
 - trungtammmo.vn
-- www.trungtammmo.vn (neu can)
+- www.trungtammmo.vn (nếu cần)
 
-Nhung can rat can than vi se anh huong FE hien tai.`,
+Nhưng cần rất cẩn thận vì sẽ ảnh hưởng FE hiện tại.`,
         },
       ],
       verification: [
         `DNS resolve: api.trungtammmo.vn -> ${serverIp}`,
         `Health local: http://127.0.0.1:${bePort}/api/health`,
         `Health public: https://${deployDomain}/api/health`,
-        `Game API public: ${origin}/api/external/game/account (FE docs) va https://${deployDomain}/api/health (BE service)`,
+        `Game API public: https://${deployDomain}/profile.php, /products.php, /product.php, /buy_product, /order.php`,
       ],
     },
     connectionMethods: [
       {
         id: 'curl',
-        title: 'Ket noi bang cURL',
-        description: 'Hop khi web doi tac can test nhanh endpoint tu server, terminal hoac Postman-import.',
+        title: 'Kết nối bằng cURL',
+        description: 'Hợp khi web đối tác cần test nhanh endpoint từ server, terminal hoặc Postman-import.',
         language: 'bash',
-        code: `curl --request GET '${normalizedBaseUrl}/account' \\
+        code: `curl --request GET '${normalizedBaseUrl}/profile.php' \\
   --header 'x-api-key: ${apiKeyPlaceholder}'`,
       },
       {
         id: 'fetch',
-        title: 'Ket noi bang JavaScript fetch',
-        description: 'Dung cho Node.js, Next.js, backend service hoac webhook worker.',
+        title: 'Kết nối bằng JavaScript fetch',
+        description: 'Dùng cho Node.js, Next.js, backend service hoặc webhook worker.',
         language: 'ts',
-        code: `const response = await fetch('${normalizedBaseUrl}/resources?collection=game-accounts&page=1&per_page=20', {
+        code: `const response = await fetch('${normalizedBaseUrl}/products.php', {
   headers: {
     'x-api-key': '${apiKeyPlaceholder}'
   }
@@ -269,20 +269,15 @@ console.log(payload);`,
       },
       {
         id: 'php',
-        title: 'Ket noi bang PHP cURL',
-        description: 'Phu hop khi web doi tac dang chay PHP va can tao don mua game/random.',
+        title: 'Kết nối bằng PHP cURL',
+        description: 'Phù hợp khi web đối tác đang chạy PHP và cần tạo đơn mua game/random hoặc game market.',
         language: 'php',
-        code: `$payload = json_encode([
-  'resource_id' => 123,
-  'quantity' => 1,
-]);
+        code: `$payload = 'id=RES-123&amount=1&api_key=${apiKeyPlaceholder}';
 
-$ch = curl_init('${normalizedBaseUrl}/resources');
-curl_setopt($ch, CURLOPT_POST, true);
+$ch = curl_init('${normalizedBaseUrl}/buy_product');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-  'Content-Type: application/json',
-  'x-api-key: ${apiKeyPlaceholder}',
+  'Content-Type: application/x-www-form-urlencoded',
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
 
@@ -293,10 +288,10 @@ echo $result;`,
       },
       {
         id: 'bearer',
-        title: 'Ket noi bang Authorization Bearer',
-        description: 'Neu phia doi tac da co middle-layer auth theo chuan bearer, co the dung cach nay thay cho x-api-key.',
+        title: 'Kết nối bằng Authorization Bearer',
+        description: 'Nếu phía đối tác đã có middle-layer auth theo chuẩn bearer, có thể dùng cách này thay cho x-api-key.',
         language: 'bash',
-        code: `curl --request GET '${normalizedBaseUrl}/market?page=1&per_page=10' \\
+        code: `curl --request GET '${normalizedBaseUrl}/products.php' \\
   --header 'Authorization: Bearer ${apiKeyPlaceholder}'`,
       },
     ],
@@ -307,8 +302,8 @@ echo $result;`,
         method: 'GET',
         endpoint: `${normalizedBaseUrl}/profile.php`,
         description: 'Endpoint tương thích kiểu random1k/shopreg để bên đối tác lấy username và số dư ví game của chính account đã được cấp API key.',
-        requestPayloadTitle: 'Du lieu gui',
-        requestPayload: 'Khong can body. Gui api_key trong query/header. Co the goi bang x-api-key, Authorization Bearer hoac ?api_key=...',
+        requestPayloadTitle: 'Dữ liệu gửi',
+        requestPayload: 'Không cần body. Gửi api_key trong query/header. Có thể gọi bằng x-api-key, Authorization Bearer hoặc ?api_key=...',
         requestExample: `curl --request GET '${normalizedBaseUrl}/profile.php?api_key=${apiKeyPlaceholder}'`,
         responseExample: prettyJson({
           status: 'success',
@@ -323,7 +318,7 @@ echo $result;`,
         }),
         errorExample: prettyJson({
           status: 'error',
-          msg: 'API key khong hop le',
+          msg: 'API key không hợp lệ',
         }),
         notes: [
           'Đây là route tương thích provider, nên shape trả về là status/msg/data.',
@@ -336,8 +331,8 @@ echo $result;`,
         method: 'GET',
         endpoint: `${normalizedBaseUrl}/products.php`,
         description: 'Catalog chính tương thích random1k/shopreg. Trả về categories có products bên trong. Bao gồm tài khoản game, random game và cả game market.',
-        requestPayloadTitle: 'Du lieu gui',
-        requestPayload: 'Khong can body. Goi GET va gui api_key. Product ID của hệ thống dùng prefix: RES-123 cho tài khoản game/random, GM-789 cho game market.',
+        requestPayloadTitle: 'Dữ liệu gửi',
+        requestPayload: 'Không cần body. Gọi GET và gửi api_key. Product ID của hệ thống dùng prefix: RES-123 cho tài khoản game/random, GM-789 cho game market.',
         requestExample: `curl --request GET '${normalizedBaseUrl}/products.php' \\
   --header 'x-api-key: ${apiKeyPlaceholder}'`,
         responseExample: prettyJson({
@@ -347,7 +342,7 @@ echo $result;`,
             {
               id: 'resource-game',
               parent_id: null,
-              name: 'Tai khoan game API',
+              name: 'Tài khoản game API',
               icon: '/assets/game-thumbnails/pubg-mobile.png',
               products: [],
             },
@@ -368,7 +363,7 @@ echo $result;`,
                   max: 6,
                   thumbnail: 'https://trungtammmo.vn/assets/game-thumbnails/pubg-mobile.png',
                   image: 'https://trungtammmo.vn/assets/game-thumbnails/pubg-mobile.png',
-                  content: 'Co mail dang ky va thong tin dang nhap.',
+                  content: 'Có mail đăng ký và thông tin đăng nhập.',
                   category_name: 'PUBG Mobile',
                   category_slug: 'pubg-mobile',
                   source_type: 'resource',
@@ -378,7 +373,7 @@ echo $result;`,
             {
               id: 'resource-random:lien-quan-mobile',
               parent_id: 'resource-random',
-              name: 'Lien Quan Mobile',
+              name: 'Liên Quân Mobile',
               icon: '/assets/game-thumbnails/lien-quan-mobile.png',
               products: [
                 {
@@ -392,7 +387,7 @@ echo $result;`,
                   max: 10,
                   thumbnail: 'https://trungtammmo.vn/assets/game-thumbnails/lien-quan-mobile.png',
                   image: 'https://trungtammmo.vn/assets/game-thumbnails/lien-quan-mobile.png',
-                  content: 'Dang nhap doi mat khau ngay sau khi nhan acc.',
+                  content: 'Đăng nhập đổi mật khẩu ngay sau khi nhận acc.',
                   category_name: 'Lien Quan Mobile',
                   category_slug: 'lien-quan-mobile',
                   source_type: 'resource',
@@ -410,7 +405,7 @@ echo $result;`,
                   name: 'Nick Valorant Ascendant Full Mail',
                   price: 1500000,
                   amount: 1,
-                  description: 'Tai khoan rank cao, da verify mail, co skin premium.',
+                  description: 'Tài khoản rank cao, đã verify mail, có skin premium.',
                   flag: 'game-market',
                   min: 1,
                   max: 1,
@@ -432,7 +427,7 @@ echo $result;`,
         }),
         errorExample: prettyJson({
           status: 'error',
-          msg: 'Thieu API key',
+          msg: 'Thiếu API key',
         }),
         notes: [
           'ID product có prefix để bên đấu API phân biệt rõ resource/game-market.',
@@ -445,7 +440,7 @@ echo $result;`,
         method: 'GET',
         endpoint: `${normalizedBaseUrl}/product.php`,
         description: 'Lấy 1 product theo đúng ID đang thấy trong products.php. Hỗ trợ cả RES-* và GM-*.',
-        requestPayloadTitle: 'Du lieu gui',
+        requestPayloadTitle: 'Dữ liệu gửi',
         requestPayload: 'Query param: product=RES-123 hoặc product=GM-789',
         requestExample: `curl --request GET '${normalizedBaseUrl}/product.php?product=GM-789' \\
   --header 'x-api-key: ${apiKeyPlaceholder}'`,
@@ -458,7 +453,7 @@ echo $result;`,
               name: 'Nick Valorant Ascendant Full Mail',
               price: 1500000,
               amount: 1,
-              description: 'Tai khoan rank cao, da verify mail, co skin premium.',
+              description: 'Tài khoản rank cao, đã verify mail, có skin premium.',
               flag: 'game-market',
               min: 1,
               max: 1,
@@ -486,7 +481,7 @@ echo $result;`,
         method: 'POST',
         endpoint: `${normalizedBaseUrl}/buy_product`,
         description: 'Endpoint mua hàng tương thích provider. Nếu ID là RES-* thì mua tài khoản game/random. Nếu ID là GM-* thì mua game market bằng chính ví game của account đang giữ API key.',
-        requestPayloadTitle: 'Du lieu gui',
+        requestPayloadTitle: 'Dữ liệu gửi',
         requestPayload: `POST application/x-www-form-urlencoded
 
 id=RES-123
@@ -541,7 +536,7 @@ api_key=${apiKeyPlaceholder}`,
         method: 'GET',
         endpoint: `${normalizedBaseUrl}/order.php`,
         description: 'Poll trạng thái đơn sau khi mua. Hỗ trợ cả RES-* và GM-*; nếu có file hoặc nội dung bàn giao thì trả ngay trong response.',
-        requestPayloadTitle: 'Du lieu gui',
+        requestPayloadTitle: 'Dữ liệu gửi',
         requestPayload: 'Query param: order=RES-456 hoặc order=GM-999',
         requestExample: `curl --request GET '${normalizedBaseUrl}/order.php?order=GM-999' \\
   --header 'x-api-key: ${apiKeyPlaceholder}'`,
