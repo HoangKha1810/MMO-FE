@@ -2,15 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { AlertCircle, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function ResetPasswordPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ email: '', token: '', password: '' });
+  const [form, setForm] = useState({
+    email: searchParams.get('email') || '',
+    token: searchParams.get('token') || '',
+    password: '',
+  });
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,8 +55,8 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={submit} className="space-y-4">
           <Input placeholder="Email tài khoản" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <Input placeholder="Token reset nếu admin/email đã cấp" value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} />
-          <Input type="password" placeholder="Mật khẩu mới nếu đã có token" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <Input placeholder="Token reset nếu email đã cấp" value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} />
+          <Input type="password" placeholder="Mật khẩu mới" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
           <Button type="submit" disabled={loading} className="w-full" loading={loading} loadingText="Đang xử lý...">
             Xử lý reset
           </Button>

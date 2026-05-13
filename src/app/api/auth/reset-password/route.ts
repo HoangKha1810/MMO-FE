@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { buildPasswordResetToken } from '@/lib/password-reset';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (token && password.length >= 6) {
-    const expected = crypto.createHash('sha256').update(`${user.id}:${email}:${process.env.ENCRYPTION_KEY || 'legacy'}`).digest('hex').slice(0, 32);
+    const expected = buildPasswordResetToken(user.id, email);
     if (token !== expected) {
       return NextResponse.json({ success: false, message: 'Token reset không hợp lệ' }, { status: 400 });
     }
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Đã đổi mật khẩu' });
   }
 
-  const resetToken = crypto.createHash('sha256').update(`${user.id}:${email}:${process.env.ENCRYPTION_KEY || 'legacy'}`).digest('hex').slice(0, 32);
+  const resetToken = buildPasswordResetToken(user.id, email);
   await db.activity_logs.create({
     data: {
       user_id: user.id,
