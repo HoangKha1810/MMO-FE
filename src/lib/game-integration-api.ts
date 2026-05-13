@@ -712,6 +712,33 @@ export async function getGameApiAccountSummary(userId: number) {
   };
 }
 
+function buildChargedAccountMeta(account: {
+  user_id: number;
+  username: string;
+  email: string;
+  fullname: string;
+  game_balance: number;
+}) {
+  return {
+    charged_by_api_key: true,
+    charged_user_id: Number(account.user_id || 0),
+    charged_username: String(account.username || ''),
+    charged_email: String(account.email || ''),
+    charged_fullname: String(account.fullname || ''),
+    charged_wallet: 'game',
+    charged_balance_after: Math.round(toNumber(account.game_balance, 0)),
+  };
+}
+
+async function logGameApiAction(userId: number, message: string) {
+  await db.activity_logs.create({
+    data: {
+      user_id: userId,
+      activity: message,
+    },
+  }).catch(() => undefined);
+}
+
 export async function listExternalGameResources(params: URLSearchParams) {
   const collection = resolveResourceCollection(params.get('collection'));
   const search = String(params.get('search') || '').trim();
@@ -974,12 +1001,18 @@ export async function createExternalGameResourceOrder(userId: number, input: {
   const order = await getExternalGameResourceOrderSnapshot(userId, Number(purchase.orderId || 0));
   const summary = await getGameApiAccountSummary(userId);
 
+  await logGameApiAction(
+    userId,
+    `Mua tài khoản game/random qua API: resource #${resourceId}, order #${Number(purchase.orderId || 0)}, ví game còn ${Math.round(toNumber(summary.game_balance, 0))}`
+  );
+
   return {
     success: true,
     data: {
       purchase,
       order,
       account: summary,
+      charged_account: buildChargedAccountMeta(summary),
     },
   };
 }
@@ -1148,12 +1181,18 @@ export async function createExternalGameMarketOrder(userId: number, input: {
   const order = await getExternalGameMarketOrderSnapshot(userId, Number(purchase.orderId || 0));
   const summary = await getGameApiAccountSummary(userId);
 
+  await logGameApiAction(
+    userId,
+    `Mua game market qua API: item #${itemId}, order #${Number(purchase.orderId || 0)}, ví game còn ${Math.round(toNumber(summary.game_balance, 0))}`
+  );
+
   return {
     success: true,
     data: {
       purchase,
       order,
       account: summary,
+      charged_account: buildChargedAccountMeta(summary),
       notes: [
         'Đơn game market thường cần seller bàn giao thủ công.',
         'Hãy poll endpoint trạng thái đơn để lấy delivered_data và trạng thái mới nhất.',
@@ -1549,7 +1588,10 @@ export async function getCompatProductDetail(externalProductId: string) {
   });
 }
 
-function buildCompatResourceOrderPayload(order: Record<string, unknown>) {
+function buildCompatResourceOrderPayload(
+  order: Record<string, unknown>,
+  chargedAccount?: ReturnType<typeof buildChargedAccountMeta>
+) {
   const lines = splitCompatContentLines(order.delivery_data || order.download_url || '');
   const fallbackLines = lines.length > 0
     ? lines
@@ -1574,10 +1616,14 @@ function buildCompatResourceOrderPayload(order: Record<string, unknown>) {
     total_price: Math.round(toNumber(order.total_price, 0)),
     created_at: order.created_at,
     updated_at: order.updated_at,
+    ...(chargedAccount || {}),
   });
 }
 
-function buildCompatMarketOrderPayload(order: Record<string, unknown>) {
+function buildCompatMarketOrderPayload(
+  order: Record<string, unknown>,
+  chargedAccount?: ReturnType<typeof buildChargedAccountMeta>
+) {
   const delivered = String(order.delivered_data || '').trim();
   const lines = splitCompatContentLines(delivered);
   const fallbackLines = lines.length > 0
@@ -1600,6 +1646,7 @@ function buildCompatMarketOrderPayload(order: Record<string, unknown>) {
     product: order.product,
     amount: Math.round(toNumber(order.amount, 0)),
     created_at: order.created_at,
+    ...(chargedAccount || {}),
   });
 }
 
@@ -1617,7 +1664,16 @@ export async function createCompatProductOrder(userId: number, input: {
       resourceId: parsed.id,
       quantity: Math.max(1, Math.trunc(input.amount || 1)),
     });
-    return buildCompatResourceOrderPayload(result.data.order as Record<string, unknown>);
+    return buildCompatResourceOrderPayload(
+      result.data.order as Record<string, unknown>,
+      buildChargedAccountMeta(result.data.account as {
+        user_id: number;
+        username: string;
+        email: string;
+        fullname: string;
+        game_balance: number;
+      })
+    );
   }
 
   if (Math.max(1, Math.trunc(input.amount || 1)) > 1) {
@@ -1629,7 +1685,16 @@ export async function createCompatProductOrder(userId: number, input: {
   const result = await createExternalGameMarketOrder(userId, {
     itemId: parsed.id,
   });
-  return buildCompatMarketOrderPayload(result.data.order as Record<string, unknown>);
+  return buildCompatMarketOrderPayload(
+    result.data.order as Record<string, unknown>,
+    buildChargedAccountMeta(result.data.account as {
+      user_id: number;
+      username: string;
+      email: string;
+      fullname: string;
+      game_balance: number;
+    })
+  );
 }
 
 export async function getCompatOrderDetail(userId: number, externalOrderId: string) {
@@ -1638,11 +1703,14 @@ export async function getCompatOrderDetail(userId: number, externalOrderId: stri
     return compatError('ID đơn hàng không hợp lệ');
   }
 
+  const summary = await getGameApiAccountSummary(userId);
+  const chargedAccount = buildChargedAccountMeta(summary);
+
   if (parsed.kind === 'resource') {
     const result = await getExternalGameResourceOrder(userId, parsed.id);
-    return buildCompatResourceOrderPayload(result.data as Record<string, unknown>);
+    return buildCompatResourceOrderPayload(result.data as Record<string, unknown>, chargedAccount);
   }
 
   const result = await getExternalGameMarketOrder(userId, parsed.id);
-  return buildCompatMarketOrderPayload(result.data as Record<string, unknown>);
+  return buildCompatMarketOrderPayload(result.data as Record<string, unknown>, chargedAccount);
 }

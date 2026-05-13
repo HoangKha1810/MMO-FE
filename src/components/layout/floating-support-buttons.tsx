@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { MessageCircleMore, Minus, Plus, Send } from "lucide-react";
+import { MessageCircleMore, Minus, Plus, Send, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const ZALO_GROUP_URL = "https://zalo.me/g/lbexoh608";
 const ZALO_URL = "https://zalo.me/0589287713";
 const TELEGRAM_URL = "https://t.me/TRUNGTAMMMOVN";
 
@@ -52,6 +53,26 @@ export function FloatingSupportButtons() {
         )}
         aria-hidden={collapsed}
       >
+      <a
+        href={ZALO_GROUP_URL}
+        target="_blank"
+        rel="noreferrer"
+        className={cn(
+          "support-fab group relative flex items-center gap-3 overflow-hidden rounded-full",
+          "border border-emerald-400/30 bg-[linear-gradient(135deg,rgba(5,150,105,0.96),rgba(16,185,129,0.96))]",
+          "px-3 py-3 text-white shadow-[0_16px_40px_rgba(5,150,105,0.32)]",
+          "transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+        )}
+      >
+        <span className="support-fab__shine" />
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/14 backdrop-blur">
+          <Users className="h-5 w-5" />
+        </span>
+        <span className="hidden pr-2 text-sm font-black uppercase tracking-[0.18em] sm:inline">
+          Nhóm Zalo
+        </span>
+      </a>
+
       <a
         href={ZALO_URL}
         target="_blank"

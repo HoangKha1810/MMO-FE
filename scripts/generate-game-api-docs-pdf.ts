@@ -343,10 +343,10 @@ function drawCover(state: DocState, title: string, subtitle: string, stats: Arra
 
 async function resolveFontPath() {
   const candidates = [
-    path.join(process.cwd(), 'node_modules/next/dist/compiled/@vercel/og/noto-sans-v27-latin-regular.ttf'),
     '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
     '/System/Library/Fonts/Supplemental/Arial.ttf',
     '/System/Library/Fonts/Supplemental/Verdana.ttf',
+    path.join(process.cwd(), 'node_modules/next/dist/compiled/@vercel/og/noto-sans-v27-latin-regular.ttf'),
   ];
 
   for (const candidate of candidates) {

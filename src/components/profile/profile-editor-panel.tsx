@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eraser, ImagePlus, Save, Sparkles } from 'lucide-react';
+import { Eraser, ImagePlus, KeyRound, Save, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,12 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(initialProfile.avatar || '');
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     setForm(initialProfile);
@@ -116,6 +122,35 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
       toast.error(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPasswordLoading(true);
+
+    try {
+      const response = await fetch('/api/user/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(passwordForm),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Không thể đổi mật khẩu');
+      }
+
+      toast.success(result.message || 'Đã đổi mật khẩu');
+      setPasswordForm({
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể đổi mật khẩu');
+    } finally {
+      setPasswordLoading(false);
     }
   }
 
@@ -267,6 +302,61 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
               />
             </div>
           </div>
+        </div>
+
+        <div className="rounded-[1.55rem] border border-slate-200/80 bg-white/75 p-5 dark:border-white/10 dark:bg-white/[0.03]">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant="info" className="rounded-full px-3 py-1.5">
+              <KeyRound className="h-3 w-3" />
+              Bảo mật tài khoản
+            </Badge>
+            <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
+              Đổi mật khẩu
+            </div>
+          </div>
+          <p className="mt-3 text-sm font-medium leading-7 text-slate-500 dark:text-slate-400">
+            Nhập mật khẩu hiện tại và mật khẩu mới. Hệ thống sẽ cập nhật trực tiếp vào tài khoản của bạn sau khi xác thực đúng mật khẩu cũ.
+          </p>
+
+          <form className="mt-5 grid gap-4 md:grid-cols-3" onSubmit={handlePasswordSubmit}>
+            <div className="space-y-2">
+              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Mật khẩu hiện tại</div>
+              <Input
+                type="password"
+                value={passwordForm.current_password}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, current_password: event.target.value }))}
+                placeholder="Nhập mật khẩu hiện tại"
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Mật khẩu mới</div>
+              <Input
+                type="password"
+                value={passwordForm.new_password}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, new_password: event.target.value }))}
+                placeholder="Ít nhất 8 ký tự"
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Xác nhận mật khẩu mới</div>
+              <Input
+                type="password"
+                value={passwordForm.confirm_password}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, confirm_password: event.target.value }))}
+                placeholder="Nhập lại mật khẩu mới"
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="md:col-span-3 flex justify-end">
+              <Button type="submit" loading={passwordLoading} loadingText="Đang đổi mật khẩu">
+                <KeyRound className="h-4 w-4" />
+                Đổi mật khẩu
+              </Button>
+            </div>
+          </form>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-5 dark:border-white/10">
