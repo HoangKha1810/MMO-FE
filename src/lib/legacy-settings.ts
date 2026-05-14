@@ -415,6 +415,53 @@ function mapServices(
   }));
 }
 
+const prioritizedServiceKeys = [
+  '1',
+  '2',
+  '6',
+  'game_accounts',
+  'random_game_accounts',
+  '3',
+  '10',
+  '12',
+  'proxy',
+  'chat_support_tiktok',
+  '5',
+  '9',
+  '8',
+  '7',
+  '11',
+  '13',
+  '14',
+  '15',
+  '16',
+  '17',
+  '18',
+  '19',
+  '20',
+  '4',
+] as const;
+
+const prioritizedServiceOrder = new Map<string, number>(
+  prioritizedServiceKeys.map((key, index) => [key, index])
+);
+
+function sortServiceCatalog(items: LegacyServiceItem[]) {
+  return [...items].sort((left, right) => {
+    if (left.maintenance !== right.maintenance) {
+      return left.maintenance ? 1 : -1;
+    }
+
+    const leftPriority = prioritizedServiceOrder.get(left.key) ?? Number.MAX_SAFE_INTEGER;
+    const rightPriority = prioritizedServiceOrder.get(right.key) ?? Number.MAX_SAFE_INTEGER;
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    return left.title.localeCompare(right.title, 'vi');
+  });
+}
+
 export async function getLegacySettingsMap(forceRefresh = false): Promise<Record<string, string>> {
   const now = Date.now();
 
@@ -488,11 +535,11 @@ export function getVatPercent(settings: Record<string, string>): number {
 }
 
 export function getHomeServiceGrid(settings: Record<string, string>): LegacyServiceItem[] {
-  return mapServices(settings, homeServiceDefinitions);
+  return sortServiceCatalog(mapServices(settings, homeServiceDefinitions));
 }
 
 export function getSidebarServiceCatalog(settings: Record<string, string>): LegacyServiceItem[] {
-  return mapServices(settings, sidebarServiceDefinitions);
+  return sortServiceCatalog(mapServices(settings, sidebarServiceDefinitions));
 }
 
 export function buildLegacyAssetUrl(path: string | null | undefined): string | null {

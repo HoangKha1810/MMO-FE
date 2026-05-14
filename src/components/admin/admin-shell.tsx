@@ -19,6 +19,7 @@ import {
   Gamepad2,
   History,
   Key,
+  KeyRound,
   Landmark,
   Layers,
   Layout,
@@ -87,6 +88,7 @@ const adminNavSections: NavSection[] = [
     accent: 'slate',
     items: [
       { href: '/admin/users', label: 'Quản lý thành viên', icon: Users },
+      { href: '/admin/users/passwords', label: 'Đổi mật khẩu user', icon: KeyRound, accent: 'amber' },
       { href: '/admin/security/check-ip', label: 'Kiểm tra IP', icon: Search },
       { href: '/admin/security', label: 'Bảo mật & IP Ban', icon: ShieldAlert, accent: 'red' },
     ],
