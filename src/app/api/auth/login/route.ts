@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
+import { shouldRequireEmailVerificationForUser } from '@/lib/auth-email-verification';
 import { buildBlockedIpPayload, getIpBlock, getRequestIp, logSecurityEvent } from '@/lib/ip-security';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
@@ -31,6 +32,8 @@ async function findLoginUser(identifier: string) {
     avatar: true,
     is_blue_tick: true,
     fa_enabled: true,
+    email_verified: true,
+    created_at: true,
   } as const;
 
   if (isEmailLike) {
@@ -149,6 +152,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (shouldRequireEmailVerificationForUser({ createdAt: user.created_at, emailVerified: user.email_verified })) {
+      return NextResponse.json(
+        { success: false, message: 'Tài khoản chưa được kích hoạt. Vui lòng xác thực email trước khi đăng nhập.' },
+        { status: 403 }
+      );
+    }
+
     if (user.status !== 'active') {
       await logSecurityEvent({
         eventType: 'LOGIN_INACTIVE_USER',
@@ -184,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     const sessionMaxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
 
-    if (user.fa_enabled) {
+    if (String(user.role || 'member') === 'admin' && user.fa_enabled) {
       const response = NextResponse.json({ success: true, require2fa: true });
       response.cookies.delete('user_id');
       response.cookies.set('2fa_pending', String(user.id), createSessionCookieOptions(60 * 10));

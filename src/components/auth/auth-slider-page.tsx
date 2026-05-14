@@ -55,7 +55,7 @@ const loginHighlights = [
 
 const registerHighlights = [
   'Tạo tài khoản mới để bắt đầu dùng toàn bộ dịch vụ MMO.',
-  'Đăng ký nhanh, xác thực gọn và vào hệ thống ngay sau đó.',
+  'Sau khi đăng ký, hệ thống gửi mã xác thực email để kích hoạt tài khoản.',
 ];
 
 export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
@@ -292,12 +292,9 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
         agreeTerms: false,
       });
       setRegisterError('');
-      setRegisteredFlash(true);
-      setTab('login');
-
-      if (typeof window !== 'undefined') {
-        window.history.pushState({}, '', '/auth?registered=true');
-      }
+      const emailQuery = encodeURIComponent(registerForm.email);
+      startPageTransition();
+      router.replace(`/auth/verify-email?email=${emailQuery}`);
     } catch {
       setRegisterError('Có lỗi xảy ra. Vui lòng thử lại.');
     } finally {
