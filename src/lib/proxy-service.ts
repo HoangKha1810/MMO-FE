@@ -107,8 +107,17 @@ let providerProfileCache:
     }
   | null = null;
 
+function getProxyRelayBeBaseUrl() {
+  return String(
+    process.env.PROXY_RELAY_BE_API_URL
+    || process.env.BE_API_URL
+    || process.env.NEXT_PUBLIC_BE_API_URL
+    || ''
+  ).trim().replace(/\/+$/, '');
+}
+
 function hasProxyRelaySupport() {
-  const baseUrl = getBeApiBaseUrl();
+  const baseUrl = getProxyRelayBeBaseUrl();
   const relaySecret = String(process.env.PROXY_VNCLOUD_RELAY_SECRET || process.env.ENCRYPTION_KEY || '').trim();
   return Boolean(baseUrl && relaySecret);
 }
@@ -422,7 +431,7 @@ function ensureProviderConfigured(settings: ProxyServiceSettings) {
 }
 
 function getProxyRelayConfig(settings: ProxyServiceSettings) {
-  const baseUrl = getBeApiBaseUrl();
+  const baseUrl = getProxyRelayBeBaseUrl();
   const relaySecret = String(process.env.PROXY_VNCLOUD_RELAY_SECRET || process.env.ENCRYPTION_KEY || '').trim();
 
   if (!baseUrl || !relaySecret) {
@@ -430,9 +439,10 @@ function getProxyRelayConfig(settings: ProxyServiceSettings) {
   }
 
   return {
-    relayUrl: buildDirectBeApiUrl('/api/proxy-vendor/request'),
+    relayUrl: `${baseUrl}/api/proxy-vendor/request`,
     relaySecret,
     vendorBaseUrl: settings.baseUrl,
+    beBaseUrl: baseUrl,
   };
 }
 
@@ -456,7 +466,7 @@ async function providerRequest<T>(
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
-        getBeApiBaseUrl()
+        relayConfig.beBaseUrl
       ),
       body: JSON.stringify({
         baseUrl: relayConfig.vendorBaseUrl,
@@ -471,7 +481,7 @@ async function providerRequest<T>(
 
     const relayPayload = await response.json().catch(() => null);
     if (!relayPayload || typeof relayPayload !== 'object') {
-      throw new Error('Relay backend trả về dữ liệu không hợp lệ');
+      throw new Error(`Relay backend trả về dữ liệu không hợp lệ (HTTP ${response.status})`);
     }
 
     const payload = relayPayload as Record<string, unknown>;
@@ -490,6 +500,13 @@ async function providerRequest<T>(
 
     if (options?.unwrapData === false) {
       return payload as T;
+    }
+
+    if (!('data' in payload)) {
+      throw new Error(
+        String(payload.message || payload.error || '').trim() ||
+        'Relay backend không trả trường data hợp lệ'
+      );
     }
 
     return payload.data as T;
