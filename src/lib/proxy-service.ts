@@ -109,10 +109,7 @@ let providerProfileCache:
 
 function getProxyRelayBeBaseUrl() {
   return String(
-    process.env.PROXY_RELAY_BE_API_URL
-    || process.env.BE_API_URL
-    || process.env.NEXT_PUBLIC_BE_API_URL
-    || ''
+    process.env.PROXY_RELAY_BE_API_URL || ''
   ).trim().replace(/\/+$/, '');
 }
 
