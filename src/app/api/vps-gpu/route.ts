@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { buildTensorDockQuery, isTensorDockConfigured, tensorDockRequest } from '@/lib/tensordock';
+import { buildTensorDockQuery, isTensorDockConfigured, TensorDockApiError, tensorDockRequest } from '@/lib/tensordock';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -45,8 +45,26 @@ function getAllowedInstanceAction(path: string) {
 
 async function handleTensorDockError(error: unknown) {
   const message = error instanceof Error ? error.message : 'Không thể kết nối TensorDock';
-  const status = message.includes('TENSORDOCK_API_TOKEN') ? 500 : 502;
+  const status = error instanceof TensorDockApiError
+    ? error.status
+    : message.includes('TENSORDOCK_API_TOKEN') ? 500 : 502;
   return json({ success: false, message }, { status });
+}
+
+async function safeTensorDockRequest(path: string) {
+  try {
+    return {
+      ok: true,
+      data: await tensorDockRequest(path),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `Không thể tải ${path}`;
+    return {
+      ok: false,
+      data: null,
+      message,
+    };
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -64,19 +82,29 @@ export async function GET(req: NextRequest) {
   try {
     if (resource === 'overview') {
       const [locations, hostnodes, instances, secrets] = await Promise.all([
-        tensorDockRequest('/locations'),
-        tensorDockRequest('/hostnodes'),
-        tensorDockRequest('/instances'),
-        tensorDockRequest('/secrets'),
+        safeTensorDockRequest('/locations'),
+        safeTensorDockRequest('/hostnodes'),
+        safeTensorDockRequest('/instances'),
+        safeTensorDockRequest('/secrets'),
       ]);
 
       return json({
-        success: true,
+        success: locations.ok || hostnodes.ok || instances.ok || secrets.ok,
+        message: [locations, hostnodes, instances, secrets]
+          .filter((item) => !item.ok)
+          .map((item) => item.message)
+          .join(' | ') || undefined,
         data: {
-          locations,
-          hostnodes,
-          instances,
-          secrets,
+          locations: locations.data,
+          hostnodes: hostnodes.data,
+          instances: instances.data,
+          secrets: secrets.data,
+          errors: {
+            locations: locations.ok ? null : locations.message,
+            hostnodes: hostnodes.ok ? null : hostnodes.message,
+            instances: instances.ok ? null : instances.message,
+            secrets: secrets.ok ? null : secrets.message,
+          },
         },
       });
     }

@@ -226,6 +226,18 @@ function statusVariant(status: string) {
   return 'info';
 }
 
+function buildLoadErrorMessage(message: string) {
+  if (message.includes('Thiếu TENSORDOCK_API_TOKEN')) {
+    return `${message}. Cần cấu hình env TENSORDOCK_API_TOKEN trên server rồi restart Next.js.`;
+  }
+
+  if (message.includes('HTTP 401') || message.includes('HTTP 403')) {
+    return `${message}. Token TensorDock có thể sai, hết hạn hoặc thiếu quyền.`;
+  }
+
+  return message;
+}
+
 export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   const { confirm } = useConfirmDialog();
   const [locations, setLocations] = useState<TensorDockLocation[]>([]);
@@ -270,7 +282,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
       setHostnodes(extractHostnodes(data.hostnodes));
       setInstances(extractInstances(data.instances));
       setSecrets(extractSecrets(data.secrets));
-      setLoadError(null);
+      setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu VPS GPU';
       setLoadError(message);
@@ -599,7 +611,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
             <div>
               <div className="text-sm font-black uppercase tracking-[0.18em] text-amber-600">TensorDock chưa sẵn sàng</div>
               <p className="mt-2 text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
-                {loadError}. Cần cấu hình env <span className="font-mono">TENSORDOCK_API_TOKEN</span> trên server.
+                {buildLoadErrorMessage(loadError)}
               </p>
             </div>
             <Button type="button" variant="outline" onClick={() => void loadOverview()}>
