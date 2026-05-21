@@ -6,6 +6,7 @@ import {
   findSmmService,
   getSmmCheckoutAmount,
 } from '@/lib/smm-provider';
+import { SMM_RUNNING_STATUS } from '@/lib/smm-status';
 import { toNumber } from '@/lib/utils';
 
 function sanitizeProviderCreateOrderMessage(reason: string) {
@@ -137,7 +138,7 @@ export async function POST(req: NextRequest) {
           custom_data: sanitizedComments || null,
           quantity: serviceQty,
           price: checkout.subtotal,
-          status: 'Processing',
+          status: SMM_RUNNING_STATUS,
         },
       });
 
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
           where: { id: provisionalOrder.orderId },
           data: {
             api_order_id: providerOrder.orderId,
-            status: 'Pending',
+            status: SMM_RUNNING_STATUS,
             balance_after: provisionalOrder.newBalance,
           },
         });

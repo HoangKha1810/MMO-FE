@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Box, Download, Package, ShoppingCart, Tag } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { ResourceContactAdminMode } from '@/components/resources/resource-contact-admin-mode';
 import { ResourceDetailActions } from '@/components/resources/resource-detail-actions';
 import { Badge } from '@/components/ui/badge';
 import { rewriteGameAccountPriceMentions } from '@/lib/game-account-pricing';
@@ -11,7 +12,7 @@ import { hideProviderBranding } from '@/lib/provider-branding';
 import { isRandom1kProviderLike } from '@/lib/random1k';
 import { cleanResourceHtml } from '@/lib/resource-content';
 import { listResourceReviews } from '@/lib/resource-actions';
-import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
+import { getLegacySettingsMap, getVatPercent, isResourcesContactAdminMode } from '@/lib/legacy-settings';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -23,14 +24,18 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   if (!Number.isFinite(resourceId) || resourceId <= 0) notFound();
 
   const { raw, shell } = await getCurrentUserForShell();
-  const [data, reviews] = await Promise.all([
+  const [data, reviews, settings] = await Promise.all([
     getResourceDetail(resourceId, raw.id),
     listResourceReviews(resourceId),
+    getLegacySettingsMap(),
   ]);
-  const vatPercent = getVatPercent(await getLegacySettingsMap());
+  const vatPercent = getVatPercent(settings);
   if (!data) notFound();
 
   const { resource, related, orders } = data;
+  if (isResourcesContactAdminMode(settings)) {
+    return <ResourceContactAdminMode user={shell} resourceTitle={hideProviderBranding(resource.title, `Sản phẩm #${resourceId}`)} />;
+  }
   const thumbnail = getGameAccountThumbnailUrl({
     title: resource.title,
     category: resource.category,

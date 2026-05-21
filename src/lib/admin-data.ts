@@ -10,6 +10,7 @@ import { getLegacySettingsMap, getVatPercent, invalidateLegacySettingsCache } fr
 import { approveDepositById } from '@/lib/deposit-processing';
 import { ensureGameApiKeyForUser } from '@/lib/game-integration-api';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
+import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
 
@@ -595,22 +596,14 @@ function buildPrismaWhere(resource: string, config: ResourceConfig, params: URLS
 }
 
 const SMM_STATUS_VARIANTS: Record<string, string[]> = {
-  Pending: ['pending'],
-  Processing: ['processing', 'in progress', 'in_progress', 'inprogress', 'running', 'active'],
+  Processing: ['processing', 'in progress', 'in_progress', 'inprogress', 'running', 'active', 'pending', '0'],
   Completed: ['completed', 'complete', 'success', '200', 'done'],
   Refunded: ['refunded', 'refund', 'partial'],
   Canceled: ['canceled', 'cancelled', 'failed', 'error'],
 };
 
 function normalizeSmmStatus(value: unknown) {
-  const normalized = String(value || '').trim().toLowerCase();
-  for (const [canonical, variants] of Object.entries(SMM_STATUS_VARIANTS)) {
-    if (variants.includes(normalized)) {
-      return canonical;
-    }
-  }
-
-  return normalized ? String(value).trim() : 'Pending';
+  return normalizeSmmOrderStatus(value);
 }
 
 function getSmmStatusFilterVariants(value: string) {

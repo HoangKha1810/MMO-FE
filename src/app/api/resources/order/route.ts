@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { purchaseResource } from '@/lib/resource-actions';
+import { getLegacySettingsMap, isResourcesContactAdminMode } from '@/lib/legacy-settings';
 
 async function getUserId() {
   const cookieStore = await cookies();
@@ -14,6 +15,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (isResourcesContactAdminMode(await getLegacySettingsMap())) {
+      return NextResponse.json(
+        { success: false, message: 'Tài nguyên đang bật chế độ liên hệ Zalo Admin. Vui lòng liên hệ admin để mua.' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const resourceId = Number(body.resource_id || 0);
     const quantity = Number(body.quantity || 1);

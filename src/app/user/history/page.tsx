@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { formatDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { safeRows, safeRowsFromTable } from '@/lib/legacy-modules';
+import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 import { Activity, ArrowDownUp, Boxes, CreditCard, ShieldCheck, Zap } from 'lucide-react';
@@ -49,7 +50,7 @@ export default async function UserHistoryPage() {
       type: 'smm',
       title: String(item.service_name || `SMM #${item.id}`),
       amount: toNumber(item.price, 0),
-      status: String(item.status || 'Pending'),
+      status: normalizeSmmOrderStatus(item.status),
       created_at: serializeDatabaseDateTime(item.created_at),
     })),
     ...cardOrders.map((item) => ({

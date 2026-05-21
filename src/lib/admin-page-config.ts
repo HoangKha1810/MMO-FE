@@ -82,7 +82,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       description: 'Theo dõi order queue và cập nhật trạng thái/refund.',
       columns: ['id', 'username', 'provider_id', 'api_order_id', 'service_name', 'quantity', 'price', 'status', 'created_at'],
       editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'start_count', 'remains'],
-      statusOptions: ['Pending', 'Processing', 'Completed', 'Refunded', 'Canceled'],
+      statusOptions: ['Processing', 'Completed', 'Refunded', 'Canceled'],
     },
   ],
   automxh: [
@@ -518,7 +518,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       description: 'Đơn SMM.',
       columns: ['id', 'username', 'api_order_id', 'service_name', 'quantity', 'price', 'status', 'created_at'],
       editableFields: ['status', 'reason', 'is_refunded', 'refund_amount'],
-      statusOptions: ['Pending', 'Processing', 'Completed', 'Refunded', 'Canceled'],
+      statusOptions: ['Processing', 'Completed', 'Refunded', 'Canceled'],
     },
     {
       resource: 'automxh-orders',

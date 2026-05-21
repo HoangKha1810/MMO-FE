@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { EmptyState, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import type { AdminSectionConfig } from '@/lib/admin-page-config';
 import { formatDatabaseDateTime, formatDatabaseTime, serializeDatabaseDateTime } from '@/lib/date-time';
+import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { cn, formatCurrency, formatNumber, toNumber } from '@/lib/utils';
 
 interface AdminDataPageProps {
@@ -368,6 +369,14 @@ function humanizeStatusValue(value: unknown) {
   const raw = String(value || '').trim();
   if (!raw) return '—';
   return STATUS_LABELS[raw.toLowerCase()] || raw;
+}
+
+function humanizeResourceStatusValue(resource: string, value: unknown) {
+  if (resource === 'smm-orders') {
+    return humanizeStatusValue(normalizeSmmOrderStatus(value));
+  }
+
+  return humanizeStatusValue(value);
 }
 
 function statusBadgeVariant(value: unknown): 'muted' | 'info' | 'warning' | 'success' | 'danger' {
@@ -798,7 +807,6 @@ function getQuickStatusOptions(resource: string) {
   if (resource === 'smm-orders') {
     return [
       { value: '', label: 'Tất cả' },
-      { value: 'Pending', label: 'Đang xử lý' },
       { value: 'Processing', label: 'Đang chạy' },
       { value: 'Completed', label: 'Hoàn Thành' },
       { value: 'Refunded', label: 'Đã Hoàn' },
@@ -1492,7 +1500,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       >
                         <option value="">Đổi trạng thái</option>
                         {section.statusOptions.map((option) => (
-                          <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                          <option key={option} value={option}>{humanizeResourceStatusValue(section.resource, option)}</option>
                         ))}
                       </select>
                     ) : null}
@@ -1608,7 +1616,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                                   'inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]',
                                   getLegacyOrderStatusClasses(row.status)
                                 )}>
-                                  {humanizeStatusValue(row.status)}
+                                  {humanizeResourceStatusValue(section.resource, row.status)}
                                 </span>
                               </div>
                             </div>
@@ -2022,7 +2030,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                     >
                       <option value="">Đổi trạng thái</option>
                       {section.statusOptions.map((option) => (
-                        <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                        <option key={option} value={option}>{humanizeResourceStatusValue(section.resource, option)}</option>
                       ))}
                     </select>
                   ) : null}
@@ -2141,7 +2149,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 >
                   <option value="">Tất cả trạng thái</option>
                   {section.statusOptions.map((option) => (
-                    <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                    <option key={option} value={option}>{humanizeResourceStatusValue(section.resource, option)}</option>
                   ))}
                 </select>
               ) : null}
@@ -2204,7 +2212,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       >
                         <option value="">Đổi trạng thái</option>
                         {section.statusOptions.map((option) => (
-                          <option key={option} value={option}>{humanizeStatusValue(option)}</option>
+                          <option key={option} value={option}>{humanizeResourceStatusValue(section.resource, option)}</option>
                         ))}
                       </select>
                     ) : null}
@@ -2450,7 +2458,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                     >
                       {section.statusOptions.map((option) => (
                         <option key={option} value={option}>
-                          {humanizeStatusValue(option)}
+                          {humanizeResourceStatusValue(section.resource, option)}
                         </option>
                       ))}
                     </select>

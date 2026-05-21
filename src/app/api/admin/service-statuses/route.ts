@@ -5,6 +5,8 @@ import {
   getLegacySetting,
   getLegacySettingsMap,
   invalidateLegacySettingsCache,
+  isResourcesContactAdminMode,
+  RESOURCES_CONTACT_ADMIN_MODE_KEY,
 } from '@/lib/legacy-settings';
 import { db } from '@/lib/db';
 
@@ -20,6 +22,7 @@ const noStoreHeaders = {
 async function buildServiceStatusPayload() {
   const controls = getLegacyHomeServiceControls();
   const settings = await getLegacySettingsMap(true);
+  const resourcesContactAdminMode = isResourcesContactAdminMode(settings);
 
   const items = controls.map((control) => {
     const status = getLegacySetting(settings, control.statusKey, 'active');
@@ -36,6 +39,7 @@ async function buildServiceStatusPayload() {
       textColor: control.textColor,
       status,
       enabled: status !== 'maintenance',
+      resourceContactAdminMode: control.key === '3' ? resourcesContactAdminMode : undefined,
     };
   });
 
@@ -46,6 +50,7 @@ async function buildServiceStatusPayload() {
       active: items.filter((item) => item.enabled).length,
       maintenance: items.filter((item) => !item.enabled).length,
     },
+    resourcesContactAdminMode,
   };
 }
 
@@ -69,6 +74,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const serviceKey = String(body?.serviceKey || '').trim();
+    const action = String(body?.action || 'service-status').trim();
     const enabled = body?.enabled === true;
     const control = getLegacyHomeServiceControls().find((item) => item.key === serviceKey);
 
@@ -76,15 +82,24 @@ export async function POST(req: NextRequest) {
       throw new Error('Dịch vụ không hợp lệ');
     }
 
-    const nextValue = enabled ? 'active' : 'maintenance';
+    if (action === 'resource-contact-mode' && control.key !== '3') {
+      throw new Error('Chế độ liên hệ Zalo chỉ áp dụng cho Tài nguyên MMO');
+    }
+
+    const settingKey = action === 'resource-contact-mode'
+      ? RESOURCES_CONTACT_ADMIN_MODE_KEY
+      : control.statusKey;
+    const nextValue = action === 'resource-contact-mode'
+      ? (enabled ? 'on' : 'off')
+      : (enabled ? 'active' : 'maintenance');
     const updatedAt = new Date();
     const existing = await db.settings.count({
-      where: { setting_key: control.statusKey },
+      where: { setting_key: settingKey },
     });
 
     if (existing > 0) {
       await db.settings.updateMany({
-        where: { setting_key: control.statusKey },
+        where: { setting_key: settingKey },
         data: {
           setting_value: nextValue,
           updated_at: updatedAt,
@@ -93,7 +108,7 @@ export async function POST(req: NextRequest) {
     } else {
       await db.settings.create({
         data: {
-          setting_key: control.statusKey,
+          setting_key: settingKey,
           setting_value: nextValue,
           updated_at: updatedAt,
         },
@@ -104,16 +119,21 @@ export async function POST(req: NextRequest) {
 
     await logAdminAction({
       adminId: auth.user!.id,
-      action: enabled ? 'enable service' : 'disable service',
-      target: `${serviceKey}:${control.statusKey}:${nextValue}`,
+      action: action === 'resource-contact-mode'
+        ? (enabled ? 'enable resource contact admin mode' : 'disable resource contact admin mode')
+        : (enabled ? 'enable service' : 'disable service'),
+      target: `${serviceKey}:${settingKey}:${nextValue}`,
       req,
     });
 
     const payload = await buildServiceStatusPayload();
+    const message = action === 'resource-contact-mode'
+      ? (enabled ? 'Đã bật chế độ tài nguyên liên hệ Zalo' : 'Đã tắt chế độ tài nguyên liên hệ Zalo')
+      : (enabled ? 'Đã bật dịch vụ' : 'Đã tắt dịch vụ');
     return NextResponse.json(
       {
         success: true,
-        message: enabled ? 'Đã bật dịch vụ' : 'Đã tắt dịch vụ',
+        message,
         ...payload,
       },
       { headers: noStoreHeaders }

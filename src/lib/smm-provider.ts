@@ -10,6 +10,7 @@ import {
   buildSmmPriceFromMultiplier,
   getSmmMarginPercentFromMultiplier,
 } from '@/lib/smm-pricing';
+import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { toNumber } from '@/lib/utils';
 
 const DEFAULT_SMM_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1020,18 +1021,18 @@ export async function getSmmProviderMultipleOrdersStatus(
 
         const quantity = Math.trunc(toNumber(record.quantity, 0));
         const countRun = Math.trunc(toNumber(record.count_is_run, 0));
-        const rawStatus = String(record.status || 'Pending');
+        const rawStatus = String(record.status || 'Processing');
         const statusMap: Record<string, string> = {
           '200': 'Completed',
           '100': 'Processing',
-          '0': 'Pending',
+          '0': 'Processing',
           '-1': 'Cancelled',
           done: 'Completed',
           Done: 'Completed',
         };
 
         normalized[currentId] = {
-          status: statusMap[rawStatus] || rawStatus,
+          status: normalizeSmmOrderStatus(statusMap[rawStatus] || rawStatus),
           start_count: Math.trunc(toNumber(record.start_like, 0)),
           remains: Math.max(0, quantity - countRun),
         };

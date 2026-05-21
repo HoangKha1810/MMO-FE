@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { safeRows, safeRowsFromTable } from '@/lib/legacy-modules';
+import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
           code: String(item.api_order_id || item.id),
           amount: toNumber(item.price, 0),
           quantity: toNumber(item.quantity, 0),
-          status: String(item.status || 'Pending'),
+          status: normalizeSmmOrderStatus(item.status),
           created_at: item.created_at,
         })),
         ...autoOrders.map((item) => ({

@@ -4,10 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircleMore, Minus, Plus, Send, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const ZALO_GROUP_URL = "https://zalo.me/g/lbexoh608";
-const ZALO_URL = "https://zalo.me/0589287713";
-const TELEGRAM_URL = "https://t.me/TRUNGTAMMMOVN";
+import { ADMIN_ZALO_URL, TELEGRAM_SUPPORT_URL, ZALO_GROUP_URL } from "@/lib/support-links";
 
 const HIDDEN_PREFIXES = ["/admin", "/vps", "/ai"];
 
@@ -74,7 +71,7 @@ export function FloatingSupportButtons() {
       </a>
 
       <a
-        href={ZALO_URL}
+        href={ADMIN_ZALO_URL}
         target="_blank"
         rel="noreferrer"
         className={cn(
@@ -94,7 +91,7 @@ export function FloatingSupportButtons() {
       </a>
 
       <a
-        href={TELEGRAM_URL}
+        href={TELEGRAM_SUPPORT_URL}
         target="_blank"
         rel="noreferrer"
         className={cn(

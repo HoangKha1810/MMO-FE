@@ -20,6 +20,7 @@ interface ServiceStatusItem {
   textColor: string;
   status: string;
   enabled: boolean;
+  resourceContactAdminMode?: boolean;
 }
 
 interface ServiceStatusResponse {
@@ -85,6 +86,32 @@ export function AdminServiceStatusPanel() {
     }
   }
 
+  async function toggleResourceContactMode(item: ServiceStatusItem) {
+    setSavingKey(`${item.key}:resource-contact`);
+    try {
+      const response = await fetch('/api/admin/service-statuses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceKey: item.key,
+          action: 'resource-contact-mode',
+          enabled: !item.resourceContactAdminMode,
+        }),
+      });
+      const payload: ServiceStatusResponse = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không thể cập nhật chế độ liên hệ Zalo');
+      }
+      setItems(payload.items || []);
+      setStats(payload.stats);
+      toast.success(payload.message || 'Đã cập nhật chế độ liên hệ Zalo');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật chế độ liên hệ Zalo');
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
   const activeCount = useMemo(() => stats?.active ?? items.filter((item) => item.enabled).length, [items, stats]);
   const maintenanceCount = useMemo(
     () => stats?.maintenance ?? items.filter((item) => !item.enabled).length,
@@ -122,6 +149,8 @@ export function AdminServiceStatusPanel() {
           </div>
         ) : items.map((item) => {
           const saving = savingKey === item.key;
+          const isResources = item.key === '3';
+          const resourceContactSaving = savingKey === `${item.key}:resource-contact`;
           return (
             <article
               key={item.key}
@@ -141,6 +170,11 @@ export function AdminServiceStatusPanel() {
                     <Badge variant="muted" className="rounded-full px-3 py-1.5">
                       {item.statusKey}
                     </Badge>
+                    {isResources && item.resourceContactAdminMode ? (
+                      <Badge variant="warning" className="rounded-full px-3 py-1.5">
+                        Liên hệ Zalo
+                      </Badge>
+                    ) : null}
                   </div>
                   <div>
                     <h3 className="text-lg font-black uppercase tracking-[-0.02em] text-slate-950 dark:text-white">
@@ -162,6 +196,19 @@ export function AdminServiceStatusPanel() {
                 </div>
 
                 <div className="flex shrink-0 flex-wrap gap-2">
+                  {isResources ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={item.resourceContactAdminMode ? 'outline' : 'secondary'}
+                      loading={resourceContactSaving}
+                      loadingText={item.resourceContactAdminMode ? 'Đang tắt...' : 'Đang bật...'}
+                      onClick={() => void toggleResourceContactMode(item)}
+                    >
+                      {item.resourceContactAdminMode ? <PowerOff className="mr-2 h-4 w-4" /> : <Power className="mr-2 h-4 w-4" />}
+                      {item.resourceContactAdminMode ? 'Tắt Zalo admin' : 'Bật Zalo admin'}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     size="sm"

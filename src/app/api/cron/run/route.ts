@@ -9,6 +9,7 @@ import {
 import { runDailyAdminAnomalyDigest, runDailyAdminAnomalyDigestWithOptions } from '@/lib/admin-anomaly-digest';
 import { runDdosGuard } from '@/lib/admin-ddos-guard';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
+import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { toNumber } from '@/lib/utils';
 
 type CronSummary = Record<string, unknown>;
@@ -41,25 +42,7 @@ function parseBooleanFlag(value: unknown) {
 }
 
 function normalizeProviderStatus(value: unknown) {
-  const normalized = String(value || '').trim().toLowerCase();
-  const map: Record<string, string> = {
-    pending: 'Pending',
-    processing: 'Processing',
-    'in progress': 'In progress',
-    in_progress: 'In progress',
-    completed: 'Completed',
-    complete: 'Completed',
-    done: 'Completed',
-    partial: 'Partial',
-    cancelled: 'Cancelled',
-    canceled: 'Cancelled',
-    failed: 'Failed',
-    error: 'Failed',
-    refund: 'Refunded',
-    refunded: 'Refunded',
-  };
-
-  return map[normalized] || String(value || 'Processing').trim() || 'Processing';
+  return normalizeSmmOrderStatus(value);
 }
 
 function optionalNumber(value: unknown) {

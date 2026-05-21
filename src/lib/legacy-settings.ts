@@ -46,6 +46,7 @@ const SETTINGS_CACHE_TTL_MS = 60 * 1000;
 const SETTINGS_ERROR_CACHE_TTL_MS = 30 * 1000;
 const LEGACY_SITE_ORIGIN =
   process.env.LEGACY_SITE_ORIGIN?.replace(/\/+$/, '') || 'https://trungtammmo.vn';
+export const RESOURCES_CONTACT_ADMIN_MODE_KEY = 'resources_contact_admin_mode';
 
 let settingsCache:
   | {
@@ -518,6 +519,12 @@ export function getLegacySetting(
 ): string {
   const value = settings[key];
   return typeof value === 'string' && value !== '' ? value : fallback;
+}
+
+export function isResourcesContactAdminMode(settings: Record<string, string>): boolean {
+  return ['1', 'true', 'enabled', 'active', 'on'].includes(
+    getLegacySetting(settings, RESOURCES_CONTACT_ADMIN_MODE_KEY, 'off').trim().toLowerCase()
+  );
 }
 
 export function getSmmDefaultProviderId(settings: Record<string, string>): number {

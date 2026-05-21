@@ -7,6 +7,7 @@ import { LiveRefresh } from '@/components/live/live-refresh';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { formatDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { safeRows, safeRowsFromTable } from '@/lib/legacy-modules';
+import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -94,7 +95,7 @@ export default async function UserOrdersPage() {
       code: String(item.api_order_id || item.id),
       amount: toNumber(item.price, 0),
       quantity: toNumber(item.quantity, 0),
-      status: String(item.status || 'Pending'),
+      status: normalizeSmmOrderStatus(item.status),
       createdAt: serializeDatabaseDateTime(item.created_at),
       href: '/user/history',
     })),
@@ -166,7 +167,7 @@ export default async function UserOrdersPage() {
           description="Quản lý SMM, Auto MXH, tài nguyên, game market và thẻ cào trong cùng một dòng thời gian để kiểm tra tiến độ và giá trị giao dịch thuận tiện hơn."
           stats={[
             { label: 'Tổng đơn', value: String(orders.length), hint: 'Tối đa 120 đơn mới nhất', tone: 'blue' },
-            { label: 'Đang xử lý', value: String(pendingCount), hint: 'Pending / Processing', tone: 'amber' },
+            { label: 'Đang chạy', value: String(pendingCount), hint: 'Processing', tone: 'amber' },
             { label: 'Hoàn tất', value: String(completedCount), hint: 'Success / Completed', tone: 'emerald' },
             { label: 'Volume', value: formatCurrency(totalVolume), hint: 'Tổng giá trị hiển thị', tone: 'violet' },
           ]}
