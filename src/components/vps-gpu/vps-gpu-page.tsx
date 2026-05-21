@@ -111,6 +111,14 @@ interface TensorDockInstance {
   };
 }
 
+interface TensorDockOverviewData {
+  locations?: unknown;
+  hostnodes?: unknown;
+  secrets?: unknown;
+  instances?: unknown;
+  defaultSshKeySecretId?: unknown;
+}
+
 const deploymentOptions: Array<{
   value: DeploymentMethod;
   title: string;
@@ -277,11 +285,15 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         throw new Error(payload.message || 'Không thể tải dữ liệu VPS GPU');
       }
 
-      const data = asRecord(payload.data);
+      const data = asRecord(payload.data) as TensorDockOverviewData;
       setLocations(extractLocations(data.locations));
       setHostnodes(extractHostnodes(data.hostnodes));
       setInstances(extractInstances(data.instances));
-      setSecrets(extractSecrets(data.secrets));
+      const nextSecrets = extractSecrets(data.secrets);
+      const defaultSshKeySecretId = String(data.defaultSshKeySecretId || '').trim();
+      const sshKeySecretId = nextSecrets.find((secret) => String(secret.type || '').toUpperCase() === 'SSHKEY')?.id;
+      setSecrets(nextSecrets);
+      setSshKey((current) => current || sshKeySecretId || defaultSshKeySecretId);
       setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu VPS GPU';

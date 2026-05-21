@@ -1,4 +1,5 @@
 const DEFAULT_TENSORDOCK_API_BASE_URL = 'https://dashboard.tensordock.com/api/v2';
+const DEFAULT_TENSORDOCK_API_TIMEOUT_MS = 8000;
 
 export class TensorDockApiError extends Error {
   status: number;
@@ -24,8 +25,17 @@ function getTensorDockAuthorizationId() {
   return String(process.env.TENSORDOCK_AUTHORIZATION_ID || '').trim();
 }
 
+export function getTensorDockDefaultSshKeySecretId() {
+  return String(process.env.TENSORDOCK_DEFAULT_SSH_KEY_SECRET_ID || '').trim();
+}
+
 export function isTensorDockConfigured() {
   return Boolean(getTensorDockToken());
+}
+
+function getTensorDockTimeoutMs() {
+  const parsed = Number(process.env.TENSORDOCK_API_TIMEOUT_MS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TENSORDOCK_API_TIMEOUT_MS;
 }
 
 export async function tensorDockRequest<T>(
@@ -40,11 +50,14 @@ export async function tensorDockRequest<T>(
   const baseUrl = getTensorDockBaseUrl();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const authorizationId = getTensorDockAuthorizationId();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), getTensorDockTimeoutMs());
   let response: Response;
 
   try {
     response = await fetch(`${baseUrl}${normalizedPath}`, {
       ...init,
+      signal: init.signal || controller.signal,
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -59,6 +72,8 @@ export async function tensorDockRequest<T>(
       `Không kết nối được TensorDock API ${normalizedPath}. Kiểm tra mạng server, DNS/firewall hoặc TENSORDOCK_API_BASE_URL.`,
       502
     );
+  } finally {
+    clearTimeout(timeout);
   }
 
   const text = await response.text();

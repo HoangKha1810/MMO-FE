@@ -1,6 +1,12 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { buildTensorDockQuery, isTensorDockConfigured, TensorDockApiError, tensorDockRequest } from '@/lib/tensordock';
+import {
+  buildTensorDockQuery,
+  getTensorDockDefaultSshKeySecretId,
+  isTensorDockConfigured,
+  TensorDockApiError,
+  tensorDockRequest,
+} from '@/lib/tensordock';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -99,6 +105,7 @@ export async function GET(req: NextRequest) {
           hostnodes: hostnodes.data,
           instances: instances.data,
           secrets: secrets.data,
+          defaultSshKeySecretId: getTensorDockDefaultSshKeySecretId(),
           errors: {
             locations: locations.ok ? null : locations.message,
             hostnodes: hostnodes.ok ? null : hostnodes.message,

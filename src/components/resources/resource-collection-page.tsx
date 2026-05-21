@@ -66,6 +66,10 @@ function buildHref(basePath: string, input: { search?: string; category?: string
   return query ? `${basePath}?${query}` : basePath;
 }
 
+function buildDetailHref(basePath: string, id: unknown) {
+  return `${basePath}/${String(id)}`;
+}
+
 export async function ResourceCollectionPage({ collection, search = '', category = '' }: ResourceCollectionPageProps) {
   const { shell } = await getCurrentUserForShell();
   const copy = collectionCopy[collection];
@@ -244,7 +248,7 @@ export async function ResourceCollectionPage({ collection, search = '', category
 
                     <div className="mt-5 space-y-3">
                       <Link
-                        href={`/user/resources/${String(resource.id)}`}
+                        href={buildDetailHref(copy.basePath, resource.id)}
                         className="block text-lg font-black uppercase leading-tight tracking-[-0.04em] text-slate-950 transition hover:text-brand-blue dark:text-white"
                       >
                         {title}
@@ -271,7 +275,7 @@ export async function ResourceCollectionPage({ collection, search = '', category
                         Auto delivery
                       </div>
                       <Link
-                        href={`/user/resources/${String(resource.id)}`}
+                        href={buildDetailHref(copy.basePath, resource.id)}
                         className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:-translate-y-0.5"
                       >
                         <ShoppingCart className="h-4 w-4" />

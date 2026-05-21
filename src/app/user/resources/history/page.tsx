@@ -7,6 +7,13 @@ import { getCurrentUserForShell } from '@/lib/user-session';
 
 export const dynamic = 'force-dynamic';
 
+function getOrderDetailHref(order: Record<string, unknown>) {
+  const kind = String(order.api_account_kind || '').trim().toLowerCase();
+  if (kind === 'game') return `/user/game-accounts/${String(order.resource_id)}`;
+  if (kind === 'random') return `/user/random-game-accounts/${String(order.resource_id)}`;
+  return `/user/resources/${String(order.resource_id)}`;
+}
+
 export default async function ResourceHistoryPage() {
   const { raw, shell } = await getCurrentUserForShell();
   const orders = await listResourceHistory(raw.id);
@@ -42,7 +49,7 @@ export default async function ResourceHistoryPage() {
               ) : orders.map((order) => (
                 <tr key={String(order.id)} className="text-sm">
                   <td className="px-5 py-4">
-                    <Link href={`/user/resources/${String(order.resource_id)}`} className="font-black text-slate-900 hover:text-brand-blue dark:text-white">
+                    <Link href={getOrderDetailHref(order)} className="font-black text-slate-900 hover:text-brand-blue dark:text-white">
                       {String(order.title || `Resource #${order.resource_id}`)}
                     </Link>
                     <div className="mt-1 text-[10px] font-bold uppercase text-slate-400">{String(order.product_code || '')}</div>

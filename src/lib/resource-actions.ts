@@ -20,7 +20,7 @@ function normalize<T extends Row>(row: T): T {
   })) as T;
 }
 
-function usesGameWallet(resource: Row) {
+export function usesGameWalletResource(resource: Row) {
   return ['game', 'random'].includes(String(resource.api_account_kind || '').trim().toLowerCase());
 }
 
@@ -116,7 +116,7 @@ export async function purchaseResource(userId: number, resourceId: number, quant
   const apiProviderId = Math.max(0, Math.trunc(toNumber(resource.api_provider_id, 0)));
   const apiProductId = String(resource.api_product_id || '').trim();
   const isAuto = Boolean((resource.is_auto === true || toNumber(resource.is_auto, 0) === 1) && apiProviderId > 0 && apiProductId);
-  const wallet = usesGameWallet(resource) ? 'game' : 'main';
+  const wallet = usesGameWalletResource(resource) ? 'game' : 'main';
   const settings = await getLegacySettingsMap();
   const vatPercent = getVatPercent(settings);
   const subtotal = toNumber(resource.price, 0) * normalizedQuantity;

@@ -232,7 +232,8 @@ export async function listResourceHistory(userId: number) {
       o.created_at,
       r.title,
       r.thumbnail,
-      r.product_code
+      r.product_code,
+      r.api_account_kind
     FROM resource_orders o
     LEFT JOIN mmo_resources r ON r.id = o.resource_id
     WHERE o.user_id = ?

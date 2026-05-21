@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getLegacySettingsMap, isResourcesContactAdminMode } from '@/lib/legacy-settings';
 import { normalizeLegacyRows } from '@/lib/legacy-modules';
+import { usesGameWalletResource } from '@/lib/resource-actions';
 
 async function getUserId() {
   const cookieStore = await cookies();
@@ -60,13 +61,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (isResourcesContactAdminMode(await getLegacySettingsMap())) {
-      return NextResponse.json(
-        { success: false, message: 'Tài nguyên đang bật chế độ liên hệ Zalo Admin. Vui lòng liên hệ admin để mua.' },
-        { status: 403 }
-      );
-    }
-
     const { resource_id, quantity } = await req.json();
     const resourceId = Number(resource_id);
     const qty = Math.max(1, Number(quantity || 1));
@@ -75,12 +69,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Resource không hợp lệ' }, { status: 400 });
     }
 
-    const resource = await db.$queryRawUnsafe<Array<{ id: number }>>(
-      "SELECT id FROM mmo_resources WHERE id = ? AND status = 'active' AND COALESCE(is_deleted, 0) = 0 LIMIT 1",
+    const resource = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+      "SELECT id, api_account_kind FROM mmo_resources WHERE id = ? AND status = 'active' AND COALESCE(is_deleted, 0) = 0 LIMIT 1",
       resourceId
     );
     if (!resource[0]) {
       return NextResponse.json({ success: false, message: 'Không tìm thấy tài nguyên' }, { status: 404 });
+    }
+
+    if (!usesGameWalletResource(resource[0]) && isResourcesContactAdminMode(await getLegacySettingsMap())) {
+      return NextResponse.json(
+        { success: false, message: 'Đặt mua tài nguyên liền tay – Liên hệ ngay Zalo Admin. Tiền sẽ được trừ trực tiếp từ ví game sau khi admin xác nhận.' },
+        { status: 403 }
+      );
     }
 
     const existing = await db.$queryRawUnsafe<Array<{ id: number }>>(

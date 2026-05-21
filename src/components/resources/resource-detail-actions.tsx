@@ -22,6 +22,8 @@ interface ResourceDetailActionsProps {
   resourceTitle?: string;
   resourceCategory?: string;
   resourceTags?: string;
+  historyHref?: string;
+  purchaseErrorLabel?: string;
 }
 
 const FREE_FIRE_LOGIN_GUIDE_TEXT = `Huong dan dang nhap Free Fire
@@ -63,6 +65,8 @@ export function ResourceDetailActions({
   resourceTitle = '',
   resourceCategory = '',
   resourceTags = '',
+  historyHref = '/user/resources/history',
+  purchaseErrorLabel = 'Không thể mua tài nguyên',
 }: ResourceDetailActionsProps) {
   const router = useRouter();
   const { confirm } = useConfirmDialog();
@@ -134,7 +138,7 @@ export function ResourceDetailActions({
       });
       const payload = await response.json();
       if (!response.ok || !payload.success) {
-        throw new Error(payload.message || 'Không thể mua tài nguyên');
+        throw new Error(payload.message || purchaseErrorLabel);
       }
       toast.success(payload.message || 'Mua thành công');
       if (shouldShowFreeFireGuide) {
@@ -142,7 +146,7 @@ export function ResourceDetailActions({
       }
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể mua tài nguyên');
+      toast.error(error instanceof Error ? error.message : purchaseErrorLabel);
     } finally {
       setPurchaseLoading(false);
     }
@@ -187,7 +191,7 @@ export function ResourceDetailActions({
             {paymentWallet === 'game' ? 'Mua bằng ví game' : 'Mua bằng số dư'}
           </Button>
           <Button variant="outline" asChild>
-            <a href="/user/resources/history">
+            <a href={historyHref}>
               <Download className="mr-2 h-4 w-4" />
               Lịch sử tải
             </a>
