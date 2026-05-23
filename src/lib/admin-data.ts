@@ -11,6 +11,7 @@ import { approveDepositById } from '@/lib/deposit-processing';
 import { ensureGameApiKeyForUser } from '@/lib/game-integration-api';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { normalizeSmmOrderStatus } from '@/lib/smm-status';
+import { clearSmmServicesCache } from '@/lib/smm-provider';
 import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
 
@@ -1404,6 +1405,10 @@ export async function updateAdminResource(resource: string, id: number, input: R
     invalidateLegacySettingsCache();
   }
 
+  if (resource === 'smm-services') {
+    clearSmmServicesCache();
+  }
+
   await logAdminAction({ adminId, action: `update ${resource}`, target: `#${id}`, req });
   return { success: true, data: normalizeValue(updated) };
 }
@@ -1628,6 +1633,7 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
       where: { id },
       data: { is_deleted: true, status: 'inactive' },
     });
+    clearSmmServicesCache();
     await logAdminAction({ adminId, action: 'soft delete smm service', target: `#${id}`, req });
     return { success: true, data: normalizeValue(updated) };
   }
@@ -1813,6 +1819,35 @@ export async function runAdminAction(resource: string, input: Record<string, unk
     if (!id) throw new Error('Thiếu ID đơn thẻ');
     const result = await refundCardOrder(id, adminId, req);
     return { success: true, data: normalizeValue(result) };
+  }
+
+  if (resource === 'smm-services' && action === 'toggle-category') {
+    const category = String(input.category || '').trim();
+    const nextStatus = String(input.status || '').trim().toLowerCase() === 'active' ? 'active' : 'inactive';
+    const providerId = Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
+    if (!category) {
+      throw new Error('Thiếu danh mục SMM cần tắt/bật');
+    }
+
+    const result = await db.smm_services_cache.updateMany({
+      where: {
+        category,
+        is_deleted: false,
+        ...(providerId > 0 ? { provider_id: providerId } : {}),
+      },
+      data: {
+        status: nextStatus,
+        is_deleted: false,
+      },
+    });
+    clearSmmServicesCache();
+    await logAdminAction({
+      adminId,
+      action: `${nextStatus === 'active' ? 'enable' : 'disable'} smm category`,
+      target: providerId > 0 ? `${category} / provider #${providerId}` : category,
+      req,
+    });
+    return { success: true, affected: result.count };
   }
 
   const moderationAction = action.replace(/^bulk-/, '');

@@ -546,6 +546,10 @@ function isLegacyAutoMxhOrdersResource(resource: string) {
   return resource === 'automxh-orders';
 }
 
+function isSmmServiceActive(row: Record<string, unknown>) {
+  return String(row.status || 'active').trim().toLowerCase() === 'active' && !isTruthy(row.is_deleted);
+}
+
 function sortAutomxhEditorEntries(entries: Array<[string, unknown]>) {
   const preferredOrder = [
     'status',
@@ -1218,6 +1222,21 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     }
   }
 
+  async function toggleSmmService(row: Record<string, unknown>) {
+    const id = rowId(row);
+    if (!id) return;
+
+    const currentlyActive = isSmmServiceActive(row);
+    await patchRow(
+      id,
+      {
+        status: currentlyActive ? 'inactive' : 'active',
+        is_deleted: false,
+      },
+      currentlyActive ? 'Đã tắt dịch vụ SMM' : 'Đã bật dịch vụ SMM'
+    );
+  }
+
   async function runAction(action: string, id?: number) {
     const isBulk = action.startsWith('bulk-');
     const actionIds = id ? [id] : selected;
@@ -1268,6 +1287,38 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     }
   }
 
+  async function toggleCurrentSmmCategory(nextActive: boolean) {
+    const category = categoryFilter.trim();
+    if (!category) {
+      toast.error('Chọn một danh mục trước khi tắt/bật card');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/${section.resource}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle-category',
+          category,
+          status: nextActive ? 'active' : 'inactive',
+          provider_id: providerFilter || undefined,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không thể cập nhật danh mục');
+      }
+      toast.success(nextActive ? 'Đã bật card danh mục' : 'Đã tắt card danh mục');
+      await loadData(1, { categoryValue: category, providerValue: providerFilter });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật danh mục');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const selectedAllOnPage = rows.length > 0 && selected.length === rows.length;
 
   return (
@@ -1313,6 +1364,26 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Làm mới
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-[1rem] border-orange-400/20 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20"
+                  disabled={saving || !categoryFilter.trim()}
+                  onClick={() => void toggleCurrentSmmCategory(false)}
+                >
+                  Tắt card đang lọc
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-[1rem] border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                  disabled={saving || !categoryFilter.trim()}
+                  onClick={() => void toggleCurrentSmmCategory(true)}
+                >
+                  Bật card đang lọc
                 </Button>
               </div>
             </div>
@@ -1560,6 +1631,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       const customPrice = toNumber(row.custom_price, 0);
                       const apiRate = toNumber(row.rate, 0);
                       const hasCustomPrice = customPrice > 0;
+                      const serviceActive = isSmmServiceActive(row);
                       return (
                         <tr key={id} className="align-top transition hover:bg-white/[0.02]">
                           <td className="px-4 py-5">
@@ -1623,6 +1695,21 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                           </td>
                           <td className="px-4 py-5">
                             <div className="flex flex-wrap justify-end gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className={cn(
+                                  'rounded-[1rem] border-white/10 font-black',
+                                  serviceActive
+                                    ? 'bg-orange-500/10 text-orange-200 hover:bg-orange-500/20'
+                                    : 'bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                                )}
+                                disabled={saving}
+                                onClick={() => void toggleSmmService(row)}
+                              >
+                                {serviceActive ? 'Tắt' : 'Bật'}
+                              </Button>
                               {canEdit ? (
                                 <Button
                                   type="button"

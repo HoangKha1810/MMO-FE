@@ -604,6 +604,8 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
         customPrice = buildSmmPriceFromMargin(newRate, marginPercent);
       }
 
+      const keepDisabled = Boolean(existing.is_deleted) || String(existing.status || '').trim().toLowerCase() === 'inactive';
+
       await db.smm_services_cache.update({
         where: { id: existing.id },
         data: {
@@ -619,8 +621,8 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
           provider_data: providerData,
           custom_price: customPrice > 0 ? customPrice : null,
           cached_at: new Date(),
-          status: 'active',
-          is_deleted: false,
+          status: keepDisabled ? 'inactive' : 'active',
+          is_deleted: Boolean(existing.is_deleted),
         },
       });
 

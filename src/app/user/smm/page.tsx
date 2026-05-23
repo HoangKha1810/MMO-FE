@@ -63,16 +63,6 @@ interface CategoryGroup {
   isNew: boolean;
 }
 
-const CLIENT_SMM_SERVICES_CACHE_TTL_MS = 10 * 60 * 1000;
-const CLIENT_SMM_SERVICES_CACHE_KEY = 'smm_services_catalog_v1';
-
-let smmServicesClientCache:
-  | {
-      expiresAt: number;
-      data: SmmServiceRecord[];
-    }
-  | null = null;
-
 const platformConfig: PlatformConfig[] = [
   { name: 'Facebook', tag: '[FB]', gif: 'facebook_gif.gif', Icon: ThumbsUp, color: 'text-blue-500' },
   { name: 'TikTok', tag: '[TT]', gif: 'tiktok_gif.gif', Icon: Music, color: 'text-slate-900 dark:text-white' },
@@ -184,63 +174,6 @@ function buildGroups(services: SmmServiceRecord[]) {
       };
     })
     .filter((section) => section.groups.length > 0);
-}
-
-function getCachedClientServices() {
-  if (smmServicesClientCache && smmServicesClientCache.expiresAt > Date.now()) {
-    return smmServicesClientCache.data;
-  }
-
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    for (const storage of [window.sessionStorage, window.localStorage]) {
-      const raw = storage.getItem(CLIENT_SMM_SERVICES_CACHE_KEY);
-      if (!raw) {
-        continue;
-      }
-
-      const parsed = JSON.parse(raw) as { expiresAt?: number; data?: SmmServiceRecord[] };
-      if (!parsed?.expiresAt || parsed.expiresAt <= Date.now() || !Array.isArray(parsed.data)) {
-        storage.removeItem(CLIENT_SMM_SERVICES_CACHE_KEY);
-        continue;
-      }
-
-      smmServicesClientCache = {
-        expiresAt: parsed.expiresAt,
-        data: parsed.data,
-      };
-      return parsed.data;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function setCachedClientServices(data: SmmServiceRecord[]) {
-  smmServicesClientCache = {
-    expiresAt: Date.now() + CLIENT_SMM_SERVICES_CACHE_TTL_MS,
-    data,
-  };
-
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.sessionStorage.setItem(
-      CLIENT_SMM_SERVICES_CACHE_KEY,
-      JSON.stringify(smmServicesClientCache)
-    );
-    window.localStorage.setItem(
-      CLIENT_SMM_SERVICES_CACHE_KEY,
-      JSON.stringify(smmServicesClientCache)
-    );
-  } catch {}
 }
 
 function ServiceCard({
@@ -378,7 +311,7 @@ function SmmPageContent() {
 
     try {
       const response = await fetch(`/api/smm/services${forceRefresh ? '?refresh=1' : ''}`, {
-        cache: forceRefresh ? 'no-store' : 'default',
+        cache: 'no-store',
       });
       const payload: ServicesResponse = await response.json();
 
@@ -387,7 +320,6 @@ function SmmPageContent() {
       }
 
       setServices(payload.data);
-      setCachedClientServices(payload.data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Không thể tải dịch vụ SMM');
     } finally {
@@ -397,14 +329,6 @@ function SmmPageContent() {
   }
 
   useEffect(() => {
-    const cached = getCachedClientServices();
-    if (cached?.length) {
-      setServices(cached);
-      setLoading(false);
-      void loadServices({ silent: true });
-      return;
-    }
-
     void loadServices();
   }, []);
 

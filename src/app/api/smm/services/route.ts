@@ -3,8 +3,10 @@ import { getSmmProviderMeta, listSmmServices } from '@/lib/smm-provider';
 
 export const dynamic = 'force-dynamic';
 
-const cacheHeaders = {
-  'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=300',
+const noStoreHeaders = {
+  'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
 };
 
 export async function GET(req: NextRequest) {
@@ -26,9 +28,9 @@ export async function GET(req: NextRequest) {
         totalCategories: categories.length,
       },
       data: services,
-    }, { headers: forceRefresh ? undefined : cacheHeaders });
+    }, { headers: noStoreHeaders });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Không thể tải dịch vụ SMM';
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return NextResponse.json({ success: false, message }, { status: 500, headers: noStoreHeaders });
   }
 }
