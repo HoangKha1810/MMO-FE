@@ -2697,26 +2697,61 @@
 }
 
 @keyframes confirm-dialog-overlay-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% { opacity: 0; backdrop-filter: blur(0); }
+  100% { opacity: 1; backdrop-filter: blur(12px); }
+}
+
+@keyframes confirm-dialog-overlay-out {
+  0% { opacity: 1; backdrop-filter: blur(12px); }
+  100% { opacity: 0; backdrop-filter: blur(0); }
 }
 
 @keyframes confirm-dialog-content-in {
-  0% { opacity: 0; transform: translate(-50%, calc(-50% + 18px)) scale(0.97); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translate(-50%, calc(-50% + 28px)) scale(0.94);
+  }
+  62% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, calc(-50% - 4px)) scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 @keyframes confirm-dialog-content-out {
-  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.985); }
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translate(-50%, calc(-50% + 18px)) scale(0.96);
+  }
 }
 
-.confirm-dialog-overlay {
-  animation: confirm-dialog-overlay-in 180ms ease-out;
+.confirm-dialog-overlay[data-state="open"] {
+  animation: confirm-dialog-overlay-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.confirm-dialog-content {
-  animation: confirm-dialog-content-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+.confirm-dialog-overlay[data-state="closed"] {
+  animation: confirm-dialog-overlay-out 220ms ease-in both;
+}
+
+.confirm-dialog-content[data-state="open"] {
+  animation: confirm-dialog-content-in 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
+}
+
+.confirm-dialog-content[data-state="closed"] {
+  animation: confirm-dialog-content-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 @keyframes route-stage-enter {

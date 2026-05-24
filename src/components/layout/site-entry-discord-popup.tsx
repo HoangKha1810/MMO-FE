@@ -4,9 +4,9 @@ import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 
-const DISCORD_INVITE_URL = 'https://discord.gg/YZPR75JZMJ';
-const DISCORD_POPUP_DELAY_MS = 1200;
-const DISCORD_POPUP_ROUTES = new Set(['/', '/user/home']);
+const TELEGRAM_INVITE_URL = 'https://t.me/+8dxx56rLM6MwNjU1';
+const TELEGRAM_POPUP_DELAY_MS = 1200;
+const TELEGRAM_POPUP_ROUTES = new Set(['/', '/user/home']);
 
 export function SiteEntryDiscordPopup() {
   const pathname = usePathname();
@@ -14,7 +14,7 @@ export function SiteEntryDiscordPopup() {
   const lastShownRouteRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!pathname || !DISCORD_POPUP_ROUTES.has(pathname)) {
+    if (!pathname || !TELEGRAM_POPUP_ROUTES.has(pathname)) {
       lastShownRouteRef.current = null;
       return;
     }
@@ -26,16 +26,16 @@ export function SiteEntryDiscordPopup() {
 
     const timer = window.setTimeout(() => {
       void alert({
-        title: 'Tham gia Server Discord',
+        title: 'Tham gia nhóm Telegram',
         description:
-          'Tham gia Discord để nhận thêm thông tin, cập nhật dịch vụ và hỗ trợ nhanh hơn. Server đạt 1k thành viên sẽ có Giveaway VPS.',
+          'Tham gia Telegram để nhận thêm thông tin, cập nhật dịch vụ và hỗ trợ nhanh hơn. Nhóm đạt 1k thành viên sẽ có Giveaway VPS.',
         confirmText: 'Để sau',
-        linkText: 'Vào Discord',
-        linkHref: DISCORD_INVITE_URL,
+        linkText: 'Vào Telegram',
+        linkHref: TELEGRAM_INVITE_URL,
         linkTarget: '_blank',
         tone: 'brand',
       });
-    }, DISCORD_POPUP_DELAY_MS);
+    }, TELEGRAM_POPUP_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [alert, pathname]);
