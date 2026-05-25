@@ -9,6 +9,7 @@ import {
   buildSmmPriceFromMargin,
   buildSmmPriceFromMultiplier,
   getSmmMarginPercentFromMultiplier,
+  MAX_SMM_PRICE_DECIMAL_15_4,
 } from '@/lib/smm-pricing';
 import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { toNumber } from '@/lib/utils';
@@ -606,7 +607,7 @@ async function fetchProviderServices(config: SmmProviderConfig): Promise<RawSmmS
 function normalizeImportedRate(rawRate: unknown, config: SmmProviderConfig): number {
   const baseRate = toNumber(rawRate, 0);
   const normalizedRate = config.isPerUnit ? baseRate * 1000 : baseRate;
-  return normalizedRate * Math.max(config.exchangeRate, 1);
+  return Math.min(MAX_SMM_PRICE_DECIMAL_15_4, normalizedRate * Math.max(config.exchangeRate, 1));
 }
 
 async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<void> {

@@ -9,7 +9,7 @@ import {
 import { runDailyAdminAnomalyDigest, runDailyAdminAnomalyDigestWithOptions } from '@/lib/admin-anomaly-digest';
 import { runDdosGuard } from '@/lib/admin-ddos-guard';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
-import { normalizeSmmOrderStatus } from '@/lib/smm-status';
+import { applySmmProviderStatusToOrder, refundCanceledSmmOrder } from '@/lib/smm-refund';
 import { toNumber } from '@/lib/utils';
 
 type CronSummary = Record<string, unknown>;
@@ -41,16 +41,6 @@ function parseBooleanFlag(value: unknown) {
   return ['1', 'true', 'yes', 'on'].includes(normalized);
 }
 
-function normalizeProviderStatus(value: unknown) {
-  return normalizeSmmOrderStatus(value);
-}
-
-function optionalNumber(value: unknown) {
-  if (value === null || value === undefined || value === '') return null;
-  const number = toNumber(value, Number.NaN);
-  return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : null;
-}
-
 function extractOrderStatus(payload: Record<string, unknown>, orderId: string) {
   const direct = payload[orderId];
   if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
@@ -67,12 +57,22 @@ function extractOrderStatus(payload: Record<string, unknown>, orderId: string) {
 async function runSmmOrderSync() {
   if (!(await tableExists('smm_orders'))) return { scanned: 0, updated: 0, errors: [] };
 
+  const refundRepairRows = await safeRows<SmmOrderRow>(`
+    SELECT id, provider_id, api_order_id, status
+    FROM smm_orders
+    WHERE LOWER(status) IN ('canceled', 'cancelled', 'failed', 'fail', 'error', 'refunded', 'refund')
+      AND COALESCE(is_refunded, 0) = 0
+      AND COALESCE(refund_amount, 0) <= 0
+    ORDER BY updated_at DESC, id DESC
+    LIMIT 120
+  `);
+
   const rows = await safeRows<SmmOrderRow>(`
     SELECT id, provider_id, api_order_id, status
     FROM smm_orders
     WHERE api_order_id IS NOT NULL
       AND api_order_id <> ''
-      AND LOWER(status) IN ('pending', 'processing', 'in progress', 'in_progress')
+      AND LOWER(status) IN ('pending', 'processing', 'in progress', 'in_progress', 'inprogress', 'running', 'active')
     ORDER BY updated_at ASC, id ASC
     LIMIT 120
   `);
@@ -84,7 +84,21 @@ async function runSmmOrderSync() {
   }
 
   let updated = 0;
+  let refunded = 0;
   const errors: string[] = [];
+
+  for (const order of refundRepairRows) {
+    try {
+      const refundResult = await refundCanceledSmmOrder(order.id, {
+        nextStatus: order.status || 'Canceled',
+        triggerStatus: order.status || 'Canceled',
+        source: 'cron_smm_refund_repair',
+      });
+      if (refundResult.refunded) refunded += 1;
+    } catch (error) {
+      errors.push(`refund_repair_${order.id}: ${error instanceof Error ? error.message : 'refund failed'}`);
+    }
+  }
 
   for (const [providerId, providerOrders] of groups.entries()) {
     const orderIds = providerOrders.map((row) => String(row.api_order_id || '').trim()).filter(Boolean);
@@ -98,29 +112,11 @@ async function runSmmOrderSync() {
         const statusPayload = extractOrderStatus(payload, apiOrderId);
         if (!statusPayload) continue;
 
-        const nextStatus = normalizeProviderStatus(statusPayload.status || statusPayload.state || order.status);
-        const startCount = optionalNumber(statusPayload.start_count ?? statusPayload.start ?? statusPayload.startCount);
-        const remains = optionalNumber(statusPayload.remains ?? statusPayload.remain ?? statusPayload.remaining);
-        const reason = String(statusPayload.error || statusPayload.reason || '').trim();
-
-        await db.$executeRawUnsafe(
-          `
-            UPDATE smm_orders
-            SET
-              status = ?,
-              start_count = COALESCE(?, start_count),
-              remains = COALESCE(?, remains),
-              reason = CASE WHEN ? <> '' THEN ? ELSE reason END,
-              updated_at = NOW()
-            WHERE id = ?
-          `,
-          nextStatus,
-          startCount,
-          remains,
-          reason,
-          reason,
-          order.id
-        );
+        const result = await applySmmProviderStatusToOrder(order.id, statusPayload, {
+          fallbackStatus: order.status,
+          source: 'cron_smm_order_sync',
+        });
+        if (result.refunded) refunded += 1;
         updated += 1;
       }
     } catch (error) {
@@ -128,7 +124,7 @@ async function runSmmOrderSync() {
     }
   }
 
-  return { scanned: rows.length, updated, errors };
+  return { scanned: rows.length, repaired: refundRepairRows.length, updated, refunded, errors };
 }
 
 async function runSmmServiceSync() {

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { buildRandom1kResourceWhereSql } from '@/lib/random1k';
-import { DEFAULT_SMM_PRICE_MULTIPLIER, buildSmmPriceFromMargin } from '@/lib/smm-pricing';
+import { DEFAULT_SMM_PRICE_MULTIPLIER, MAX_SMM_PRICE_DECIMAL_15_4, buildSmmPriceFromMargin } from '@/lib/smm-pricing';
 import { toNumber } from '@/lib/utils';
 
 type PricingFieldKind = 'money' | 'percent' | 'number';
@@ -716,6 +716,10 @@ function normalizeNumericInput(value: unknown, kind: PricingFieldKind) {
   return Math.round(parsed * 10000) / 10000;
 }
 
+function buildSafeSmmMarginPriceSql(rateExpression: string) {
+  return `LEAST(${MAX_SMM_PRICE_DECIMAL_15_4}, ROUND(COALESCE(${rateExpression}, 0) * (1 + (? / 100)), 4))`;
+}
+
 function normalizeStatus(value: unknown, kind: PricingStatusKind) {
   if (kind === 'boolean') {
     if (value === true || value === 1 || value === '1' || value === 'true' || value === 'active') return 1;
@@ -894,7 +898,7 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
       }
 
       if (rateField && customPriceField) {
-        assignments.push(`${escapeIdentifier(customPriceField.column)} = ROUND(COALESCE(${escapeIdentifier(rateField.column)}, 0) * (1 + (? / 100)), 4)`);
+        assignments.push(`${escapeIdentifier(customPriceField.column)} = ${buildSafeSmmMarginPriceSql(escapeIdentifier(rateField.column))}`);
         assignmentValues.push(marginValue);
       }
 
@@ -932,7 +936,7 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
       }
 
       if (rateField && customPriceField) {
-        assignments.push(`${escapeIdentifier(customPriceField.column)} = ROUND(COALESCE(${escapeIdentifier(rateField.column)}, 0) * (1 + (? / 100)), 4)`);
+        assignments.push(`${escapeIdentifier(customPriceField.column)} = ${buildSafeSmmMarginPriceSql(escapeIdentifier(rateField.column))}`);
         assignmentValues.push(nextValue);
       }
 

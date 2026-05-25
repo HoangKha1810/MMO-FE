@@ -65,7 +65,7 @@ interface DetailResponse {
   meta?: Record<string, unknown>;
 }
 
-type SmmMarginScope = 'single' | 'selected' | 'filtered' | 'all';
+type SmmMarginScope = 'single' | 'selected' | 'filtered' | 'provider' | 'all';
 
 interface SmmMarginDialogState {
   scope: SmmMarginScope;
@@ -1386,12 +1386,19 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       return;
     }
 
-    if (scope === 'all' || scope === 'filtered') {
+    if (scope === 'all' || scope === 'filtered' || scope === 'provider') {
+      const currentProvider = smmProviderOptions.find((option) => option.value === providerFilter);
       const confirmed = await confirm({
-        title: scope === 'all' ? 'Áp dụng cho toàn bộ SMM?' : 'Áp dụng cho danh sách đang lọc?',
+        title: scope === 'all'
+          ? 'Áp dụng cho toàn bộ SMM?'
+          : scope === 'provider'
+            ? 'Áp dụng cho provider hiện tại?'
+            : 'Áp dụng cho danh sách đang lọc?',
         description: scope === 'all'
           ? `Toàn bộ dịch vụ SMM sẽ được đặt lãi ${marginPercent}%.`
-          : `Các dịch vụ khớp bộ lọc hiện tại sẽ được đặt lãi ${marginPercent}%.`,
+          : scope === 'provider'
+            ? `Toàn bộ dịch vụ của ${currentProvider?.label || 'provider đang chọn'} sẽ được đặt lãi ${marginPercent}%.`
+            : `Các dịch vụ khớp bộ lọc hiện tại sẽ được đặt lãi ${marginPercent}%.`,
         confirmText: 'Áp dụng',
         cancelText: 'Hủy',
         tone: 'brand',
@@ -1411,7 +1418,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
           ids: targetIds,
           search: scope === 'filtered' ? search : undefined,
           status: scope === 'filtered' ? status : undefined,
-          provider_id: scope === 'filtered' ? providerFilter : undefined,
+          provider_id: scope === 'filtered' || scope === 'provider' ? providerFilter : undefined,
+          provider_name: scope === 'provider' && !providerFilter ? 'SubMetaVip' : undefined,
           category: scope === 'filtered' ? categoryFilter : undefined,
         }),
       });
@@ -2881,6 +2889,11 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                     Dịch vụ đã chọn ({selected.length})
                   </option>
                   <option value="filtered">Danh sách đang lọc</option>
+                  <option value="provider">
+                    {providerFilter
+                      ? `Toàn bộ ${smmProviderOptions.find((option) => option.value === providerFilter)?.label || 'provider đang chọn'}`
+                      : 'Toàn bộ SubMetaVip'}
+                  </option>
                   <option value="all">Toàn bộ dịch vụ SMM</option>
                 </select>
               </label>
@@ -2909,6 +2922,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 ? 'Áp dụng cho toàn bộ service SMM trong database.'
                 : smmMarginDialog.scope === 'filtered'
                   ? 'Áp dụng cho tất cả service khớp search/provider/category/status hiện tại.'
+                  : smmMarginDialog.scope === 'provider'
+                    ? providerFilter
+                      ? 'Áp dụng cho toàn bộ service thuộc provider đang chọn, bỏ qua phân trang hiện tại.'
+                      : 'Áp dụng cho toàn bộ service SubMetaVip, bỏ qua phân trang hiện tại.'
                   : smmMarginDialog.scope === 'selected'
                     ? `Áp dụng cho ${selected.length} service đang tick chọn.`
                     : 'Chỉ áp dụng cho service riêng lẻ này.'}

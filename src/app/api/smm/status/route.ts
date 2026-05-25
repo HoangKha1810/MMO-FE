@@ -6,6 +6,7 @@ import {
   getSmmProviderOrderStatus,
   guessProviderStatusContext,
 } from '@/lib/smm-provider';
+import { applySmmProviderStatusToOrder } from '@/lib/smm-refund';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,9 +39,11 @@ export async function GET(req: NextRequest) {
           },
         },
         select: {
+          id: true,
           api_order_id: true,
           user_id: true,
           provider_id: true,
+          status: true,
         },
       }),
     ]);
@@ -82,6 +85,12 @@ export async function GET(req: NextRequest) {
         localOrder?.provider_id ?? undefined,
         await guessProviderStatusContext([singleOrderId])
       );
+      if (localOrder) {
+        await applySmmProviderStatusToOrder(localOrder.id, data, {
+          fallbackStatus: localOrder.status,
+          source: 'smm_status_api',
+        });
+      }
       return NextResponse.json({ success: true, data });
     }
 
@@ -112,10 +121,30 @@ export async function GET(req: NextRequest) {
 
       if (orderIds.length === 1 && ('status' in payload || 'charge' in payload)) {
         merged[orderIds[0]] = payload;
+        const localOrder = localOrderMap.get(orderIds[0]);
+        if (localOrder) {
+          await applySmmProviderStatusToOrder(localOrder.id, payload, {
+            fallbackStatus: localOrder.status,
+            source: 'smm_status_api',
+          });
+        }
         continue;
       }
 
       Object.assign(merged, payload);
+
+      for (const orderId of orderIds) {
+        const localOrder = localOrderMap.get(orderId);
+        const orderPayload = payload[orderId];
+        if (!localOrder || !orderPayload || typeof orderPayload !== 'object' || Array.isArray(orderPayload)) {
+          continue;
+        }
+
+        await applySmmProviderStatusToOrder(localOrder.id, orderPayload as Record<string, unknown>, {
+          fallbackStatus: localOrder.status,
+          source: 'smm_status_api',
+        });
+      }
     }
 
     return NextResponse.json({ success: true, data: merged });

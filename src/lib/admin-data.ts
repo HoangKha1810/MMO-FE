@@ -546,6 +546,12 @@ function normalizeHexColor(value: unknown) {
   return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : '';
 }
 
+const MAX_SMM_DECIMAL_15_4 = 99999999999.9999;
+
+function buildSmmSafeMarginPriceSql(rateExpression = '`rate`') {
+  return `LEAST(${MAX_SMM_DECIMAL_15_4}, ROUND(COALESCE(${rateExpression}, 0) * (1 + (? / 100)), 4))`;
+}
+
 function normalizeSmmServicePatch(input: Record<string, unknown>, currentServerInfo?: unknown) {
   if (!Object.prototype.hasOwnProperty.call(input, 'name_color')) {
     return input;
@@ -1905,12 +1911,34 @@ async function setSmmServicesMarginPercent(
       conditions.push('(`category` = ? OR `category` LIKE ?)');
       values.push(category, `${category}%`);
     }
+  } else if (scope === 'provider') {
+    const providerId = Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
+    const providerName = String(input.provider_name || '').trim();
+
+    if (!columns.has('provider_id')) {
+      throw new Error('Bảng SMM thiếu provider_id để lọc nguồn');
+    }
+
+    if (providerId > 0) {
+      conditions.push('`provider_id` = ?');
+      values.push(providerId);
+    } else if (providerName) {
+      conditions.push(`EXISTS (
+        SELECT 1
+        FROM api_providers ap
+        WHERE ap.id = \`${table}\`.\`provider_id\`
+          AND LOWER(ap.name) LIKE LOWER(?)
+      )`);
+      values.push(`%${providerName}%`);
+    } else {
+      throw new Error('Chọn nguồn SMM trước khi áp dụng theo provider');
+    }
   } else if (scope !== 'all') {
     throw new Error('Chọn phạm vi chỉnh % lãi hợp lệ');
   }
 
   const setSqlParts = [
-    '`custom_price` = ROUND(COALESCE(`rate`, 0) * (1 + (? / 100)), 4)',
+    `\`custom_price\` = ${buildSmmSafeMarginPriceSql('`rate`')}`,
   ];
   const setValues: unknown[] = [percent];
 

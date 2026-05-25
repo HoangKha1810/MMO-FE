@@ -1,8 +1,9 @@
 export const DEFAULT_SMM_PRICE_MULTIPLIER = 1.6;
 export const DEFAULT_SMM_MARGIN_PERCENT = 60;
+export const MAX_SMM_PRICE_DECIMAL_15_4 = 99999999999.9999;
 
 function roundSmmPrice(value: number) {
-  return Math.round(Math.max(0, value) * 10000) / 10000;
+  return Math.min(MAX_SMM_PRICE_DECIMAL_15_4, Math.round(Math.max(0, value) * 10000) / 10000);
 }
 
 export function normalizeSmmPriceMultiplier(value: number) {
