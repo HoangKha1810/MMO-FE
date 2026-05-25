@@ -524,7 +524,12 @@ export default function SmmOrderPage() {
                                     SV{service.service}
                                   </span>
                                   <span className="mx-1.5 text-slate-400 opacity-50 dark:text-slate-500">•</span>
-                                  <span className="text-slate-600 dark:text-slate-400">{service.name}</span>
+                                  <span
+                                    className="text-slate-600 dark:text-slate-400"
+                                    style={service.name_color ? { color: service.name_color } : undefined}
+                                  >
+                                    {service.name}
+                                  </span>
                                   <span className="mx-1.5 text-slate-400 opacity-50 dark:text-slate-500">•</span>
                                   <span className="font-bold italic text-rose-500 underline decoration-rose-500/10 dark:text-rose-400">
                                     {(service.price_per_1k_vnd / 1000).toFixed(1)} đ
@@ -565,21 +570,9 @@ export default function SmmOrderPage() {
                                     </div>
                                   </div>
                                   <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
-                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Tổng đơn đã chạy</div>
+                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Bảo hành</div>
                                     <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
-                                      {formatNumber(service.total_orders || 0)}
-                                    </div>
-                                  </div>
-                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
-                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Refill</div>
-                                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
-                                      {service.refill ? 'Có hỗ trợ' : 'Không hỗ trợ'}
-                                    </div>
-                                  </div>
-                                  <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-950/60">
-                                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Provider</div>
-                                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
-                                      #{service.provider_id} / SV{service.service}
+                                      {service.refill ? 'Có bảo hành' : 'Không bảo hành'}
                                     </div>
                                   </div>
                                 </div>
@@ -590,16 +583,6 @@ export default function SmmOrderPage() {
                                   </div>
                                 ) : null}
 
-                                {service.provider_data ? (
-                                  <details className="mt-3 rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3 dark:border-white/8 dark:bg-white/[0.03]">
-                                    <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                                      Payload provider
-                                    </summary>
-                                    <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-all text-[11px] font-medium leading-6 text-slate-500 dark:text-slate-300">
-                                      {service.provider_data}
-                                    </pre>
-                                  </details>
-                                ) : null}
                               </div>
                             ) : null}
                           </div>

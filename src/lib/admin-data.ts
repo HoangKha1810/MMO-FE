@@ -95,7 +95,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     searchFields: ['name', 'original_name', 'category', 'type'],
     statusField: 'status',
     defaultOrder: commonOrder,
-    updateFields: ['custom_price', 'status', 'is_deleted', 'is_auto_margin', 'margin_percent', 'description', 'server_info'],
+    updateFields: ['name', 'custom_price', 'status', 'is_deleted', 'is_auto_margin', 'margin_percent', 'name_color', 'description', 'server_info'],
   },
   'smm-orders': {
     delegate: 'smm_orders',
@@ -526,6 +526,45 @@ function sanitizeData(input: Record<string, unknown>, allowedFields: string[] = 
     }
   }
   return output;
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value !== 'string') return {};
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeHexColor(value: unknown) {
+  const raw = String(value || '').trim();
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : '';
+}
+
+function normalizeSmmServicePatch(input: Record<string, unknown>, currentServerInfo?: unknown) {
+  if (!Object.prototype.hasOwnProperty.call(input, 'name_color')) {
+    return input;
+  }
+
+  const { name_color: nameColorInput, ...rest } = input;
+  const serverInfo = parseJsonObject(rest.server_info ?? currentServerInfo);
+  const nameColor = normalizeHexColor(nameColorInput);
+
+  if (nameColor) {
+    serverInfo.name_color = nameColor;
+  } else {
+    delete serverInfo.name_color;
+  }
+
+  return {
+    ...rest,
+    server_info: Object.keys(serverInfo).length > 0 ? JSON.stringify(serverInfo) : null,
+  };
 }
 
 function coerceInput(field: string, value: unknown) {
@@ -1374,9 +1413,17 @@ export async function updateAdminResource(resource: string, id: number, input: R
     throw new Error('Resource chỉ đọc');
   }
 
-  const data = sanitizeData(input, config.updateFields);
+  let data = sanitizeData(input, config.updateFields);
   if (Object.keys(data).length === 0) {
     throw new Error('Không có dữ liệu cập nhật hợp lệ');
+  }
+
+  if (resource === 'smm-services') {
+    const current = await db.smm_services_cache.findUnique({
+      where: { id },
+      select: { server_info: true },
+    }).catch(() => null);
+    data = normalizeSmmServicePatch(data, current?.server_info);
   }
 
   if (resource === 'smm-orders' && typeof data.status === 'string') {
@@ -1797,6 +1844,109 @@ export async function getAdminResourceDetail(resource: string, id: number) {
   };
 }
 
+async function setSmmServicesMarginPercent(
+  input: Record<string, unknown>,
+  ids: number[],
+  adminId: number,
+  req: NextRequest
+) {
+  const percent = toNumber(input.percent, Number.NaN);
+  if (!Number.isFinite(percent) || percent < 0) {
+    throw new Error('Phần trăm lãi không hợp lệ');
+  }
+
+  const table = 'smm_services_cache';
+  const columns = await getRawTableColumns(table);
+  if (!columns.has('rate') || !columns.has('custom_price')) {
+    throw new Error('Bảng SMM thiếu cột rate/custom_price để tính giá bán');
+  }
+
+  const scope = String(input.scope || '').trim();
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+
+  if (columns.has('is_deleted')) {
+    conditions.push('COALESCE(`is_deleted`, 0) = 0');
+  }
+
+  if (ids.length > 0 && (scope === 'single' || scope === 'selected')) {
+    conditions.push(`id IN (${ids.map(() => '?').join(', ')})`);
+    values.push(...ids);
+  } else if (scope === 'filtered') {
+    const search = String(input.search || '').trim();
+    const status = String(input.status || '').trim();
+    const providerId = Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
+    const category = String(input.category || '').trim();
+
+    if (search) {
+      const like = `%${search}%`;
+      conditions.push(`(
+        \`name\` LIKE ?
+        OR COALESCE(\`original_name\`, '') LIKE ?
+        OR COALESCE(\`category\`, '') LIKE ?
+        OR COALESCE(\`type\`, '') LIKE ?
+        OR CAST(\`service_id\` AS CHAR) LIKE ?
+        OR CAST(\`provider_id\` AS CHAR) LIKE ?
+      )`);
+      values.push(like, like, like, like, like, like);
+    }
+
+    if (status && columns.has('status')) {
+      conditions.push('COALESCE(`status`, \'active\') = ?');
+      values.push(status);
+    }
+
+    if (providerId > 0 && columns.has('provider_id')) {
+      conditions.push('`provider_id` = ?');
+      values.push(providerId);
+    }
+
+    if (category && columns.has('category')) {
+      conditions.push('(`category` = ? OR `category` LIKE ?)');
+      values.push(category, `${category}%`);
+    }
+  } else if (scope !== 'all') {
+    throw new Error('Chọn phạm vi chỉnh % lãi hợp lệ');
+  }
+
+  const setSqlParts = [
+    '`custom_price` = ROUND(COALESCE(`rate`, 0) * (1 + (? / 100)), 4)',
+  ];
+  const setValues: unknown[] = [percent];
+
+  if (columns.has('margin_percent')) {
+    setSqlParts.push('`margin_percent` = ?');
+    setValues.push(percent);
+  }
+
+  if (columns.has('is_auto_margin')) {
+    setSqlParts.push('`is_auto_margin` = 1');
+  }
+
+  if (columns.has('cached_at')) {
+    setSqlParts.push('`cached_at` = NOW()');
+  } else if (columns.has('updated_at')) {
+    setSqlParts.push('`updated_at` = NOW()');
+  }
+
+  const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const affected = await db.$executeRawUnsafe(
+    `UPDATE \`${table}\` SET ${setSqlParts.join(', ')} ${whereSql}`,
+    ...setValues,
+    ...values
+  );
+
+  clearSmmServicesCache();
+  await logAdminAction({
+    adminId,
+    action: 'set smm margin percent',
+    target: `${scope || 'all'} / ${percent}% / ${affected} services`,
+    req,
+  });
+
+  return { success: true, affected };
+}
+
 export async function runAdminAction(resource: string, input: Record<string, unknown>, adminId: number, req: NextRequest) {
   const action = String(input.action || '').trim();
   const ids = Array.isArray(input.ids)
@@ -1848,6 +1998,10 @@ export async function runAdminAction(resource: string, input: Record<string, unk
       req,
     });
     return { success: true, affected: result.count };
+  }
+
+  if (resource === 'smm-services' && action === 'set-margin-percent') {
+    return setSmmServicesMarginPercent(input, ids, adminId, req);
   }
 
   const moderationAction = action.replace(/^bulk-/, '');

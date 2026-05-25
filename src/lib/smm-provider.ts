@@ -48,6 +48,7 @@ export interface SmmServiceRecord {
   provider_id: number;
   service: number;
   name: string;
+  name_color?: string;
   raw_name: string;
   type: string;
   category: string;
@@ -155,6 +156,61 @@ function parseBoolean(value: boolean | string | number | null | undefined): bool
   }
 
   return false;
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value !== 'string') return {};
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeHexColor(value: unknown) {
+  const raw = String(value || '').trim();
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : '';
+}
+
+function inferRefillSupport(name: string, value: unknown, providerData: Record<string, unknown> = {}) {
+  if (value !== undefined && value !== null && value !== '') {
+    if (typeof value === 'string') {
+      const normalizedValue = value.trim().toLowerCase();
+      if (/\b(no|non|not)\s*refill\b|kh[oô]ng\s*(bảo hành|bao hanh|hỗ trợ|ho tro)/i.test(normalizedValue)) {
+        return false;
+      }
+      if (/refill|bảo hành|bao hanh/i.test(normalizedValue)) {
+        return true;
+      }
+    }
+    return parseBoolean(value as boolean | string | number);
+  }
+
+  for (const key of ['refill', 'refillable', 'guarantee', 'warranty', 'bao_hanh']) {
+    if (providerData[key] !== undefined && providerData[key] !== null && providerData[key] !== '') {
+      return parseBoolean(providerData[key] as boolean | string | number);
+    }
+  }
+
+  const normalized = name.toLowerCase();
+  if (/\b(no|non|not)\s*refill\b|kh[oô]ng\s*(bảo hành|bao hanh|hỗ trợ|ho tro)/i.test(normalized)) {
+    return false;
+  }
+  if (/refill|bảo hành|bao hanh/i.test(normalized)) {
+    return true;
+  }
+
+  return false;
+}
+
+function buildSmmProviderData(rawProviderData: unknown, rawService: RawSmmService, normalizedName: string) {
+  const providerData = parseJsonObject(rawProviderData);
+  providerData.refill = inferRefillSupport(normalizedName, rawService.refill, providerData);
+  return JSON.stringify(providerData);
 }
 
 function maskApiKey(apiKey: string): string {
@@ -588,7 +644,7 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
     const max = Math.max(min, Math.trunc(toNumber(rawService.max, min)));
     const type = normalizeWhitespace(String(rawService.type || 'Default')) || 'Default';
     const description = String(rawService.description || '').trim() || null;
-    const providerData = rawService.provider_data || null;
+    const providerData = buildSmmProviderData(rawService.provider_data, rawService, normalizedName);
 
     syncedIds.push(serviceId);
 
@@ -679,6 +735,7 @@ function normalizeCachedService(
     max: number;
     type: string | null;
     description: string | null;
+    server_info?: string | null;
     provider_data: string | null;
     total_orders?: number | null;
   },
@@ -686,17 +743,20 @@ function normalizeCachedService(
 ): SmmServiceRecord {
   const rawName = normalizeWhitespace(String(row.original_name || row.name || `Service #${row.service_id}`));
   const name = stripHtml(String(row.name || rawName)) || rawName;
+  const nameColor = normalizeHexColor(parseJsonObject(row.server_info).name_color);
   const category = normalizeWhitespace(String(row.category || 'Chưa phân loại'));
   const type = normalizeWhitespace(String(row.type || 'Default')) || 'Default';
   const cachedRate = toNumber(row.rate, 0);
   const customPrice = toNumber(row.custom_price, 0);
   const finalRate = customPrice > 0 ? customPrice : buildSmmPriceFromMultiplier(cachedRate, config.priceMultiplier);
+  const providerData = parseJsonObject(row.provider_data);
 
   return {
     id: row.id,
     provider_id: row.provider_id ?? config.providerId,
     service: row.service_id,
     name,
+    name_color: nameColor,
     raw_name: rawName,
     type,
     category,
@@ -706,7 +766,7 @@ function normalizeCachedService(
     max: Math.max(row.min, row.max),
     currency: config.exchangeRate > 1 ? 'USD' : 'VND',
     description: stripHtml(String(row.description || '')),
-    refill: false,
+    refill: inferRefillSupport(`${name} ${rawName}`, providerData.refill, providerData),
     price_per_1k_vnd: finalRate,
     price_per_unit_vnd: finalRate / 1000,
     is_comment_service: isCommentService(type, name),
@@ -771,6 +831,7 @@ export async function listSmmServices(forceRefresh = false, providerId?: number 
         max: true,
         type: true,
         description: true,
+        server_info: true,
         provider_data: true,
         total_orders: true,
       },
@@ -798,6 +859,7 @@ export async function listSmmServices(forceRefresh = false, providerId?: number 
           max: true,
           type: true,
           description: true,
+          server_info: true,
           provider_data: true,
           total_orders: true,
         },

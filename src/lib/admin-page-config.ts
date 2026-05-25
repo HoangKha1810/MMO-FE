@@ -59,7 +59,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       title: 'Services SMM',
       description: 'Quản lý service, giá tùy chỉnh, margin, trạng thái và sync provider.',
       columns: ['id', 'provider_id', 'service_id', 'name', 'category', 'rate', 'custom_price', 'min', 'max', 'status', 'total_orders'],
-      editableFields: ['custom_price', 'status', 'is_deleted', 'is_auto_margin', 'margin_percent', 'description', 'server_info'],
+      editableFields: ['name', 'custom_price', 'status', 'is_deleted', 'is_auto_margin', 'margin_percent', 'name_color', 'description', 'server_info'],
       statusOptions: ['active', 'inactive'],
       actions: [
         { key: 'sync', label: 'Sync provider' },

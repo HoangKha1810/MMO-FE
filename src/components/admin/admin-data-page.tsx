@@ -16,6 +16,7 @@ import {
   ListOrdered,
   Loader2,
   Pencil,
+  Percent,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -62,6 +63,14 @@ interface DetailResponse {
   message?: string;
   data?: Record<string, unknown>;
   meta?: Record<string, unknown>;
+}
+
+type SmmMarginScope = 'single' | 'selected' | 'filtered' | 'all';
+
+interface SmmMarginDialogState {
+  scope: SmmMarginScope;
+  percent: string;
+  row?: Record<string, unknown>;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -235,6 +244,7 @@ const COLUMN_LABELS: Record<string, string> = {
   wallet_type: 'Ví',
   original_price: 'Giá gốc',
   custom_price: 'Giá tùy chỉnh',
+  name_color: 'Màu chữ tên gói',
   exchange_rate: 'Tỷ giá',
   min: 'Min',
   max: 'Max',
@@ -483,6 +493,32 @@ function extractPaymentDisplayCode(value: string) {
 
 function initialValues(fields: string[], row?: Record<string, unknown>) {
   return Object.fromEntries(fields.map((field) => [field, row?.[field] ?? '']));
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value !== 'string') return {};
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeHexColor(value: unknown) {
+  const raw = String(value || '').trim();
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : '';
+}
+
+function hydrateEditorValues(resource: string, fields: string[], row?: Record<string, unknown>) {
+  const values = initialValues(fields, row);
+  if (resource === 'smm-services' && fields.includes('name_color')) {
+    values.name_color = normalizeHexColor(parseJsonObject(row?.server_info).name_color);
+  }
+  return values;
 }
 
 function isTruthy(value: unknown) {
@@ -892,6 +928,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [smmMarginDialog, setSmmMarginDialog] = useState<SmmMarginDialogState | null>(null);
   const [editor, setEditor] = useState<{
     mode: 'create' | 'edit';
     row?: Record<string, unknown>;
@@ -1141,7 +1178,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     if (mode === 'create') {
       setEditor({
         mode,
-        values: initialValues(createFields),
+        values: hydrateEditorValues(section.resource, createFields),
         baseline: {},
         detail: {},
         detailMeta: {},
@@ -1149,7 +1186,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       return;
     }
 
-    const baseValues = initialValues(editableFields, row);
+    const baseValues = hydrateEditorValues(section.resource, editableFields, row);
     setEditor({
       mode,
       row,
@@ -1178,7 +1215,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
           return current;
         }
 
-        const mergedValues = initialValues(editableFields, payload.data);
+        const mergedValues = hydrateEditorValues(section.resource, editableFields, payload.data);
         return {
           ...current,
           row: { ...current.row, ...payload.data },
@@ -1319,6 +1356,80 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     }
   }
 
+  function openSmmMarginDialog(scope: SmmMarginScope, row?: Record<string, unknown>) {
+    const rowMargin = row?.margin_percent;
+    const defaultPercent = rowMargin !== null && rowMargin !== undefined && String(rowMargin).trim() !== ''
+      ? String(rowMargin)
+      : '30';
+    setSmmMarginDialog({ scope, row, percent: defaultPercent });
+  }
+
+  async function applySmmMarginPercent() {
+    if (!smmMarginDialog) return;
+
+    const marginPercent = Number(smmMarginDialog.percent);
+    if (!Number.isFinite(marginPercent) || marginPercent < 0) {
+      toast.error('Nhập phần trăm lãi hợp lệ');
+      return;
+    }
+
+    const scope = smmMarginDialog.scope;
+    const singleId = scope === 'single' ? rowId(smmMarginDialog.row || {}) : 0;
+    const targetIds = scope === 'single'
+      ? (singleId ? [singleId] : [])
+      : scope === 'selected'
+        ? selected
+        : [];
+
+    if ((scope === 'single' || scope === 'selected') && targetIds.length === 0) {
+      toast.error(scope === 'single' ? 'Thiếu dịch vụ cần chỉnh' : 'Chọn ít nhất một dịch vụ');
+      return;
+    }
+
+    if (scope === 'all' || scope === 'filtered') {
+      const confirmed = await confirm({
+        title: scope === 'all' ? 'Áp dụng cho toàn bộ SMM?' : 'Áp dụng cho danh sách đang lọc?',
+        description: scope === 'all'
+          ? `Toàn bộ dịch vụ SMM sẽ được đặt lãi ${marginPercent}%.`
+          : `Các dịch vụ khớp bộ lọc hiện tại sẽ được đặt lãi ${marginPercent}%.`,
+        confirmText: 'Áp dụng',
+        cancelText: 'Hủy',
+        tone: 'brand',
+      });
+      if (!confirmed) return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/${section.resource}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'set-margin-percent',
+          scope,
+          percent: marginPercent,
+          ids: targetIds,
+          search: scope === 'filtered' ? search : undefined,
+          status: scope === 'filtered' ? status : undefined,
+          provider_id: scope === 'filtered' ? providerFilter : undefined,
+          category: scope === 'filtered' ? categoryFilter : undefined,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không thể chỉnh phần trăm lãi');
+      }
+
+      toast.success(`Đã chỉnh % lãi cho ${formatNumber(Number(payload.affected || targetIds.length || 0))} dịch vụ`);
+      setSmmMarginDialog(null);
+      await loadData(pagination?.page || 1, { preserveSelection: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể chỉnh phần trăm lãi');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const selectedAllOnPage = rows.length > 0 && selected.length === rows.length;
 
   return (
@@ -1364,6 +1475,17 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Làm mới
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-[1rem] border-sky-400/20 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
+                  disabled={saving}
+                  onClick={() => openSmmMarginDialog(selected.length > 0 ? 'selected' : 'filtered')}
+                >
+                  <Percent className="mr-2 h-4 w-4" />
+                  Chỉnh % lãi
                 </Button>
                 <Button
                   type="button"
@@ -1560,6 +1682,17 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                     Đã chọn {selected.length} dịch vụ. Bạn có thể cập nhật trạng thái nhanh hoặc ẩn hàng loạt.
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="rounded-[1rem] border-sky-400/20 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
+                      disabled={saving}
+                      onClick={() => openSmmMarginDialog('selected')}
+                    >
+                      <Percent className="mr-2 h-3.5 w-3.5" />
+                      Chỉnh % lãi đã chọn
+                    </Button>
                     {section.statusOptions?.length ? (
                       <select
                         defaultValue=""
@@ -1709,6 +1842,17 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                                 onClick={() => void toggleSmmService(row)}
                               >
                                 {serviceActive ? 'Tắt' : 'Bật'}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-[1rem] border-sky-400/20 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
+                                disabled={saving}
+                                onClick={() => openSmmMarginDialog('single', row)}
+                              >
+                                <Percent className="mr-2 h-3.5 w-3.5" />
+                                % Lãi
                               </Button>
                               {canEdit ? (
                                 <Button
@@ -2549,6 +2693,27 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                         </option>
                       ))}
                     </select>
+                  ) : field === 'name_color' ? (
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={normalizeHexColor(fieldValue) || '#ffffff'}
+                        onChange={(event) => setEditor((current) => current ? {
+                          ...current,
+                          values: { ...current.values, [field]: event.target.value },
+                        } : current)}
+                        className="h-10 w-14 cursor-pointer rounded-[9px] border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-[#111]"
+                      />
+                      <Input
+                        value={String(fieldValue ?? '')}
+                        onChange={(event) => setEditor((current) => current ? {
+                          ...current,
+                          values: { ...current.values, [field]: event.target.value },
+                        } : current)}
+                        placeholder="#ffffff"
+                        className={cn(isLegacyAutoMxhOrders && 'rounded-[1rem] border-white/8 bg-[#232323] text-white placeholder:text-slate-500')}
+                      />
+                    </div>
                   ) : isLongTextField(field) ? (
                     <textarea
                       value={String(fieldValue ?? '')}
@@ -2654,6 +2819,120 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
               >
                 {!saving ? <Save className="mr-2 h-4 w-4" /> : null}
                 Lưu
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {smmMarginDialog ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[1.75rem] border border-white/10 bg-[#081121] p-6 text-white shadow-2xl">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-300">
+                  SMM Profit Margin
+                </div>
+                <h3 className="mt-2 text-2xl font-black uppercase tracking-[-0.04em]">
+                  Chỉnh phần trăm lãi
+                </h3>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">
+                  Giá bán sẽ được tính lại theo công thức: giá API x (1 + % lãi / 100).
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                onClick={() => setSmmMarginDialog(null)}
+              >
+                Đóng
+              </Button>
+            </div>
+
+            {smmMarginDialog.row ? (
+              <div className="mb-4 rounded-[1.2rem] border border-white/8 bg-white/[0.04] p-4">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Dịch vụ riêng lẻ</div>
+                <div className="mt-2 line-clamp-2 text-sm font-black text-slate-100">
+                  #{String(smmMarginDialog.row.service_id || smmMarginDialog.row.id || '')} · {String(smmMarginDialog.row.name || 'Dịch vụ SMM')}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="grid gap-4 sm:grid-cols-[1.15fr_0.85fr]">
+              <label className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
+                  Phạm vi áp dụng
+                </span>
+                <select
+                  value={smmMarginDialog.scope}
+                  onChange={(event) => setSmmMarginDialog((current) => current ? {
+                    ...current,
+                    scope: event.target.value as SmmMarginScope,
+                    row: event.target.value === 'single' ? current.row : undefined,
+                  } : current)}
+                  className="h-12 w-full rounded-[1rem] border border-white/10 bg-[#101b33] px-4 text-sm font-black text-white outline-none"
+                >
+                  {smmMarginDialog.row ? (
+                    <option value="single">Dịch vụ này</option>
+                  ) : null}
+                  <option value="selected" disabled={selected.length === 0}>
+                    Dịch vụ đã chọn ({selected.length})
+                  </option>
+                  <option value="filtered">Danh sách đang lọc</option>
+                  <option value="all">Toàn bộ dịch vụ SMM</option>
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
+                  % lãi
+                </span>
+                <div className="relative">
+                  <input
+                    value={smmMarginDialog.percent}
+                    onChange={(event) => setSmmMarginDialog((current) => current ? {
+                      ...current,
+                      percent: event.target.value.replace(/[^\d.]/g, ''),
+                    } : current)}
+                    placeholder="30"
+                    className="h-12 w-full rounded-[1rem] border border-white/10 bg-[#101b33] px-4 pr-10 text-sm font-black text-white outline-none placeholder:text-slate-600"
+                  />
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-500">%</span>
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-4 rounded-[1.2rem] border border-sky-400/15 bg-sky-500/10 p-4 text-sm font-semibold leading-6 text-sky-100">
+              {smmMarginDialog.scope === 'all'
+                ? 'Áp dụng cho toàn bộ service SMM trong database.'
+                : smmMarginDialog.scope === 'filtered'
+                  ? 'Áp dụng cho tất cả service khớp search/provider/category/status hiện tại.'
+                  : smmMarginDialog.scope === 'selected'
+                    ? `Áp dụng cho ${selected.length} service đang tick chọn.`
+                    : 'Chỉ áp dụng cho service riêng lẻ này.'}
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-[1rem] border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                onClick={() => setSmmMarginDialog(null)}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                disabled={saving}
+                loading={saving}
+                loadingText="Đang áp dụng..."
+                className="rounded-[1rem] bg-[linear-gradient(135deg,#2563eb_0%,#38bdf8_100%)] text-white"
+                onClick={() => void applySmmMarginPercent()}
+              >
+                {!saving ? <Percent className="mr-2 h-4 w-4" /> : null}
+                Áp dụng % lãi
               </Button>
             </div>
           </div>
