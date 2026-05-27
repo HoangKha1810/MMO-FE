@@ -229,15 +229,30 @@ export default function DepositPage() {
 
   return (
     <AppShell user={user}>
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-            Nạp tiền
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1">
-            Chọn phương thức thanh toán và nhập số tiền nạp
-          </p>
-        </div>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <section className="mmo-edge-page-header p-5 sm:p-7">
+          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="mmo-eyebrow">Wallet Center</div>
+              <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">
+                Nạp tiền & thanh toán
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-slate-300">
+                Chọn đúng ví, nhập số tiền và tạo QR thanh toán. Hệ thống tự đối soát SePay để cộng số dư vào tài khoản.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
+              <div className="mmo-mini-stat">
+                <div className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">Ví chính</div>
+                <div className="mt-2 font-mono text-lg font-black text-white">{new Intl.NumberFormat('vi-VN').format(user?.balance || 0)}đ</div>
+              </div>
+              <div className="mmo-mini-stat">
+                <div className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">Ví game</div>
+                <div className="mt-2 font-mono text-lg font-black text-emerald-400">{new Intl.NumberFormat('vi-VN').format(user?.game_balance || 0)}đ</div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {(['main', 'game'] as WalletType[]).map((item) => {
@@ -252,10 +267,10 @@ export default function DepositPage() {
                   setWalletType(item);
                   setWalletNotice(item);
                 }}
-                className={`relative overflow-hidden rounded-2xl border p-5 text-left transition-all ${
+                className={`surface-card relative overflow-hidden rounded-[1rem] border p-5 text-left transition-all ${
                   selected
-                    ? 'border-brand-blue bg-brand-blue/5 shadow-lg shadow-brand-blue/10'
-                    : 'border-slate-200 bg-white hover:border-brand-blue/25 dark:border-white/10 dark:bg-slate-900'
+                    ? 'border-sky-400/45 bg-brand-blue/10 shadow-lg shadow-brand-blue/10'
+                    : 'hover:border-brand-blue/25'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -271,7 +286,7 @@ export default function DepositPage() {
                     </div>
                   </div>
                 </div>
-                <p className="mt-4 text-sm font-semibold leading-6 text-slate-500 dark:text-slate-400">
+                <p className="mt-4 text-sm font-semibold leading-6 text-slate-400">
                   {walletOptions[item].description}
                 </p>
                 {selected ? (
@@ -289,10 +304,10 @@ export default function DepositPage() {
               key={pm.id}
               type="button"
               onClick={() => !pm.disabled && setMethod(pm.id)}
-              className={`relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${
+              className={`surface-card relative flex flex-col items-center gap-3 rounded-[1rem] border-2 p-6 transition-all ${
                 method === pm.id
-                  ? 'border-brand-blue bg-brand-blue/5 shadow-lg shadow-brand-blue/10'
-                  : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-white/20'
+                  ? 'border-brand-blue bg-brand-blue/10 shadow-lg shadow-brand-blue/10'
+                  : 'hover:border-slate-300 dark:hover:border-white/20'
               } ${pm.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={pm.disabled}
             >
@@ -307,14 +322,14 @@ export default function DepositPage() {
                 </span>
               ) : null}
               <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${pm.color} p-[1px]`}>
-                <div className="w-full h-full rounded-[13px] bg-white dark:bg-slate-900 flex items-center justify-center">
+                <div className="flex h-full w-full items-center justify-center rounded-[0.85rem] bg-[#06162a]">
                   <pm.icon className={`w-6 h-6 ${
                     method === pm.id ? 'text-brand-blue' : 'text-slate-400'
                   }`} />
                 </div>
               </div>
               <span className={`text-xs font-black uppercase text-center ${
-                method === pm.id ? 'text-brand-blue' : 'text-slate-600 dark:text-slate-400'
+	                method === pm.id ? 'text-brand-blue' : 'text-slate-400'
               }`}>
                 {pm.label}
               </span>
@@ -328,7 +343,7 @@ export default function DepositPage() {
         </div>
 
         {/* Amount Form */}
-        <Card>
+        <Card className="border-sky-400/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {walletType === 'game' ? <Gamepad2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
@@ -346,7 +361,7 @@ export default function DepositPage() {
                   className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
                     amount === String(val)
                       ? 'bg-brand-blue text-white border-brand-blue shadow-lg'
-                      : 'bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10'
+                      : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
                   }`}
                 >
                   {new Intl.NumberFormat('vi-VN').format(val)}đ
@@ -379,7 +394,7 @@ export default function DepositPage() {
 
             {/* Result */}
             {result && (
-              <div className={`flex items-center gap-3 p-4 rounded-xl text-xs font-bold uppercase tracking-widest border ${
+              <div className={`flex items-center gap-3 rounded-[0.85rem] border p-4 text-xs font-bold uppercase tracking-widest ${
                 result.success
                   ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
                   : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20'
@@ -390,7 +405,7 @@ export default function DepositPage() {
             )}
 
             {sepayPayment ? (
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm">
+              <div className="rounded-[1rem] border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">
@@ -400,7 +415,7 @@ export default function DepositPage() {
                       Đơn {sepayPayment.order_id} đã sẵn sàng. Nếu không tự chuyển trang, bấm nút bên phải.
                     </div>
                     {sepayPayment.sepay_order_id ? (
-                      <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+	                      <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
                         Mã SePay: {sepayPayment.sepay_order_id}
                       </div>
                     ) : null}
@@ -431,7 +446,7 @@ export default function DepositPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-sky-400/20">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <History className="h-5 w-5" />
@@ -458,10 +473,10 @@ export default function DepositPage() {
                 {recentDeposits.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+                    className="surface-card flex flex-col gap-3 rounded-[1rem] p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="break-words font-black text-slate-900 [overflow-wrap:anywhere] dark:text-white">
+                      <div className="break-words font-black text-slate-950 [overflow-wrap:anywhere] dark:text-white">
                         {item.content || item.transaction_id}
                       </div>
                       <div className="mt-1 text-xs font-bold text-slate-400">
@@ -482,7 +497,7 @@ export default function DepositPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm font-bold text-slate-400 dark:border-white/10">
+	              <div className="empty-state rounded-[1rem] border border-dashed border-sky-400/20 bg-white/5 p-8 text-center text-sm font-bold text-slate-400">
                 Chưa có giao dịch nạp tiền nào trong tài khoản này.
               </div>
             )}
@@ -490,11 +505,11 @@ export default function DepositPage() {
         </Card>
 
         {/* Instructions */}
-        <Card>
+        <Card className="border-sky-400/20">
           <CardHeader>
             <CardTitle className="text-base">Hướng dẫn nạp tiền</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
+          <CardContent className="space-y-3 text-sm text-slate-400">
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">1</span>
               <p>Chọn Thanh Toán QR Code để tạo giao dịch bảo mật qua cổng QR.</p>
@@ -520,17 +535,17 @@ export default function DepositPage() {
       </div>
       {walletNotice ? (
         <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-md">
-          <div className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_36px_120px_-44px_rgba(15,23,42,0.55)] dark:border-white/10 dark:bg-slate-950">
+	          <div className="mmo-edge-card w-full max-w-lg p-5 shadow-[0_36px_120px_-44px_rgba(15,23,42,0.55)]">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-blue/10 text-brand-blue">
                   {walletNotice === 'game' ? <Gamepad2 className="h-6 w-6" /> : <Info className="h-6 w-6" />}
                 </div>
                 <div>
-                  <div className="text-lg font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">
+	                  <div className="text-lg font-black uppercase tracking-[-0.03em] text-white">
                     {walletOptions[walletNotice].noticeTitle}
                   </div>
-                  <p className="mt-2 text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
+	                  <p className="mt-2 text-sm font-semibold leading-7 text-slate-300">
                     {walletOptions[walletNotice].noticeBody}
                   </p>
                 </div>

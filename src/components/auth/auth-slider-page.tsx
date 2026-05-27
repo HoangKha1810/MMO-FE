@@ -320,7 +320,7 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
   const strengthLabel = ['', 'Yếu', 'Trung bình', 'Khá mạnh', 'Mạnh'][passwordStrength];
 
   return (
-    <div className="min-h-screen auth-bg font-sans antialiased text-slate-600 relative overflow-x-hidden">
+    <div className="mmo-board min-h-screen auth-bg font-sans antialiased text-slate-300 relative overflow-x-hidden">
       {blockedIp ? (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/72 p-4 backdrop-blur-sm">
           <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-red-500/20 bg-white p-7 text-center shadow-2xl shadow-red-500/20 dark:bg-slate-950">
@@ -362,13 +362,10 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
         </div>
       ) : null}
 
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="floating-orb orb-1 animate-float" style={{ width: 400, height: 400, background: '#dbeafe', top: -100, right: -100 }} />
-        <div className="floating-orb orb-2 animate-float-reverse" style={{ width: 300, height: 300, background: '#e0e7ff', bottom: -50, left: -50 }} />
-      </div>
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" />
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[92rem] flex-col px-4 py-4 sm:px-5 md:px-6 xl:px-8">
-        <header className="auth-header-shell mb-4 flex flex-col gap-3 rounded-[28px] border border-white/10 bg-[color:color-mix(in_oklab,white_10%,transparent)] px-4 py-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-2xl md:flex-row md:items-center md:justify-between">
+        <header className="auth-header-shell mb-4 flex flex-col gap-3 rounded-[1.5rem] border border-sky-400/20 bg-[#071629]/88 px-4 py-4 shadow-[0_24px_60px_rgba(0,102,255,0.12)] backdrop-blur-2xl md:flex-row md:items-center md:justify-between">
           <Link href="/" className="flex min-w-0 items-center gap-4">
             <div className="surface-card rounded-[1.5rem] px-4 py-3">
               <Image src="/logo.gif" alt={siteName} width={180} height={52} unoptimized className="h-10 w-auto object-contain sm:h-12" />

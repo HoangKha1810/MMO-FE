@@ -151,10 +151,10 @@ export default async function AccessPage({
   ];
 
   return (
-    <main className={`min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.16),transparent_30%),linear-gradient(180deg,#f8fbff,#eef4ff_40%,#f8fafc)] px-5 py-8 dark:bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_32%),linear-gradient(180deg,#050816,#0b1220_36%,#0f172a)]`}>
+    <main className="mmo-board min-h-screen overflow-hidden px-5 py-8">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center">
         <section className="grid w-full gap-6 lg:grid-cols-[minmax(0,1.15fr)_380px]">
-          <div className="surface-panel-strong relative overflow-hidden rounded-[2rem] p-7 sm:p-9">
+          <div className="mmo-edge-card p-7 sm:p-9">
             <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${scenario.accent}`} />
             <div className="relative z-10">
               <div className={`inline-flex items-center gap-2 rounded-full border ${scenario.border} bg-white/70 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-700 dark:bg-white/[0.05] dark:text-slate-100`}>
@@ -162,11 +162,11 @@ export default async function AccessPage({
                 {scenario.badge}
               </div>
 
-              <h1 className="mt-6 max-w-3xl text-4xl font-black uppercase tracking-[-0.06em] text-slate-950 dark:text-white sm:text-5xl">
+              <h1 className="mt-6 max-w-3xl text-4xl font-black uppercase tracking-[-0.06em] text-white sm:text-5xl">
                 {scenario.title}
               </h1>
 
-              <p className="mt-5 max-w-2xl text-sm font-semibold leading-8 text-slate-600 dark:text-slate-300 sm:text-[15px]">
+              <p className="mt-5 max-w-2xl text-sm font-semibold leading-8 text-slate-300 sm:text-[15px]">
                 {scenario.description}
               </p>
 

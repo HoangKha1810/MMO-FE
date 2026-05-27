@@ -40,7 +40,7 @@ export default function GetUidFbPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_34%),linear-gradient(180deg,#f8fbff,#eef4ff_48%,#ffffff)] px-5 py-8 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_34%),linear-gradient(180deg,#050913,#0b1222_52%,#050913)]">
+    <main className="mmo-board mmo-board-page">
       <div className="mx-auto max-w-5xl space-y-6">
         <PageHero
           eyebrow="Social Utility"
@@ -83,7 +83,7 @@ export default function GetUidFbPage() {
                 <div className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">{result?.platform || 'Chưa kiểm tra'}</div>
               </div>
             </div>
-            <div className="mt-6 rounded-[1.4rem] border border-slate-200 bg-slate-50 px-5 py-5 font-mono text-3xl font-black tracking-[0.08em] text-slate-950 dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
+            <div className="mt-6 rounded-[1.4rem] border border-sky-400/20 bg-[#04101f]/80 px-5 py-5 font-mono text-3xl font-black tracking-[0.08em] text-white">
               {resolvedId || '---'}
             </div>
             {result?.message && !resolvedId ? <p className="mt-3 text-sm font-bold text-rose-500">{result.message}</p> : null}

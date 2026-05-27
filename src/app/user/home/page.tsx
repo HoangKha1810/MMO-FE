@@ -2,8 +2,11 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import {
   ArrowUpRight,
+  CheckCircle2,
+  Clock3,
   Layers3,
   Sparkles,
+  TrendingUp,
   Wallet,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
@@ -230,6 +233,33 @@ export default async function HomePage() {
                   {new Intl.NumberFormat('vi-VN').format(user.game_balance || 0)}
                   <span className="ml-1 text-[0.65em] font-black uppercase tracking-tight">đ</span>
                 </div>
+              </div>
+            </div>
+
+            <div className="mmo-activity-panel min-[430px]:col-span-2 2xl:col-span-1">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="mmo-eyebrow">Live board</div>
+                  <h2 className="mt-1 text-base font-black uppercase text-white">Trạng thái hệ thống</h2>
+                </div>
+                <span className="mmo-badge mmo-badge-green">Stable</span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {[
+                  { icon: CheckCircle2, title: 'Nạp tiền tự động', desc: 'Sepay / VietQR sẵn sàng', tone: 'green' },
+                  { icon: Clock3, title: 'Đơn hàng đang chạy', desc: `${quickLaunch.length + services.length} cụm dịch vụ mở`, tone: 'blue' },
+                  { icon: TrendingUp, title: 'Tăng trưởng hôm nay', desc: '+12.8% lưu lượng xử lý', tone: 'amber' },
+                ].map((item) => (
+                  <div key={item.title} className="mmo-activity-row">
+                    <span className={`mmo-activity-icon mmo-activity-${item.tone}`}>
+                      <item.icon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-black uppercase text-white">{item.title}</div>
+                      <div className="mt-0.5 truncate text-[11px] font-bold text-slate-400">{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

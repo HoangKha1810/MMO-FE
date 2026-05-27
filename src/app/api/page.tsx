@@ -1,9 +1,29 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, KeyRound, Server, ShieldCheck } from 'lucide-react';
 import { PageHero } from '@/components/ui/page-layout';
-import { siteUrl } from '@/lib/seo';
+import { buildAbsoluteUrl, siteName, siteUrl } from '@/lib/seo';
 
 const apiBase = process.env.API_DOMAIN || process.env.NEXT_PUBLIC_BASE_URL || siteUrl;
+
+export const metadata: Metadata = {
+  title: 'Tài liệu API SMM',
+  description:
+    'Tài liệu API SMM của TRUNGTAMMMO.VN cho reseller và đội kỹ thuật tích hợp services, add order, status, multi-status và balance.',
+  keywords: ['API SMM', 'SMM API docs', 'TRUNGTAMMMO API', 'reseller SMM', 'tích hợp SMM'],
+  alternates: {
+    canonical: '/api',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'vi_VN',
+    siteName,
+    url: buildAbsoluteUrl('/api'),
+    title: 'Tài liệu API SMM',
+    description:
+      'Tài liệu API SMM của TRUNGTAMMMO.VN cho reseller và đội kỹ thuật tích hợp dịch vụ SMM.',
+  },
+};
 
 interface SmmApiDocSection {
   key: string;

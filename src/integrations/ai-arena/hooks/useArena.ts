@@ -12,6 +12,7 @@ import {
     getSharedConversation,
     loginAdminAi,
     loginAi,
+    loginWithMainSiteSession,
     logoutAi,
     registerAi,
     revealBattleTurn,
@@ -50,6 +51,7 @@ const MAX_BATTLE_MODEL_COUNT = 6;
 const AUTH_PROFILE_SYNC_MS = 3000;
 const PRICING_UPDATED_EVENT = "ttmmo-ai-pricing-updated";
 const PRICING_UPDATED_STORAGE_KEY = "ttmmo-ai-pricing-updated";
+const MAIN_SITE_SESSION_ATTEMPT_KEY = "ttmmo-ai-main-site-session-attempt";
 
 const clampBattleModelCount = (
   count: number,
@@ -215,6 +217,23 @@ const sharedSlugFromLocation = () => {
   return match?.[1] ?? "";
 };
 
+const shouldTryMainSiteSession = () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const lastAttempt = Number(window.sessionStorage.getItem(MAIN_SITE_SESSION_ATTEMPT_KEY) || 0);
+  return !Number.isFinite(lastAttempt) || Date.now() - lastAttempt > 5000;
+};
+
+const markMainSiteSessionAttempt = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(MAIN_SITE_SESSION_ATTEMPT_KEY, String(Date.now()));
+};
+
 export const useArena = () => {
   const [catalog, setCatalog] = useState<CatalogResponse>({
     providers: [],
@@ -351,6 +370,28 @@ export const useArena = () => {
 
       const healthPromise = getHealth();
       const catalogPromise = getCatalog();
+      const tryMainSiteSession = async () => {
+        if (!shouldTryMainSiteSession()) {
+          return false;
+        }
+
+        markMainSiteSessionAttempt();
+        try {
+          const response = await loginWithMainSiteSession();
+          saveAuthToken(response.token);
+          saveAuthUser(response.user);
+          setAuthUser(response.user);
+          await loadAuthedData();
+          return true;
+        } catch {
+          clearAuthToken();
+          clearAuthUser();
+          setAuthUser(null);
+          setSessions([]);
+          setActiveSessionId("");
+          return false;
+        }
+      };
 
       if (sharedSlug) {
         const [catalogResult, healthResult, sharedResult] = await Promise.allSettled([
@@ -410,12 +451,17 @@ export const useArena = () => {
           clearAuthToken();
           clearAuthUser();
           setAuthUser(null);
-          setError(
-            authError instanceof Error
-              ? authError.message
-              : "Không đọc được phiên đăng nhập AI hiện tại."
-          );
+          const bridged = await tryMainSiteSession();
+          if (!bridged) {
+            setError(
+              authError instanceof Error
+                ? authError.message
+                : "Không đọc được phiên đăng nhập AI hiện tại."
+            );
+          }
         }
+      } else if (await tryMainSiteSession()) {
+        // The main web session has been bridged into AI Arena local auth.
       } else {
         clearAuthUser();
         setAuthUser(null);

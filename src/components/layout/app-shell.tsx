@@ -15,6 +15,7 @@ import {
   Cloud,
   Cpu,
   CreditCard,
+  CircleCheck,
   FileText,
   Gamepad2,
   Globe,
@@ -38,6 +39,7 @@ import {
   Server,
   Shield,
   ShieldCheck,
+  Siren,
   ShoppingCart,
   Shuffle,
   Sun,
@@ -171,6 +173,13 @@ const autoMxhPlatformLinks: Array<{ href: string; label: string; icon: typeof Gl
 const utilityLinks = [
   { href: '/two_factor_live', label: '2FA Live Tool', icon: Shield },
   { href: '/get_uid_fb', label: 'GET UID FB', icon: Globe },
+];
+
+const quickActionLinks = [
+  { href: '/rank', label: 'Bảo mật', icon: ShieldCheck },
+  { href: '/two_factor_live', label: '2FA', icon: Shield },
+  { href: '/user/support-tiktok', label: 'Hỗ trợ', icon: Headset },
+  { href: '/api', label: 'API', icon: Cpu },
 ];
 
 interface AppShellProps {
@@ -331,7 +340,7 @@ function formatBreadcrumb(pathname: string) {
 
 function getNavLinkClass(active: boolean, extraClassName?: string) {
   return cn(
-    'nav-link-shell interactive-lift group flex items-center rounded-[1rem] px-3 py-2.5 text-sm font-bold transition-all duration-200',
+    'nav-link-shell interactive-lift group flex items-center rounded-[0.85rem] px-3 py-2.5 text-sm font-bold transition-all duration-200',
     active ? 'nav-link-active' : 'nav-link-idle',
     extraClassName
   );
@@ -589,6 +598,8 @@ export function AppShell({
     }
 
     const nextTheme = isDark ? 'light' : 'dark';
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    document.documentElement.classList.toggle('light', nextTheme === 'light');
     startThemeSwitchAnimation({
       currentTheme: isDark ? 'dark' : 'light',
       nextTheme,
@@ -639,7 +650,7 @@ export function AppShell({
   }
 
   return (
-    <div className="site-shell h-dvh overflow-hidden">
+    <div className={cn('site-shell h-dvh overflow-hidden', !isAdmin && 'mmo-app-shell')}>
       <div className="flex h-dvh overflow-hidden">
 
         {/* Backdrop overlay */}
@@ -655,10 +666,10 @@ export function AppShell({
         {/* ─── SIDEBAR ─── */}
         <aside
           className={cn(
-            'shell-sidebar-frame fixed inset-y-0 left-0 z-50 h-dvh overflow-hidden transition-[width,transform,box-shadow] duration-300 lg:sticky lg:top-0 lg:w-[286px] lg:shrink-0 lg:translate-x-0',
+          'shell-sidebar-frame fixed inset-y-0 left-0 z-50 h-dvh overflow-hidden transition-[width,transform,box-shadow] duration-300 lg:sticky lg:top-0 lg:w-[296px] lg:shrink-0 lg:translate-x-0',
             sidebarOpen
-              ? 'w-[min(86vw,286px)] translate-x-0 shadow-2xl shadow-black/20 sm:w-[286px]'
-              : 'w-0 -translate-x-full lg:w-[286px]'
+              ? 'w-[min(88vw,296px)] translate-x-0 shadow-2xl shadow-black/20 sm:w-[296px]'
+              : 'w-0 -translate-x-full lg:w-[296px]'
           )}
         >
           <div className="relative flex h-full flex-col overflow-hidden px-3 py-3">
@@ -693,7 +704,7 @@ export function AppShell({
             </div>
 
             {/* Nav items */}
-            <nav id="sidebar-nav" className="relative z-10 mt-3 flex-1 overflow-y-auto px-2 pb-2 custom-scrollbar">
+            <nav id="sidebar-nav" className="relative z-10 mt-3 flex-1 space-y-0.5 overflow-y-auto px-2 pb-2 custom-scrollbar">
               <div className="px-3 pb-2 pt-4 text-[9px] font-black uppercase tracking-[0.32em] text-slate-400/70 dark:text-white/25">
                 Trang Chính
               </div>
@@ -1275,6 +1286,36 @@ export function AppShell({
           </header>
 
           {/* Breadcrumb bar */}
+          {!isAdmin ? (
+            <div className="mx-2 mt-2 grid shrink-0 gap-2 sm:mx-3 sm:mt-3 md:mx-5 xl:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="mmo-status-strip min-w-0">
+                <div className="mmo-status-token">
+                  <CircleCheck className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Online</span>
+                  <strong>99.9%</strong>
+                </div>
+                <div className="mmo-status-token">
+                  <Zap className="h-3.5 w-3.5 text-amber-400" />
+                  <span>Tốc độ</span>
+                  <strong>12ms</strong>
+                </div>
+                <div className="mmo-status-token">
+                  <Siren className="h-3.5 w-3.5 text-sky-400" />
+                  <span>Bảo hành</span>
+                  <strong>30 ngày</strong>
+                </div>
+              </div>
+              <div className="mmo-shortcuts">
+                {quickActionLinks.map((item) => (
+                  <Link key={item.href} href={item.href} className="mmo-shortcut-btn" title={item.label}>
+                    <item.icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="shell-breadcrumb mx-2 mt-2 shrink-0 px-3 py-2.5 sm:mx-3 sm:mt-3 sm:px-5 sm:py-3 md:mx-5 md:px-6">
             <nav className="relative z-10 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400 custom-scrollbar dark:text-white/35 sm:text-[9px] sm:tracking-[0.34em]">
               <Link href={isAdmin ? '/admin/dashboard' : '/user/home'} className="transition-colors hover:text-brand-blue">

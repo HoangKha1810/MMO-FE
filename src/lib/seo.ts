@@ -1,3 +1,5 @@
+import { serviceSeoEntries, serviceSeoRoutes } from '@/lib/service-seo';
+
 const DEFAULT_SITE_URL = 'https://trungtammmo.vn';
 
 function normalizeOrigin(value?: string | null) {
@@ -13,7 +15,7 @@ function normalizeOrigin(value?: string | null) {
 export const siteName = 'TRUNGTAMMMO.VN';
 export const siteShortName = 'TRUNGTAMMMO';
 export const siteDescription =
-  'TRUNGTAMMMO.VN là nền tảng MMO đa dịch vụ gồm SMM, Auto MXH, tài nguyên số, forum MMO, nạp tiền và cụm công cụ vận hành.';
+  'TRUNGTAMMMO.VN là nền tảng MMO đa dịch vụ gồm SMM, Auto MXH, tài nguyên số, proxy cloud, tài khoản game, random game, VPS GPU AI, forum MMO và công cụ vận hành online.';
 
 function isPreviewHost(value: string) {
   try {
@@ -50,16 +52,28 @@ export const defaultKeywords = [
   'Auto MXH',
   'Social Media Marketing',
   'Tài nguyên MMO',
+  'Proxy Cloud',
+  'Tài khoản game',
+  'Random tài khoản game',
+  'VPS GPU AI',
+  'TikTok Shop',
+  'Shopee',
   'Forum MMO',
   'Nạp tiền MMO',
   'Dịch vụ MMO',
+  ...serviceSeoEntries.flatMap((service) => service.keywords),
 ];
 
 export const publicSeoRoutes = [
   '/',
   '/about',
+  '/api',
   '/privacy',
   '/terms',
+  '/vps',
+  '/vps/gioi-thieu',
+  '/vps/services',
+  ...serviceSeoRoutes,
 ];
 
 export function buildAbsoluteUrl(path = '/') {

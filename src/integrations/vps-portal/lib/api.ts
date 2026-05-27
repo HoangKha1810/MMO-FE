@@ -417,6 +417,29 @@ export async function register(body: {
   });
 }
 
+export async function loginWithMainSiteSession() {
+  const response = await fetch("/api/integrations/vps/session", {
+    method: "GET",
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+  const payload = await response.json().catch(() => null) as
+    | (Session & { success?: boolean; message?: string })
+    | null;
+
+  if (!response.ok || !payload?.success || !payload.token || !payload.user) {
+    throw new Error(payload?.message || "Không thể đồng bộ phiên VPS từ tài khoản web.");
+  }
+
+  return {
+    token: payload.token,
+    user: payload.user,
+  } satisfies Session;
+}
+
 export async function getMe(token: string) {
   return apiRequest<{ user: User }>("/auth/me", {
     token,

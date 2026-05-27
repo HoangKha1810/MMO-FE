@@ -47,7 +47,7 @@ export function LegalPage({
   const theme = accentMap[accent];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f7f9fc_0%,#ffffff_40%,#f5f8fd_100%)] px-5 py-10 dark:bg-[linear-gradient(180deg,#050911_0%,#09111c_42%,#050911_100%)] sm:px-8">
+    <main className="mmo-board min-h-screen overflow-x-hidden px-5 py-10 sm:px-8">
       <div className="pointer-events-none absolute inset-0">
         <div className={`absolute left-[6%] top-24 h-72 w-72 rounded-full bg-gradient-to-br ${theme.glow} blur-[110px]`} />
         <div className="absolute right-[8%] top-[18%] h-60 w-60 rounded-full bg-white/30 blur-[110px] dark:bg-brand-blue/10" />

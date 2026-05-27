@@ -27,7 +27,7 @@ export default async function RankPage() {
   const blueTick = rows.filter((row) => Number(row.is_blue_tick || 0) === 1).length;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.12),transparent_36%),linear-gradient(180deg,#f8fbff,#eef4ff_48%,#ffffff)] px-5 py-8 dark:bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_36%),linear-gradient(180deg,#050913,#0a1020_52%,#050913)]">
+    <main className="mmo-board mmo-board-page">
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHero
           eyebrow="Rank Center"
@@ -71,10 +71,10 @@ export default async function RankPage() {
 
         <SectionPanel className="space-y-5">
           <SectionHeader eyebrow="Leaderboard" title="Bảng thành viên nổi bật" description="Danh sách nổi bật giúp bạn theo dõi những tài khoản đang có mức hoạt động và số dư cao trên hệ thống." />
-          <div className="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.03]">
+          <div className="overflow-hidden rounded-[1.7rem] border border-sky-400/20 bg-[#06162a]/78">
             <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left">
-              <thead className="border-b border-slate-200/80 bg-slate-50/80 text-[10px] font-black uppercase tracking-[0.24em] text-slate-400 dark:border-white/10 dark:bg-white/[0.04]">
+              <thead className="border-b border-sky-400/15 text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
                 <tr>
                   <th className="px-5 py-4">Rank</th>
                   <th className="px-5 py-4">User</th>
@@ -86,10 +86,10 @@ export default async function RankPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {rows.map((row, index) => (
-                  <tr key={String(row.id)} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.03]">
+                  <tr key={String(row.id)} className="hover:bg-sky-500/10">
                     <td className="px-5 py-4 font-mono text-lg font-black text-brand-blue">#{index + 1}</td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 font-black text-slate-950 dark:text-white">
+                      <div className="flex items-center gap-2 font-black text-white">
                         {String(row.fullname || row.username)}
                         {Number(row.is_blue_tick || 0) === 1 ? <Sparkles className="h-4 w-4 text-brand-blue" /> : null}
                       </div>
@@ -97,8 +97,8 @@ export default async function RankPage() {
                     </td>
                     <td className="px-5 py-4"><Badge variant="muted" className="rounded-full px-3 py-1.5">{String(row.rank || 'Member')}</Badge></td>
                     <td className="px-5 py-4 font-mono font-black text-emerald-500">{formatCurrency(toNumber(row.balance, 0))}</td>
-                    <td className="px-5 py-4 font-mono font-black text-slate-700 dark:text-slate-200">{String(row.post_count || 0)}</td>
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-500 dark:text-slate-400">{row.last_activity ? new Date(String(row.last_activity)).toLocaleString('vi-VN') : '—'}</td>
+                    <td className="px-5 py-4 font-mono font-black text-slate-200">{String(row.post_count || 0)}</td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-400">{row.last_activity ? new Date(String(row.last_activity)).toLocaleString('vi-VN') : '—'}</td>
                   </tr>
                 ))}
               </tbody>

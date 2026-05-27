@@ -150,6 +150,8 @@ export function startThemeSwitchAnimation({
   cleanupThemeSwitchAnimation();
   document.documentElement.classList.add('theme-switching');
   document.documentElement.style.colorScheme = currentTheme;
+  document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+  document.documentElement.classList.toggle('light', nextTheme === 'light');
 
   dispatchThemeSwitchAnimation({
     duration,
@@ -162,6 +164,8 @@ export function startThemeSwitchAnimation({
   const commitDelay = Math.min(THEME_SWITCH_COMMIT_MS, Math.max(duration - 180, 140));
 
   commitTimer = window.setTimeout(() => {
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    document.documentElement.classList.toggle('light', nextTheme === 'light');
     document.documentElement.style.colorScheme = nextTheme;
     setTheme(nextTheme);
   }, commitDelay);

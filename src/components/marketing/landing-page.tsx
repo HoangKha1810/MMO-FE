@@ -54,7 +54,7 @@ const services = [
   {
     title: 'Tăng Tương Tác',
     desc: 'Dịch vụ mạng xã hội chuyên nghiệp',
-    href: '/auth/login',
+    href: '/services/smm',
     icon: ThumbsUp,
     gradient: 'from-blue-500 to-blue-600',
     glow: 'shadow-blue-500/20',
@@ -63,7 +63,7 @@ const services = [
   {
     title: 'Auto MXH',
     desc: 'Tự động hoá - Tối ưu thu nhập',
-    href: '/auth/login',
+    href: '/services/auto-mxh',
     icon: Zap,
     gradient: 'from-violet-500 to-indigo-600',
     glow: 'shadow-violet-500/20',
@@ -72,7 +72,7 @@ const services = [
   {
     title: 'Tài Nguyên',
     desc: 'Nguồn tài nguyên MMO chất lượng',
-    href: '/auth/login',
+    href: '/services/tai-nguyen-mmo',
     icon: Package,
     gradient: 'from-emerald-500 to-teal-600',
     glow: 'shadow-emerald-500/20',
@@ -81,16 +81,34 @@ const services = [
   {
     title: 'Proxy Cloud',
     desc: 'Mua proxy residential và datacenter',
-    href: '/auth/login',
+    href: '/services/proxy-cloud',
     icon: Cloud,
     gradient: 'from-cyan-500 to-blue-600',
     glow: 'shadow-cyan-500/20',
     badge: 'LIVE',
   },
   {
+    title: 'VPS GPU AI',
+    desc: 'Thuê GPU mạnh cho AI, render và game',
+    href: '/services/vps-gpu-ai',
+    icon: Cpu,
+    gradient: 'from-sky-500 to-cyan-500',
+    glow: 'shadow-sky-500/20',
+    badge: 'GPU',
+  },
+  {
+    title: 'TikTok Shop & Shopee',
+    desc: 'Seeding, livestream traffic, affiliate/KOC',
+    href: '/services/tiktok-shop-shopee',
+    icon: ShoppingCart,
+    gradient: 'from-rose-500 to-orange-500',
+    glow: 'shadow-rose-500/20',
+    badge: 'B2B',
+  },
+  {
     title: 'Chợ MMO',
     desc: 'Giao dịch nhanh - An toàn tuyệt đối',
-    href: '/auth/login',
+    href: '/services/cho-mmo',
     icon: ShoppingCart,
     gradient: 'from-blue-600 to-cyan-500',
     glow: 'shadow-cyan-500/20',
@@ -99,7 +117,7 @@ const services = [
   {
     title: 'Forum MMO',
     desc: 'Kết nối cộng đồng kiếm tiền',
-    href: '/auth/login',
+    href: '/services/forum-mmo',
     icon: Users,
     gradient: 'from-sky-500 to-blue-500',
     glow: 'shadow-sky-500/20',
@@ -108,7 +126,7 @@ const services = [
   {
     title: 'Mua Bán Game',
     desc: 'Giao dịch game uy tín',
-    href: '/auth/login',
+    href: '/services/mua-ban-game',
     icon: Gamepad2,
     gradient: 'from-purple-500 to-violet-600',
     glow: 'shadow-purple-500/20',
@@ -117,7 +135,7 @@ const services = [
   {
     title: 'Tài khoản game',
     desc: 'Sản phẩm game đồng bộ API',
-    href: '/auth/login',
+    href: '/services/tai-khoan-game',
     icon: Gamepad2,
     gradient: 'from-emerald-500 to-cyan-600',
     glow: 'shadow-emerald-500/20',
@@ -126,7 +144,7 @@ const services = [
   {
     title: 'Random tài khoản game',
     desc: 'Mua random acc game tự động',
-    href: '/auth/login',
+    href: '/services/random-game',
     icon: Shuffle,
     gradient: 'from-amber-500 to-rose-600',
     glow: 'shadow-amber-500/20',
@@ -135,7 +153,7 @@ const services = [
   {
     title: 'Đổi Thẻ',
     desc: 'Thanh toán nhanh - Phí thấp',
-    href: '/auth/login',
+    href: '/services/doi-the',
     icon: CreditCard,
     gradient: 'from-amber-500 to-orange-500',
     glow: 'shadow-amber-500/20',
@@ -144,7 +162,7 @@ const services = [
   {
     title: 'Chia Sẻ',
     desc: 'Kiến thức MMO thực chiến',
-    href: '/auth/login',
+    href: '/services/kien-thuc-mmo',
     icon: Share2,
     gradient: 'from-slate-600 to-slate-700',
     glow: 'shadow-slate-500/20',
@@ -225,6 +243,8 @@ export function LandingPage() {
     }
 
     const nextTheme = isDark ? 'light' : 'dark';
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    document.documentElement.classList.toggle('light', nextTheme === 'light');
     startThemeSwitchAnimation({
       currentTheme: isDark ? 'dark' : 'light',
       nextTheme,
@@ -234,7 +254,7 @@ export function LandingPage() {
   }
 
   return (
-    <main className="relative bg-white dark:bg-[#04080f] overflow-x-hidden">
+    <main className="mmo-board landing-mmo-shell relative overflow-x-hidden">
       {/* ─── NAVBAR ─── */}
       <nav
         className={`fixed left-0 right-0 top-0 z-50 transition-all duration-500 ${
@@ -271,7 +291,7 @@ export function LandingPage() {
                 <a
                   key={item.href}
                   href={item.href}
-                  className="group relative text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  className="group relative text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 transition-colors hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
                 >
                   {item.label}
                   <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-brand-blue transition-all duration-300 group-hover:w-full" />
@@ -303,11 +323,11 @@ export function LandingPage() {
                 </span>
               </button>
 
-              <div className="hidden h-4 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+              <div className="hidden h-4 w-px bg-slate-300/80 dark:bg-white/10 sm:block" />
 
               <Link
                 href="/auth/login"
-                className="hidden text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:text-slate-900 md:inline-flex dark:text-slate-400 dark:hover:text-white"
+                className="hidden text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors hover:text-slate-950 md:inline-flex dark:text-slate-400 dark:hover:text-white"
               >
                 Đăng nhập
               </Link>
@@ -326,21 +346,21 @@ export function LandingPage() {
       </nav>
 
       {/* ─── HERO SECTION ─── */}
-      <section className="relative flex min-h-screen items-center justify-center overflow-hidden pt-24">
+      <section className="relative flex min-h-[92vh] items-center justify-center overflow-hidden pt-24">
 
         {/* Background layers */}
         <div className="pointer-events-none absolute inset-0 hero-grid opacity-100" />
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-[5%] top-[15%] h-[50vw] w-[50vw] max-w-[700px] max-h-[700px] rounded-full bg-blue-600/8 blur-[130px] animate-float" />
-          <div className="absolute bottom-[5%] right-[5%] h-[40vw] w-[40vw] max-w-[600px] max-h-[600px] rounded-full bg-indigo-500/8 blur-[110px] animate-float-reverse" />
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[30vw] w-[30vw] max-w-[400px] max-h-[400px] rounded-full bg-brand-blue/5 blur-[100px] animate-float-slow" />
+          <div className="absolute inset-x-0 top-20 h-px bg-gradient-to-r from-transparent via-sky-400/45 to-transparent" />
+          <div className="absolute left-[8%] top-[22%] h-44 w-44 rounded-full border border-sky-400/20 bg-sky-500/10 blur-3xl" />
+          <div className="absolute bottom-[16%] right-[8%] h-56 w-56 rounded-full border border-emerald-400/15 bg-emerald-500/10 blur-3xl" />
         </div>
 
         {/* Radial mask */}
         <div className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_50%,transparent_90%)]" />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-5 text-center">
-          <div className="mx-auto max-w-5xl space-y-10">
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-8 px-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)]">
+          <div className="max-w-3xl space-y-8 text-left">
 
             {/* Badge */}
             <div className="inline-flex animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
@@ -356,19 +376,19 @@ export function LandingPage() {
 
             {/* Heading */}
             <h1
-              className="animate-fade-in-up text-[clamp(48px,9vw,108px)] font-black uppercase leading-[1.04] tracking-[-0.04em] text-slate-900 sm:leading-[0.98] dark:text-white"
+              className="animate-fade-in-up text-[clamp(42px,7vw,88px)] font-black uppercase leading-[1.05] text-slate-950 sm:leading-[1] dark:text-white"
               style={{ animationDelay: '0.12s' }}
             >
-              THAY ĐỔI CÁCH{' '}
+              Nền tảng MMO{' '}
               <br className="hidden sm:block" />
               <span className="block pt-[0.12em] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))] sm:pt-[0.1em]">
-                BẠN LÀM MMO
+                uy tín hàng đầu Việt Nam
               </span>
             </h1>
 
             {/* Subtext */}
             <p
-              className="animate-fade-in-up mx-auto max-w-2xl text-base font-medium leading-relaxed text-slate-500 md:text-[17px] dark:text-slate-400"
+              className="animate-fade-in-up max-w-2xl text-base font-semibold leading-relaxed text-slate-600 md:text-[17px] dark:text-slate-300"
               style={{ animationDelay: '0.2s' }}
             >
               Hệ thống hạ tầng tự động hóa tối ưu cho người làm Marketing Online. Kết nối mọi dịch vụ thành một quy trình khép kín, an toàn và cực kỳ nhanh chóng.
@@ -385,7 +405,7 @@ export function LandingPage() {
 
               <a
                 href="#services"
-                className="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-10 py-4 text-[11px] font-black uppercase tracking-[0.28em] text-slate-700 transition-all hover:border-brand-blue/40 hover:text-brand-blue sm:w-auto dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:text-white"
+                className="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-10 py-4 text-[11px] font-black uppercase tracking-[0.28em] text-slate-700 shadow-[0_20px_48px_-34px_rgba(15,23,42,0.24)] transition-all hover:border-brand-blue/40 hover:text-brand-blue sm:w-auto dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:shadow-none dark:hover:text-white"
               >
                 Khám phá dịch vụ
                 <ArrowDownRight className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
@@ -394,7 +414,7 @@ export function LandingPage() {
 
             {/* Stats bar */}
             <div
-              className="animate-fade-in-up mt-6 grid grid-cols-2 gap-6 border-t border-slate-100 pt-12 md:gap-0 lg:grid-cols-4 dark:border-white/[0.06]"
+              className="animate-fade-in-up mt-6 grid grid-cols-2 gap-3 border-t border-slate-200/70 pt-8 md:grid-cols-4 dark:border-white/10"
               style={{ animationDelay: '0.36s' }}
             >
               {[
@@ -403,15 +423,55 @@ export function LandingPage() {
                 { value: '50K+',  label: 'KHÁCH HÀNG', accent: '' },
                 { value: '24/7',  label: 'HỖ TRỢ ONLINE', accent: '' },
               ].map((item, i) => (
-                <div key={item.label} className={`space-y-2 text-left ${i > 0 ? 'md:border-l md:border-slate-100 md:pl-8 dark:md:border-white/[0.06]' : ''}`}>
-                  <div className={`text-3xl font-black tracking-tighter text-slate-900 dark:text-white ${item.accent}`}>
+                <div key={item.label} className={`mmo-mini-stat space-y-2 text-left ${i > 0 ? '' : ''}`}>
+                  <div className={`text-2xl font-black tracking-tighter text-slate-950 dark:text-white ${item.accent}`}>
                     {item.value}
                   </div>
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                     {item.label}
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="mmo-landing-preview animate-fade-in-up" style={{ animationDelay: '0.32s' }}>
+            <div className="mmo-browser-dots"><span /><span /><span /></div>
+            <div className="grid gap-3 md:grid-cols-[0.78fr_1.22fr]">
+              <div className="space-y-3">
+                {services.slice(0, 5).map((item) => (
+                  <div key={item.title} className="mmo-preview-service">
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                    {item.badge ? <b>{item.badge}</b> : null}
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3">
+                <div className="mmo-preview-hero">
+                  <div className="mmo-preview-logo-wrap">
+                    <img src="/logo.gif" alt="" className="h-10 w-auto max-w-full object-contain sm:h-12" />
+                  </div>
+                  <div className="mmo-preview-balance">
+                    <div className="mmo-eyebrow">Realtime dashboard</div>
+                    <div className="mt-2 break-words text-[clamp(1.45rem,3.2vw,2.35rem)] font-black uppercase leading-tight text-slate-950 dark:text-white">12.680.000đ</div>
+                    <div className="mt-1 text-xs font-bold text-emerald-400">+12.8% hôm nay</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {['SMM', 'Proxy', 'Game'].map((label, index) => (
+                    <div key={label} className="mmo-preview-tile">
+                      <span>{String(index + 1).padStart(2, '0')}</span>
+                      <strong>{label}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="mmo-preview-chart">
+                  {[35, 58, 46, 72, 63, 86, 78, 92].map((height, index) => (
+                    <i key={index} style={{ height: `${height}%` }} />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

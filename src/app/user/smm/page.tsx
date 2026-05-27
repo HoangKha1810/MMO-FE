@@ -196,7 +196,7 @@ function ServiceCard({
       className="service-card-wrapper relative z-20 h-full hover:z-30"
       style={{ ['--smm-card-tilt' as string]: tiltY }}
     >
-      <div className="smm-service-card-3d group relative flex h-full overflow-hidden rounded-xl border border-slate-300 bg-white dark:border-white/10 dark:bg-slate-900/50">
+        <div className="smm-service-card-3d group relative flex h-full overflow-hidden rounded-[1rem] border">
         <button
           type="button"
           onClick={(event) => {
@@ -394,7 +394,7 @@ function SmmPageContent() {
       smmSidebarLoading={loading && !resolvedSidebarSections}
     >
       <div className="relative z-0 space-y-6 pb-8">
-        <div className="sticky top-0 z-30 -mx-1 border-b border-slate-100 bg-white/90 px-1 pb-4 pt-3 shadow-sm backdrop-blur-2xl dark:border-white/5 dark:bg-[#090f1f]/90 sm:-mx-2 sm:px-2 md:-mx-4 md:px-4">
+        <div className="mmo-command-surface -mx-1 px-3 pb-4 pt-3 sm:-mx-2 sm:px-4 md:-mx-4 md:px-5">
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <div className="group relative min-w-0 flex-[1_1_100%] sm:flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-brand-blue" />
@@ -403,14 +403,14 @@ function SmmPageContent() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Tìm tên dịch vụ hoặc nền tảng..."
-                className="w-full rounded-2xl border border-transparent bg-slate-100 py-3.5 pl-11 pr-4 text-sm font-bold outline-none shadow-inner transition-all focus:border-brand-blue/30 dark:bg-white/5"
+                className="input-shell w-full rounded-[0.85rem] py-3.5 pl-11 pr-4 text-sm font-bold outline-none transition-all"
               />
             </div>
             <button
               type="button"
               onClick={() => setFavoritesOnly((value) => !value)}
               className={cn(
-                'flex h-12 w-12 items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all active:scale-90 dark:bg-white/5',
+                'surface-chip flex h-12 w-12 items-center justify-center rounded-[0.85rem] p-3.5 text-slate-400 transition-all active:scale-90',
                 favoritesOnly ? 'bg-yellow-500/10 text-yellow-500' : 'hover:text-yellow-500'
               )}
               aria-label="Chỉ xem dịch vụ đã lưu"
@@ -421,7 +421,7 @@ function SmmPageContent() {
               type="button"
               onClick={() => void loadServices({ forceRefresh: true })}
               disabled={syncing || loading}
-              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-transparent bg-slate-100 p-3.5 text-slate-400 shadow-sm transition-all hover:text-brand-blue active:scale-90 disabled:opacity-60 dark:bg-white/5"
+              className="surface-chip flex h-12 w-12 items-center justify-center rounded-[0.85rem] p-3.5 text-slate-400 transition-all hover:text-brand-blue active:scale-90 disabled:opacity-60"
               aria-label="Đồng bộ dịch vụ SubMetaVip"
             >
               <RefreshCw className={cn('h-5 w-5', syncing && 'animate-spin text-brand-blue')} />
@@ -439,7 +439,7 @@ function SmmPageContent() {
                   type="button"
                   onClick={() => setPlatformFilter(active ? '' : platform.name)}
                   className={cn(
-                    'inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition-all',
+                    'mmo-chip inline-flex shrink-0 items-center gap-2 px-3 py-2 transition-all',
                     active
                       ? 'border-brand-blue bg-brand-blue text-white shadow-lg shadow-brand-blue/20'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-brand-blue/40 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300'
@@ -472,7 +472,7 @@ function SmmPageContent() {
         </div>
 
         {error ? (
-          <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 p-6 text-sm font-bold text-rose-500">
+          <div className="error-state rounded-[1rem] border border-rose-500/20 bg-rose-500/10 p-6 text-sm font-bold text-rose-500">
             {error}
           </div>
         ) : null}
@@ -508,7 +508,7 @@ function SmmPageContent() {
               </div>
             </div>
           ) : sections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="empty-state flex flex-col items-center justify-center px-6 py-20 text-center">
               <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-rose-500/20 bg-rose-500/10 text-rose-500 shadow-xl shadow-rose-500/5">
                 <Grid3X3 className="h-12 w-12" />
               </div>
@@ -529,7 +529,7 @@ function SmmPageContent() {
                   id={`platform-${section.platform.name}`}
                   className="relative z-20 space-y-5 scroll-mt-28"
                 >
-                  <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/5">
+                  <div className="mmo-section-title-row flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 shadow-sm dark:bg-white/5">
                         {section.platform.gif ? (
@@ -546,7 +546,7 @@ function SmmPageContent() {
                         Dịch Vụ {section.platform.name}
                       </h2>
                     </div>
-                    <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-tighter text-slate-400 dark:bg-white/5">
+                    <span className="mmo-chip px-2.5 py-1">
                       {section.groups.length} mục
                     </span>
                   </div>
@@ -557,7 +557,7 @@ function SmmPageContent() {
                         key={`${section.platform.name}-${group.category}-quick`}
                         href={`/user/smm/order/${slugify(group.category)}`}
                         onClick={() => startPageTransition()}
-                        className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition-all hover:border-brand-blue/35 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-brand-blue/30"
+                        className="mmo-chip inline-flex shrink-0 items-center px-3 py-2 transition-all hover:border-brand-blue/35 hover:text-brand-blue"
                       >
                         {group.cleanName}
                       </Link>

@@ -41,7 +41,7 @@ export function PageHero({
   className,
 }: PageHeroProps) {
   return (
-    <section className={cn('surface-panel-strong relative overflow-hidden rounded-[1.65rem] p-4 sm:rounded-[2rem] sm:p-6 md:p-8', className)}>
+    <section className={cn('mmo-edge-page-header relative overflow-hidden p-4 sm:p-6 md:p-8', className)}>
       <div className="pointer-events-none absolute -left-10 top-0 h-40 w-40 rounded-full bg-brand-blue/10 blur-3xl dark:bg-brand-blue/15" />
       <div className="pointer-events-none absolute -right-8 bottom-0 h-36 w-36 rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-500/15" />
       <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-brand-blue via-emerald-500/50 to-transparent" />
@@ -71,7 +71,7 @@ export function PageHero({
         {stats.length > 0 ? (
           <div className="grid gap-3 min-[430px]:grid-cols-2 xl:grid-cols-2">
             {stats.map((stat) => (
-              <Card key={`${stat.label}-${stat.value}`} className="min-w-0 rounded-[1.35rem] p-4 sm:rounded-[1.5rem] sm:p-5">
+              <Card key={`${stat.label}-${stat.value}`} className="min-w-0 rounded-[1rem] p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500 sm:text-[10px] sm:tracking-[0.3em]">
@@ -140,7 +140,7 @@ export function SectionPanel({
   children,
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <section className={cn('surface-panel min-w-0 rounded-[1.45rem] p-4 sm:rounded-[1.8rem] sm:p-5 md:p-6', className)}>
+    <section className={cn('surface-panel min-w-0 rounded-[1rem] p-4 sm:p-5 md:p-6', className)}>
       {children}
     </section>
   );
@@ -157,7 +157,7 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, hint, tone = 'slate', icon, className }: MetricCardProps) {
   return (
-    <Card className={cn('min-w-0 rounded-[1.35rem] p-4 sm:rounded-[1.6rem] sm:p-5 md:p-6', className)}>
+    <Card className={cn('min-w-0 rounded-[1rem] p-4 sm:p-5 md:p-6', className)}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500 sm:text-[10px] sm:tracking-[0.28em]">
@@ -194,7 +194,7 @@ export function EmptyState({ title, description, icon, className }: EmptyStatePr
   return (
     <div
       className={cn(
-        'surface-panel flex flex-col items-center justify-center rounded-[1.45rem] border-dashed px-4 py-10 text-center sm:rounded-[1.8rem] sm:px-6 sm:py-14',
+        'empty-state surface-panel flex flex-col items-center justify-center rounded-[1rem] border-dashed px-4 py-10 text-center sm:px-6 sm:py-14',
         className
       )}
       >

@@ -91,7 +91,7 @@ export default function TwoFactorLivePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_34%),linear-gradient(180deg,#f8fbff,#eef4ff_46%,#ffffff)] px-5 py-8 dark:bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.2),transparent_34%),linear-gradient(180deg,#050913,#0b1222_52%,#050913)]">
+    <main className="mmo-board mmo-board-page">
       <div className="mx-auto max-w-5xl space-y-6">
         <PageHero
           eyebrow="Security Tool"
@@ -123,11 +123,11 @@ export default function TwoFactorLivePage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-blue/10 text-brand-blue">
                 <ShieldCheck className="h-5 w-5" />
               </div>
-              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-xs font-black text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              <div className="rounded-full border border-sky-400/20 bg-[#04101f]/80 px-3 py-1.5 font-mono text-xs font-black text-slate-300">
                 {secondsLeft}s
               </div>
             </div>
-            <div className="mt-7 font-mono text-5xl font-black tracking-[0.18em] text-slate-950 dark:text-white">{code}</div>
+            <div className="mt-7 font-mono text-5xl font-black tracking-[0.18em] text-white">{code}</div>
             <div className="mt-6 flex gap-2">
               <Button type="button" className="flex-1" onClick={copyCode} disabled={!/^\d{6}$/.test(code)}>
                 <Copy className="mr-2 h-4 w-4" />

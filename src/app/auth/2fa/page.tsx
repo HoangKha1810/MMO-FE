@@ -57,11 +57,12 @@ function TwoFactorForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-[#06090f]">
-      <form onSubmit={submit} className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-7 dark:border-white/10 dark:bg-slate-900">
+    <main className="mmo-board flex min-h-screen items-center justify-center px-4">
+      <form onSubmit={submit} className="mmo-edge-card w-full max-w-md p-7">
+        <div className="relative z-10">
         <Shield className="h-9 w-9 text-brand-blue" />
-        <h1 className="mt-5 text-3xl font-black uppercase tracking-[-0.05em] text-slate-950 dark:text-white">Xác thực 2FA</h1>
-        <p className="mt-2 text-sm font-semibold text-slate-500">Nhập mã 2FA hoặc mã PIN bảo mật đã cấu hình trong tài khoản.</p>
+        <h1 className="mt-5 text-3xl font-black uppercase tracking-[-0.05em] text-white">Xác thực 2FA</h1>
+        <p className="mt-2 text-sm font-semibold text-slate-300">Nhập mã 2FA hoặc mã PIN bảo mật đã cấu hình trong tài khoản.</p>
         {error ? <div className="mt-4 rounded-xl bg-red-500/10 p-3 text-xs font-bold text-red-500">{error}</div> : null}
         {message ? <div className="mt-4 rounded-xl bg-emerald-500/10 p-3 text-xs font-bold text-emerald-500">{message}</div> : null}
         <div className="mt-6 space-y-4">
@@ -73,6 +74,7 @@ function TwoFactorForm() {
             Gửi lại mã 2FA
           </Button>
         </div>
+        </div>
       </form>
     </main>
   );
@@ -80,7 +82,7 @@ function TwoFactorForm() {
 
 export default function TwoFactorPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-slate-50 dark:bg-[#06090f]" />}>
+    <Suspense fallback={<main className="mmo-board min-h-screen" />}>
       <TwoFactorForm />
     </Suspense>
   );

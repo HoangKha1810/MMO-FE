@@ -284,7 +284,7 @@ export function HomeServiceCard({ service, className }: HomeServiceCardProps) {
       aria-label={service.title}
       aria-disabled={!clickable}
       className={cn(
-        'relative z-20 h-full w-full isolate',
+        'service-tilt-card relative z-20 h-full w-full isolate',
         clickable && 'cursor-pointer',
         service.maintenance && 'cursor-not-allowed opacity-60 grayscale',
         className,

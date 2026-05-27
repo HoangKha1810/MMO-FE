@@ -288,7 +288,7 @@ export function AdminShell({
   }
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-slate-300 font-sans text-slate-950 antialiased dark:bg-[#0b0f1a] dark:text-white">
+    <div className="mmo-board admin-board-shell flex h-dvh overflow-hidden font-sans text-slate-950 antialiased dark:text-white">
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="absolute inset-0 bg-slate-300 dark:hidden">
           <div className="absolute left-0 top-0 h-[600px] w-full bg-gradient-to-b from-slate-400/10 to-transparent" />
@@ -300,8 +300,8 @@ export function AdminShell({
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 h-screen w-64 shrink-0 border-r border-slate-200 bg-[#f8fbff] [background-image:linear-gradient(180deg,#f8fbff_0%,#eef4ff_52%,#e7effd_100%)] text-slate-700 shadow-[24px_0_70px_-48px_rgba(15,23,42,0.22)] transition-all duration-300 dark:border-white/5 dark:bg-[#0b1220] dark:[background-image:linear-gradient(180deg,#101828_0%,#0d1626_52%,#0a111d_100%)] dark:text-slate-300 dark:shadow-none lg:static',
-          sidebarOpen ? 'translate-x-0 lg:ml-0' : '-translate-x-full lg:-ml-64'
+          'shell-sidebar-frame fixed inset-y-0 left-0 z-50 h-screen w-72 shrink-0 border-r text-slate-700 transition-all duration-300 dark:text-slate-300 lg:static',
+          sidebarOpen ? 'translate-x-0 lg:ml-0' : '-translate-x-full lg:-ml-72'
         )}
       >
         <div className="flex h-full flex-col overflow-hidden">
@@ -355,7 +355,7 @@ export function AdminShell({
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        'group flex items-center space-x-3 rounded-lg px-4 py-3 transition-all',
+                        'nav-link-shell group flex items-center space-x-3 rounded-[0.85rem] px-4 py-3 transition-all',
                         accentLink(item, active)
                       )}
                     >
@@ -394,8 +394,8 @@ export function AdminShell({
         />
       ) : null}
 
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-black">
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-md dark:border-white/5 dark:bg-slate-900/80">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <header className="shell-topbar sticky top-0 z-40 mx-3 mt-3 flex h-16 shrink-0 items-center justify-between px-4 backdrop-blur-md md:mx-5 md:px-6">
           <div className="flex items-center space-x-6">
             <button
               type="button"
@@ -472,7 +472,7 @@ export function AdminShell({
 
         <main
           className={cn(
-            'relative flex-1 overflow-x-hidden bg-white dark:bg-black',
+            'page-stack relative flex-1 overflow-x-hidden bg-transparent',
             isFullscreenWorkspace ? 'overflow-hidden' : 'custom-scrollbar overflow-y-auto'
           )}
         >

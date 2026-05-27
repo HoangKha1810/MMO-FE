@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHero, SectionPanel } from '@/components/ui/page-layout';
 import type { SessionUser } from '@/hooks/use-session-user';
-import { ADMIN_ZALO_URL } from '@/lib/support-links';
+import { RESOURCE_TELEGRAM_CONTACT_URL } from '@/lib/support-links';
 
 interface ResourceContactAdminModeProps {
   user?: SessionUser;
@@ -23,16 +23,16 @@ export function ResourceContactAdminMode({ user, resourceTitle }: ResourceContac
 
         <PageHero
           eyebrow="MMO Resources"
-          title="Đặt mua tài nguyên liền tay – Liên hệ ngay Zalo Admin"
+          title="Đặt mua tài nguyên liền tay - Liên hệ qua Telegram"
           description={resourceTitle
             ? `Sản phẩm "${resourceTitle}" đang chuyển sang chế độ tư vấn trực tiếp. Admin sẽ kiểm tra tồn kho, giá và cách bàn giao trước khi xử lý đơn. Tiền mua tài nguyên sẽ được trừ trực tiếp từ ví game sau khi admin xác nhận.`
             : 'Kho tài nguyên đang chuyển sang chế độ tư vấn trực tiếp. Admin sẽ kiểm tra tồn kho, giá và cách bàn giao trước khi xử lý đơn. Tiền mua tài nguyên sẽ được trừ trực tiếp từ ví game sau khi admin xác nhận.'}
           actions={
             <>
               <Button asChild size="lg">
-                <a href={ADMIN_ZALO_URL} target="_blank" rel="noreferrer">
+                <a href={RESOURCE_TELEGRAM_CONTACT_URL} target="_blank" rel="noreferrer">
                   <MessageCircleMore className="mr-2 h-4 w-4" />
-                  Liên hệ Zalo Admin
+                  Liên hệ Telegram
                 </a>
               </Button>
               <Badge variant="warning" className="rounded-full px-3 py-1.5">
@@ -41,7 +41,7 @@ export function ResourceContactAdminMode({ user, resourceTitle }: ResourceContac
             </>
           }
           stats={[
-            { label: 'Kênh', value: 'Zalo', hint: 'Liên hệ trực tiếp admin', tone: 'blue' },
+            { label: 'Kênh', value: 'Telegram', hint: 'Liên hệ trực tiếp admin', tone: 'blue' },
             { label: 'Thanh toán', value: 'Ví game', hint: 'Trừ trực tiếp khi xác nhận', tone: 'emerald' },
             { label: 'Trạng thái', value: 'Tư vấn', hint: 'Chưa thanh toán tự động', tone: 'amber' },
           ]}
@@ -52,7 +52,7 @@ export function ResourceContactAdminMode({ user, resourceTitle }: ResourceContac
             <div>
               <div className="text-xs font-black uppercase tracking-[0.22em] text-emerald-500">Lưu ý thanh toán</div>
               <p className="mt-2 text-sm font-bold leading-7 text-slate-700 dark:text-slate-200">
-                Tiền mua tài nguyên sẽ được trừ thẳng từ ví game sau khi admin xác nhận đơn qua Zalo.
+                Tiền mua tài nguyên sẽ được trừ thẳng từ ví game sau khi admin xác nhận đơn qua Telegram.
               </p>
             </div>
             <Badge variant="success" className="w-fit rounded-full px-3 py-1.5">

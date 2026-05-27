@@ -42,16 +42,16 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen auth-bg font-sans antialiased flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-6">
-          <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
+      <div className="mmo-board min-h-screen auth-bg font-sans antialiased flex items-center justify-center p-4">
+        <div className="mmo-edge-card max-w-md w-full text-center space-y-6 p-7">
+          <div className="relative z-10 w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-[1.4rem] flex items-center justify-center mx-auto border border-emerald-500/20">
             <Mail className="w-10 h-10" />
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">
+          <div className="relative z-10">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-3">
               Email đã được gửi
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 font-medium text-sm leading-relaxed">
+            <p className="text-slate-300 font-medium text-sm leading-relaxed">
               Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến <span className="font-bold text-brand-blue">{email}</span>.
               Vui lòng kiểm tra hộp thư và làm theo hướng dẫn.
             </p>
@@ -68,8 +68,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen auth-bg font-sans antialiased flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="mmo-board min-h-screen auth-bg font-sans antialiased flex items-center justify-center p-4">
+      <div className="mmo-edge-card max-w-md w-full p-7">
         <div className="text-center mb-10">
           <Link href="/auth/login" className="inline-flex items-center gap-2 text-brand-blue hover:text-blue-700 text-xs font-bold uppercase tracking-widest mb-8 transition-colors">
             <ArrowLeft className="w-4 h-4" />
@@ -81,10 +81,10 @@ export default function ForgotPasswordPage() {
               <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
             </svg>
           </div>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">
+          <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
             Quên mật khẩu
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 font-medium uppercase text-[11px] tracking-widest">
+          <p className="text-slate-400 font-medium uppercase text-[11px] tracking-widest">
             Nhập email để nhận hướng dẫn đặt lại mật khẩu
           </p>
         </div>
@@ -96,7 +96,7 @@ export default function ForgotPasswordPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="relative z-10 space-y-5">
           <div>
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
               Địa chỉ Email
@@ -116,7 +116,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <div className="mt-8 text-center">
-          <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">
+          <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
             Nhớ mật khẩu?{' '}
             <Link href="/auth/login" className="text-brand-blue hover:underline transition-colors">
               Đăng nhập ngay

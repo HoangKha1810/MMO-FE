@@ -126,7 +126,7 @@ export default function UserAutomxhPage() {
     <AppShell user={user}>
       <div className="space-y-10 px-1 py-4 pb-20 sm:py-8">
         {error ? (
-          <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 p-6 text-sm font-bold text-rose-500">
+          <div className="error-state rounded-[1rem] border border-rose-500/20 bg-rose-500/10 p-6 text-sm font-bold text-rose-500">
             {error}
           </div>
         ) : null}
@@ -139,7 +139,7 @@ export default function UserAutomxhPage() {
             </div>
           </div>
         ) : groupedSections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+          <div className="empty-state flex flex-col items-center justify-center px-6 py-20 text-center">
             <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-orange-500/20 bg-orange-500/10 text-orange-500 shadow-xl shadow-orange-500/5">
               <Zap className="h-12 w-12" />
             </div>
@@ -153,7 +153,7 @@ export default function UserAutomxhPage() {
         ) : (
           groupedSections.map((group: AutoMxhGroupedSection) => (
             <section key={group.groupKey} className="category-section space-y-6 scroll-mt-28">
-              <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/5">
+              <div className="mmo-section-title-row flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 shadow-sm dark:bg-white/5">
                     {group.sections[0]?.category.gif ? (
@@ -166,7 +166,7 @@ export default function UserAutomxhPage() {
                     {group.groupLabel}
                   </h2>
                 </div>
-                <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-400 dark:bg-white/5">
+                <span className="mmo-chip px-2.5 py-1">
                   {group.totalProducts} dịch vụ
                 </span>
               </div>
@@ -178,7 +178,7 @@ export default function UserAutomxhPage() {
                       <h3 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
                         {section.category.name}
                       </h3>
-                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-400 dark:bg-white/5">
+                      <span className="mmo-chip px-2.5 py-1">
                         {section.products.length} dịch vụ
                       </span>
                     </div>
@@ -187,7 +187,7 @@ export default function UserAutomxhPage() {
                   <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                     {section.products.map((product: AutoMxhProduct) => (
                       <div key={product.id} className="service-card-wrapper h-full">
-                        <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-300 bg-white transition-all hover:border-brand-blue hover:shadow-xl dark:border-white/10 dark:bg-slate-900/50">
+                        <div className="smm-service-card-3d group relative flex h-full flex-col overflow-hidden rounded-[1rem] border transition-all hover:border-brand-blue hover:shadow-xl">
                           <Link
                             href={`/user/automxh/order/${slugify(section.category.name)}?product=${product.id}`}
                             className="group/link flex flex-1 flex-col p-4"

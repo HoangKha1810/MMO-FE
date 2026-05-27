@@ -193,6 +193,786 @@
 }
 
 @layer utilities {
+  .mmo-board,
+  .mmo-app-shell,
+  .auth-bg {
+    --mmo-radius-xs: 0.55rem;
+    --mmo-radius-sm: 0.7rem;
+    --mmo-radius-md: 0.85rem;
+    --mmo-radius-lg: 1rem;
+    --mmo-radius-xl: 1.15rem;
+    --mmo-border-blue: rgba(54, 152, 255, 0.22);
+    --mmo-border-blue-soft: rgba(54, 152, 255, 0.14);
+    --mmo-panel-dark: rgba(6, 18, 34, 0.9);
+    --mmo-panel-dark-soft: rgba(8, 23, 42, 0.78);
+    --mmo-panel-light: rgba(255, 255, 255, 0.86);
+    --mmo-panel-light-soft: rgba(243, 248, 255, 0.78);
+  }
+
+  .mmo-board {
+    --mmo-bg: #020815;
+    --mmo-panel: rgba(7, 18, 34, 0.86);
+    --mmo-panel-strong: rgba(10, 25, 45, 0.94);
+    --mmo-line: rgba(54, 152, 255, 0.2);
+    --mmo-line-soft: rgba(148, 163, 184, 0.12);
+    --mmo-blue: #1677ff;
+    --mmo-cyan: #00d4ff;
+    --mmo-green: #00c853;
+    --mmo-amber: #ff9f0a;
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      radial-gradient(circle at 14% 8%, rgba(22, 119, 255, 0.24), transparent 28%),
+      radial-gradient(circle at 88% 18%, rgba(0, 212, 255, 0.12), transparent 24%),
+      linear-gradient(180deg, #020815 0%, #03111f 52%, #020815 100%);
+    background-size: 42px 42px, 42px 42px, auto, auto, auto;
+    color: #e5f0ff;
+  }
+
+  .landing-mmo-shell {
+    min-height: 100vh;
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.055) 1px, transparent 1px),
+      radial-gradient(circle at 12% 8%, rgba(59, 130, 246, 0.24), transparent 30%),
+      radial-gradient(circle at 88% 14%, rgba(14, 165, 233, 0.14), transparent 26%),
+      linear-gradient(180deg, #f6f9ff 0%, #edf5ff 48%, #f8fbff 100%);
+    background-size: 42px 42px, 42px 42px, auto, auto, auto;
+    color: #0f172a;
+  }
+
+  .dark .landing-mmo-shell {
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      radial-gradient(circle at 14% 8%, rgba(22, 119, 255, 0.24), transparent 28%),
+      radial-gradient(circle at 88% 18%, rgba(0, 212, 255, 0.12), transparent 24%),
+      linear-gradient(180deg, #020815 0%, #03111f 52%, #020815 100%);
+    background-size: 42px 42px, 42px 42px, auto, auto, auto;
+    color: #e5f0ff;
+  }
+
+  .mmo-app-shell.site-shell {
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      radial-gradient(circle at 8% 4%, rgba(22, 119, 255, 0.2), transparent 24%),
+      radial-gradient(circle at 92% 10%, rgba(0, 200, 83, 0.08), transparent 20%),
+      #020815;
+    background-size: 38px 38px, 38px 38px, auto, auto, auto;
+  }
+
+  .mmo-app-shell .shell-sidebar-frame,
+  .dark .mmo-app-shell .shell-sidebar-frame {
+    border-right-color: rgba(54, 152, 255, 0.18);
+    background:
+      linear-gradient(180deg, rgba(6, 17, 32, 0.96), rgba(3, 10, 22, 0.98)),
+      radial-gradient(circle at top left, rgba(22, 119, 255, 0.18), transparent 35%);
+    box-shadow: 20px 0 60px -42px rgba(0, 0, 0, 0.86);
+  }
+
+  .mmo-app-shell .shell-brand-card,
+  .mmo-app-shell .shell-topbar,
+  .mmo-app-shell .shell-breadcrumb,
+  .dark .mmo-app-shell .shell-brand-card,
+  .dark .mmo-app-shell .shell-topbar,
+  .dark .mmo-app-shell .shell-breadcrumb {
+    border-color: rgba(54, 152, 255, 0.18);
+    background:
+      linear-gradient(180deg, rgba(9, 23, 42, 0.92), rgba(4, 14, 27, 0.88));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 18px 50px -36px rgba(0, 132, 255, 0.55);
+  }
+
+  .mmo-app-shell .nav-link-active {
+    color: #eaf4ff;
+    background: linear-gradient(135deg, rgba(22, 119, 255, 0.24), rgba(0, 212, 255, 0.1));
+    border-color: rgba(45, 148, 255, 0.34);
+    box-shadow: inset 3px 0 0 #1677ff, 0 0 24px rgba(22, 119, 255, 0.12);
+  }
+
+  .mmo-app-shell .nav-link-idle,
+  .dark .mmo-app-shell .nav-link-idle {
+    color: rgba(213, 230, 255, 0.68);
+  }
+
+  .mmo-app-shell .nav-link-idle:hover,
+  .dark .mmo-app-shell .nav-link-idle:hover {
+    color: white;
+    border-color: rgba(54, 152, 255, 0.18);
+    background: rgba(18, 41, 69, 0.72);
+  }
+
+  .mmo-app-shell .surface-panel,
+  .mmo-board .surface-panel,
+  .mmo-app-shell .surface-panel-strong,
+  .mmo-board .surface-panel-strong,
+  .mmo-app-shell .surface-card,
+  .mmo-board .surface-card,
+  .mmo-app-shell .field-elevated,
+  .mmo-board .field-elevated,
+  .mmo-app-shell .input-shell,
+  .mmo-board .input-shell,
+  .mmo-app-shell .surface-chip,
+  .mmo-board .surface-chip,
+  .dark .mmo-app-shell .surface-panel,
+  .dark .mmo-board .surface-panel,
+  .dark .mmo-app-shell .surface-panel-strong,
+  .dark .mmo-board .surface-panel-strong,
+  .dark .mmo-app-shell .surface-card,
+  .dark .mmo-board .surface-card,
+  .dark .mmo-app-shell .field-elevated,
+  .dark .mmo-board .field-elevated,
+  .dark .mmo-app-shell .input-shell,
+  .dark .mmo-board .input-shell,
+  .dark .mmo-app-shell .surface-chip {
+    border-color: rgba(54, 152, 255, 0.18);
+    background:
+      linear-gradient(180deg, rgba(9, 24, 43, 0.88), rgba(4, 14, 27, 0.84));
+    color: #e5f0ff;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.045),
+      0 20px 58px -42px rgba(22, 119, 255, 0.55);
+  }
+
+  .mmo-board .surface-card::after,
+  .mmo-app-shell .surface-card::after {
+    background:
+      linear-gradient(135deg, rgba(56, 189, 248, 0.12), transparent 34%, transparent 70%, rgba(34, 197, 94, 0.08));
+  }
+
+  .mmo-board .surface-card:hover,
+  .mmo-app-shell .surface-card:hover {
+    border-color: rgba(56, 189, 248, 0.32);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 26px 70px -42px rgba(0, 132, 255, 0.7);
+  }
+
+  .mmo-board :where(.surface-panel, .surface-panel-strong, .surface-card, .field-elevated, .input-shell, .surface-chip, .dashboard-hero, .dashboard-metric, .dashboard-quick-strip, .dashboard-service-card, .mmo-edge-card, .mmo-activity-panel),
+  .mmo-app-shell :where(.surface-panel, .surface-panel-strong, .surface-card, .field-elevated, .input-shell, .surface-chip, .dashboard-hero, .dashboard-metric, .dashboard-quick-strip, .dashboard-service-card, .mmo-edge-card, .mmo-activity-panel),
+  .auth-bg :where(.surface-panel, .surface-panel-strong, .surface-card, .field-elevated, .input-shell, .surface-chip, .auth-header-shell, .auth-slider-shell) {
+    border-radius: min(var(--mmo-radius-xl), 1.15rem);
+  }
+
+  .mmo-board :where(.rounded-3xl, .rounded-\[2rem\], .rounded-\[1\.8rem\], .rounded-\[1\.75rem\], .rounded-\[1\.7rem\], .rounded-\[1\.65rem\], .rounded-\[1\.6rem\], .rounded-\[1\.55rem\], .rounded-\[1\.5rem\], .rounded-\[1\.45rem\], .rounded-\[1\.4rem\], .rounded-\[1\.35rem\]),
+  .mmo-app-shell :where(.rounded-3xl, .rounded-\[2rem\], .rounded-\[1\.8rem\], .rounded-\[1\.75rem\], .rounded-\[1\.7rem\], .rounded-\[1\.65rem\], .rounded-\[1\.6rem\], .rounded-\[1\.55rem\], .rounded-\[1\.5rem\], .rounded-\[1\.45rem\], .rounded-\[1\.4rem\], .rounded-\[1\.35rem\]) {
+    border-radius: var(--mmo-radius-xl) !important;
+  }
+
+  .mmo-board :where(.rounded-2xl, .rounded-\[1\.25rem\], .rounded-\[1\.2rem\], .rounded-\[1\.15rem\], .rounded-\[1rem\]),
+  .mmo-app-shell :where(.rounded-2xl, .rounded-\[1\.25rem\], .rounded-\[1\.2rem\], .rounded-\[1\.15rem\], .rounded-\[1rem\]) {
+    border-radius: var(--mmo-radius-lg) !important;
+  }
+
+  .mmo-board :where(.rounded-xl, .rounded-\[0\.95rem\], .rounded-\[0\.9rem\], .rounded-\[0\.85rem\], .rounded-\[0\.8rem\]),
+  .mmo-app-shell :where(.rounded-xl, .rounded-\[0\.95rem\], .rounded-\[0\.9rem\], .rounded-\[0\.85rem\], .rounded-\[0\.8rem\]) {
+    border-radius: var(--mmo-radius-md) !important;
+  }
+
+  .mmo-board .field-elevated,
+  .mmo-app-shell .field-elevated,
+  .mmo-board .input-shell,
+  .mmo-app-shell .input-shell {
+    color: #eaf4ff;
+  }
+
+  .mmo-board .field-elevated::placeholder,
+  .mmo-app-shell .field-elevated::placeholder,
+  .mmo-board .input-shell::placeholder,
+  .mmo-app-shell .input-shell::placeholder {
+    color: rgba(148, 163, 184, 0.82);
+  }
+
+  .mmo-board .field-elevated:focus,
+  .mmo-app-shell .field-elevated:focus,
+  .mmo-board .field-elevated:focus-within,
+  .mmo-app-shell .field-elevated:focus-within,
+  .mmo-board .input-shell:focus,
+  .mmo-app-shell .input-shell:focus {
+    border-color: rgba(56, 189, 248, 0.42);
+    box-shadow:
+      0 0 0 4px rgba(22, 119, 255, 0.16),
+      0 20px 48px -30px rgba(56, 189, 248, 0.42);
+  }
+
+  .mmo-app-shell .page-stack::before {
+    background:
+      radial-gradient(circle at 18% 8%, rgba(22, 119, 255, 0.12), transparent 24%),
+      radial-gradient(circle at 90% 20%, rgba(0, 200, 83, 0.08), transparent 22%);
+  }
+
+  .admin-board-shell {
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      radial-gradient(circle at 8% 4%, rgba(22, 119, 255, 0.2), transparent 24%),
+      radial-gradient(circle at 92% 10%, rgba(0, 200, 83, 0.08), transparent 20%),
+      #020815;
+    background-size: 38px 38px, 38px 38px, auto, auto, auto;
+  }
+
+  :root:not(.dark) .admin-board-shell {
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+      radial-gradient(circle at 9% 4%, rgba(37, 99, 235, 0.16), transparent 25%),
+      radial-gradient(circle at 92% 10%, rgba(20, 184, 166, 0.1), transparent 22%),
+      linear-gradient(180deg, #f8fbff 0%, #edf5ff 54%, #f7fbff 100%);
+    background-size: 38px 38px, 38px 38px, auto, auto, auto;
+  }
+
+  .mmo-status-strip,
+  .mmo-shortcuts {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    border: 1px solid rgba(54, 152, 255, 0.16);
+    border-radius: 1.05rem;
+    background: linear-gradient(180deg, rgba(8, 22, 40, 0.84), rgba(4, 14, 27, 0.82));
+    padding: 0.5rem;
+    backdrop-filter: blur(16px) saturate(130%);
+  }
+
+  .mmo-board .mmo-command-surface,
+  .mmo-app-shell .mmo-command-surface {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border: 1px solid rgba(54, 152, 255, 0.18);
+    border-radius: var(--mmo-radius-xl);
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(7, 20, 38, 0.92), rgba(4, 14, 27, 0.9));
+    background-size: 28px 28px, 28px 28px, auto;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 22px 62px -46px rgba(22, 119, 255, 0.64);
+    backdrop-filter: blur(18px) saturate(135%);
+  }
+
+  .mmo-board .mmo-section-title-row,
+  .mmo-app-shell .mmo-section-title-row {
+    border-bottom: 1px solid rgba(54, 152, 255, 0.16);
+    background:
+      linear-gradient(90deg, rgba(22, 119, 255, 0.1), transparent 45%, rgba(0, 200, 83, 0.05));
+    border-radius: var(--mmo-radius-lg);
+    padding: 0.65rem 0.75rem;
+  }
+
+  .mmo-board .mmo-chip,
+  .mmo-app-shell .mmo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: var(--mmo-radius-sm);
+    border: 1px solid rgba(54, 152, 255, 0.16);
+    background: rgba(8, 28, 50, 0.72);
+    color: rgba(226, 242, 255, 0.86);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .mmo-board .mmo-skeleton,
+  .mmo-app-shell .mmo-skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--mmo-radius-md);
+    border: 1px solid rgba(54, 152, 255, 0.12);
+    background: rgba(8, 22, 40, 0.82);
+  }
+
+  .mmo-board .mmo-skeleton::after,
+  .mmo-app-shell .mmo-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.16), transparent);
+    animation: shimmer 1.55s linear infinite;
+  }
+
+  .mmo-board :where(.empty-state, .error-state),
+  .mmo-app-shell :where(.empty-state, .error-state) {
+    border: 1px dashed rgba(54, 152, 255, 0.2);
+    border-radius: var(--mmo-radius-xl);
+    background:
+      radial-gradient(circle at 50% 0%, rgba(22, 119, 255, 0.14), transparent 38%),
+      linear-gradient(180deg, rgba(8, 22, 40, 0.84), rgba(4, 14, 27, 0.8));
+  }
+
+  .mmo-status-token,
+  .mmo-shortcut-btn {
+    display: inline-flex;
+    min-height: 2.15rem;
+    shrink: 0;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 0.78rem;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(9, 28, 50, 0.7);
+    padding: 0.42rem 0.7rem;
+    color: rgba(226, 242, 255, 0.84);
+    font-size: 0.64rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .mmo-status-token strong {
+    color: white;
+    font-family: var(--font-family-mono);
+    font-size: 0.68rem;
+  }
+
+  .mmo-shortcut-btn {
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  }
+
+  .mmo-shortcut-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(22, 119, 255, 0.38);
+    background: rgba(22, 119, 255, 0.18);
+  }
+
+  .mmo-eyebrow {
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(125, 211, 252, 0.78);
+  }
+
+  .mmo-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0.45rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 0.28rem 0.5rem;
+    font-size: 0.58rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .mmo-badge-green {
+    border-color: rgba(34, 197, 94, 0.28);
+    background: rgba(34, 197, 94, 0.12);
+    color: #4ade80;
+  }
+
+  .mmo-badge-red {
+    border-color: rgba(239, 68, 68, 0.28);
+    background: rgba(239, 68, 68, 0.12);
+    color: #fb7185;
+  }
+
+  .mmo-badge-amber {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.13);
+    color: #fbbf24;
+  }
+
+  .mmo-board .btn-kinetic,
+  .mmo-app-shell .btn-kinetic {
+    border: 1px solid rgba(56, 189, 248, 0.2);
+  }
+
+  .mmo-board .ghost-button,
+  .mmo-app-shell .ghost-button {
+    border-color: rgba(54, 152, 255, 0.18);
+    background: rgba(7, 18, 34, 0.74);
+    color: rgba(226, 242, 255, 0.86);
+  }
+
+  .mmo-board .ghost-button:hover,
+  .mmo-app-shell .ghost-button:hover {
+    border-color: rgba(56, 189, 248, 0.36);
+    background: rgba(22, 119, 255, 0.16);
+    color: white;
+  }
+
+  .mmo-board :where(.bg-white, .bg-white\/70, .bg-white\/75, .bg-white\/78, .bg-white\/80, .bg-white\/90, .bg-slate-50, .bg-slate-50\/80, .bg-slate-100, .bg-slate-100\/80, .bg-slate-900, .bg-\[\#0f1726\]),
+  .mmo-app-shell :where(.bg-white, .bg-white\/70, .bg-white\/75, .bg-white\/78, .bg-white\/80, .bg-white\/90, .bg-slate-50, .bg-slate-50\/80, .bg-slate-100, .bg-slate-100\/80, .bg-slate-900, .bg-\[\#0f1726\]) {
+    border-color: rgba(54, 152, 255, 0.14);
+  }
+
+  .dark .mmo-board :where(.bg-white, .bg-white\/70, .bg-white\/75, .bg-white\/78, .bg-white\/80, .bg-white\/90, .bg-slate-50, .bg-slate-50\/80, .bg-slate-100, .bg-slate-100\/80, .bg-slate-900, .bg-\[\#0f1726\]),
+  .dark .mmo-app-shell :where(.bg-white, .bg-white\/70, .bg-white\/75, .bg-white\/78, .bg-white\/80, .bg-white\/90, .bg-slate-50, .bg-slate-50\/80, .bg-slate-100, .bg-slate-100\/80, .bg-slate-900, .bg-\[\#0f1726\]) {
+    background-color: rgba(7, 18, 34, 0.78) !important;
+    color: #e5f0ff;
+  }
+
+  .dark .mmo-board :where(.border-slate-100, .border-slate-200, .border-slate-200\/80, .border-slate-300),
+  .dark .mmo-app-shell :where(.border-slate-100, .border-slate-200, .border-slate-200\/80, .border-slate-300) {
+    border-color: rgba(54, 152, 255, 0.14) !important;
+  }
+
+  .mmo-board .route-loader-shell,
+  .mmo-app-shell .route-loader-shell,
+  .dark .mmo-board .route-loader-shell,
+  .dark .mmo-app-shell .route-loader-shell {
+    border-color: rgba(54, 152, 255, 0.2);
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(8, 22, 40, 0.94), rgba(4, 14, 27, 0.92));
+    background-size: 32px 32px, 32px 32px, auto;
+  }
+
+  .mmo-board table,
+  .mmo-app-shell table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .mmo-board thead,
+  .mmo-app-shell thead {
+    background: rgba(8, 26, 48, 0.8) !important;
+  }
+
+  .mmo-board tbody tr,
+  .mmo-app-shell tbody tr {
+    transition: background-color 160ms ease;
+  }
+
+  .mmo-board tbody tr:hover,
+  .mmo-app-shell tbody tr:hover {
+    background: rgba(22, 119, 255, 0.08) !important;
+  }
+
+  .mmo-board ::selection,
+  .mmo-app-shell ::selection {
+    background: rgba(56, 189, 248, 0.28);
+    color: white;
+  }
+
+  .mmo-page-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .mmo-board-page {
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 2rem 1.25rem;
+  }
+
+  .mmo-edge-shell {
+    position: relative;
+    display: grid;
+    min-height: calc(100vh - 4rem);
+    align-items: center;
+  }
+
+  .mmo-edge-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--mmo-radius-xl);
+    border: 1px solid rgba(54, 152, 255, 0.2);
+    background:
+      radial-gradient(circle at 16% 10%, rgba(22, 119, 255, 0.18), transparent 30%),
+      linear-gradient(180deg, rgba(8, 22, 40, 0.94), rgba(4, 14, 27, 0.94));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.055),
+      0 44px 120px -70px rgba(0, 132, 255, 0.76);
+  }
+
+  .mmo-edge-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: linear-gradient(180deg, black, transparent 86%);
+  }
+
+  .mmo-command-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(54, 152, 255, 0.16);
+    background: rgba(4, 16, 31, 0.72);
+    padding: 0.55rem;
+  }
+
+  .mmo-edge-page-header {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--mmo-radius-xl);
+    border: 1px solid rgba(54, 152, 255, 0.2);
+    background:
+      linear-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 12% 8%, rgba(22, 119, 255, 0.2), transparent 32%),
+      radial-gradient(circle at 92% 16%, rgba(0, 200, 83, 0.08), transparent 26%),
+      linear-gradient(180deg, rgba(8, 22, 40, 0.95), rgba(4, 14, 27, 0.92));
+    background-size: 34px 34px, 34px 34px, auto, auto, auto;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.055),
+      0 36px 110px -70px rgba(22, 119, 255, 0.76);
+  }
+
+  .mmo-activity-panel {
+    overflow: hidden;
+    border-radius: 1.35rem;
+    border: 1px solid rgba(54, 152, 255, 0.18);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(22, 119, 255, 0.14), transparent 42%),
+      linear-gradient(180deg, rgba(8, 22, 40, 0.94), rgba(4, 14, 27, 0.92));
+    padding: 1rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .mmo-activity-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    background: rgba(5, 15, 29, 0.68);
+    padding: 0.72rem;
+  }
+
+  .mmo-activity-icon {
+    display: inline-flex;
+    height: 2rem;
+    width: 2rem;
+    shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+  }
+
+  .mmo-activity-green { background: rgba(34, 197, 94, 0.13); color: #4ade80; }
+  .mmo-activity-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+  .mmo-activity-amber { background: rgba(245, 158, 11, 0.14); color: #fbbf24; }
+
+  .mmo-mini-stat {
+    border: 1px solid rgba(37, 99, 235, 0.16);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.74);
+    padding: 0.9rem;
+    box-shadow: 0 16px 40px -30px rgba(15, 23, 42, 0.2);
+  }
+
+  .dark .mmo-mini-stat {
+    border-color: rgba(54, 152, 255, 0.16);
+    background: rgba(7, 18, 34, 0.72);
+    box-shadow: none;
+  }
+
+  .mmo-landing-preview {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(54, 152, 255, 0.2);
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.055) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(244, 249, 255, 0.94), rgba(224, 238, 255, 0.9));
+    background-size: 28px 28px, 28px 28px, auto;
+    padding: 1rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.86),
+      0 40px 100px -55px rgba(22, 119, 255, 0.48);
+    contain: layout paint;
+  }
+
+  .dark .mmo-landing-preview {
+    background:
+      linear-gradient(rgba(22, 119, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 119, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(8, 22, 40, 0.94), rgba(4, 13, 26, 0.94));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 40px 100px -55px rgba(22, 119, 255, 0.7);
+  }
+
+  .mmo-browser-dots {
+    display: flex;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+  }
+
+  .mmo-browser-dots span {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: #ef4444;
+  }
+
+  .mmo-browser-dots span:nth-child(2) { background: #f59e0b; }
+  .mmo-browser-dots span:nth-child(3) { background: #22c55e; }
+
+  .mmo-preview-service,
+  .mmo-preview-tile,
+  .mmo-preview-hero,
+  .mmo-preview-chart {
+    border: 1px solid rgba(37, 99, 235, 0.16);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.74);
+    box-shadow: 0 16px 42px -34px rgba(15, 23, 42, 0.28);
+  }
+
+  .dark .mmo-preview-service,
+  .dark .mmo-preview-tile,
+  .dark .mmo-preview-hero,
+  .dark .mmo-preview-chart {
+    border-color: rgba(54, 152, 255, 0.16);
+    background: rgba(4, 16, 31, 0.82);
+    box-shadow: none;
+  }
+
+  .mmo-preview-service {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    padding: 0.75rem;
+    color: rgba(15, 23, 42, 0.78);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .dark .mmo-preview-service {
+    color: rgba(226, 242, 255, 0.86);
+  }
+
+  .mmo-preview-service span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mmo-preview-service svg {
+    flex-shrink: 0;
+    color: #38bdf8;
+  }
+
+  .mmo-preview-service b {
+    flex-shrink: 0;
+    margin-left: auto;
+    border-radius: 0.35rem;
+    background: rgba(239, 68, 68, 0.16);
+    padding: 0.2rem 0.38rem;
+    color: #fb7185;
+    font-size: 0.55rem;
+  }
+
+  .mmo-preview-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    min-height: 10rem;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 32%, rgba(22, 119, 255, 0.18), transparent 36%),
+      rgba(255, 255, 255, 0.76);
+  }
+
+  .dark .mmo-preview-hero {
+    background:
+      radial-gradient(circle at 18% 32%, rgba(22, 119, 255, 0.24), transparent 36%),
+      rgba(4, 16, 31, 0.84);
+  }
+
+  .mmo-preview-logo-wrap {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .mmo-preview-logo-wrap img {
+    display: block;
+    max-width: min(100%, 14rem);
+  }
+
+  .mmo-preview-balance {
+    min-width: 0;
+    overflow: hidden;
+    text-align: right;
+  }
+
+  .mmo-preview-balance .mmo-eyebrow {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mmo-preview-balance > div:nth-child(2) {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .mmo-preview-tile {
+    padding: 0.75rem;
+  }
+
+  .mmo-preview-tile span {
+    color: rgba(125, 211, 252, 0.68);
+    font-family: var(--font-family-mono);
+    font-size: 0.62rem;
+    font-weight: 900;
+  }
+
+  .mmo-preview-tile strong {
+    display: block;
+    margin-top: 0.45rem;
+    color: #0f172a;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+  }
+
+  .dark .mmo-preview-tile strong {
+    color: white;
+  }
+
+  .mmo-preview-chart {
+    display: flex;
+    height: 8rem;
+    align-items: end;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  .mmo-preview-chart i {
+    flex: 1;
+    border-radius: 999px 999px 0 0;
+    background: linear-gradient(180deg, #38bdf8, #1677ff);
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.18);
+  }
+
+  @media (max-width: 520px) {
+    .mmo-landing-preview {
+      padding: 0.8rem;
+    }
+
+    .mmo-preview-hero {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+
+    .mmo-preview-balance {
+      text-align: left;
+    }
+  }
+
   .site-shell {
     position: relative;
     width: 100%;
@@ -287,8 +1067,8 @@
   }
 
   .support-fab {
-    min-width: 4rem;
-    min-height: 4rem;
+    min-width: 3.25rem;
+    min-height: 3.25rem;
     animation: support-fab-float 4.5s ease-in-out infinite;
     will-change: transform;
   }
@@ -1786,8 +2566,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 24%),
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent 48%);
+    linear-gradient(120deg, rgba(255, 255, 255, 0.025), transparent 24%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.035), transparent 48%);
   pointer-events: none;
 }
 
@@ -1880,6 +2660,9 @@
   display: flex;
   height: 100%;
   padding: 1.6rem;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(22, 119, 255, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(4, 11, 22, 0.36), rgba(4, 11, 22, 0.2));
 }
 
 .auth-slider-form {
@@ -1904,7 +2687,7 @@
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.92);
+  color: rgba(226, 242, 255, 0.92);
 }
 
 .light .auth-slider-kicker {
@@ -1913,11 +2696,11 @@
 }
 
 .auth-slider-title {
-  max-width: 12ch;
-  font-size: clamp(1.85rem, 2vw + 1rem, 3.15rem);
+  max-width: 16ch;
+  font-size: clamp(1.85rem, 1.6vw + 1rem, 2.85rem);
   font-weight: 850;
-  line-height: 1.06;
-  letter-spacing: -0.06em;
+  line-height: 1.12;
+  letter-spacing: 0;
   color: rgb(255 255 255 / 0.96);
   text-wrap: balance;
 }
@@ -1930,7 +2713,7 @@
   max-width: 34rem;
   font-size: 0.94rem;
   line-height: 1.78;
-  color: rgba(203, 213, 225, 0.82);
+  color: rgba(226, 232, 240, 0.9);
 }
 
 .light .auth-slider-copy {
@@ -2127,8 +2910,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 30%),
-    radial-gradient(circle at 50% 50%, rgba(5, 23, 70, 0.14), transparent 56%);
+    linear-gradient(120deg, rgba(255, 255, 255, 0.045), transparent 30%),
+    radial-gradient(circle at 50% 50%, rgba(5, 23, 70, 0.08), transparent 56%);
   pointer-events: none;
 }
 
@@ -2173,15 +2956,15 @@
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .auth-overlay-title {
-  max-width: 12ch;
-  font-size: clamp(1.8rem, 1.8vw + 1rem, 2.85rem);
+  max-width: 16ch;
+  font-size: clamp(1.75rem, 1.35vw + 1rem, 2.55rem);
   font-weight: 850;
-  line-height: 1.06;
-  letter-spacing: -0.06em;
+  line-height: 1.12;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -2189,7 +2972,7 @@
   max-width: 27rem;
   font-size: 0.94rem;
   line-height: 1.72;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .auth-overlay-metric-grid {
@@ -2198,13 +2981,13 @@
 }
 
 .auth-overlay-metric {
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
   padding: 0.88rem 1rem;
   font-size: 0.86rem;
   line-height: 1.58;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 255, 255, 0.94);
 }
 
 .light .auth-overlay-metric {
@@ -2754,6 +3537,334 @@
   animation: confirm-dialog-content-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
+.telegram-entry-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 295;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(37, 99, 235, 0.2), transparent 36%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.62), rgba(2, 6, 23, 0.78));
+  backdrop-filter: blur(10px) saturate(120%);
+}
+
+.telegram-entry-card {
+  position: relative;
+  display: grid;
+  width: min(100%, 35rem);
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  overflow: hidden;
+  border-radius: 1.45rem;
+  border: 1px solid rgba(96, 165, 250, 0.26);
+  background:
+    linear-gradient(rgba(96, 165, 250, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96, 165, 250, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 16% 0%, rgba(56, 189, 248, 0.2), transparent 34%),
+    radial-gradient(circle at 88% 100%, rgba(99, 102, 241, 0.16), transparent 38%),
+    linear-gradient(180deg, rgba(12, 26, 47, 0.98), rgba(5, 13, 27, 0.98));
+  background-size: 30px 30px, 30px 30px, auto, auto, auto;
+  padding: 1.45rem;
+  color: #e5f0ff;
+  box-shadow:
+    0 40px 120px -54px rgba(37, 99, 235, 0.74),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.telegram-entry-card::before,
+.telegram-entry-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.telegram-entry-card::before {
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.12), transparent 24%, transparent 72%, rgba(56, 189, 248, 0.1));
+  opacity: 0.8;
+}
+
+.telegram-entry-card::after {
+  inset: auto 1rem 1rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.44), transparent);
+}
+
+.telegram-entry-overlay[data-state="open"] {
+  animation: telegram-overlay-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.telegram-entry-overlay[data-state="closing"] {
+  animation: telegram-overlay-out 180ms ease-in both;
+}
+
+.telegram-entry-overlay[data-state="open"] .telegram-entry-card {
+  animation: telegram-card-rebuild-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.telegram-entry-overlay[data-state="closing"] .telegram-entry-card {
+  animation: telegram-card-rebuild-out 180ms ease-in both;
+}
+
+.telegram-entry-close {
+  position: absolute;
+  right: 0.85rem;
+  top: 0.85rem;
+  z-index: 2;
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(226, 242, 255, 0.74);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.telegram-entry-close:hover,
+.telegram-entry-close:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.34);
+  background: rgba(96, 165, 250, 0.14);
+  color: white;
+  outline: none;
+}
+
+.telegram-entry-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  height: 3.6rem;
+  width: 3.6rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.2), transparent 32%),
+    linear-gradient(135deg, rgba(37, 99, 235, 0.26), rgba(14, 165, 233, 0.12));
+  color: #60a5fa;
+  box-shadow: 0 20px 48px -30px rgba(56, 189, 248, 0.72);
+}
+
+.telegram-entry-icon-ring {
+  position: absolute;
+  inset: -0.45rem;
+  border-radius: 1.45rem;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  opacity: 0.86;
+  animation: telegram-icon-pulse 2.4s ease-in-out infinite;
+}
+
+.telegram-entry-kicker,
+.telegram-entry-safe {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: #7dd3fc;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.telegram-entry-title {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.5rem;
+  max-width: 26rem;
+  color: white;
+  font-size: clamp(1.2rem, 4vw, 1.72rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1.12;
+  text-transform: uppercase;
+}
+
+.telegram-entry-description {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.7rem;
+  max-width: 27rem;
+  color: rgba(226, 242, 255, 0.74);
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.78;
+}
+
+.telegram-entry-safe {
+  margin-top: 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(34, 197, 94, 0.08);
+  padding: 0.45rem 0.7rem;
+  color: #86efac;
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+}
+
+.telegram-entry-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+}
+
+.telegram-entry-primary,
+.telegram-entry-secondary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.95rem;
+  padding: 0.78rem 1.15rem;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  transition: transform 180ms ease, filter 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.telegram-entry-primary {
+  border: 1px solid rgba(96, 165, 250, 0.34);
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  color: white;
+  box-shadow: 0 18px 46px -26px rgba(37, 99, 235, 0.8);
+}
+
+.telegram-entry-secondary {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(226, 242, 255, 0.78);
+}
+
+.telegram-entry-primary:hover,
+.telegram-entry-primary:focus-visible,
+.telegram-entry-secondary:hover,
+.telegram-entry-secondary:focus-visible {
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.telegram-entry-primary:hover,
+.telegram-entry-primary:focus-visible {
+  filter: brightness(1.06);
+}
+
+.telegram-entry-secondary:hover,
+.telegram-entry-secondary:focus-visible {
+  border-color: rgba(96, 165, 250, 0.32);
+  background: rgba(96, 165, 250, 0.12);
+  color: white;
+}
+
+@keyframes telegram-overlay-in {
+  0% { opacity: 0; backdrop-filter: blur(0); }
+  100% { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+@keyframes telegram-overlay-out {
+  0% { opacity: 1; backdrop-filter: blur(8px); }
+  100% { opacity: 0; backdrop-filter: blur(0); }
+}
+
+@keyframes telegram-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes telegram-card-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+@keyframes telegram-card-rebuild-in {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(26px) scale(0.94);
+  }
+  58% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(-4px) scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes telegram-card-rebuild-out {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+@keyframes telegram-icon-pulse {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+}
+
+@media (max-width: 560px) {
+  .telegram-entry-card {
+    grid-template-columns: 1fr;
+    padding: 1.15rem;
+  }
+
+  .telegram-entry-actions {
+    flex-direction: column;
+  }
+
+  .telegram-entry-primary,
+  .telegram-entry-secondary {
+    width: 100%;
+  }
+}
+
 @keyframes route-stage-enter {
   0% {
     opacity: 0;
@@ -2799,6 +3910,8 @@ html.theme-switching .nav-link-shell {
   .notification-trigger[data-has-unread="true"] .notification-trigger-icon,
   .confirm-dialog-overlay,
   .confirm-dialog-content,
+  .telegram-entry-overlay,
+  .telegram-entry-card,
   .route-stage,
   .route-progress-bar::after {
     animation: none !important;
@@ -2910,6 +4023,11 @@ html.theme-switching .nav-link-shell {
 }
 
 .smm-service-card-3d {
+  min-height: 13.5rem;
+  border-color: rgba(54, 152, 255, 0.18) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(22, 119, 255, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(8, 22, 40, 0.92), rgba(4, 14, 27, 0.88)) !important;
   transform-style: preserve-3d;
   will-change: transform, box-shadow;
   transition:
@@ -2952,6 +4070,23 @@ html.theme-switching .nav-link-shell {
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.smm-service-card-icon {
+  border: 1px solid rgba(54, 152, 255, 0.16);
+  background: rgba(8, 28, 50, 0.72) !important;
+}
+
+:root:not(.dark) .smm-service-card-3d {
+  border-color: rgba(37, 99, 235, 0.15) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 247, 255, 0.84)) !important;
+}
+
+:root:not(.dark) .smm-service-card-icon {
+  border-color: rgba(37, 99, 235, 0.13);
+  background: rgba(255, 255, 255, 0.75) !important;
 }
 
 .resource-rich-content {
@@ -3108,5 +4243,509 @@ html.theme-switching .nav-link-shell {
 
   .service-tilt-card:hover .service-tilt-stage {
     box-shadow: none;
+  }
+}
+
+@layer utilities {
+  :root:not(.dark) .mmo-board:not(.landing-mmo-shell) {
+    --mmo-bg: #f4f8ff;
+    --mmo-panel: rgba(255, 255, 255, 0.84);
+    --mmo-panel-strong: rgba(255, 255, 255, 0.94);
+    --mmo-line: rgba(37, 99, 235, 0.14);
+    --mmo-line-soft: rgba(148, 163, 184, 0.18);
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+      radial-gradient(circle at 10% 8%, rgba(59, 130, 246, 0.18), transparent 30%),
+      radial-gradient(circle at 90% 14%, rgba(20, 184, 166, 0.12), transparent 26%),
+      linear-gradient(180deg, #f8fbff 0%, #edf5ff 50%, #f7fbff 100%);
+    background-size: 42px 42px, 42px 42px, auto, auto, auto;
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .mmo-app-shell.site-shell {
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+      radial-gradient(circle at 9% 4%, rgba(37, 99, 235, 0.16), transparent 25%),
+      radial-gradient(circle at 92% 10%, rgba(20, 184, 166, 0.1), transparent 22%),
+      linear-gradient(180deg, #f8fbff 0%, #edf5ff 54%, #f7fbff 100%);
+    background-size: 38px 38px, 38px 38px, auto, auto, auto;
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .mmo-app-shell .shell-sidebar-frame {
+    border-right-color: rgba(37, 99, 235, 0.14);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(237, 245, 255, 0.94)),
+      radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 34%);
+    box-shadow: 24px 0 72px -52px rgba(37, 99, 235, 0.28);
+  }
+
+  :root:not(.dark) .mmo-app-shell .shell-sidebar-frame::before {
+    border-color: rgba(37, 99, 235, 0.1);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(241, 247, 255, 0.5));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  :root:not(.dark) .mmo-app-shell .shell-brand-card,
+  :root:not(.dark) .mmo-app-shell .shell-topbar,
+  :root:not(.dark) .mmo-app-shell .shell-breadcrumb {
+    border-color: rgba(37, 99, 235, 0.14);
+    background:
+      radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 248, 255, 0.86));
+    color: #0f172a;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      0 22px 58px -42px rgba(37, 99, 235, 0.28);
+  }
+
+  :root:not(.dark) .mmo-app-shell .shell-toolbar-cluster {
+    border-color: rgba(37, 99, 235, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.76),
+      0 18px 46px -34px rgba(37, 99, 235, 0.22);
+  }
+
+  :root:not(.dark) .mmo-app-shell .nav-link-active {
+    color: #1d4ed8;
+    border-color: rgba(37, 99, 235, 0.22);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.13), rgba(14, 165, 233, 0.09));
+    box-shadow: inset 3px 0 0 #2563eb, 0 18px 34px -28px rgba(37, 99, 235, 0.34);
+  }
+
+  :root:not(.dark) .mmo-app-shell .nav-link-idle {
+    color: rgba(51, 65, 85, 0.76);
+  }
+
+  :root:not(.dark) .mmo-app-shell .nav-link-idle:hover,
+  :root:not(.dark) .mmo-app-shell .nav-link-idle:focus-visible {
+    color: #0f172a;
+    border-color: rgba(37, 99, 235, 0.16);
+    background: rgba(255, 255, 255, 0.68);
+  }
+
+  :root:not(.dark) .mmo-app-shell .surface-panel,
+  :root:not(.dark) .mmo-board .surface-panel,
+  :root:not(.dark) .mmo-app-shell .surface-panel-strong,
+  :root:not(.dark) .mmo-board .surface-panel-strong,
+  :root:not(.dark) .mmo-app-shell .surface-card,
+  :root:not(.dark) .mmo-board .surface-card,
+  :root:not(.dark) .mmo-app-shell .field-elevated,
+  :root:not(.dark) .mmo-board .field-elevated,
+  :root:not(.dark) .mmo-app-shell .input-shell,
+  :root:not(.dark) .mmo-board .input-shell,
+  :root:not(.dark) .mmo-app-shell .surface-chip,
+  :root:not(.dark) .mmo-board .surface-chip {
+    border-color: rgba(37, 99, 235, 0.14);
+    background:
+      radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 248, 255, 0.82));
+    color: #0f172a;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 20px 58px -42px rgba(37, 99, 235, 0.24);
+  }
+
+  :root:not(.dark) .mmo-app-shell .surface-card:hover,
+  :root:not(.dark) .mmo-board .surface-card:hover {
+    border-color: rgba(37, 99, 235, 0.24);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      0 26px 70px -46px rgba(37, 99, 235, 0.38);
+  }
+
+  :root:not(.dark) .mmo-app-shell .field-elevated,
+  :root:not(.dark) .mmo-board .field-elevated,
+  :root:not(.dark) .mmo-app-shell .input-shell,
+  :root:not(.dark) .mmo-board .input-shell {
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .mmo-app-shell .field-elevated::placeholder,
+  :root:not(.dark) .mmo-board .field-elevated::placeholder,
+  :root:not(.dark) .mmo-app-shell .input-shell::placeholder,
+  :root:not(.dark) .mmo-board .input-shell::placeholder {
+    color: rgba(100, 116, 139, 0.78);
+  }
+
+  :root:not(.dark) .mmo-app-shell .mmo-status-strip,
+  :root:not(.dark) .mmo-app-shell .mmo-shortcuts {
+    border-color: rgba(37, 99, 235, 0.14);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  :root:not(.dark) .mmo-app-shell .mmo-status-token,
+  :root:not(.dark) .mmo-app-shell .mmo-shortcut-btn {
+    border-color: rgba(37, 99, 235, 0.12);
+    background: rgba(248, 251, 255, 0.84);
+    color: rgba(51, 65, 85, 0.84);
+  }
+
+  :root:not(.dark) .mmo-app-shell .mmo-status-token strong {
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .mmo-board .mmo-command-surface,
+  :root:not(.dark) .mmo-app-shell .mmo-command-surface {
+    border-color: rgba(37, 99, 235, 0.14);
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(241, 247, 255, 0.88));
+    background-size: 28px 28px, 28px 28px, auto;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      0 22px 62px -46px rgba(37, 99, 235, 0.3);
+  }
+
+  :root:not(.dark) .mmo-board .mmo-section-title-row,
+  :root:not(.dark) .mmo-app-shell .mmo-section-title-row {
+    border-color: rgba(37, 99, 235, 0.14);
+    background:
+      linear-gradient(90deg, rgba(37, 99, 235, 0.08), transparent 45%, rgba(20, 184, 166, 0.06));
+  }
+
+  :root:not(.dark) .mmo-board .mmo-chip,
+  :root:not(.dark) .mmo-app-shell .mmo-chip {
+    border-color: rgba(37, 99, 235, 0.14);
+    background: rgba(255, 255, 255, 0.76);
+    color: rgba(51, 65, 85, 0.84);
+  }
+
+  :root:not(.dark) .mmo-board .mmo-skeleton,
+  :root:not(.dark) .mmo-app-shell .mmo-skeleton {
+    border-color: rgba(37, 99, 235, 0.12);
+    background: rgba(237, 245, 255, 0.9);
+  }
+
+  :root:not(.dark) .mmo-board .mmo-skeleton::after,
+  :root:not(.dark) .mmo-app-shell .mmo-skeleton::after {
+    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.14), transparent);
+  }
+
+  :root:not(.dark) .mmo-board :where(.empty-state, .error-state),
+  :root:not(.dark) .mmo-app-shell :where(.empty-state, .error-state) {
+    border-color: rgba(37, 99, 235, 0.18);
+    background:
+      radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.1), transparent 38%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(241, 247, 255, 0.82));
+  }
+
+  :root:not(.dark) .mmo-board table,
+  :root:not(.dark) .mmo-app-shell table {
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .mmo-board thead,
+  :root:not(.dark) .mmo-app-shell thead {
+    background: rgba(239, 246, 255, 0.9) !important;
+  }
+
+  :root:not(.dark) .mmo-board tbody tr:hover,
+  :root:not(.dark) .mmo-app-shell tbody tr:hover {
+    background: rgba(37, 99, 235, 0.07) !important;
+  }
+
+  :root:not(.dark) .mmo-board .ghost-button,
+  :root:not(.dark) .mmo-app-shell .ghost-button {
+    border-color: rgba(37, 99, 235, 0.14);
+    background: rgba(255, 255, 255, 0.74);
+    color: rgba(51, 65, 85, 0.9);
+  }
+
+  :root:not(.dark) .mmo-board .ghost-button:hover,
+  :root:not(.dark) .mmo-app-shell .ghost-button:hover {
+    border-color: rgba(37, 99, 235, 0.26);
+    background: rgba(37, 99, 235, 0.1);
+    color: #1d4ed8;
+  }
+
+  :root:not(.dark) .mmo-app-shell .dashboard-hero,
+  :root:not(.dark) .mmo-app-shell .dashboard-metric,
+  :root:not(.dark) .mmo-app-shell .dashboard-quick-strip,
+  :root:not(.dark) .mmo-app-shell .dashboard-service-card {
+    border-color: rgba(37, 99, 235, 0.14);
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .mmo-app-shell .dashboard-hero {
+    background:
+      radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 30%),
+      radial-gradient(circle at bottom right, rgba(20, 184, 166, 0.08), transparent 24%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.92));
+    box-shadow: 0 34px 90px -58px rgba(37, 99, 235, 0.24);
+  }
+
+  :root:not(.dark) .mmo-app-shell .dashboard-metric,
+  :root:not(.dark) .mmo-app-shell .dashboard-quick-strip,
+  :root:not(.dark) .mmo-app-shell .dashboard-service-card {
+    background:
+      radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 255, 0.86));
+    box-shadow: 0 28px 80px -58px rgba(37, 99, 235, 0.22);
+  }
+
+  :root:not(.dark) .mmo-app-shell .service-tilt-status {
+    border-color: rgba(37, 99, 235, 0.13);
+    background: rgba(255, 255, 255, 0.78);
+    color: rgba(51, 65, 85, 0.78);
+  }
+
+  :root:not(.dark) .mmo-app-shell .service-tilt-number {
+    color: rgba(15, 23, 42, 0.08);
+    text-shadow: 0 18px 30px rgba(37, 99, 235, 0.12);
+  }
+
+  :root:not(.dark) .mmo-board ::selection,
+  :root:not(.dark) .mmo-app-shell ::selection {
+    background: rgba(37, 99, 235, 0.18);
+    color: #0f172a;
+  }
+}
+
+@layer utilities {
+  :root:not(.dark) .mmo-board:not(.landing-mmo-shell),
+  :root:not(.dark) .mmo-board:not(.landing-mmo-shell) .mmo-board-page,
+  :root:not(.dark) .auth-bg {
+    color-scheme: light;
+  }
+
+  .dark .mmo-board,
+  .dark .mmo-app-shell.site-shell,
+  .dark .auth-bg,
+  .dark .landing-mmo-shell {
+    color-scheme: dark;
+  }
+
+  :root:not(.dark) .mmo-app-shell .page-stack::before,
+  :root:not(.dark) .mmo-board .page-stack::before {
+    background:
+      radial-gradient(circle at 18% 8%, rgba(37, 99, 235, 0.08), transparent 26%),
+      linear-gradient(180deg, rgba(37, 99, 235, 0.08), transparent 84%);
+  }
+
+  :root:not(.dark) .mmo-board .mmo-edge-card,
+  :root:not(.dark) .mmo-app-shell .mmo-edge-card {
+    border-color: rgba(37, 99, 235, 0.16);
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 16% 10%, rgba(37, 99, 235, 0.12), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 255, 0.92));
+    background-size: 34px 34px, 34px 34px, auto, auto;
+    color: #0f172a;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.86),
+      0 34px 100px -64px rgba(37, 99, 235, 0.34);
+  }
+
+  :root:not(.dark) .mmo-board .mmo-edge-page-header,
+  :root:not(.dark) .mmo-app-shell .mmo-edge-page-header {
+    border-color: rgba(37, 99, 235, 0.16);
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 12% 8%, rgba(37, 99, 235, 0.12), transparent 32%),
+      radial-gradient(circle at 92% 16%, rgba(20, 184, 166, 0.08), transparent 26%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 255, 0.9));
+    background-size: 34px 34px, 34px 34px, auto, auto, auto;
+    color: #0f172a;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.84),
+      0 34px 100px -64px rgba(37, 99, 235, 0.34);
+  }
+
+  :root:not(.dark) .mmo-board .mmo-edge-card::before,
+  :root:not(.dark) .mmo-app-shell .mmo-edge-card::before {
+    background-image:
+      linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+  }
+
+  :root:not(.dark) .mmo-board .mmo-edge-card .text-white,
+  :root:not(.dark) .mmo-app-shell .mmo-edge-card .text-white,
+  :root:not(.dark) .mmo-app-shell .mmo-activity-panel .text-white,
+  :root:not(.dark) .mmo-app-shell .mmo-activity-row .text-white,
+  :root:not(.dark) .mmo-board .surface-card .text-white,
+  :root:not(.dark) .mmo-board .surface-panel .text-white,
+  :root:not(.dark) .mmo-board .surface-panel-strong .text-white,
+  :root:not(.dark) .mmo-app-shell .surface-card .text-white,
+  :root:not(.dark) .mmo-app-shell .surface-panel .text-white,
+  :root:not(.dark) .mmo-app-shell .surface-panel-strong .text-white {
+    color: #0f172a !important;
+  }
+
+  :root:not(.dark) .mmo-board .text-slate-300,
+  :root:not(.dark) .mmo-board .text-slate-400,
+  :root:not(.dark) .mmo-app-shell .text-slate-300,
+  :root:not(.dark) .mmo-app-shell .text-slate-400 {
+    color: rgba(71, 85, 105, 0.82);
+  }
+
+  :root:not(.dark) .mmo-app-shell .mmo-activity-panel,
+  :root:not(.dark) .mmo-board .mmo-activity-panel {
+    border-color: rgba(37, 99, 235, 0.14);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.1), transparent 42%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(241, 247, 255, 0.86));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      0 22px 58px -46px rgba(37, 99, 235, 0.28);
+  }
+
+  :root:not(.dark) .mmo-app-shell .mmo-activity-row,
+  :root:not(.dark) .mmo-board .mmo-activity-row {
+    border-color: rgba(37, 99, 235, 0.1);
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  :root:not(.dark) .mmo-app-shell .mmo-eyebrow,
+  :root:not(.dark) .mmo-board .mmo-eyebrow {
+    color: rgba(37, 99, 235, 0.76);
+  }
+
+  :root:not(.dark) .mmo-board .rounded-\[1\.7rem\].bg-\[\#04101f\]\/80,
+  :root:not(.dark) .mmo-board .rounded-full.bg-\[\#04101f\]\/80 {
+    border: 1px solid rgba(37, 99, 235, 0.14);
+    background: rgba(239, 246, 255, 0.86) !important;
+    color: #0f172a !important;
+  }
+
+  :root:not(.dark) .mmo-board .bg-\[\#06162a\]\/78,
+  :root:not(.dark) .mmo-board .bg-\[\#04101f\]\/80,
+  :root:not(.dark) .mmo-board .bg-\[\#050914\]\/70,
+  :root:not(.dark) .mmo-board .bg-\[\#030712\] {
+    background-color: rgba(255, 255, 255, 0.86) !important;
+    color: #0f172a !important;
+  }
+
+  :root:not(.dark) .mmo-board .border-sky-400\/20,
+  :root:not(.dark) .mmo-app-shell .border-sky-400\/20 {
+    border-color: rgba(37, 99, 235, 0.18) !important;
+  }
+
+  :root:not(.dark) .mmo-board .service-tilt-shadow {
+    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.16), transparent 72%);
+    opacity: 0.6;
+  }
+
+  :root:not(.dark) .mmo-board .service-tilt-grid,
+  :root:not(.dark) .mmo-app-shell .service-tilt-grid {
+    background-image:
+      linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.045) 1px, transparent 1px);
+    opacity: 0.34;
+  }
+
+  :root:not(.dark) .mmo-board .route-loader-shell,
+  :root:not(.dark) .mmo-app-shell .route-loader-shell {
+    border-color: rgba(37, 99, 235, 0.16);
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 255, 0.92));
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .auth-header-shell {
+    border-color: rgba(37, 99, 235, 0.14) !important;
+    background:
+      radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent 28%),
+      rgba(255, 255, 255, 0.86) !important;
+    box-shadow: 0 24px 60px -46px rgba(37, 99, 235, 0.3) !important;
+  }
+
+  :root:not(.dark) .auth-slider-shell {
+    border-color: rgba(37, 99, 235, 0.12);
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.1), transparent 26%),
+      radial-gradient(circle at 100% 100%, rgba(20, 184, 166, 0.08), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(241, 247, 255, 0.92));
+    background-size: 34px 34px, 34px 34px, auto, auto, auto;
+    color: #0f172a;
+    box-shadow: 0 34px 90px -60px rgba(37, 99, 235, 0.26);
+  }
+
+  :root:not(.dark) .auth-slider-title {
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .auth-slider-copy,
+  :root:not(.dark) .auth-terms-row,
+  :root:not(.dark) .auth-remember-row,
+  :root:not(.dark) .auth-inline-link {
+    color: rgba(51, 65, 85, 0.86);
+  }
+
+  :root:not(.dark) .auth-slider-kicker,
+  :root:not(.dark) .auth-signal-chip,
+  :root:not(.dark) .auth-slider-note-soft,
+  :root:not(.dark) .auth-mobile-switch {
+    border-color: rgba(37, 99, 235, 0.12);
+    background: rgba(255, 255, 255, 0.78);
+    color: rgba(51, 65, 85, 0.82);
+  }
+
+  :root:not(.dark) .auth-overlay {
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+      radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.26), transparent 26%),
+      radial-gradient(circle at 84% 76%, rgba(191, 219, 254, 0.3), transparent 24%),
+      linear-gradient(145deg, #2563eb 0%, #4f7cff 48%, #38bdf8 100%);
+    background-size: 34px 34px, 34px 34px, auto, auto, auto;
+  }
+
+  :root:not(.dark) .input-shell,
+  :root:not(.dark) .field-elevated {
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .telegram-entry-overlay {
+    background:
+      radial-gradient(circle at 50% 34%, rgba(37, 99, 235, 0.18), transparent 38%),
+      linear-gradient(180deg, rgba(248, 251, 255, 0.72), rgba(226, 236, 251, 0.82));
+  }
+
+  :root:not(.dark) .telegram-entry-card {
+    border-color: rgba(37, 99, 235, 0.18);
+    background:
+      linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 16% 0%, rgba(37, 99, 235, 0.14), transparent 34%),
+      radial-gradient(circle at 88% 100%, rgba(20, 184, 166, 0.1), transparent 38%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 247, 255, 0.96));
+    background-size: 30px 30px, 30px 30px, auto, auto, auto;
+    color: #0f172a;
+    box-shadow:
+      0 40px 120px -58px rgba(37, 99, 235, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  :root:not(.dark) .telegram-entry-title {
+    color: #0f172a;
+  }
+
+  :root:not(.dark) .telegram-entry-description,
+  :root:not(.dark) .telegram-entry-secondary {
+    color: rgba(51, 65, 85, 0.84);
+  }
+
+  :root:not(.dark) .telegram-entry-close {
+    border-color: rgba(37, 99, 235, 0.14);
+    background: rgba(255, 255, 255, 0.7);
+    color: rgba(51, 65, 85, 0.78);
+  }
+
+  :root:not(.dark) .telegram-entry-secondary {
+    border-color: rgba(37, 99, 235, 0.14);
+    background: rgba(255, 255, 255, 0.74);
   }
 }

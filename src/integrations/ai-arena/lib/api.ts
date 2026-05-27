@@ -145,6 +145,29 @@ export const loginAdminAi = (payload: AuthPayload) =>
     body: JSON.stringify(payload)
   });
 
+export const loginWithMainSiteSession = () =>
+  fetch("/api/integrations/ai/session", {
+    method: "GET",
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: {
+      Accept: "application/json"
+    }
+  }).then(async (response) => {
+    const payload = await response.json().catch(() => null) as
+      | (AuthResponse & { success?: boolean; message?: string })
+      | null;
+
+    if (!response.ok || !payload?.success || !payload.token || !payload.user) {
+      throw new Error(payload?.message || "Không thể đồng bộ phiên AI từ tài khoản web.");
+    }
+
+    return {
+      token: payload.token,
+      user: payload.user
+    } satisfies AuthResponse;
+  });
+
 export const logoutAi = () =>
   request<{ ok: boolean; message: string }>("/api/auth/logout", {
     method: "POST"

@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/about', '/privacy', '/terms'],
+        allow: ['/', '/about', '/api', '/privacy', '/terms', '/services/', '/vps', '/vps/gioi-thieu', '/vps/services'],
         disallow: ['/admin/', '/auth/', '/user/', '/api/'],
       },
     ],
@@ -14,4 +14,3 @@ export default function robots(): MetadataRoute.Robots {
     host: siteUrl,
   };
 }
-

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     if (!usesGameWalletResource(resource) && isResourcesContactAdminMode(await getLegacySettingsMap())) {
       return NextResponse.json(
-        { success: false, message: 'Đặt mua tài nguyên liền tay – Liên hệ ngay Zalo Admin. Tiền sẽ được trừ trực tiếp từ ví game sau khi admin xác nhận.' },
+        { success: false, message: 'Đặt mua tài nguyên liền tay - Liên hệ qua Telegram. Tiền sẽ được trừ trực tiếp từ ví game sau khi admin xác nhận.' },
         { status: 403 }
       );
     }
