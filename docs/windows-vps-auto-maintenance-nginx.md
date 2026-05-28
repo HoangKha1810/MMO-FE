@@ -63,7 +63,14 @@ deploy\windows-nginx-maintenance.conf
 
 vào `nginx.conf`.
 
-Nếu bạn đang có cấu hình SSL/HTTPS riêng, không xóa phần SSL đó; chỉ copy phần `upstream trungtammmo_nextjs` và logic `location /`, `error_page`, `maintenance.flag` vào server block hiện tại.
+File này đã được merge theo config cũ bạn gửi, gồm:
+
+- `trungtammmo.vn` và `www.trungtammmo.vn`
+- redirect `trungtammmo.com` và `www.trungtammmo.com` về `.vn`
+- SSL path `C:\nginx\ssl\trungtammmo.vn\...`
+- proxy Next.js sang `127.0.0.1:3000`
+- fallback maintenance khi Next.js tắt
+- bật/tắt maintenance thủ công bằng `maintenance.flag`
 
 ## 3. Test và reload Nginx
 
@@ -80,6 +87,18 @@ Nếu Nginx chưa chạy:
 ```powershell
 cd C:\nginx
 .\nginx.exe
+```
+
+Kiểm tra file maintenance có đọc được không:
+
+```text
+https://trungtammmo.vn/maintenance-static.html
+```
+
+Nếu URL này còn hiện `503 Service Temporarily Unavailable`, nghĩa là file chưa nằm đúng chỗ. Kiểm tra lại phải có file:
+
+```text
+C:\nginx\html\maintenance\maintenance-static.html
 ```
 
 ## 4. Chạy website chính
@@ -123,6 +142,4 @@ C:\nginx\nginx.exe -s reload
 
 ## 8. Lưu ý về HTTPS
 
-File mẫu `deploy/windows-nginx-maintenance.conf` chỉ cấu hình port `80` để dễ setup.
-
-Nếu domain của bạn đang dùng HTTPS ở Nginx, cần áp dụng cùng logic maintenance vào server block `listen 443 ssl` nữa. Nếu chỉ cấu hình port `80`, người vào `https://trungtammmo.vn` có thể không thấy maintenance.
+File `deploy/windows-nginx-maintenance.conf` đã có sẵn block `listen 443 ssl` cho domain chính, nên `https://trungtammmo.vn` cũng sẽ hiện maintenance khi app Next.js tắt.
