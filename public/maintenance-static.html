@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>TRUNGTAMMMO.VN đang bảo trì</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #030812;
+        --panel: rgba(7, 18, 34, 0.88);
+        --panel-strong: rgba(9, 25, 45, 0.96);
+        --line: rgba(80, 166, 255, 0.24);
+        --line-strong: rgba(80, 166, 255, 0.46);
+        --blue: #1477ff;
+        --cyan: #22d3ee;
+        --green: #22c55e;
+        --amber: #f59e0b;
+        --red: #ef4444;
+        --text: #f8fbff;
+        --muted: #94a3b8;
+        --soft: #c7d2fe;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow-x: hidden;
+        background:
+          radial-gradient(circle at 16% 16%, rgba(20, 119, 255, 0.28), transparent 30rem),
+          radial-gradient(circle at 86% 10%, rgba(34, 211, 238, 0.16), transparent 25rem),
+          linear-gradient(135deg, #020712 0%, #06111f 46%, #02040b 100%);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body::before {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        content: "";
+        background-image:
+          linear-gradient(rgba(80, 166, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(80, 166, 255, 0.08) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: linear-gradient(to bottom, black, transparent 86%);
+      }
+
+      body::after {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        content: "";
+        background:
+          linear-gradient(180deg, rgba(3, 8, 18, 0) 0%, rgba(3, 8, 18, 0.74) 78%),
+          repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px);
+        pointer-events: none;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .page {
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 28px;
+      }
+
+      .shell {
+        width: min(1180px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
+          rgba(3, 10, 22, 0.86);
+        box-shadow: 0 30px 120px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        border-bottom: 1px solid var(--line);
+        padding: 18px 22px;
+        background: rgba(4, 14, 28, 0.72);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .logo {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        border: 1px solid rgba(34, 211, 238, 0.42);
+        border-radius: 16px;
+        background: linear-gradient(135deg, #0ea5e9, #1d4ed8 60%, #111827);
+        box-shadow: 0 0 36px rgba(20, 119, 255, 0.46);
+        font-size: 28px;
+        font-weight: 950;
+        letter-spacing: -0.08em;
+      }
+
+      .brand-title {
+        margin: 0;
+        font-size: clamp(18px, 2.1vw, 24px);
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .brand-title span {
+        color: #38bdf8;
+      }
+
+      .brand-subtitle {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(245, 158, 11, 0.42);
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.12);
+        padding: 9px 13px;
+        color: #fde68a;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .pulse {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--amber);
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.62);
+        animation: pulse 1.8s infinite;
+      }
+
+      .content {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 22px;
+        padding: 22px;
+      }
+
+      .hero,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.016)),
+          var(--panel);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        min-height: 520px;
+        padding: clamp(24px, 4vw, 48px);
+      }
+
+      .hero::before {
+        position: absolute;
+        inset: auto -18% -34% 22%;
+        height: 310px;
+        content: "";
+        background: radial-gradient(circle, rgba(20, 119, 255, 0.4), transparent 68%);
+        filter: blur(10px);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid rgba(34, 211, 238, 0.28);
+        border-radius: 999px;
+        background: rgba(34, 211, 238, 0.08);
+        padding: 8px 12px;
+        color: #7dd3fc;
+        font-size: 12px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 28px 0 0;
+        font-size: clamp(38px, 7vw, 76px);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+
+      .lead {
+        max-width: 720px;
+        margin: 24px 0 0;
+        color: #cbd5e1;
+        font-size: clamp(16px, 2vw, 19px);
+        font-weight: 650;
+        line-height: 1.8;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 30px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 13px 18px;
+        font-size: 13px;
+        font-weight: 950;
+        text-transform: uppercase;
+        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(125, 211, 252, 0.5);
+      }
+
+      .button-primary {
+        background: linear-gradient(135deg, #2563eb, #0ea5e9);
+        box-shadow: 0 18px 42px rgba(37, 99, 235, 0.34);
+      }
+
+      .button-secondary {
+        background: rgba(255, 255, 255, 0.06);
+        color: #dbeafe;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 34px;
+      }
+
+      .metric {
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 16px;
+        background: rgba(2, 8, 19, 0.55);
+        padding: 14px;
+      }
+
+      .metric-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .metric-value {
+        margin-top: 8px;
+        font-size: 19px;
+        font-weight: 950;
+      }
+
+      .right-column {
+        display: grid;
+        gap: 16px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .panel-title h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 950;
+      }
+
+      .tiny {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.035);
+        padding: 11px;
+      }
+
+      .step-icon {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 12px;
+        background: rgba(20, 119, 255, 0.14);
+        color: #7dd3fc;
+        font-size: 15px;
+        font-weight: 950;
+      }
+
+      .step strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .step span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .tag {
+        border-radius: 999px;
+        padding: 6px 9px;
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .tag-blue {
+        background: rgba(20, 119, 255, 0.14);
+        color: #93c5fd;
+      }
+
+      .tag-green {
+        background: rgba(34, 197, 94, 0.14);
+        color: #86efac;
+      }
+
+      .tag-amber {
+        background: rgba(245, 158, 11, 0.14);
+        color: #fcd34d;
+      }
+
+      .notice {
+        border-color: rgba(34, 197, 94, 0.22);
+        background:
+          linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(20, 119, 255, 0.05)),
+          var(--panel-strong);
+      }
+
+      .notice-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 12px;
+        margin-top: 12px;
+      }
+
+      .big-number {
+        color: #86efac;
+        font-size: 26px;
+        font-weight: 950;
+      }
+
+      .footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 1px solid var(--line);
+        padding: 16px 22px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .footer strong {
+        color: var(--soft);
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.62);
+        }
+
+        70% {
+          box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+        }
+
+        100% {
+          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .content {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          min-height: auto;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          padding: 12px;
+        }
+
+        .shell {
+          border-radius: 20px;
+        }
+
+        .topbar,
+        .footer {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .content {
+          padding: 12px;
+        }
+
+        .hero,
+        .panel {
+          border-radius: 18px;
+        }
+
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .step {
+          grid-template-columns: 34px 1fr;
+        }
+
+        .step .tag {
+          grid-column: 2;
+          width: fit-content;
+        }
+
+        .button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="shell" aria-labelledby="maintenance-title">
+        <header class="topbar">
+          <div class="brand">
+            <div class="logo" aria-hidden="true">T</div>
+            <div>
+              <p class="brand-title">TRUNGTAM<span>MMO</span>.VN</p>
+              <p class="brand-subtitle">Nền tảng MMO & dịch vụ số uy tín hàng đầu Việt Nam</p>
+            </div>
+          </div>
+          <div class="status-pill"><span class="pulse"></span> Đang bảo trì hệ thống</div>
+        </header>
+
+        <div class="content">
+          <article class="hero">
+            <div class="eyebrow">System maintenance</div>
+            <h1 id="maintenance-title">Website đang nâng cấp</h1>
+            <p class="lead">
+              TRUNGTAMMMO.VN đang bảo trì để tối ưu tốc độ, bảo mật và trải nghiệm đặt dịch vụ.
+              Các giao dịch đang xử lý vẫn được bảo toàn. Vui lòng quay lại sau ít phút.
+            </p>
+
+            <div class="actions">
+              <a class="button button-primary" href="https://t.me/TRUNGTAMMMOVN" target="_blank" rel="noreferrer">Liên hệ Telegram</a>
+              <a class="button button-secondary" href="https://zalo.me/g/lbexoh608" target="_blank" rel="noreferrer">Nhóm Zalo hỗ trợ</a>
+            </div>
+
+            <div class="hero-grid" aria-label="Thông tin bảo trì">
+              <div class="metric">
+                <div class="metric-label">Trạng thái</div>
+                <div class="metric-value" style="color: #fcd34d;">Bảo trì</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Dữ liệu</div>
+                <div class="metric-value" style="color: #86efac;">An toàn</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Hỗ trợ</div>
+                <div class="metric-value" style="color: #7dd3fc;">24/7</div>
+              </div>
+            </div>
+          </article>
+
+          <aside class="right-column" aria-label="Chi tiết bảo trì">
+            <section class="panel notice">
+              <div class="panel-title">
+                <h2>Thời gian dự kiến</h2>
+                <span class="tag tag-green">Online soon</span>
+              </div>
+              <p class="tiny">Nếu thời gian bảo trì kéo dài hơn dự kiến, đội ngũ sẽ cập nhật tại Telegram.</p>
+              <div class="notice-row">
+                <span class="tiny">Ước tính hoàn tất</span>
+                <span class="big-number">30-60 phút</span>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h2>Tiến trình hệ thống</h2>
+                <span class="tiny">Live status</span>
+              </div>
+              <div class="timeline">
+                <div class="step">
+                  <div class="step-icon">1</div>
+                  <div>
+                    <strong>Sao lưu dữ liệu</strong>
+                    <span>Kiểm tra đơn hàng, ví và lịch sử giao dịch</span>
+                  </div>
+                  <span class="tag tag-green">Xong</span>
+                </div>
+                <div class="step">
+                  <div class="step-icon">2</div>
+                  <div>
+                    <strong>Nâng cấp website</strong>
+                    <span>Tối ưu giao diện, tốc độ và bảo mật</span>
+                  </div>
+                  <span class="tag tag-amber">Đang chạy</span>
+                </div>
+                <div class="step">
+                  <div class="step-icon">3</div>
+                  <div>
+                    <strong>Mở lại truy cập</strong>
+                    <span>Kiểm tra lần cuối trước khi online</span>
+                  </div>
+                  <span class="tag tag-blue">Sắp tới</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h2>Cần hỗ trợ gấp?</h2>
+                <span class="tag tag-blue">Support</span>
+              </div>
+              <p class="tiny">
+                Liên hệ Telegram để được kiểm tra đơn hàng, nạp tiền hoặc dịch vụ đang chạy trong thời gian bảo trì.
+              </p>
+            </section>
+          </aside>
+        </div>
+
+        <footer class="footer">
+          <span>© TRUNGTAMMMO.VN - Bảo trì hệ thống</span>
+          <span>Telegram: <strong>@TRUNGTAMMMOVN</strong></span>
+        </footer>
+      </section>
+    </main>
+  </body>
+</html>

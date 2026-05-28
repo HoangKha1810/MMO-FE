@@ -1,0 +1,128 @@
+# Windows VPS: tự hiện maintenance khi tắt `npm run start`
+
+VPS trong ảnh là Windows và đang có Nginx tại:
+
+```powershell
+C:\nginx
+```
+
+Cơ chế đúng:
+
+- Nginx chạy cố định ở port `80`.
+- Website Next.js chạy bằng `npm run start` ở `127.0.0.1:3000`.
+- Khi Next.js còn chạy, Nginx chuyển request vào Next.js.
+- Khi bạn tắt cửa sổ `npm run start`, Nginx không kết nối được `127.0.0.1:3000` nên tự hiện trang bảo trì.
+- Muốn ép bảo trì thủ công, tạo file `maintenance.flag`.
+
+## File đã chuẩn bị trong project
+
+```text
+public/maintenance-static.html
+deploy/windows-nginx-maintenance.conf
+```
+
+## 1. Copy trang maintenance vào Nginx
+
+Trên Windows VPS, tạo thư mục:
+
+```powershell
+New-Item -ItemType Directory -Force C:\nginx\html\maintenance
+```
+
+Copy file:
+
+```text
+public\maintenance-static.html
+```
+
+vào:
+
+```text
+C:\nginx\html\maintenance\maintenance-static.html
+```
+
+## 2. Cấu hình Nginx
+
+Backup file cũ trước:
+
+```powershell
+Copy-Item C:\nginx\conf\nginx.conf C:\nginx\conf\nginx.conf.bak
+```
+
+Mở file:
+
+```text
+C:\nginx\conf\nginx.conf
+```
+
+Dán nội dung từ file:
+
+```text
+deploy\windows-nginx-maintenance.conf
+```
+
+vào `nginx.conf`.
+
+Nếu bạn đang có cấu hình SSL/HTTPS riêng, không xóa phần SSL đó; chỉ copy phần `upstream trungtammmo_nextjs` và logic `location /`, `error_page`, `maintenance.flag` vào server block hiện tại.
+
+## 3. Test và reload Nginx
+
+Chạy PowerShell bằng Administrator:
+
+```powershell
+cd C:\nginx
+.\nginx.exe -t
+.\nginx.exe -s reload
+```
+
+Nếu Nginx chưa chạy:
+
+```powershell
+cd C:\nginx
+.\nginx.exe
+```
+
+## 4. Chạy website chính
+
+Trong thư mục web Next.js:
+
+```powershell
+npm run build
+npm run start
+```
+
+Khi `npm run start` đang chạy, truy cập domain sẽ vào web chính.
+
+## 5. Test tự hiện maintenance
+
+Tắt cửa sổ `npm run start` hoặc dừng process Node.
+
+Sau đó mở:
+
+```text
+http://trungtammmo.vn
+```
+
+Nginx sẽ tự hiện trang maintenance.
+
+## 6. Bật maintenance thủ công
+
+Dùng khi web vẫn chạy nhưng bạn muốn chặn người dùng vào web chính:
+
+```powershell
+New-Item C:\nginx\html\maintenance\maintenance.flag -ItemType File -Force
+C:\nginx\nginx.exe -s reload
+```
+
+## 7. Tắt maintenance thủ công
+
+```powershell
+Remove-Item C:\nginx\html\maintenance\maintenance.flag -Force
+C:\nginx\nginx.exe -s reload
+```
+
+## 8. Lưu ý về HTTPS
+
+File mẫu `deploy/windows-nginx-maintenance.conf` chỉ cấu hình port `80` để dễ setup.
+
+Nếu domain của bạn đang dùng HTTPS ở Nginx, cần áp dụng cùng logic maintenance vào server block `listen 443 ssl` nữa. Nếu chỉ cấu hình port `80`, người vào `https://trungtammmo.vn` có thể không thấy maintenance.
