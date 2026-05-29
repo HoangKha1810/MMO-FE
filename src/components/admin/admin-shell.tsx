@@ -108,7 +108,8 @@ const adminNavSections: NavSection[] = [
     accent: 'blue',
     items: [
       { href: '/admin/automxh/categories', label: 'Danh mục Auto MXH', icon: FolderOpen },
-      { href: '/admin/automxh/products', label: 'Dịch vụ Auto MXH', icon: ListVideo },
+      { href: '/admin/automxh/products', label: 'Dịch vụ cha / tab', icon: ListVideo },
+      { href: '/admin/automxh/variants', label: 'Máy chủ dịch vụ', icon: Layers },
       { href: '/admin/automxh/orders', label: 'Quản Lý Đơn Hàng Auto MXH', icon: ShoppingCart },
     ],
   },

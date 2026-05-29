@@ -99,7 +99,7 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
   'Auto MXH categories': 'Danh mục Auto MXH',
   'Auto MXH products': 'Dịch vụ con Auto MXH',
   'Auto MXH orders': 'Đơn Auto MXH',
-  'Auto MXH variants': 'Biến thể Auto MXH',
+  'Auto MXH variants': 'Máy chủ dịch vụ Auto MXH',
   'Support TikTok orders': 'Đơn Support TikTok',
   'Support TikTok menus': 'Menu Support TikTok',
   'Support TikTok region services': 'Dịch vụ theo khu vực',
@@ -215,7 +215,7 @@ const COLUMN_LABELS: Record<string, string> = {
   buyer_name: 'Người mua',
   buyer_contact: 'Liên hệ mua',
   region: 'Khu vực',
-  product_id: 'Sản phẩm ID',
+  product_id: 'Dịch vụ cha',
   variant_id: 'Biến thể ID',
   resource_id: 'Tài nguyên ID',
   forum_id: 'Forum ID',
@@ -316,7 +316,17 @@ const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
     custom_inputs: 'Cấu hình nhiều ô nhập',
   },
   'automxh-variants': {
+    product_id: 'Dịch vụ cha',
+    name: 'Tên máy chủ / gói con',
     description: 'Note vàng trên trang đặt hàng',
+    quantity: 'Số lượng mặc định',
+    price: 'Giá bán',
+    cost: 'Giá vốn',
+    original_price: 'Giá gốc',
+    badge: 'Nhãn badge',
+    type: 'Loại máy chủ',
+    allow_avatar: 'Cho upload avatar',
+    allow_files: 'Cho upload file',
   },
 };
 const STATUS_LABELS: Record<string, string> = {
@@ -499,6 +509,11 @@ function resolveDisplayValue(row: Record<string, unknown>, column: string) {
   if (column === 'category_id') {
     const categoryPath = String(row.category_path || row.category_name || '').trim();
     if (categoryPath) return categoryPath;
+  }
+
+  if (column === 'product_id') {
+    const productPath = String(row.product_path || row.product_name || '').trim();
+    if (productPath) return productPath;
   }
 
   if (column === 'parent_id') {
@@ -1010,6 +1025,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   const [perPage, setPerPage] = useState(isLegacySmmServices ? 10 : 25);
   const [providerFilter, setProviderFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [productFilter, setProductFilter] = useState('');
   const [pageInput, setPageInput] = useState('1');
   const [loading, setLoading] = useState(true);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
@@ -1051,6 +1067,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       statusValue?: string;
       providerValue?: string;
       categoryValue?: string;
+      productValue?: string;
     }
   ) {
     if (options?.silent) {
@@ -1067,11 +1084,14 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     const activeStatus = options?.statusValue ?? status;
     const activeProvider = options?.providerValue ?? providerFilter;
     const activeCategory = options?.categoryValue ?? categoryFilter;
+    const activeProduct = options?.productValue ?? productFilter;
     if (activeSearch) params.set('search', activeSearch);
     if (activeStatus) params.set('status', activeStatus);
     if (isLegacySmmServices && activeProvider) params.set('provider_id', activeProvider);
     if (isLegacySmmServices && activeCategory) params.set('category', activeCategory);
     if (section.resource === 'automxh-products' && activeCategory) params.set('category_id', activeCategory);
+    if (section.resource === 'automxh-variants' && activeCategory) params.set('category_id', activeCategory);
+    if (section.resource === 'automxh-variants' && activeProduct) params.set('product_id', activeProduct);
 
     try {
       const response = await fetch(`/api/admin/${section.resource}?${params.toString()}`, { cache: 'no-store' });
@@ -1113,7 +1133,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     }, 20000);
 
     return () => window.clearInterval(timer);
-  }, [section.resource, status, search, providerFilter, categoryFilter, editor, pagination?.page, perPage]);
+  }, [section.resource, status, search, providerFilter, categoryFilter, productFilter, editor, pagination?.page, perPage]);
 
   useEffect(() => {
     setPageInput(String(page));
@@ -1168,7 +1188,28 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       })
       .filter(Boolean) as Array<{ value: string; label: string }>;
   }, [meta.category_options]);
-  const shouldShowAutoMxhCategoryFilter = section.resource === 'automxh-products' && autoMxhCategoryOptions.length > 0;
+  const autoMxhProductOptions = useMemo(() => {
+    if (!Array.isArray(meta.product_options)) return [];
+    return meta.product_options
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const option = item as Record<string, unknown>;
+        const value = String(option.value || '').trim();
+        if (!value) return null;
+        return {
+          value,
+          label: String(option.label || `Dịch vụ #${value}`),
+          categoryId: String(option.category_id || '').trim(),
+        };
+      })
+      .filter(Boolean) as Array<{ value: string; label: string; categoryId: string }>;
+  }, [meta.product_options]);
+  const filteredAutoMxhProductOptions = useMemo(() => {
+    if (!categoryFilter) return autoMxhProductOptions;
+    return autoMxhProductOptions.filter((option) => option.categoryId === categoryFilter);
+  }, [autoMxhProductOptions, categoryFilter]);
+  const shouldShowAutoMxhCategoryFilter = (section.resource === 'automxh-products' || section.resource === 'automxh-variants') && autoMxhCategoryOptions.length > 0;
+  const shouldShowAutoMxhProductFilter = section.resource === 'automxh-variants' && autoMxhProductOptions.length > 0;
 
   function toggleSelected(id: number) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -1226,6 +1267,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     setStatus('');
     setProviderFilter('');
     setCategoryFilter('');
+    setProductFilter('');
     setSelected([]);
     setPageInput('1');
     setPerPage(defaultPageSize);
@@ -1235,6 +1277,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       statusValue: '',
       providerValue: '',
       categoryValue: '',
+      productValue: '',
     });
   }
 
@@ -1284,6 +1327,9 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       const values = hydrateEditorValues(section.resource, createFields);
       if (section.resource === 'automxh-products' && !values.category_id) {
         values.category_id = categoryFilter || autoMxhCategoryOptions[0]?.value || '';
+      }
+      if (section.resource === 'automxh-variants' && !values.product_id) {
+        values.product_id = productFilter || filteredAutoMxhProductOptions[0]?.value || autoMxhProductOptions[0]?.value || '';
       }
 
       setEditor({
@@ -2462,8 +2508,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
             <form
               className={cn(
                 'grid gap-4',
-                shouldShowAutoMxhCategoryFilter
-                  ? 'xl:grid-cols-[minmax(0,1fr)_220px_180px_220px_auto]'
+                shouldShowAutoMxhProductFilter
+                  ? 'xl:grid-cols-[minmax(0,1fr)_220px_260px_180px_220px_auto]'
+                  : shouldShowAutoMxhCategoryFilter
+                    ? 'xl:grid-cols-[minmax(0,1fr)_220px_180px_220px_auto]'
                   : 'xl:grid-cols-[minmax(0,1fr)_180px_220px_auto]'
               )}
               onSubmit={(event) => {
@@ -2486,13 +2534,35 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                   onChange={(event) => {
                     const nextCategory = event.target.value;
                     setCategoryFilter(nextCategory);
+                    if (shouldShowAutoMxhProductFilter) {
+                      setProductFilter('');
+                    }
                     setSelected([]);
-                    void loadData(1, { categoryValue: nextCategory });
+                    void loadData(1, { categoryValue: nextCategory, productValue: shouldShowAutoMxhProductFilter ? '' : productFilter });
                   }}
                   className="field-elevated h-11 rounded-[1rem] px-4 text-sm font-bold text-slate-700 outline-none dark:text-white"
                 >
                   <option value="">Tất cả mục cha</option>
                   {autoMxhCategoryOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {shouldShowAutoMxhProductFilter ? (
+                <select
+                  value={productFilter}
+                  onChange={(event) => {
+                    const nextProduct = event.target.value;
+                    setProductFilter(nextProduct);
+                    setSelected([]);
+                    void loadData(1, { productValue: nextProduct });
+                  }}
+                  className="field-elevated h-11 rounded-[1rem] px-4 text-sm font-bold text-slate-700 outline-none dark:text-white"
+                >
+                  <option value="">Tất cả dịch vụ cha</option>
+                  {filteredAutoMxhProductOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -2841,6 +2911,32 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                         Dịch vụ con sẽ hiện thành nút tab trong mục cha này trên trang đặt hàng.
                       </p>
                     </>
+                  ) : section.resource === 'automxh-variants' && field === 'product_id' && autoMxhProductOptions.length > 0 ? (
+                    <>
+                      <select
+                        value={String(fieldValue ?? '')}
+                        onChange={(event) => setEditor((current) => current ? {
+                          ...current,
+                          values: { ...current.values, [field]: event.target.value },
+                        } : current)}
+                        className={cn(
+                          'w-full px-3 py-2 text-sm font-bold outline-none transition-all',
+                          isLegacyAutoMxhOrders
+                            ? 'rounded-[1rem] border border-white/8 bg-[#232323] text-white'
+                            : 'rounded-[9px] border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111] dark:text-white'
+                        )}
+                      >
+                        <option value="">Chọn dịch vụ cha</option>
+                        {autoMxhProductOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="rounded-[10px] border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:text-sky-200">
+                        Máy chủ/gói con này sẽ nằm trong phần “Chọn máy chủ dịch vụ” của dịch vụ cha đang chọn.
+                      </p>
+                    </>
                   ) : field === 'status' && section.statusOptions?.length ? (
                     <select
                       value={String(fieldValue ?? '')}
@@ -2921,6 +3017,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       {section.resource === 'automxh-products' && field === 'name' ? (
                         <p className="rounded-[10px] border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:text-sky-200">
                           Tên này sẽ hiện ở nút tab phía trên form đặt hàng, ví dụ "Mở khóa basic".
+                        </p>
+                      ) : section.resource === 'automxh-variants' && field === 'name' ? (
+                        <p className="rounded-[10px] border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:text-sky-200">
+                          Tên này sẽ hiện trong danh sách “Chọn máy chủ dịch vụ”, ví dụ "RIP Tài Khoản Profile Thường".
                         </p>
                       ) : null}
                     </>

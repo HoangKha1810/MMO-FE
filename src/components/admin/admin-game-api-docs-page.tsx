@@ -72,8 +72,8 @@ export function AdminGameApiDocsPage({ baseUrl }: AdminGameApiDocsPageProps) {
         stats={[
           {
             label: 'Base URL',
-            value: '/api/external/game',
-            hint: 'Namespace tích hợp game',
+            value: docs.baseUrl.replace(/^https?:\/\//, ''),
+            hint: 'Domain public tích hợp game',
             tone: 'blue',
           },
           {

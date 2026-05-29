@@ -691,6 +691,10 @@ export async function listAdminResource(resource: string, params: URLSearchParam
     return listAutoMxhProducts(config, params, page, perPage, skip);
   }
 
+  if (resource === 'automxh-variants') {
+    return listAutoMxhVariants(config, params, page, perPage, skip);
+  }
+
   if (resource === 'automxh-orders') {
     return listLegacyAutoMxhOrders(config, params, page, perPage, skip);
   }
@@ -1190,6 +1194,190 @@ async function listAutoMxhProducts(config: ResourceConfig, params: URLSearchPara
     data: normalizeValue(enrichedRows),
     meta: {
       category_options: options,
+    },
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listAutoMxhVariants(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const table = await getActualRawTable(config);
+  const hasTable = await tableExists(table);
+  const hasProductsTable = await tableExists('automxh_products');
+  const hasCategoriesTable = await tableExists('automxh_categories');
+
+  if (!hasTable) {
+    return {
+      success: true,
+      title: config.title,
+      data: [],
+      meta: { category_options: [], product_options: [] },
+      pagination: { page, per_page: perPage, total: 0, total_pages: 1 },
+      readonly: Boolean(config.readonly),
+      create_fields: config.createFields || [],
+      update_fields: config.updateFields || [],
+    };
+  }
+
+  const columns = await getRawTableColumns(table);
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const categoryId = Math.max(0, Math.trunc(toNumber(params.get('category_id'), 0)));
+  const productId = Math.max(0, Math.trunc(toNumber(params.get('product_id'), 0)));
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (columns.has('is_deleted')) {
+    conditions.push('COALESCE(`is_deleted`, 0) = 0');
+  }
+
+  if (search) {
+    conditions.push('(`name` LIKE ? OR COALESCE(`description`, \'\') LIKE ? OR COALESCE(`badge`, \'\') LIKE ? OR COALESCE(`type`, \'\') LIKE ? OR CAST(COALESCE(`api_service_id`, \'\') AS CHAR) LIKE ?)');
+    values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  if (status && columns.has('status')) {
+    conditions.push('COALESCE(`status`, \'active\') = ?');
+    values.push(status);
+  }
+
+  if (productId > 0 && columns.has('product_id')) {
+    conditions.push('`product_id` = ?');
+    values.push(productId);
+  }
+
+  if (categoryId > 0 && columns.has('product_id') && hasProductsTable) {
+    conditions.push('EXISTS (SELECT 1 FROM automxh_products fp WHERE fp.id = `product_id` AND fp.category_id = ?)');
+    values.push(categoryId);
+  }
+
+  const prefixedWhereSql = conditions.length
+    ? `WHERE ${conditions
+        .map((condition) =>
+          condition
+            .replace(/COALESCE\(`is_deleted`/g, 'COALESCE(v.`is_deleted`')
+            .replace(/COALESCE\(`status`/g, 'COALESCE(v.`status`')
+            .replace(/\(`name`/g, '(v.`name`')
+            .replace(/COALESCE\(`description`/g, 'COALESCE(v.`description`')
+            .replace(/COALESCE\(`badge`/g, 'COALESCE(v.`badge`')
+            .replace(/COALESCE\(`type`/g, 'COALESCE(v.`type`')
+            .replace(/COALESCE\(`api_service_id`/g, 'COALESCE(v.`api_service_id`')
+            .replace(/`product_id`/g, 'v.`product_id`')
+        )
+        .join(' AND ')}`
+    : '';
+
+  const selectRelationSql = hasProductsTable
+    ? `
+        v.*,
+        p.name AS product_name,
+        p.category_id AS category_id,
+        ${hasCategoriesTable ? 'c.name' : 'NULL'} AS category_name
+      `
+    : `
+        v.*,
+        NULL AS product_name,
+        NULL AS category_id,
+        NULL AS category_name
+      `;
+  const joinRelationSql = hasProductsTable
+    ? `
+        LEFT JOIN automxh_products p ON p.id = v.product_id
+        ${hasCategoriesTable ? 'LEFT JOIN automxh_categories c ON c.id = p.category_id' : ''}
+      `
+    : '';
+  const orderRelationSql = hasProductsTable
+    ? hasCategoriesTable
+      ? 'COALESCE(c.`sort_order`, 0) ASC, c.`id` ASC, p.`id` ASC, v.`id` ASC'
+      : 'p.`id` ASC, v.`id` ASC'
+    : 'v.`id` ASC';
+
+  const [rows, countRows, productRows, categoryRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT ${selectRelationSql}
+        FROM \`${table}\` v
+        ${joinRelationSql}
+        ${prefixedWhereSql}
+        ORDER BY ${orderRelationSql}
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `SELECT COUNT(*) AS total FROM \`${table}\` ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}`,
+      ...values
+    ),
+    hasProductsTable
+      ? db.$queryRawUnsafe<Array<{ id: number | bigint; name: string; category_id: number | bigint | null; category_name: string | null }>>(
+          `
+            SELECT p.id, p.name, p.category_id, ${hasCategoriesTable ? 'c.name' : 'NULL'} AS category_name
+            FROM automxh_products p
+            ${hasCategoriesTable ? 'LEFT JOIN automxh_categories c ON c.id = p.category_id' : ''}
+            WHERE COALESCE(p.is_deleted, 0) = 0 OR p.is_deleted IS NULL
+            ORDER BY ${hasCategoriesTable ? 'COALESCE(c.sort_order, 0) ASC, c.id ASC,' : ''} p.id ASC
+          `
+        ).catch(() => [])
+      : Promise.resolve([]),
+    hasCategoriesTable
+      ? db.$queryRawUnsafe<CategoryTreeNode[]>(
+          `
+            SELECT id, name, slug, sort_order, status
+            FROM automxh_categories
+            WHERE COALESCE(\`is_deleted\`, 0) = 0 OR \`is_deleted\` IS NULL
+            ORDER BY COALESCE(\`sort_order\`, 0) ASC, \`id\` ASC
+          `
+        ).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  const categoryOptions = categoryRows
+    .map((row) => ({
+      value: String(row.id),
+      label: String(row.name || `#${row.id}`),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, 'vi'));
+
+  const productOptions = productRows
+    .map((row) => {
+      const categoryName = String(row.category_name || '').trim();
+      const name = String(row.name || `Dịch vụ #${row.id}`);
+      return {
+        value: String(row.id),
+        label: categoryName ? `${categoryName} / ${name}` : name,
+        category_id: row.category_id === null || row.category_id === undefined ? '' : String(row.category_id),
+      };
+    })
+    .sort((left, right) => left.label.localeCompare(right.label, 'vi'));
+
+  const enrichedRows = rows.map((row) => {
+    const categoryName = String(row.category_name || '').trim();
+    const productName = String(row.product_name || '').trim();
+    return {
+      ...row,
+      product_name: productName,
+      category_name: categoryName,
+      product_path: [categoryName, productName].filter(Boolean).join(' / '),
+    };
+  });
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(enrichedRows),
+    meta: {
+      category_options: categoryOptions,
+      product_options: productOptions,
     },
     pagination: {
       page,

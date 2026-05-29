@@ -98,7 +98,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'automxh-products',
       title: 'Auto MXH products',
-      description: 'Thêm/sửa dịch vụ con hiển thị thành các nút tab trong mục cha Facebook, Instagram...',
+      description: 'Thêm/sửa dịch vụ con/tab hiển thị trong từng mục cha Facebook, Instagram...',
       columns: ['id', 'category_id', 'name', 'description', 'api_provider_id', 'api_service_id', 'price', 'cost', 'variant_count', 'status', 'created_at'],
       editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
       createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
@@ -115,7 +115,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'automxh-variants',
       title: 'Auto MXH variants',
-      description: 'Biến thể sản phẩm, note vàng bên trang đặt hàng, avatar/files, giá vốn và API service id.',
+      description: 'Máy chủ/gói con nằm dưới từng dịch vụ cha, note vàng bên trang đặt hàng, giá vốn và API service id.',
       columns: ['id', 'product_id', 'name', 'description', 'api_provider_id', 'api_service_id', 'quantity', 'price', 'cost', 'status', 'allow_avatar', 'allow_files'],
       editableFields: ['product_id', 'api_provider_id', 'api_service_id', 'quantity', 'name', 'price', 'cost', 'original_price', 'description', 'badge', 'type', 'status', 'allow_avatar', 'allow_files', 'is_deleted'],
       createFields: ['product_id', 'api_provider_id', 'api_service_id', 'quantity', 'name', 'price', 'cost', 'original_price', 'description', 'badge', 'type', 'status', 'allow_avatar', 'allow_files'],
