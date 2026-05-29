@@ -253,7 +253,7 @@ export async function POST(req: NextRequest) {
           provider_error: rawMessage,
           new_balance: revertedBalance,
         },
-        { status: 502 }
+        { status: 200 }
       );
     }
   } catch (error) {

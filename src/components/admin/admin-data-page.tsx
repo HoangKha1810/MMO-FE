@@ -97,7 +97,7 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
   'SMM providers': 'Provider SMM',
   'API providers': 'API Provider',
   'Auto MXH categories': 'Danh mục Auto MXH',
-  'Auto MXH products': 'Sản phẩm Auto MXH',
+  'Auto MXH products': 'Dịch vụ con Auto MXH',
   'Auto MXH orders': 'Đơn Auto MXH',
   'Auto MXH variants': 'Biến thể Auto MXH',
   'Support TikTok orders': 'Đơn Support TikTok',
@@ -303,6 +303,22 @@ const COLUMN_LABELS: Record<string, string> = {
   banned_by: 'Admin chặn',
   api_url: 'URL API',
 };
+const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
+  'automxh-products': {
+    category_id: 'Mục cha',
+    name: 'Tên dịch vụ con / tab',
+    slug: 'Slug đường dẫn',
+    description: 'Mô tả dịch vụ con',
+    input_label: 'Nhãn ô nhập chính',
+    input_placeholder: 'Placeholder ô nhập chính',
+    buyer_label: 'Nhãn ô liên hệ',
+    buyer_placeholder: 'Placeholder ô liên hệ',
+    custom_inputs: 'Cấu hình nhiều ô nhập',
+  },
+  'automxh-variants': {
+    description: 'Note vàng trên trang đặt hàng',
+  },
+};
 const STATUS_LABELS: Record<string, string> = {
   active: 'Đang bật',
   inactive: 'Đang tắt',
@@ -363,7 +379,8 @@ function humanizeToken(token: string) {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
-function humanizeFieldName(field: string) {
+function humanizeFieldName(field: string, resource?: string) {
+  if (resource && RESOURCE_FIELD_LABELS[resource]?.[field]) return RESOURCE_FIELD_LABELS[resource][field];
   if (COLUMN_LABELS[field]) return COLUMN_LABELS[field];
   return field
     .split('_')
@@ -408,6 +425,12 @@ function isCodeLikeColumn(column: string) {
 
 function isLongTextField(field: string) {
   return LONG_TEXT_FIELD_TOKENS.some((token) => field.includes(token));
+}
+
+function resourceFieldRows(resource: string, field: string) {
+  if (resource === 'automxh-variants' && field === 'description') return 6;
+  if (resource === 'automxh-products' && ['description', 'custom_inputs'].includes(field)) return 5;
+  return 4;
 }
 
 function buildPaginationPages(page: number, totalPages: number) {
@@ -611,6 +634,71 @@ function sortAutomxhEditorEntries(entries: Array<[string, unknown]>) {
     const normalizedB = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
     return normalizedA - normalizedB;
   });
+}
+
+function sortEditorEntries(resource: string, entries: Array<[string, unknown]>) {
+  if (resource === 'automxh-variants') {
+    const preferredOrder = [
+      'name',
+      'description',
+      'price',
+      'cost',
+      'original_price',
+      'badge',
+      'status',
+      'product_id',
+      'api_provider_id',
+      'api_service_id',
+      'quantity',
+      'type',
+      'allow_avatar',
+      'allow_files',
+      'is_deleted',
+    ];
+
+    return [...entries].sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a[0]);
+      const bIndex = preferredOrder.indexOf(b[0]);
+      const normalizedA = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+      const normalizedB = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+      return normalizedA - normalizedB;
+    });
+  }
+
+  if (resource === 'automxh-products') {
+    const preferredOrder = [
+      'category_id',
+      'name',
+      'slug',
+      'description',
+      'price',
+      'cost',
+      'type',
+      'input_label',
+      'input_placeholder',
+      'buyer_label',
+      'buyer_placeholder',
+      'custom_inputs',
+      'status',
+      'api_provider_id',
+      'api_service_id',
+      'is_deleted',
+    ];
+
+    return [...entries].sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a[0]);
+      const bIndex = preferredOrder.indexOf(b[0]);
+      const normalizedA = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+      const normalizedB = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+      return normalizedA - normalizedB;
+    });
+  }
+
+  if (resource === 'automxh-orders') {
+    return sortAutomxhEditorEntries(entries);
+  }
+
+  return entries;
 }
 
 function formatCompactTimestamp(value: unknown) {
@@ -983,6 +1071,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     if (activeStatus) params.set('status', activeStatus);
     if (isLegacySmmServices && activeProvider) params.set('provider_id', activeProvider);
     if (isLegacySmmServices && activeCategory) params.set('category', activeCategory);
+    if (section.resource === 'automxh-products' && activeCategory) params.set('category_id', activeCategory);
 
     try {
       const response = await fetch(`/api/admin/${section.resource}?${params.toString()}`, { cache: 'no-store' });
@@ -1064,6 +1153,22 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     ).sort((left, right) => left.localeCompare(right, 'vi'));
   }, [meta, rows]);
   const quickStatusOptions = useMemo(() => getQuickStatusOptions(section.resource), [section.resource]);
+  const autoMxhCategoryOptions = useMemo(() => {
+    if (!Array.isArray(meta.category_options)) return [];
+    return meta.category_options
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const option = item as Record<string, unknown>;
+        const value = String(option.value || '').trim();
+        if (!value) return null;
+        return {
+          value,
+          label: String(option.label || `Danh mục #${value}`),
+        };
+      })
+      .filter(Boolean) as Array<{ value: string; label: string }>;
+  }, [meta.category_options]);
+  const shouldShowAutoMxhCategoryFilter = section.resource === 'automxh-products' && autoMxhCategoryOptions.length > 0;
 
   function toggleSelected(id: number) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -1176,9 +1281,14 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
   async function openEditor(row?: Record<string, unknown>, mode: 'create' | 'edit' = 'edit') {
     if (mode === 'create') {
+      const values = hydrateEditorValues(section.resource, createFields);
+      if (section.resource === 'automxh-products' && !values.category_id) {
+        values.category_id = categoryFilter || autoMxhCategoryOptions[0]?.value || '';
+      }
+
       setEditor({
         mode,
-        values: hydrateEditorValues(section.resource, createFields),
+        values,
         baseline: {},
         detail: {},
         detailMeta: {},
@@ -2350,7 +2460,12 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
             />
 
             <form
-              className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_180px_220px_auto]"
+              className={cn(
+                'grid gap-4',
+                shouldShowAutoMxhCategoryFilter
+                  ? 'xl:grid-cols-[minmax(0,1fr)_220px_180px_220px_auto]'
+                  : 'xl:grid-cols-[minmax(0,1fr)_180px_220px_auto]'
+              )}
               onSubmit={(event) => {
                 event.preventDefault();
                 void loadData(1);
@@ -2365,6 +2480,25 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                   className="pl-11"
                 />
               </div>
+              {shouldShowAutoMxhCategoryFilter ? (
+                <select
+                  value={categoryFilter}
+                  onChange={(event) => {
+                    const nextCategory = event.target.value;
+                    setCategoryFilter(nextCategory);
+                    setSelected([]);
+                    void loadData(1, { categoryValue: nextCategory });
+                  }}
+                  className="field-elevated h-11 rounded-[1rem] px-4 text-sm font-bold text-slate-700 outline-none dark:text-white"
+                >
+                  <option value="">Tất cả mục cha</option>
+                  {autoMxhCategoryOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <select
                 value={String(perPage)}
                 onChange={(event) => {
@@ -2484,7 +2618,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                         />
                       </th>
                       {section.columns.map((column) => (
-                        <th key={column} className="px-4 py-3">{humanizeFieldName(column)}</th>
+                        <th key={column} className="px-4 py-3">{humanizeFieldName(column, section.resource)}</th>
                       ))}
                       <th className="px-4 py-3 text-right">Thao tác</th>
                     </tr>
@@ -2673,15 +2807,41 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
             </div>
 
             <div className={cn('grid gap-4 sm:grid-cols-2', isLegacyAutoMxhOrders && 'gap-5')}>
-              {sortAutomxhEditorEntries(Object.entries(editor.values)).filter(([field]) => !shouldHideEditorField(section.resource, field)).map(([field, fieldValue]) => (
+              {sortEditorEntries(section.resource, Object.entries(editor.values)).filter(([field]) => !shouldHideEditorField(section.resource, field)).map(([field, fieldValue]) => (
                 <label key={field} className="space-y-2">
                   <span className={cn(
                     'text-[10px] font-black uppercase tracking-[0.26em]',
                     isLegacyAutoMxhOrders ? 'text-slate-500' : 'text-slate-400'
                   )}>
-                    {humanizeFieldName(field)}
+                    {humanizeFieldName(field, section.resource)}
                   </span>
-                  {field === 'status' && section.statusOptions?.length ? (
+                  {section.resource === 'automxh-products' && field === 'category_id' && autoMxhCategoryOptions.length > 0 ? (
+                    <>
+                      <select
+                        value={String(fieldValue ?? '')}
+                        onChange={(event) => setEditor((current) => current ? {
+                          ...current,
+                          values: { ...current.values, [field]: event.target.value },
+                        } : current)}
+                        className={cn(
+                          'w-full px-3 py-2 text-sm font-bold outline-none transition-all',
+                          isLegacyAutoMxhOrders
+                            ? 'rounded-[1rem] border border-white/8 bg-[#232323] text-white'
+                            : 'rounded-[9px] border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111] dark:text-white'
+                        )}
+                      >
+                        <option value="">Chọn mục cha</option>
+                        {autoMxhCategoryOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="rounded-[10px] border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:text-sky-200">
+                        Dịch vụ con sẽ hiện thành nút tab trong mục cha này trên trang đặt hàng.
+                      </p>
+                    </>
+                  ) : field === 'status' && section.statusOptions?.length ? (
                     <select
                       value={String(fieldValue ?? '')}
                       onChange={(event) => setEditor((current) => current ? {
@@ -2723,29 +2883,47 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       />
                     </div>
                   ) : isLongTextField(field) ? (
-                    <textarea
-                      value={String(fieldValue ?? '')}
-                      onChange={(event) => setEditor((current) => current ? {
-                        ...current,
-                        values: { ...current.values, [field]: event.target.value },
-                      } : current)}
-                      rows={4}
-                      className={cn(
-                        'w-full px-3 py-2 text-sm font-bold outline-none transition-all',
-                        isLegacyAutoMxhOrders
-                          ? 'rounded-[1rem] border border-white/8 bg-[#232323] text-white'
-                          : 'rounded-[9px] border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111] dark:text-white'
-                      )}
-                    />
+                    <>
+                      <textarea
+                        value={String(fieldValue ?? '')}
+                        onChange={(event) => setEditor((current) => current ? {
+                          ...current,
+                          values: { ...current.values, [field]: event.target.value },
+                        } : current)}
+                        rows={resourceFieldRows(section.resource, field)}
+                        className={cn(
+                          'w-full px-3 py-2 text-sm font-bold outline-none transition-all',
+                          isLegacyAutoMxhOrders
+                            ? 'rounded-[1rem] border border-white/8 bg-[#232323] text-white'
+                            : 'rounded-[9px] border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111] dark:text-white'
+                        )}
+                      />
+                      {section.resource === 'automxh-variants' && field === 'description' ? (
+                        <p className="rounded-[10px] border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs font-bold leading-5 text-amber-700 dark:text-amber-200">
+                          Nội dung này hiển thị trong khung note màu vàng khi user chọn gói dịch vụ.
+                        </p>
+                      ) : section.resource === 'automxh-products' && field === 'custom_inputs' ? (
+                        <p className="rounded-[10px] border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:text-sky-200">
+                          Có thể để trống và dùng 2 cặp nhãn/placeholder bên dưới, hoặc nhập JSON dạng {`[{"label":"Link","placeholder":"Nhập link"}]`}.
+                        </p>
+                      ) : null}
+                    </>
                   ) : (
-                    <Input
-                      value={String(fieldValue ?? '')}
-                      onChange={(event) => setEditor((current) => current ? {
-                        ...current,
-                        values: { ...current.values, [field]: event.target.value },
-                      } : current)}
-                      className={cn(isLegacyAutoMxhOrders && 'rounded-[1rem] border-white/8 bg-[#232323] text-white placeholder:text-slate-500')}
-                    />
+                    <>
+                      <Input
+                        value={String(fieldValue ?? '')}
+                        onChange={(event) => setEditor((current) => current ? {
+                          ...current,
+                          values: { ...current.values, [field]: event.target.value },
+                        } : current)}
+                        className={cn(isLegacyAutoMxhOrders && 'rounded-[1rem] border-white/8 bg-[#232323] text-white placeholder:text-slate-500')}
+                      />
+                      {section.resource === 'automxh-products' && field === 'name' ? (
+                        <p className="rounded-[10px] border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:text-sky-200">
+                          Tên này sẽ hiện ở nút tab phía trên form đặt hàng, ví dụ "Mở khóa basic".
+                        </p>
+                      ) : null}
+                    </>
                   )}
                 </label>
               ))}

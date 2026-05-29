@@ -56,6 +56,25 @@ interface OrdersResponse {
   orders?: SmmOrderRecord[];
 }
 
+async function readJsonResponse<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new Error(
+      text.trim().startsWith('<')
+        ? 'Máy chủ đang trả về trang HTML thay vì JSON. Vui lòng kiểm tra Nginx/API.'
+        : text.trim() || 'Máy chủ trả về dữ liệu không hợp lệ'
+    );
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error('Máy chủ trả về JSON không hợp lệ');
+  }
+}
+
 const reactions = [
   { value: 'like', icon: '👍', label: 'Like' },
   { value: 'love', icon: '❤️', label: 'Love' },
@@ -369,7 +388,7 @@ export default function SmmOrderPage() {
           comments: needsComments ? comments : undefined,
         }),
       });
-      const payload = await response.json();
+      const payload = await readJsonResponse<{ success?: boolean; message?: string; new_balance?: number }>(response);
 
       if (!response.ok || !payload.success) {
         throw new Error(payload.message || 'Không thể tạo đơn');

@@ -1094,6 +1094,7 @@ async function listAutoMxhProducts(config: ResourceConfig, params: URLSearchPara
   const columns = await getRawTableColumns(table);
   const search = (params.get('search') || '').trim();
   const status = (params.get('status') || '').trim();
+  const categoryId = Math.max(0, Math.trunc(toNumber(params.get('category_id'), 0)));
   const values: unknown[] = [];
   const conditions: string[] = [];
 
@@ -1111,6 +1112,11 @@ async function listAutoMxhProducts(config: ResourceConfig, params: URLSearchPara
     values.push(status);
   }
 
+  if (categoryId > 0 && columns.has('category_id')) {
+    conditions.push('`category_id` = ?');
+    values.push(categoryId);
+  }
+
   const prefixedWhereSql = conditions.length
     ? `WHERE ${conditions
         .map((condition) =>
@@ -1121,6 +1127,7 @@ async function listAutoMxhProducts(config: ResourceConfig, params: URLSearchPara
             .replace(/COALESCE\(`slug`/g, 'COALESCE(p.`slug`')
             .replace(/COALESCE\(`description`/g, 'COALESCE(p.`description`')
             .replace(/COALESCE\(`api_service_id`/g, 'COALESCE(p.`api_service_id`')
+            .replace(/`category_id`/g, 'p.`category_id`')
         )
         .join(' AND ')}`
     : '';

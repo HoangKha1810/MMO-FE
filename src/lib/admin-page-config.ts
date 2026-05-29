@@ -98,8 +98,8 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'automxh-products',
       title: 'Auto MXH products',
-      description: 'CRUD product, giá, stock và bật/tắt.',
-      columns: ['id', 'category_id', 'name', 'api_provider_id', 'api_service_id', 'price', 'cost', 'variant_count', 'status', 'created_at'],
+      description: 'Thêm/sửa dịch vụ con hiển thị thành các nút tab trong mục cha Facebook, Instagram...',
+      columns: ['id', 'category_id', 'name', 'description', 'api_provider_id', 'api_service_id', 'price', 'cost', 'variant_count', 'status', 'created_at'],
       editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
       createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
       statusOptions: ['active', 'inactive'],
@@ -115,8 +115,8 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'automxh-variants',
       title: 'Auto MXH variants',
-      description: 'Biến thể sản phẩm, avatar/files, giá vốn và API service id.',
-      columns: ['id', 'product_id', 'name', 'api_provider_id', 'api_service_id', 'quantity', 'price', 'cost', 'status', 'allow_avatar', 'allow_files'],
+      description: 'Biến thể sản phẩm, note vàng bên trang đặt hàng, avatar/files, giá vốn và API service id.',
+      columns: ['id', 'product_id', 'name', 'description', 'api_provider_id', 'api_service_id', 'quantity', 'price', 'cost', 'status', 'allow_avatar', 'allow_files'],
       editableFields: ['product_id', 'api_provider_id', 'api_service_id', 'quantity', 'name', 'price', 'cost', 'original_price', 'description', 'badge', 'type', 'status', 'allow_avatar', 'allow_files', 'is_deleted'],
       createFields: ['product_id', 'api_provider_id', 'api_service_id', 'quantity', 'name', 'price', 'cost', 'original_price', 'description', 'badge', 'type', 'status', 'allow_avatar', 'allow_files'],
       statusOptions: ['active', 'inactive'],
