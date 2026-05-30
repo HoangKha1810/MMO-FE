@@ -573,6 +573,50 @@ function normalizeSmmServicePatch(input: Record<string, unknown>, currentServerI
   };
 }
 
+function normalizeOptionalNumber(value: unknown, fallback = 0) {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  const parsed = toNumber(value, fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeOptionalInteger(value: unknown, fallback = 0) {
+  return Math.trunc(normalizeOptionalNumber(value, fallback));
+}
+
+function normalizeOptionalBooleanNumber(value: unknown, fallback = 0) {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? 1 : 0;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return 1;
+  if (['false', '0', 'no', 'off'].includes(normalized)) return 0;
+  return fallback;
+}
+
+function normalizeAutoMxhVariantPatch(input: Record<string, unknown>) {
+  const output = { ...input };
+
+  if ('product_id' in output) output.product_id = normalizeOptionalInteger(output.product_id, 0);
+  if ('api_provider_id' in output) output.api_provider_id = normalizeOptionalInteger(output.api_provider_id, 0);
+  if ('quantity' in output) output.quantity = Math.max(1, normalizeOptionalInteger(output.quantity, 1));
+  if ('price' in output) output.price = normalizeOptionalNumber(output.price, 0);
+  if ('cost' in output) output.cost = normalizeOptionalNumber(output.cost, 0);
+  if ('original_price' in output) output.original_price = normalizeOptionalNumber(output.original_price, 0);
+  if ('allow_avatar' in output) output.allow_avatar = normalizeOptionalBooleanNumber(output.allow_avatar, 0);
+  if ('allow_files' in output) output.allow_files = normalizeOptionalBooleanNumber(output.allow_files, 0);
+  if ('is_deleted' in output) output.is_deleted = normalizeOptionalBooleanNumber(output.is_deleted, 0);
+
+  return output;
+}
+
 function coerceInput(field: string, value: unknown) {
   if (typeof value !== 'string') {
     return value;
@@ -1585,12 +1629,16 @@ export async function createAdminResource(resource: string, input: Record<string
     data.password = await bcrypt.hash(data.password, 10);
   }
 
+  const normalizedData = resource === 'automxh-variants'
+    ? normalizeAutoMxhVariantPatch(data)
+    : data;
+
   let created: unknown;
   if (config.table) {
-    created = await insertRawTable(config, data);
+    created = await insertRawTable(config, normalizedData);
   } else {
     const delegate = getDelegate(config);
-    created = await delegate.create({ data });
+    created = await delegate.create({ data: normalizedData });
   }
 
   if (resource === 'settings') {
@@ -1604,7 +1652,7 @@ export async function createAdminResource(resource: string, input: Record<string
     }
   }
 
-  await logAdminAction({ adminId, action: `create ${resource}`, target: JSON.stringify(data), req });
+  await logAdminAction({ adminId, action: `create ${resource}`, target: JSON.stringify(normalizedData), req });
   return { success: true, data: normalizeValue(created) };
 }
 
@@ -1625,6 +1673,10 @@ export async function updateAdminResource(resource: string, id: number, input: R
       select: { server_info: true },
     }).catch(() => null);
     data = normalizeSmmServicePatch(data, current?.server_info);
+  }
+
+  if (resource === 'automxh-variants') {
+    data = normalizeAutoMxhVariantPatch(data);
   }
 
   if (resource === 'smm-orders' && typeof data.status === 'string') {

@@ -556,6 +556,14 @@ function hydrateEditorValues(resource: string, fields: string[], row?: Record<st
   if (resource === 'smm-services' && fields.includes('name_color')) {
     values.name_color = normalizeHexColor(parseJsonObject(row?.server_info).name_color);
   }
+  if (resource === 'automxh-variants' && !row) {
+    if (fields.includes('quantity')) values.quantity = 1;
+    if (fields.includes('api_provider_id')) values.api_provider_id = 0;
+    if (fields.includes('cost')) values.cost = 0;
+    if (fields.includes('original_price')) values.original_price = 0;
+    if (fields.includes('allow_avatar')) values.allow_avatar = 0;
+    if (fields.includes('allow_files')) values.allow_files = 0;
+  }
   return values;
 }
 

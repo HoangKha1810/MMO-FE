@@ -27,6 +27,7 @@ interface GameApiAccountRow extends Row {
   fullname: string | null;
   role: string | null;
   user_status: string | null;
+  balance: unknown;
   game_balance: unknown;
   api_key: string;
   api_status: string;
@@ -151,6 +152,7 @@ async function selectGameApiAccountByUserId(userId: number) {
         u.fullname,
         u.role,
         u.status AS user_status,
+        u.balance,
         u.game_balance
       FROM game_api_keys g
       INNER JOIN users u ON u.id = g.user_id
@@ -180,6 +182,7 @@ async function selectGameApiAccountByKey(apiKey: string) {
         u.fullname,
         u.role,
         u.status AS user_status,
+        u.balance,
         u.game_balance
       FROM game_api_keys g
       INNER JOIN users u ON u.id = g.user_id
@@ -1376,6 +1379,11 @@ export async function getCompatProviderProfile(userId: number) {
     data: {
       username: String(account.username || ''),
       money: toNumber(account.game_balance, 0),
+      game_money: toNumber(account.game_balance, 0),
+      game_balance: toNumber(account.game_balance, 0),
+      main_money: toNumber(account.balance, 0),
+      main_balance: toNumber(account.balance, 0),
+      wallet_type: 'game',
       email: String(account.email || ''),
       fullname: String(account.fullname || ''),
       user_id: Number(account.user_id || 0),
