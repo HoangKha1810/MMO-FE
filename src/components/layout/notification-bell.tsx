@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { readJsonResponse } from '@/lib/client-api';
 import { formatDatabaseDateTime } from '@/lib/date-time';
 import { cn } from '@/lib/utils';
 
@@ -59,7 +60,7 @@ export function NotificationBell({ className }: { className?: string }) {
     setLoading(true);
     try {
       const response = await fetch('/api/forum/notification', { cache: 'no-store' });
-      const payload = await response.json();
+      const payload = await readJsonResponse(response, 'Không tải được thông báo');
       if (response.ok && payload.success && Array.isArray(payload.data)) {
         setItems(payload.data);
       }

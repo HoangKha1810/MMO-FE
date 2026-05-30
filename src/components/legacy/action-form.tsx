@@ -7,6 +7,7 @@ import { Send } from 'lucide-react';
 import { startPageTransition } from '@/components/layout/navigation-effects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { readJsonResponse } from '@/lib/client-api';
 
 interface Field {
   name: string;
@@ -44,8 +45,8 @@ export function LegacyActionForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Không thể xử lý');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể xử lý');
       }
 

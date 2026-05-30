@@ -1319,6 +1319,56 @@
     min-height: 19rem;
   }
 
+  .home-service-card-compact {
+    min-height: 15.75rem;
+    border-radius: 1.55rem;
+  }
+
+  .home-service-card-compact .service-tilt-stage > .relative {
+    padding: 1.15rem;
+  }
+
+  .home-service-card-compact .service-tilt-icon {
+    height: 3rem;
+    width: 3rem;
+    border-radius: 1rem;
+  }
+
+  .home-service-card-compact .service-tilt-icon-echo {
+    height: 2.6rem;
+    width: 2.6rem;
+  }
+
+  .home-service-card-compact .service-tilt-top-stack {
+    gap: 0.45rem;
+  }
+
+  .home-service-card-compact .service-tilt-number {
+    font-size: 2.85rem;
+  }
+
+  .home-service-card-compact .service-tilt-content h3 {
+    font-size: 1rem;
+    line-height: 1.18;
+  }
+
+  .home-service-card-compact .service-tilt-content p {
+    margin-top: 0.65rem;
+    font-size: 0.66rem;
+    line-height: 1.72;
+    letter-spacing: 0.08em;
+  }
+
+  .home-service-card-compact .service-tilt-footer {
+    padding-top: 1.05rem;
+  }
+
+  @media (max-width: 640px) {
+    .home-service-card-compact {
+      min-height: 17rem;
+    }
+  }
+
   .service-tilt-card {
     position: relative;
     height: 100%;

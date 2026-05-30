@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Megaphone, PencilLine, Sparkles, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { readJsonResponse } from '@/lib/client-api';
 import { formatCurrency, toNumber } from '@/lib/utils';
 
 type ForumAd = Record<string, unknown>;
@@ -58,8 +59,8 @@ export function ForumAdsBoard({ feed, myAds, stats }: ForumAdsBoardProps) {
           method: 'POST',
           body: formData,
         });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
+        const payload = await readJsonResponse(response, 'Không xử lý được quảng cáo');
+        if (!payload.success) {
           throw new Error(payload.message || 'Không xử lý được quảng cáo');
         }
         toast.success(payload.message || 'Đã lưu quảng cáo');

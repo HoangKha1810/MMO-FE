@@ -4,7 +4,7 @@ import { ChevronLeft, Clock, Eye, Lock, MessageSquare, Pin, ShieldCheck } from '
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumPostActions, ForumThreadInteractions } from '@/components/forum/forum-thread-interactions';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { getForumThreadDetails } from '@/lib/forum';
+import { getForumThreadDetails, isActiveForumStatus } from '@/lib/forum';
 import { cn, formatNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -65,7 +65,8 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
 
   const { thread, posts } = data;
   const threadStatus = String(thread.status || 'active').toLowerCase();
-  const replyLocked = Boolean(thread.is_locked) || threadStatus !== 'active';
+  const isThreadActive = isActiveForumStatus(threadStatus);
+  const replyLocked = Boolean(thread.is_locked) || !isThreadActive;
 
   return (
     <AppShell user={shell}>
@@ -96,7 +97,7 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                   Đã khóa
                 </span>
               ) : null}
-              {threadStatus !== 'active' ? (
+              {!isThreadActive ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
                   Chờ admin duyệt
                 </span>
@@ -167,7 +168,7 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                     <div className="p-5">
                       <div className="mb-4 flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <span>{formatDate(post.created_at)}</span>
-                        {String(post.status || 'active').toLowerCase() !== 'active' ? (
+                        {!isActiveForumStatus(post.status) ? (
                           <span className="rounded-full bg-orange-500/10 px-2 py-1 text-[10px] font-black text-orange-500">
                             Chờ duyệt
                           </span>
@@ -209,7 +210,7 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
             <ForumThreadInteractions
               threadId={threadId}
               locked={replyLocked}
-              disabledMessage={threadStatus !== 'active' ? 'Thread đang chờ admin duyệt nên chưa thể phản hồi thêm.' : undefined}
+              disabledMessage={!isThreadActive ? 'Thread đang chờ admin duyệt nên chưa thể phản hồi thêm.' : undefined}
             />
           </aside>
         </div>

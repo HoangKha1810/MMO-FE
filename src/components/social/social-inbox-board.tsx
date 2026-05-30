@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Bell, MessageCircle, Search, ShieldAlert, UsersRound } from 'lucide-react';
+import { readJsonResponse } from '@/lib/client-api';
 import { timeAgo } from '@/lib/utils';
 
 type InboxItem = Record<string, unknown>;
@@ -60,7 +61,7 @@ export function SocialInboxBoard({
 
       try {
         const response = await fetch(`/api/social/message?mode=search&q=${encodeURIComponent(deferredQuery)}`, { cache: 'no-store' });
-        const payload = await response.json();
+        const payload = await readJsonResponse(response, 'Không thể tìm kiếm social');
         if (!cancelled) {
           if (payload.success) {
             setResult(payload.data);

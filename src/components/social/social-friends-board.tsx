@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { Search, ShieldBan, UserCheck, UserMinus, UserPlus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { readJsonResponse } from '@/lib/client-api';
 
 type SocialListItem = Record<string, unknown>;
 
@@ -23,8 +24,8 @@ async function callFriendAction(targetUserId: number, action: string) {
     body: JSON.stringify({ target_user_id: targetUserId, action }),
   });
 
-  const payload = await response.json();
-  if (!response.ok || !payload.success) {
+  const payload = await readJsonResponse(response, 'Không thể xử lý kết nối');
+  if (!payload.success) {
     throw new Error(payload.message || 'Không thể xử lý kết nối');
   }
   return payload;
@@ -34,8 +35,8 @@ async function searchDirectory(keyword: string) {
   const response = await fetch(`/api/social/message?mode=search&q=${encodeURIComponent(keyword)}`, {
     cache: 'no-store',
   });
-  const payload = await response.json();
-  if (!response.ok || !payload.success) {
+  const payload = await readJsonResponse(response, 'Không thể tìm kiếm');
+  if (!payload.success) {
     throw new Error(payload.message || 'Không thể tìm kiếm');
   }
   return payload.data as { users: SocialListItem[]; conversations: SocialListItem[] };
@@ -103,7 +104,7 @@ export function SocialFriendsBoard({
         const payload = await callFriendAction(targetUserId, action);
         toast.success(payload.message || 'Đã cập nhật');
         const refresh = await fetch('/api/social/friend', { cache: 'no-store' });
-        const data = await refresh.json();
+        const data = await readJsonResponse(refresh, 'Không tải được danh sách kết nối');
         if (data.success) {
           setFriends(data.data.friends || []);
           setPending(data.data.pending || []);

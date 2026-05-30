@@ -7,6 +7,7 @@ import { useSessionUser } from '@/hooks/use-session-user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { readJsonResponse } from '@/lib/client-api';
 import { formatDatabaseDateTime } from '@/lib/date-time';
 import {
   AlertCircle,
@@ -126,8 +127,8 @@ export default function DepositPage() {
       setResult({
         success: true,
         message: returnedWallet === 'game'
-          ? 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ cộng tiền vào ví game sau khi SePay xác nhận.'
-          : 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ tự đối soát SePay và cộng tiền vào tài khoản.',
+          ? 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ cộng tiền vào ví game sau khi cổng thanh toán xác nhận.'
+          : 'Thanh Toán QR Code đã hoàn tất. Hệ thống sẽ tự đối soát và cộng tiền vào tài khoản.',
       });
       void loadRecentDeposits({ sync: true });
       const timer = window.setTimeout(() => {
@@ -170,7 +171,7 @@ export default function DepositPage() {
         params.set('sync', '1');
       }
       const response = await fetch(`/api/user/deposit?${params.toString()}`, { cache: 'no-store' });
-      const payload = await response.json();
+      const payload = await readJsonResponse(response, 'Không tải được lịch sử nạp tiền');
       if (response.ok && payload.success && Array.isArray(payload.data)) {
         setRecentDeposits(payload.data);
       }
@@ -202,7 +203,7 @@ export default function DepositPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount, payment_method: method, wallet_type: walletType }),
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res, 'Không tạo được giao dịch QR Code');
       setResult({ success: Boolean(data.success), message: String(data.message || 'Đã xử lý yêu cầu nạp tiền') });
 
       if (data.success) {
@@ -238,7 +239,7 @@ export default function DepositPage() {
                 Nạp tiền & thanh toán
               </h1>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-slate-300">
-                Chọn đúng ví, nhập số tiền và tạo QR thanh toán. Hệ thống tự đối soát SePay để cộng số dư vào tài khoản.
+                Chọn đúng ví, nhập số tiền và tạo QR thanh toán. Hệ thống tự đối soát để cộng số dư vào tài khoản.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
@@ -416,7 +417,7 @@ export default function DepositPage() {
                     </div>
                     {sepayPayment.sepay_order_id ? (
 	                      <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                        Mã SePay: {sepayPayment.sepay_order_id}
+                        Mã thanh toán: {sepayPayment.sepay_order_id}
                       </div>
                     ) : null}
                   </div>
@@ -524,11 +525,11 @@ export default function DepositPage() {
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">4</span>
-              <p>Hoàn tất thanh toán. Hệ thống nhận IPN `ORDER_PAID` hoặc tự đối soát với SePay để cộng tiền tự động.</p>
+              <p>Hoàn tất thanh toán. Hệ thống nhận IPN `ORDER_PAID` hoặc tự đối soát với cổng thanh toán để cộng tiền tự động.</p>
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">5</span>
-              <p>Ngay khi SePay xác nhận `CAPTURED`, transaction sẽ chuyển sang `success` và số dư ở đúng ví được cộng tự động.</p>
+              <p>Ngay khi cổng thanh toán xác nhận `CAPTURED`, transaction sẽ chuyển sang `success` và số dư ở đúng ví được cộng tự động.</p>
             </div>
           </CardContent>
         </Card>

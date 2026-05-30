@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Ban, Eraser, ImagePlus, LoaderCircle, MessageSquareText, ShieldCheck, Trash2, UserRoundX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { readJsonResponse } from '@/lib/client-api';
 import { timeAgo } from '@/lib/utils';
 
 type ConversationMessage = Record<string, unknown>;
@@ -79,8 +80,8 @@ async function postJson(payload: Record<string, unknown>) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  const result = await response.json();
-  if (!response.ok || !result.success) {
+  const result = await readJsonResponse(response, 'Không xử lý được hội thoại');
+  if (!result.success) {
     throw new Error(result.message || 'Không xử lý được hội thoại');
   }
   return result;
@@ -92,8 +93,8 @@ async function friendAction(targetUserId: number, action: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ target_user_id: targetUserId, action }),
   });
-  const result = await response.json();
-  if (!response.ok || !result.success) {
+  const result = await readJsonResponse(response, 'Không cập nhật được quan hệ');
+  if (!result.success) {
     throw new Error(result.message || 'Không cập nhật được quan hệ');
   }
   return result;
@@ -149,7 +150,7 @@ export function SocialConversationBoard({
       pollInFlightRef.current = true;
       try {
         const response = await fetch(`/api/social/message?mode=poll&other_id=${otherUserId}&after_id=${lastMessageId}`, { cache: 'no-store' });
-        const result = await response.json();
+        const result = await readJsonResponse(response, 'Không tải được tin nhắn mới');
         if (result.success) {
           const incoming = Array.isArray(result.data?.messages) ? result.data.messages : [];
           if (incoming.length > 0) {
@@ -189,8 +190,8 @@ export function SocialConversationBoard({
           method: 'POST',
           body: formData,
         });
-        const result = await response.json();
-        if (!response.ok || !result.success) {
+        const result = await readJsonResponse(response, 'Không gửi được tin nhắn');
+        if (!result.success) {
           throw new Error(result.message || 'Không gửi được tin nhắn');
         }
 

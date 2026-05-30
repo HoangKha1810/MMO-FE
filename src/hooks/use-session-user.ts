@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useWalletBalance } from '@/components/layout/wallet-balance-context';
+import { readJsonResponse } from '@/lib/client-api';
 
 export interface SessionUser {
   id?: number;
@@ -100,14 +101,14 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
           return;
         }
 
-        const payload = await response.json();
+        const payload = await readJsonResponse(response, 'Không tải được thông tin tài khoản');
         if (active) {
-          setData(payload.user);
+          setData(payload.user as SessionUser | undefined);
           if (payload.user) {
-            setCachedSessionUser(payload.user);
+            setCachedSessionUser(payload.user as SessionUser);
             setBalances({
-              balance: payload.user.balance,
-              gameBalance: payload.user.game_balance,
+              balance: Number((payload.user as SessionUser).balance || 0),
+              gameBalance: Number((payload.user as SessionUser).game_balance || 0),
             });
           }
           setLoading(false);

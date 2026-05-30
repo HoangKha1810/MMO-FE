@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, FolderOpen, MessageCircle } from 'lucide-react';
+import { ChevronLeft, FolderOpen, MessageCircle, PenLine } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumThreadList } from '@/components/forum/forum-thread-list';
 import { getForumFolderDetails } from '@/lib/forum';
@@ -28,13 +28,22 @@ export default async function ForumFolderPage({ params }: { params: Promise<{ id
   return (
     <AppShell user={shell}>
       <div className="space-y-6">
-        <div className="flex flex-wrap gap-3">
-          <Link href={`/user/forum/category/${data.forum.category_id}`} className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-brand-blue">
-            <ChevronLeft className="h-4 w-4" />
-            {data.categoryName || 'Danh mục'}
-          </Link>
-          <Link href="/user/forum" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-brand-blue">
-            Forum chính
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-3">
+            <Link href={`/user/forum/category/${data.forum.category_id}`} className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-brand-blue">
+              <ChevronLeft className="h-4 w-4" />
+              {data.categoryName || 'Danh mục'}
+            </Link>
+            <Link href="/user/forum" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-brand-blue">
+              Forum chính
+            </Link>
+          </div>
+          <Link
+            href={`/user/forum/create-thread?forum_id=${data.forum.id}`}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-brand-blue/20 transition hover:-translate-y-0.5 hover:bg-blue-500"
+          >
+            <PenLine className="h-4 w-4" />
+            Đăng bài
           </Link>
         </div>
 
@@ -69,8 +78,19 @@ export default async function ForumFolderPage({ params }: { params: Promise<{ id
 
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0f1726]">
           <div className="border-b border-slate-100 bg-[#faf7f1] p-5 dark:border-white/5 dark:bg-white/[0.03]">
-            <h2 className="text-xl font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">Chủ đề</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Bấm vào từng bài để đọc chi tiết.</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white">Chủ đề</h2>
+                <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Bấm vào từng bài để đọc chi tiết.</p>
+              </div>
+              <Link
+                href={`/user/forum/create-thread?forum_id=${data.forum.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-brand-blue/25 bg-brand-blue/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-brand-blue transition hover:border-brand-blue/45 hover:bg-brand-blue hover:text-white"
+              >
+                <PenLine className="h-4 w-4" />
+                Tạo thread
+              </Link>
+            </div>
           </div>
           <ForumThreadList threads={data.threads} emptyText="Folder này chưa có bài active." />
         </section>

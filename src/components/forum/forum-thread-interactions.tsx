@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Flag, HeartHandshake, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { readJsonResponse } from '@/lib/client-api';
 
 export function ForumThreadInteractions({
   threadId,
@@ -47,8 +48,8 @@ export function ForumThreadInteractions({
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ thread_id: threadId, content }),
                     });
-                    const payload = await response.json();
-                    if (!response.ok || !payload.success) {
+                    const payload = await readJsonResponse(response, 'Không phản hồi được');
+                    if (!payload.success) {
                       throw new Error(payload.message || 'Không phản hồi được');
                     }
                     toast.success(payload.message || 'Đã đăng phản hồi');
@@ -91,8 +92,8 @@ export function ForumPostActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ post_id: postId, type: 'like' }),
         });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
+        const payload = await readJsonResponse(response, 'Không thể reaction');
+        if (!payload.success) {
           throw new Error(payload.message || 'Không thể reaction');
         }
         setCount(Number(payload.data?.total || 0));
@@ -110,8 +111,8 @@ export function ForumPostActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ post_id: postId, reason, details }),
         });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
+        const payload = await readJsonResponse(response, 'Không thể report');
+        if (!payload.success) {
           throw new Error(payload.message || 'Không thể report');
         }
         toast.success(payload.message || 'Đã gửi report');

@@ -528,6 +528,11 @@ function sanitizeData(input: Record<string, unknown>, allowedFields: string[] = 
   return output;
 }
 
+async function getRawColumnTypes(table: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ Field: string; Type: string }>>(`SHOW COLUMNS FROM \`${table}\``);
+  return new Map(rows.map((column) => [column.Field, String(column.Type || '').toLowerCase()]));
+}
+
 function parseJsonObject(value: unknown): Record<string, unknown> {
   if (!value) return {};
   if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
@@ -613,6 +618,42 @@ function normalizeAutoMxhVariantPatch(input: Record<string, unknown>) {
   if ('allow_avatar' in output) output.allow_avatar = normalizeOptionalBooleanNumber(output.allow_avatar, 0);
   if ('allow_files' in output) output.allow_files = normalizeOptionalBooleanNumber(output.allow_files, 0);
   if ('is_deleted' in output) output.is_deleted = normalizeOptionalBooleanNumber(output.is_deleted, 0);
+
+  return output;
+}
+
+async function normalizeRawTablePayload(table: string, data: Record<string, unknown>) {
+  if (Object.keys(data).length === 0) {
+    return data;
+  }
+
+  const columnTypes = await getRawColumnTypes(table).catch(() => new Map<string, string>());
+  const output = { ...data };
+
+  for (const [field, value] of Object.entries(output)) {
+    const type = columnTypes.get(field) || '';
+    const isNumericColumn = /^(?:tiny|small|medium|big)?int|decimal|double|float/.test(type);
+
+    if (isNumericColumn && value === '') {
+      output[field] = null;
+    }
+
+    if (/^(?:tiny|small|medium|big)?int/.test(type) && output[field] !== null && output[field] !== undefined) {
+      output[field] = Math.trunc(toNumber(output[field], 0));
+    }
+
+    if (/^(?:decimal|double|float)/.test(type) && output[field] !== null && output[field] !== undefined) {
+      output[field] = toNumber(output[field], 0);
+    }
+  }
+
+  if (table === 'automxh_variants') {
+    const normalized = normalizeAutoMxhVariantPatch(output);
+    if ('quantity' in normalized) {
+      normalized.quantity = Math.max(1, normalizeOptionalInteger(normalized.quantity, 1));
+    }
+    return normalized;
+  }
 
   return output;
 }
@@ -2843,7 +2884,7 @@ async function insertRawTable(config: ResourceConfig, data: Record<string, unkno
   if (config.table === 'find_jobs') {
     await ensureFindJobPinColumn(table as 'find_job_jobs' | 'find_jobs');
   }
-  const filteredData = await filterRawTableData(table, data);
+  const filteredData = await normalizeRawTablePayload(table, await filterRawTableData(table, data));
   const fields = Object.keys(filteredData);
   if (fields.length === 0) {
     throw new Error('Không có field hợp lệ với bảng hiện tại');
@@ -2863,7 +2904,7 @@ async function updateRawTable(config: ResourceConfig, id: number, data: Record<s
   if (config.table === 'find_jobs') {
     await ensureFindJobPinColumn(table as 'find_job_jobs' | 'find_jobs');
   }
-  const filteredData = await filterRawTableData(table, data);
+  const filteredData = await normalizeRawTablePayload(table, await filterRawTableData(table, data));
   const fields = Object.keys(filteredData);
   if (fields.length === 0) {
     throw new Error('Không có field hợp lệ với bảng hiện tại');

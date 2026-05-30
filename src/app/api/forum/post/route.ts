@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await createForumReply(userId, threadId, content);
-    return NextResponse.json({ success: true, message: 'Đã gửi phản hồi, chờ admin duyệt trước khi hiển thị công khai.', data });
+    return NextResponse.json({ success: true, message: 'Đã đăng phản hồi.', data });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: error instanceof Error ? error.message : 'Không đăng được phản hồi' },

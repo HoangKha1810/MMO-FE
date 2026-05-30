@@ -8,8 +8,14 @@ import { getCurrentUserForShell } from '@/lib/user-session';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CreateForumThreadPage() {
+export default async function CreateForumThreadPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ forum_id?: string }>;
+}) {
   const { shell } = await getCurrentUserForShell();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedForumId = Number(resolvedSearchParams?.forum_id || 0);
   const [folders, prefixes] = await Promise.all([
     listForumFoldersForPosting(),
     listForumPrefixes(),
@@ -30,6 +36,7 @@ export default async function CreateForumThreadPage() {
               endpoint="/api/forum/thread"
               submitLabel="Gửi duyệt thread"
               redirectTo="/user/forum/my-threads"
+              defaults={Number.isFinite(selectedForumId) && selectedForumId > 0 ? { forum_id: selectedForumId } : undefined}
               fields={[
                 {
                   name: 'forum_id',

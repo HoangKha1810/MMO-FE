@@ -65,6 +65,16 @@ interface CountRow {
   total: number | bigint;
 }
 
+export const ACTIVE_FORUM_STATUSES = ['active', 'approved', 'open', 'published'] as const;
+export const VISIBLE_FORUM_STATUSES = [...ACTIVE_FORUM_STATUSES, 'pending', 'rejected', 'hidden'] as const;
+const ACTIVE_FORUM_STATUS_SQL = "'active', 'approved', 'open', 'published'";
+const VISIBLE_FORUM_STATUS_SQL = "'active', 'approved', 'open', 'published', 'pending', 'rejected', 'hidden'";
+
+export function isActiveForumStatus(status: unknown) {
+  const normalized = String(status || 'active').trim().toLowerCase();
+  return ACTIVE_FORUM_STATUSES.includes(normalized as typeof ACTIVE_FORUM_STATUSES[number]);
+}
+
 function toCount(value: unknown) {
   return Number(value || 0);
 }
@@ -84,7 +94,7 @@ export async function getForumOverview() {
         LEFT JOIN forums f ON f.category_id = c.id
         LEFT JOIN forum_threads t
           ON t.forum_id = f.id
-          AND t.status = 'active'
+          AND t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
         GROUP BY c.id, c.name, c.description, c.priority
         ORDER BY c.priority ASC, c.id ASC
@@ -126,11 +136,11 @@ export async function getForumOverview() {
           SELECT thread_id, COUNT(*) AS replies
           FROM forum_posts
           WHERE is_first_post = 0
-            AND status = 'active'
+            AND status IN (${ACTIVE_FORUM_STATUS_SQL})
             AND COALESCE(is_deleted, 0) = 0
           GROUP BY thread_id
         ) reply_counts ON reply_counts.thread_id = t.id
-        WHERE t.status = 'active'
+        WHERE t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
         ORDER BY t.is_pinned DESC, t.updated_at DESC, t.created_at DESC
         LIMIT 30
@@ -138,7 +148,7 @@ export async function getForumOverview() {
       db.$queryRawUnsafe<CountRow[]>(`
         SELECT COUNT(*) AS total
         FROM forum_posts
-        WHERE status = 'active'
+        WHERE status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(is_deleted, 0) = 0
       `),
       db.$queryRawUnsafe<CountRow[]>('SELECT COUNT(*) AS total FROM users'),
@@ -245,7 +255,7 @@ const threadSelectSql = `
     SELECT thread_id, COUNT(*) AS replies
     FROM forum_posts
     WHERE is_first_post = 0
-      AND status = 'active'
+      AND status IN (${ACTIVE_FORUM_STATUS_SQL})
       AND COALESCE(is_deleted, 0) = 0
     GROUP BY thread_id
   ) reply_counts ON reply_counts.thread_id = t.id
@@ -273,11 +283,11 @@ export async function getForumCategoryDetails(categoryId: number) {
         FROM forums f
         LEFT JOIN forum_threads t
           ON t.forum_id = f.id
-          AND t.status = 'active'
+          AND t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
         LEFT JOIN forum_posts p
           ON p.thread_id = t.id
-          AND p.status = 'active'
+          AND p.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(p.is_deleted, 0) = 0
         WHERE f.category_id = ?
         GROUP BY f.id, f.category_id, f.parent_id, f.name, f.slug, f.description, f.icon, f.priority
@@ -286,7 +296,7 @@ export async function getForumCategoryDetails(categoryId: number) {
       db.$queryRawUnsafe<ForumThreadSummary[]>(`
         ${threadSelectSql}
         WHERE f.category_id = ?
-          AND t.status = 'active'
+          AND t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
         ORDER BY t.is_pinned DESC, t.updated_at DESC, t.created_at DESC
         LIMIT 80
@@ -339,7 +349,7 @@ export async function getForumFolderDetails(forumId: number) {
       db.$queryRawUnsafe<ForumThreadSummary[]>(`
         ${threadSelectSql}
         WHERE t.forum_id = ?
-          AND t.status = 'active'
+          AND t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
         ORDER BY t.is_pinned DESC, t.updated_at DESC, t.created_at DESC
         LIMIT 80
@@ -368,10 +378,10 @@ export async function getForumThreadDetails(threadId: number, viewerId?: number,
   try {
     const isAdminViewer = String(viewerRole || '').toLowerCase() === 'admin';
     const threadVisibilitySql = isAdminViewer
-      ? "AND t.status IN ('active', 'pending', 'rejected', 'hidden')"
+      ? `AND t.status IN (${VISIBLE_FORUM_STATUS_SQL})`
       : viewerId
-        ? "AND (t.status = 'active' OR t.user_id = ?)"
-        : "AND t.status = 'active'";
+        ? `AND (t.status IN (${ACTIVE_FORUM_STATUS_SQL}) OR t.user_id = ?)`
+        : `AND t.status IN (${ACTIVE_FORUM_STATUS_SQL})`;
     const threadVisibilityParams = !isAdminViewer && viewerId ? [viewerId] : [];
 
     const threadRows = await db.$queryRawUnsafe<ForumThreadSummary[]>(`
@@ -390,10 +400,10 @@ export async function getForumThreadDetails(threadId: number, viewerId?: number,
     await db.$executeRawUnsafe('UPDATE forum_threads SET views = views + 1 WHERE id = ?', threadId).catch(() => null);
 
     const postVisibilitySql = isAdminViewer
-      ? "AND p.status IN ('active', 'pending', 'rejected', 'hidden')"
+      ? `AND p.status IN (${VISIBLE_FORUM_STATUS_SQL})`
       : viewerId
-        ? "AND (p.status = 'active' OR p.user_id = ?)"
-        : "AND p.status = 'active'";
+        ? `AND (p.status IN (${ACTIVE_FORUM_STATUS_SQL}) OR p.user_id = ?)`
+        : `AND p.status IN (${ACTIVE_FORUM_STATUS_SQL})`;
     const postVisibilityParams = !isAdminViewer && viewerId ? [viewerId] : [];
 
     const posts = await db.$queryRawUnsafe<ForumPostSummary[]>(`
@@ -415,7 +425,7 @@ export async function getForumThreadDetails(threadId: number, viewerId?: number,
           SELECT COUNT(*)
           FROM forum_posts p2
           WHERE p2.user_id = u.id
-            AND p2.status = 'active'
+            AND p2.status IN (${ACTIVE_FORUM_STATUS_SQL})
             AND COALESCE(p2.is_deleted, 0) = 0
         ) AS user_posts_count,
         (

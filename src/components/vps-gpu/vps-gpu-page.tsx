@@ -31,7 +31,7 @@ interface VpsGpuPageProps {
   initialUser?: SessionUser;
 }
 
-interface TensorDockGpu {
+interface VastGpu {
   v0Name: string;
   displayName?: string;
   max_count?: number;
@@ -46,6 +46,7 @@ interface TensorDockGpu {
     per_vcpu_hr?: number;
     per_gb_ram_hr?: number;
     per_gb_storage_hr?: number;
+    total_hourly?: number;
   };
   network_features?: {
     dedicated_ip_available?: boolean;
@@ -54,22 +55,29 @@ interface TensorDockGpu {
   };
 }
 
-interface TensorDockLocation {
+interface VastOfferMeta {
+  id?: string | number;
+  gpu_name?: string;
+  num_gpus?: number;
+  dph_total?: number;
+}
+
+interface VastLocation {
   id: string;
   city?: string;
   stateprovince?: string;
   country?: string;
   tier?: number;
-  gpus?: TensorDockGpu[];
+  gpus?: VastGpu[];
 }
 
-interface TensorDockHostnode {
+interface VastHostnode {
   id: string;
   location_id?: string;
   engine?: string;
   uptime_percentage?: number;
   available_resources?: {
-    gpus?: TensorDockGpu[];
+    gpus?: VastGpu[];
     vcpu_count?: number;
     ram_gb?: number;
     storage_gb?: number;
@@ -79,6 +87,7 @@ interface TensorDockHostnode {
     per_vcpu_hr?: number;
     per_gb_ram_hr?: number;
     per_gb_storage_hr?: number;
+    total_hourly?: number;
   };
   location?: {
     uuid?: string;
@@ -89,15 +98,16 @@ interface TensorDockHostnode {
     network_speed_upload_gbps?: number;
     tier?: number;
   };
+  vast?: VastOfferMeta;
 }
 
-interface TensorDockSecret {
+interface VastSecret {
   id: string;
   name?: string;
   type?: string;
 }
 
-interface TensorDockInstance {
+interface VastInstance {
   id?: string;
   name?: string;
   status?: string;
@@ -111,7 +121,7 @@ interface TensorDockInstance {
   };
 }
 
-interface TensorDockOverviewData {
+interface VastOverviewData {
   locations?: unknown;
   hostnodes?: unknown;
   secrets?: unknown;
@@ -125,8 +135,8 @@ const deploymentOptions: Array<{
   description: string;
   recommended?: boolean;
 }> = [
-  { value: 'hostnode', title: 'Hostnode Based', description: 'Deploy to specific hostnode' },
-  { value: 'location', title: 'Location Based', description: 'Auto-select best hostnode', recommended: true },
+  { value: 'hostnode', title: 'Vast Offer', description: 'Tạo đúng offer GPU đã chọn', recommended: true },
+  { value: 'location', title: 'Auto Offer', description: 'Chọn offer rẻ trong khu vực' },
 ];
 
 const networkOptions: Array<{
@@ -135,8 +145,8 @@ const networkOptions: Array<{
   description: string;
   recommended?: boolean;
 }> = [
-  { value: 'port-forwarding', title: 'Port Forwarding', description: 'Map specific ports' },
-  { value: 'dedicated-ip', title: 'Dedicated IP', description: 'Full public IP address', recommended: true },
+  { value: 'port-forwarding', title: 'SSH / Port', description: 'Mở SSH và port app' },
+  { value: 'dedicated-ip', title: 'Public IP', description: 'Ưu tiên kết nối trực tiếp', recommended: true },
 ];
 
 const osOptions: Array<{
@@ -144,8 +154,8 @@ const osOptions: Array<{
   title: string;
   description: string;
 }> = [
-  { value: 'ubuntu2404', title: 'Ubuntu 24.04', description: 'Linux with SSH access' },
-  { value: 'windows10', title: 'Windows 10', description: 'Windows with RDP access' },
+  { value: 'ubuntu2404', title: 'Docker CUDA', description: 'Image Vast.ai CUDA + SSH' },
+  { value: 'windows10', title: 'Custom image', description: 'Dùng image riêng nếu cần' },
 ];
 
 const ramSteps = [8, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 512];
@@ -158,26 +168,26 @@ function toArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
-function extractLocations(payload: unknown): TensorDockLocation[] {
-  return toArray<TensorDockLocation>(asRecord(asRecord(payload).data).locations);
+function extractLocations(payload: unknown): VastLocation[] {
+  return toArray<VastLocation>(asRecord(asRecord(payload).data).locations);
 }
 
-function extractHostnodes(payload: unknown): TensorDockHostnode[] {
-  return toArray<TensorDockHostnode>(asRecord(asRecord(payload).data).hostnodes);
+function extractHostnodes(payload: unknown): VastHostnode[] {
+  return toArray<VastHostnode>(asRecord(asRecord(payload).data).hostnodes);
 }
 
-function extractSecrets(payload: unknown): TensorDockSecret[] {
-  return toArray<TensorDockSecret>(asRecord(asRecord(payload).data).secrets);
+function extractSecrets(payload: unknown): VastSecret[] {
+  return toArray<VastSecret>(asRecord(asRecord(payload).data).secrets);
 }
 
-function extractInstances(payload: unknown): TensorDockInstance[] {
+function extractInstances(payload: unknown): VastInstance[] {
   const data = asRecord(asRecord(payload).data);
-  const direct = toArray<TensorDockInstance>(data.instances);
+  const direct = toArray<VastInstance>(data.instances);
   if (direct.length) {
     return direct;
   }
 
-  return toArray<TensorDockInstance>(asRecord(data.attributes).instances);
+  return toArray<VastInstance>(asRecord(data.attributes).instances);
 }
 
 function formatUsd(value: number | undefined) {
@@ -187,7 +197,7 @@ function formatUsd(value: number | undefined) {
   return `$${value.toFixed(value >= 1 ? 2 : 3)}/h`;
 }
 
-function formatLocation(location: TensorDockLocation | TensorDockHostnode['location']) {
+function formatLocation(location: VastLocation | VastHostnode['location']) {
   if (!location) {
     return 'Unknown location';
   }
@@ -207,7 +217,7 @@ function parsePorts(value: string) {
     .filter((item) => Number.isFinite(item) && item > 0 && item <= 65535);
 }
 
-function uniqueGpus(gpus: TensorDockGpu[]) {
+function uniqueGpus(gpus: VastGpu[]) {
   const seen = new Set<string>();
   return gpus.filter((gpu) => {
     if (!gpu.v0Name || seen.has(gpu.v0Name)) {
@@ -218,11 +228,11 @@ function uniqueGpus(gpus: TensorDockGpu[]) {
   });
 }
 
-function getInstanceName(instance: TensorDockInstance) {
+function getInstanceName(instance: VastInstance) {
   return instance.attributes?.name || instance.name || instance.id || 'Unknown instance';
 }
 
-function getInstanceStatus(instance: TensorDockInstance) {
+function getInstanceStatus(instance: VastInstance) {
   return instance.attributes?.status || instance.status || 'unknown';
 }
 
@@ -235,12 +245,12 @@ function statusVariant(status: string) {
 }
 
 function buildLoadErrorMessage(message: string) {
-  if (message.includes('Thiếu TENSORDOCK_API_TOKEN')) {
-    return `${message}. Cần cấu hình env TENSORDOCK_API_TOKEN trên server rồi restart Next.js.`;
+  if (message.includes('Thiếu VAST_API_KEY')) {
+    return `${message}. Cần cấu hình env VAST_API_KEY trên server rồi restart Next.js.`;
   }
 
   if (message.includes('HTTP 401') || message.includes('HTTP 403')) {
-    return `${message}. Token TensorDock có thể sai, hết hạn hoặc thiếu quyền.`;
+    return `${message}. API key Vast.ai có thể sai, hết hạn hoặc thiếu quyền.`;
   }
 
   return message;
@@ -248,22 +258,22 @@ function buildLoadErrorMessage(message: string) {
 
 export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   const { confirm } = useConfirmDialog();
-  const [locations, setLocations] = useState<TensorDockLocation[]>([]);
-  const [hostnodes, setHostnodes] = useState<TensorDockHostnode[]>([]);
-  const [secrets, setSecrets] = useState<TensorDockSecret[]>([]);
-  const [instances, setInstances] = useState<TensorDockInstance[]>([]);
+  const [locations, setLocations] = useState<VastLocation[]>([]);
+  const [hostnodes, setHostnodes] = useState<VastHostnode[]>([]);
+  const [secrets, setSecrets] = useState<VastSecret[]>([]);
+  const [instances, setInstances] = useState<VastInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [instanceAction, setInstanceAction] = useState<string | null>(null);
 
-  const [deploymentMethod, setDeploymentMethod] = useState<DeploymentMethod>('location');
+  const [deploymentMethod, setDeploymentMethod] = useState<DeploymentMethod>('hostnode');
   const [networkMode, setNetworkMode] = useState<NetworkMode>('port-forwarding');
   const [operatingSystem, setOperatingSystem] = useState<OperatingSystem>('ubuntu2404');
   const [instanceName, setInstanceName] = useState('trungtammmo-gpu-ai');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedHostnodeId, setSelectedHostnodeId] = useState('');
-  const [gpuV0Name, setGpuV0Name] = useState('geforcertx4090-pcie-24gb');
+  const [gpuV0Name, setGpuV0Name] = useState('RTX 4090');
   const [gpuCount, setGpuCount] = useState('1');
   const [vcpuCount, setVcpuCount] = useState('4');
   const [ramGb, setRamGb] = useState('16');
@@ -285,7 +295,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         throw new Error(payload.message || 'Không thể tải dữ liệu VPS GPU');
       }
 
-      const data = asRecord(payload.data) as TensorDockOverviewData;
+      const data = asRecord(payload.data) as VastOverviewData;
       setLocations(extractLocations(data.locations));
       setHostnodes(extractHostnodes(data.hostnodes));
       setInstances(extractInstances(data.instances));
@@ -308,14 +318,18 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
     void loadOverview();
   }, []);
 
-  const selectedLocation = useMemo(
-    () => locations.find((item) => item.id === selectedLocationId) || locations[0] || null,
-    [locations, selectedLocationId]
-  );
-
   const selectedHostnode = useMemo(
     () => hostnodes.find((item) => item.id === selectedHostnodeId) || hostnodes[0] || null,
     [hostnodes, selectedHostnodeId]
+  );
+
+  const selectedLocation = useMemo(
+    () =>
+      locations.find((item) => item.id === selectedLocationId) ||
+      locations.find((location) => location.id === selectedHostnode?.location_id || location.id === selectedHostnode?.location?.country) ||
+      locations[0] ||
+      null,
+    [locations, selectedHostnode, selectedLocationId]
   );
 
   const gpuOptions = useMemo(() => {
@@ -363,6 +377,18 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   }, [hostnodes, selectedHostnodeId]);
 
   useEffect(() => {
+    if (deploymentMethod !== 'hostnode') {
+      return;
+    }
+
+    const currentHostnode = hostnodes.find((hostnode) => hostnode.id === selectedHostnodeId);
+    const nextGpu = currentHostnode?.available_resources?.gpus?.[0]?.v0Name;
+    if (nextGpu && nextGpu !== gpuV0Name) {
+      setGpuV0Name(nextGpu);
+    }
+  }, [deploymentMethod, gpuV0Name, hostnodes, selectedHostnodeId]);
+
+  useEffect(() => {
     if (!gpuOptions.some((gpu) => gpu.v0Name === gpuV0Name) && gpuOptions[0]?.v0Name) {
       setGpuV0Name(gpuOptions[0].v0Name);
     }
@@ -393,7 +419,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
     const attributes: Record<string, unknown> = {
       name,
       type: 'virtualmachine',
-      image: operatingSystem,
+      image: 'vastai/base-image:@vastai-automatic-tag',
       resources: {
         vcpu_count: vcpus,
         ram_gb: ram,
@@ -412,12 +438,23 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         throw new Error('Thiếu location_id');
       }
       attributes.location_id = locationId;
+      const locationHostnode = hostnodes.find(
+        (hostnode) =>
+          (hostnode.location_id === locationId || hostnode.location?.country === locationId) &&
+          hostnode.available_resources?.gpus?.some((gpu) => gpu.v0Name === gpuName)
+      ) || hostnodes.find((hostnode) => hostnode.location_id === locationId || hostnode.location?.country === locationId);
+      const offerId = locationHostnode?.id || selectedHostnode?.id || selectedHostnodeId;
+      if (!offerId) {
+        throw new Error('Không tìm thấy Vast offer trong khu vực đã chọn');
+      }
+      attributes.offer_id = offerId;
     } else {
       const hostnodeId = selectedHostnode?.id || selectedHostnodeId;
       if (!hostnodeId) {
-        throw new Error('Thiếu hostnode_id');
+        throw new Error('Thiếu Vast offer_id');
       }
       attributes.hostnode_id = hostnodeId;
+      attributes.offer_id = hostnodeId;
     }
 
     if (networkMode === 'dedicated-ip') {
@@ -435,13 +472,10 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
 
     if (operatingSystem === 'ubuntu2404') {
       if (!sshKey.trim()) {
-        throw new Error('Ubuntu cần SSH key secret ID');
+        throw new Error('Cần thêm SSH key trong Vast.ai trước khi tạo instance. Vào Vast.ai > Manage Keys > SSH Keys để thêm public key.');
       }
       attributes.ssh_key = sshKey.trim();
-    } else {
-      if (!windowsPassword.trim()) {
-        throw new Error('Windows cần password');
-      }
+    } else if (windowsPassword.trim()) {
       attributes.password = windowsPassword.trim();
     }
 
@@ -487,6 +521,11 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   ]);
 
   const estimatedHourly = useMemo(() => {
+    const hostnodeHourly = Number(selectedHostnode?.pricing?.total_hourly || 0);
+    if (Number.isFinite(hostnodeHourly) && hostnodeHourly > 0) {
+      return hostnodeHourly;
+    }
+
     const gpuPrice = Number(selectedGpu?.price_per_hr || 0) * parsePositiveInt(gpuCount, 1);
     const perVcpu =
       selectedGpu?.pricing?.per_vcpu_hr ||
@@ -519,8 +558,8 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
     }
 
     const confirmed = await confirm({
-      title: 'Tạo VPS GPU trên TensorDock',
-      description: `Instance ${instanceName.trim()} sẽ được tạo trực tiếp trên tài khoản TensorDock cấu hình trong server. Kiểm tra kỹ GPU, hệ điều hành và network trước khi tiếp tục.`,
+      title: 'Tạo VPS GPU trên Vast.ai',
+      description: `Instance ${instanceName.trim()} sẽ được tạo trực tiếp trên tài khoản Vast.ai cấu hình trong server. Kiểm tra kỹ offer, Docker image và số dư trước khi tiếp tục.`,
       confirmText: 'Tạo instance',
       cancelText: 'Kiểm tra lại',
       tone: 'brand',
@@ -557,7 +596,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
     if (action === 'delete') {
       const confirmed = await confirm({
         title: 'Xóa instance VPS GPU',
-        description: `Instance ${instanceId} sẽ bị xóa khỏi TensorDock. Thao tác này không thể hoàn tác.`,
+        description: `Instance ${instanceId} sẽ bị xóa khỏi Vast.ai. Thao tác này không thể hoàn tác.`,
         confirmText: 'Xóa instance',
         cancelText: 'Hủy',
         tone: 'danger',
@@ -582,7 +621,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Thao tác instance thất bại');
       }
-      toast.success('Đã gửi lệnh tới TensorDock');
+      toast.success('Đã gửi lệnh tới Vast.ai');
       await loadOverview();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Thao tác instance thất bại');
@@ -594,9 +633,9 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHero
-        eyebrow="TensorDock GPU Cloud"
+        eyebrow="Vast.ai GPU Cloud"
         title="Thuê VPS GPU mạnh cho AI, game và render"
-        description="Tạo VPS GPU TensorDock trực tiếp từ TRUNGTAMMMO. Chọn location/hostnode, network, hệ điều hành và xem payload API trước khi gửi lệnh."
+        description="Tạo VPS GPU Vast.ai trực tiếp từ TRUNGTAMMMO. Chọn offer GPU, Docker image, network và xem payload API trước khi gửi lệnh."
         actions={
           <>
             <Button type="button" onClick={() => void loadOverview()} disabled={loading} variant="outline">
@@ -611,7 +650,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         }
         stats={[
           { label: 'Locations', value: String(locations.length), hint: 'Khu vực có GPU', tone: 'blue' },
-          { label: 'Hostnodes', value: String(hostnodes.length), hint: 'Máy chủ deploy trực tiếp', tone: 'emerald' },
+          { label: 'Offers', value: String(hostnodes.length), hint: 'Offer Vast.ai đang rentable', tone: 'emerald' },
           { label: 'Instances', value: String(instances.length), hint: 'VM đang quản lý', tone: 'violet' },
           { label: 'Est. Hourly', value: formatUsd(estimatedHourly), hint: 'Ước tính theo GPU/resource', tone: 'amber' },
         ]}
@@ -621,7 +660,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         <SectionPanel className="border-amber-500/25 bg-amber-500/10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-black uppercase tracking-[0.18em] text-amber-600">TensorDock chưa sẵn sàng</div>
+              <div className="text-sm font-black uppercase tracking-[0.18em] text-amber-600">Vast.ai chưa sẵn sàng</div>
               <p className="mt-2 text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
                 {buildLoadErrorMessage(loadError)}
               </p>
@@ -637,7 +676,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         <SectionHeader
           eyebrow="Instance Creation"
           title="Configure Your Instance"
-          description="Ba nhóm bên dưới sẽ thay đổi trực tiếp payload POST /api/v2/instances."
+          description="Ba nhóm bên dưới sẽ thay đổi payload tạo instance theo Vast.ai API PUT /asks/{offer_id}."
         />
 
         <div className="space-y-7">
@@ -667,7 +706,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
           <SectionHeader
             eyebrow="Resources"
             title="Cấu hình VPS GPU"
-            description="Storage tối thiểu 100GB. Location-based cần ít nhất 1 GPU; Ubuntu cần SSH key, Windows cần password."
+            description="Storage tối thiểu 100GB. Vast.ai cần chọn một offer còn rentable; SSH key nên được thêm trong tài khoản Vast.ai."
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -675,7 +714,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
               <Input value={instanceName} onChange={(event) => setInstanceName(event.target.value)} />
             </Field>
 
-            <Field label={deploymentMethod === 'location' ? 'Location ID' : 'Hostnode ID'}>
+            <Field label={deploymentMethod === 'location' ? 'Khu vực' : 'Vast offer ID'}>
               {deploymentMethod === 'location' ? (
                 <select
                   value={selectedLocation?.id || selectedLocationId}
@@ -697,7 +736,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
                 >
                   {hostnodes.map((hostnode) => (
                     <option key={hostnode.id} value={hostnode.id}>
-                      {hostnode.engine || 'Hostnode'} · {formatLocation(hostnode.location)}
+                      #{hostnode.id} · {hostnode.engine || 'Vast offer'} · {formatLocation(hostnode.location)}
                     </option>
                   ))}
                   {!hostnodes.length ? <option value="">Chưa có hostnode</option> : null}
@@ -753,7 +792,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
               <MetricCard
                 label="Dedicated IP"
                 value="Enabled"
-                hint="Payload sẽ gửi useDedicatedIp: true"
+                hint="Vast.ai sẽ trả thông tin SSH/public IP khi instance sẵn sàng"
                 tone="blue"
                 icon={<ShieldCheck className="h-4 w-4" />}
                 className="p-4"
@@ -761,7 +800,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
             )}
 
             {operatingSystem === 'ubuntu2404' ? (
-              <Field label="SSH key secret ID">
+              <Field label="SSH key ID">
                 <select
                   value={sshKey}
                   onChange={(event) => setSshKey(event.target.value)}
@@ -772,22 +811,22 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
                       {secret.name || secret.id}
                     </option>
                   ))}
-                  {!sshKeySecrets.length ? <option value="">Nhập secret ID bên dưới</option> : null}
+                  {!sshKeySecrets.length ? <option value="">Chưa có SSH key trên Vast.ai</option> : null}
                 </select>
                 <Input
                   className="mt-2"
                   value={sshKey}
                   onChange={(event) => setSshKey(event.target.value)}
-                  placeholder="sshkey placeholder"
+                  placeholder="ID SSH key trên Vast.ai, có thể để trống nếu account đã có key mặc định"
                 />
               </Field>
             ) : (
-              <Field label="Windows password">
+              <Field label="Custom image/password note">
                 <Input
                   type="password"
                   value={windowsPassword}
                   onChange={(event) => setWindowsPassword(event.target.value)}
-                  placeholder="MySecureP@ssw0rd123!"
+                  placeholder="Ghi chú image riêng nếu cần"
                 />
               </Field>
             )}
@@ -807,8 +846,8 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         <SectionPanel className="space-y-5">
           <SectionHeader
             eyebrow="Generated API Request"
-            title="POST /api/v2/instances"
-            description="Payload này được gửi qua server nội bộ, server sẽ tự gắn Bearer token TensorDock."
+            title="PUT /api/v0/asks/{offer_id}"
+            description="Payload này được gửi qua server nội bộ, server sẽ tự gắn Bearer token Vast.ai."
           />
           <pre className="max-h-[620px] overflow-auto rounded-[1.35rem] border border-slate-200/80 bg-slate-950 p-4 text-xs font-semibold leading-6 text-cyan-100 shadow-inner dark:border-white/10">
             {JSON.stringify(generatedPayload, null, 2)}
@@ -820,7 +859,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         <SectionHeader
           eyebrow="Instance Management"
           title="VPS GPU đang chạy"
-          description="Theo dõi và gửi lệnh start, stop hoặc delete tới TensorDock."
+          description="Theo dõi và gửi lệnh start, stop hoặc delete tới Vast.ai."
           actions={
             <Button type="button" variant="outline" size="sm" onClick={() => void loadOverview()} disabled={loading}>
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
@@ -830,7 +869,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         />
 
         {loading ? (
-          <EmptyState title="Đang tải TensorDock" description="Hệ thống đang lấy locations, hostnodes, secrets và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
+          <EmptyState title="Đang tải Vast.ai" description="Hệ thống đang lấy offers, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
         ) : instances.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {instances.map((instance) => {
@@ -898,7 +937,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         ) : (
           <EmptyState
             title="Chưa có VPS GPU"
-            description="Chọn cấu hình bên trên rồi tạo instance mới. Khi TensorDock trả instance, danh sách sẽ hiện tại đây."
+            description="Chọn cấu hình bên trên rồi tạo instance mới. Khi Vast.ai trả instance, danh sách sẽ hiện tại đây."
             icon={<Cpu className="h-5 w-5" />}
           />
         )}

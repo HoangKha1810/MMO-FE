@@ -64,6 +64,7 @@ import {
 import { startPageTransition } from '@/components/layout/navigation-effects';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { useSessionUser, type SessionUser } from '@/hooks/use-session-user';
+import { readJsonResponse } from '@/lib/client-api';
 import type { LegacyServiceItem } from '@/lib/legacy-settings';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { useWalletBalance } from '@/components/layout/wallet-balance-context';
@@ -483,7 +484,7 @@ export function AppShell({
           return;
         }
 
-        const payload = await response.json();
+        const payload = await readJsonResponse(response, 'Không tải được danh mục sidebar');
         if (active && Array.isArray(payload.sidebar)) {
           setResolvedSidebarServices(payload.sidebar);
           setCachedSidebarServices(payload.sidebar);
@@ -554,7 +555,7 @@ export function AppShell({
     async function loadSmmSidebarServices() {
       try {
         const response = await fetch('/api/smm/services');
-        const payload = await response.json();
+        const payload = await readJsonResponse(response, 'Không tải được danh mục SMM');
         const services = Array.isArray(payload.data) ? payload.data as SidebarSmmServiceLike[] : [];
         if (active) {
           const nextSections = buildSidebarSmmSections(services);

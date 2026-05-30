@@ -2,7 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { cleanForumHtml } from '@/lib/forum';
+import { cleanForumHtml, isActiveForumStatus } from '@/lib/forum';
 
 interface ForumActionRow {
   [key: string]: unknown;
@@ -167,7 +167,7 @@ export async function createForumReply(userId: number, threadId: number, content
     throw new Error('Không tìm thấy thread');
   }
 
-  if (String(thread.status || 'active') !== 'active') {
+  if (!isActiveForumStatus(thread.status)) {
     throw new Error('Thread không còn hoạt động');
   }
 
@@ -184,7 +184,7 @@ export async function createForumReply(userId: number, threadId: number, content
     await tx.$executeRawUnsafe(
       `
         INSERT INTO forum_posts (thread_id, user_id, content, is_first_post, status, created_at, updated_at, is_deleted)
-        VALUES (?, ?, ?, 0, 'pending', NOW(), NOW(), 0)
+        VALUES (?, ?, ?, 0, 'active', NOW(), NOW(), 0)
       `,
       threadId,
       userId,
@@ -423,7 +423,7 @@ export async function createForumThreadWithPrefix(userId: number, input: {
     await tx.$executeRawUnsafe(
       `
         INSERT INTO forum_threads (forum_id, user_id, title, slug, status, created_at, updated_at, prefix_id, is_pinned, is_locked, is_deleted)
-        VALUES (?, ?, ?, ?, 'pending', NOW(), NOW(), ?, 0, 0, 0)
+        VALUES (?, ?, ?, ?, 'active', NOW(), NOW(), ?, 0, 0, 0)
       `,
       input.forumId,
       userId,
@@ -440,7 +440,7 @@ export async function createForumThreadWithPrefix(userId: number, input: {
     await tx.$executeRawUnsafe(
       `
         INSERT INTO forum_posts (thread_id, user_id, content, is_first_post, status, created_at, updated_at, is_deleted)
-        VALUES (?, ?, ?, 1, 'pending', NOW(), NOW(), 0)
+        VALUES (?, ?, ?, 1, 'active', NOW(), NOW(), 0)
       `,
       threadId,
       userId,

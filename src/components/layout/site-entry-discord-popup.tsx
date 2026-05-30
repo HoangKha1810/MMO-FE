@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { ArrowRight, BellRing, Send, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, BellRing, MessageCircle, ShieldCheck, X } from 'lucide-react';
 
-const TELEGRAM_INVITE_URL = 'https://t.me/+8dxx56rLM6MwNjU1';
-const TELEGRAM_POPUP_DELAY_MS = 1200;
-const TELEGRAM_POPUP_ROUTES = new Set(['/', '/user/home']);
-const TELEGRAM_POPUP_EXIT_MS = 220;
-const TELEGRAM_POPUP_DISMISSED_KEY = 'trungtammmo_telegram_popup_dismissed_v1';
+const ZALO_GROUP_INVITE_URL = 'https://zalo.me/g/ejtvpx203';
+const COMMUNITY_POPUP_DELAY_MS = 1200;
+const COMMUNITY_POPUP_ROUTES = new Set(['/', '/user/home']);
+const COMMUNITY_POPUP_EXIT_MS = 220;
+const COMMUNITY_POPUP_DISMISSED_KEY = 'trungtammmo_zalo_giveaway_popup_dismissed_v1';
 
 type PopupPhase = 'closed' | 'open' | 'closing';
 
@@ -27,22 +27,22 @@ export function SiteEntryDiscordPopup() {
       window.clearTimeout(closeTimerRef.current);
     }
 
-    window.sessionStorage.setItem(TELEGRAM_POPUP_DISMISSED_KEY, '1');
+    window.sessionStorage.setItem(COMMUNITY_POPUP_DISMISSED_KEY, '1');
     setPhase('closing');
     closeTimerRef.current = window.setTimeout(() => {
       setPhase('closed');
       closeTimerRef.current = null;
-    }, TELEGRAM_POPUP_EXIT_MS);
+    }, COMMUNITY_POPUP_EXIT_MS);
   };
 
   useEffect(() => {
-    if (!pathname || !TELEGRAM_POPUP_ROUTES.has(pathname)) {
+    if (!pathname || !COMMUNITY_POPUP_ROUTES.has(pathname)) {
       lastShownRouteRef.current = null;
       setPhase('closed');
       return;
     }
 
-    if (window.sessionStorage.getItem(TELEGRAM_POPUP_DISMISSED_KEY) === '1') {
+    if (window.sessionStorage.getItem(COMMUNITY_POPUP_DISMISSED_KEY) === '1') {
       setPhase('closed');
       return;
     }
@@ -54,7 +54,7 @@ export function SiteEntryDiscordPopup() {
 
     const timer = window.setTimeout(() => {
       setPhase('open');
-    }, TELEGRAM_POPUP_DELAY_MS);
+    }, COMMUNITY_POPUP_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [pathname]);
@@ -91,7 +91,7 @@ export function SiteEntryDiscordPopup() {
       >
         <button
           type="button"
-          aria-label="Đóng thông báo Telegram"
+          aria-label="Đóng thông báo nhóm Zalo"
           className="telegram-entry-close"
           onClick={dismiss}
         >
@@ -100,7 +100,7 @@ export function SiteEntryDiscordPopup() {
 
         <div className="telegram-entry-icon" aria-hidden="true">
           <span className="telegram-entry-icon-ring" />
-          <Send className="h-6 w-6" />
+          <MessageCircle className="h-6 w-6" />
         </div>
 
         <div className="min-w-0">
@@ -109,10 +109,10 @@ export function SiteEntryDiscordPopup() {
             Kênh cộng đồng
           </div>
           <h2 id="telegram-entry-title" className="telegram-entry-title">
-            Tham gia nhóm Telegram
+            Tham gia nhóm Zalo
           </h2>
           <p id="telegram-entry-description" className="telegram-entry-description">
-            Nhận cập nhật dịch vụ, thông báo bảo trì và hỗ trợ nhanh hơn. Nhóm đạt 1k thành viên sẽ có Giveaway VPS.
+            Nhóm có chương trình giveaway mỗi tuần, cập nhật dịch vụ mới và thông báo quan trọng từ TRUNGTAMMMO.
           </p>
 
           <div className="telegram-entry-safe">
@@ -122,13 +122,13 @@ export function SiteEntryDiscordPopup() {
 
           <div className="telegram-entry-actions">
             <a
-              href={TELEGRAM_INVITE_URL}
+              href={ZALO_GROUP_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="telegram-entry-primary"
               onClick={dismiss}
             >
-              Vào Telegram
+              Vào nhóm Zalo
               <ArrowRight className="h-4 w-4" />
             </a>
             <button type="button" className="telegram-entry-secondary" onClick={dismiss}>

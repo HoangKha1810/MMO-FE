@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Input } from '@/components/ui/input';
 import { EmptyState, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { readJsonResponse } from '@/lib/client-api';
 import type { AdminSectionConfig } from '@/lib/admin-page-config';
 import { formatDatabaseDateTime, formatDatabaseTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { normalizeSmmOrderStatus } from '@/lib/smm-status';
@@ -77,7 +78,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const GLOBAL_ACTION_KEYS = new Set(['sync', 'check-new-deposits']);
 const LONG_TEXT_FIELD_TOKENS = ['description', 'content', 'message', 'payload', 'note', 'reason', 'key'];
 const LEGACY_COMMUNITY_LINKS = [
-  { label: 'Nhóm Zalo', href: 'https://zalo.me/g/ibexon608' },
+  { label: 'Nhóm Zalo', href: 'https://zalo.me/g/ejtvpx203' },
   { label: 'Nhóm Telegram', href: 'https://t.me/+XdGxk8YFEE2NmE1' },
   { label: 'Kênh Tiktok', href: 'http://www.tiktok.com/@haokimedia' },
 ] as const;
@@ -598,6 +599,41 @@ function buildDirtyValues(
   return Object.fromEntries(nextEntries);
 }
 
+function normalizeAdminEditorPayload(resource: string, values: Record<string, unknown>) {
+  const next = { ...values };
+
+  if (resource === 'automxh-variants') {
+    const integerFallbacks: Record<string, number> = {
+      product_id: 0,
+      api_provider_id: 0,
+      quantity: 1,
+      allow_avatar: 0,
+      allow_files: 0,
+      is_deleted: 0,
+    };
+    const numberFallbacks: Record<string, number> = {
+      price: 0,
+      cost: 0,
+      original_price: 0,
+    };
+
+    for (const [field, fallback] of Object.entries(integerFallbacks)) {
+      if (Object.prototype.hasOwnProperty.call(next, field)) {
+        const parsed = Math.trunc(toNumber(next[field], fallback));
+        next[field] = field === 'quantity' ? Math.max(1, parsed) : parsed;
+      }
+    }
+
+    for (const [field, fallback] of Object.entries(numberFallbacks)) {
+      if (Object.prototype.hasOwnProperty.call(next, field)) {
+        next[field] = toNumber(next[field], fallback);
+      }
+    }
+  }
+
+  return next;
+}
+
 function mergeIncomingRows(
   previous: Array<Record<string, unknown>>,
   incoming: Array<Record<string, unknown>>
@@ -1103,8 +1139,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
     try {
       const response = await fetch(`/api/admin/${section.resource}?${params.toString()}`, { cache: 'no-store' });
-      const payload: ApiResponse = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse<ApiResponse>(response, 'Không thể tải dữ liệu');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể tải dữ liệu');
       }
       const nextRows = payload.data || [];
@@ -1231,8 +1267,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Không thể cập nhật');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể cập nhật');
       }
 
@@ -1308,16 +1344,17 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       const payloadValues = editor.mode === 'edit'
         ? buildDirtyValues(section.resource, editor.baseline || editor.row, editor.values)
         : editor.values;
+      const normalizedPayloadValues = normalizeAdminEditorPayload(section.resource, payloadValues);
       const response = await fetch(
         editor.mode === 'create' ? `/api/admin/${section.resource}` : `/api/admin/${section.resource}/${id}`,
         {
           method: editor.mode === 'create' ? 'POST' : 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadValues),
+          body: JSON.stringify(normalizedPayloadValues),
         }
       );
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Không thể lưu dữ liệu');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể lưu dữ liệu');
       }
       toast.success('Đã lưu dữ liệu');
@@ -1369,8 +1406,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
     try {
       const response = await fetch(`/api/admin/${section.resource}/${id}`, { cache: 'no-store' });
-      const payload: DetailResponse = await response.json();
-      if (!response.ok || !payload.success || !payload.data) {
+      const payload = await readJsonResponse<DetailResponse>(response, 'Không thể tải chi tiết user');
+      if (!payload.success || !payload.data) {
         throw new Error(payload.message || 'Không thể tải chi tiết user');
       }
 
@@ -1410,8 +1447,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     setSaving(true);
     try {
       const response = await fetch(`/api/admin/${section.resource}/${id}`, { method: 'DELETE' });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Không thể xóa dữ liệu');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể xóa dữ liệu');
       }
       toast.success('Đã xử lý');
@@ -1453,8 +1490,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, id, ids: actionIds }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Action thất bại');
+      if (!payload.success) {
         throw new Error(payload.message || 'Action thất bại');
       }
       toast.success('Đã chạy action');
@@ -1475,8 +1512,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'bulk-update', ids: selected, patch: { status: nextStatus } }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Không thể bulk update');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể bulk update');
       }
       toast.success(`Đã cập nhật ${selected.length} dòng`);
@@ -1507,8 +1544,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
           provider_id: providerFilter || undefined,
         }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Không thể cập nhật danh mục');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể cập nhật danh mục');
       }
       toast.success(nextActive ? 'Đã bật card danh mục' : 'Đã tắt card danh mục');
@@ -1587,8 +1624,8 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
           category: scope === 'filtered' ? categoryFilter : undefined,
         }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
+      const payload = await readJsonResponse(response, 'Không thể chỉnh phần trăm lãi');
+      if (!payload.success) {
         throw new Error(payload.message || 'Không thể chỉnh phần trăm lãi');
       }
 

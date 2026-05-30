@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { readJsonResponse } from '@/lib/client-api';
 
 type SearchRow = Record<string, unknown>;
 
@@ -25,7 +26,7 @@ export function ForumSearchBoard({ initialKeyword, initialThreads, initialPosts 
     async function run() {
       try {
         const response = await fetch(`/api/forum/search?q=${encodeURIComponent(deferredKeyword)}`, { cache: 'no-store' });
-        const payload = await response.json();
+        const payload = await readJsonResponse(response, 'Không tìm kiếm được forum');
         if (!cancelled) {
           if (payload.success) {
             setThreads(payload.data.threads || []);
