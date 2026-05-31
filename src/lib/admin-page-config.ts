@@ -9,6 +9,23 @@ export interface AdminSectionConfig {
   actions?: Array<{ key: string; label: string; tone?: 'default' | 'danger' | 'success' }>;
 }
 
+export const vpsGpuAdminSections: AdminSectionConfig[] = [
+  {
+    resource: 'settings',
+    title: 'VPS GPU AI pricing',
+    description: 'Chỉnh giá bán VPS GPU. Search key vps_gpu để lọc nhanh 3 cấu hình: tỷ giá USD, hệ số lời và phí cộng thêm mỗi giờ.',
+    columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
+    editableFields: ['setting_value'],
+    createFields: ['setting_key', 'setting_value'],
+  },
+  {
+    resource: 'vps-gpu-offer-costs',
+    title: 'VPS GPU Vast.ai costs',
+    description: 'Snapshot giá vốn lấy trực tiếp từ Vast.ai bundles. So sánh cost USD/VNĐ, giá bán và lời dự kiến theo từng offer.',
+    columns: ['id', 'offer_id', 'gpu_name', 'gpu_count', 'gpu_ram_gb', 'location', 'cost_source', 'cost_hourly_usd', 'cost_hourly_vnd', 'sale_hourly_vnd', 'profit_hourly_vnd', 'price_multiplier', 'last_seen_at'],
+  },
+];
+
 export const adminPageSections: Record<string, AdminSectionConfig[]> = {
   users: [
     {
@@ -387,20 +404,6 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     },
   ],
   settings: [
-    {
-      resource: 'settings',
-      title: 'VPS GPU AI pricing',
-      description: 'Cấu hình giá bán VPS GPU từ cost Vast.ai. Dùng các key: vps_gpu_usd_to_vnd, vps_gpu_price_multiplier, vps_gpu_hourly_fee_vnd.',
-      columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
-      editableFields: ['setting_value'],
-      createFields: ['setting_key', 'setting_value'],
-    },
-    {
-      resource: 'vps-gpu-offer-costs',
-      title: 'VPS GPU Vast.ai costs',
-      description: 'Snapshot giá vốn lấy trực tiếp từ Vast.ai bundles. So sánh cost USD/VNĐ, giá bán và lời dự kiến theo từng offer.',
-      columns: ['id', 'offer_id', 'gpu_name', 'gpu_count', 'gpu_ram_gb', 'location', 'cost_source', 'cost_hourly_usd', 'cost_hourly_vnd', 'sale_hourly_vnd', 'profit_hourly_vnd', 'price_multiplier', 'last_seen_at'],
-    },
     {
       resource: 'settings',
       title: 'Settings',
