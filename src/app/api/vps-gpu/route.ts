@@ -7,6 +7,8 @@ import {
   VastApiError,
   vastRequest,
 } from '@/lib/vast-ai';
+import { getLegacySettingsMap } from '@/lib/legacy-settings';
+import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -21,6 +23,17 @@ const noStoreHeaders = {
 type VastOffer = Record<string, unknown>;
 type VastInstance = Record<string, unknown>;
 type VastSshKey = Record<string, unknown>;
+type PricedHostnode = ReturnType<typeof mapOfferToHostnode> & {
+  pricing?: Record<string, unknown>;
+};
+
+interface VpsGpuPricingSettings {
+  usdToVnd: number;
+  priceMultiplier: number;
+  hourlyFeeVnd: number;
+}
+
+const VPS_GPU_OFFER_COSTS_TABLE = 'vps_gpu_offer_costs';
 
 async function requireUser() {
   const cookieStore = await cookies();
@@ -66,6 +79,186 @@ function normalizeBoolean(value: unknown, fallback = false) {
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   return fallback;
+}
+
+function normalizePositiveNumber(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+async function getVpsGpuPricingSettings(): Promise<VpsGpuPricingSettings> {
+  const settings = await getLegacySettingsMap();
+
+  return {
+    usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, 26000),
+    priceMultiplier: normalizePositiveNumber(settings.vps_gpu_price_multiplier, 1.25),
+    hourlyFeeVnd: normalizePositiveNumber(settings.vps_gpu_hourly_fee_vnd, 0),
+  };
+}
+
+function roundPriceVnd(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(value / 1000) * 1000;
+}
+
+function applyVpsGpuPricing<T extends { pricing?: Record<string, unknown> }>(
+  hostnodes: T[],
+  settings: VpsGpuPricingSettings
+) {
+  return hostnodes.map((hostnode) => {
+    const pricing = asRecord(hostnode.pricing);
+    const costHourlyUsd = normalizePositiveNumber(pricing.total_hourly, 0);
+    const costHourlyVnd = Math.round(costHourlyUsd * settings.usdToVnd);
+    const saleHourlyVnd = roundPriceVnd(costHourlyVnd * settings.priceMultiplier + settings.hourlyFeeVnd);
+
+    return {
+      ...hostnode,
+      pricing: {
+        ...pricing,
+        total_hourly: costHourlyUsd,
+        cost_hourly_usd: costHourlyUsd,
+        cost_hourly_vnd: costHourlyVnd,
+        sale_hourly_vnd: saleHourlyVnd,
+        profit_hourly_vnd: Math.max(0, saleHourlyVnd - costHourlyVnd),
+        price_multiplier: settings.priceMultiplier,
+        hourly_fee_vnd: settings.hourlyFeeVnd,
+        usd_to_vnd: settings.usdToVnd,
+      },
+    };
+  });
+}
+
+function getOfferCostSource(offer: VastOffer) {
+  const candidates = [
+    ['dph_total', offer.dph_total],
+    ['dph_base', offer.dph_base],
+    ['dph', offer.dph],
+    ['min_bid', offer.min_bid],
+  ] as const;
+
+  for (const [key, value] of candidates) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return { key, value: parsed };
+    }
+  }
+
+  return { key: 'unknown', value: 0 };
+}
+
+async function ensureVpsGpuOfferCostsTable() {
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS \`${VPS_GPU_OFFER_COSTS_TABLE}\` (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      offer_id VARCHAR(80) NOT NULL,
+      machine_id VARCHAR(80) NULL,
+      host_id VARCHAR(80) NULL,
+      gpu_name VARCHAR(255) NULL,
+      gpu_count INT NULL DEFAULT 0,
+      gpu_ram_gb DECIMAL(10,2) NULL DEFAULT 0,
+      location VARCHAR(255) NULL,
+      reliability DECIMAL(8,5) NULL DEFAULT 0,
+      cost_source VARCHAR(50) NULL,
+      cost_hourly_usd DECIMAL(14,6) NOT NULL DEFAULT 0,
+      cost_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
+      sale_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
+      profit_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
+      price_multiplier DECIMAL(8,4) NOT NULL DEFAULT 1,
+      hourly_fee_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
+      usd_to_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
+      raw_offer LONGTEXT NULL,
+      last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uniq_vps_gpu_offer_id (offer_id),
+      KEY idx_vps_gpu_cost_last_seen (last_seen_at),
+      KEY idx_vps_gpu_cost_gpu (gpu_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+async function saveVpsGpuOfferCostSnapshots(
+  offers: VastOffer[],
+  hostnodes: PricedHostnode[],
+  settings: VpsGpuPricingSettings
+) {
+  if (!offers.length || !hostnodes.length) {
+    return;
+  }
+
+  try {
+    await ensureVpsGpuOfferCostsTable();
+    const hostnodeById = new Map(hostnodes.map((hostnode) => [String(hostnode.id), hostnode]));
+
+    for (const offer of offers.slice(0, 120)) {
+      const offerId = normalizeString(offer.id || offer.ask_contract_id || offer.machine_id);
+      if (!offerId) {
+        continue;
+      }
+
+      const hostnode = hostnodeById.get(offerId);
+      const pricing = asRecord(hostnode?.pricing);
+      const costSource = getOfferCostSource(offer);
+      const costHourlyUsd = Number(pricing.cost_hourly_usd || costSource.value || 0);
+      const costHourlyVnd = Number(pricing.cost_hourly_vnd || Math.round(costHourlyUsd * settings.usdToVnd));
+      const saleHourlyVnd = Number(pricing.sale_hourly_vnd || roundPriceVnd(costHourlyVnd * settings.priceMultiplier + settings.hourlyFeeVnd));
+      const profitHourlyVnd = Math.max(0, saleHourlyVnd - costHourlyVnd);
+      const gpuRamGb = Number(offer.gpu_ram || 0) / 1024;
+      const location = formatOfferLocation(offer);
+
+      await db.$executeRawUnsafe(
+        `
+          INSERT INTO \`${VPS_GPU_OFFER_COSTS_TABLE}\` (
+            offer_id, machine_id, host_id, gpu_name, gpu_count, gpu_ram_gb, location, reliability,
+            cost_source, cost_hourly_usd, cost_hourly_vnd, sale_hourly_vnd, profit_hourly_vnd,
+            price_multiplier, hourly_fee_vnd, usd_to_vnd, raw_offer, last_seen_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON DUPLICATE KEY UPDATE
+            machine_id = VALUES(machine_id),
+            host_id = VALUES(host_id),
+            gpu_name = VALUES(gpu_name),
+            gpu_count = VALUES(gpu_count),
+            gpu_ram_gb = VALUES(gpu_ram_gb),
+            location = VALUES(location),
+            reliability = VALUES(reliability),
+            cost_source = VALUES(cost_source),
+            cost_hourly_usd = VALUES(cost_hourly_usd),
+            cost_hourly_vnd = VALUES(cost_hourly_vnd),
+            sale_hourly_vnd = VALUES(sale_hourly_vnd),
+            profit_hourly_vnd = VALUES(profit_hourly_vnd),
+            price_multiplier = VALUES(price_multiplier),
+            hourly_fee_vnd = VALUES(hourly_fee_vnd),
+            usd_to_vnd = VALUES(usd_to_vnd),
+            raw_offer = VALUES(raw_offer),
+            last_seen_at = CURRENT_TIMESTAMP
+        `,
+        offerId,
+        normalizeString(offer.machine_id),
+        normalizeString(offer.host_id || offer.hostname),
+        normalizeString(offer.gpu_name || offer.gpu_name_full || offer.gpu_display_name, 'GPU'),
+        normalizePositiveInt(offer.num_gpus, 1),
+        Number.isFinite(gpuRamGb) ? gpuRamGb : 0,
+        location,
+        Number(offer.reliability || 0),
+        costSource.key,
+        costHourlyUsd,
+        costHourlyVnd,
+        saleHourlyVnd,
+        profitHourlyVnd,
+        settings.priceMultiplier,
+        settings.hourlyFeeVnd,
+        settings.usdToVnd,
+        JSON.stringify(offer)
+      );
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[vps-gpu] Failed to save Vast.ai offer cost snapshots', error);
+    }
+  }
 }
 
 function formatDockerEnvFlags(value: unknown) {
@@ -144,6 +337,11 @@ function parseGeolocation(value: unknown) {
     stateprovince: parts.length > 2 ? parts.at(-2) : undefined,
     country: parts.at(-1) || text,
   };
+}
+
+function formatOfferLocation(offer: VastOffer) {
+  const location = parseGeolocation(offer.geolocation || offer.location || offer.country);
+  return [location.city, location.stateprovince, location.country].filter(Boolean).join(', ') || 'Unknown location';
 }
 
 function mapOfferToHostnode(offer: VastOffer) {
@@ -371,6 +569,9 @@ export async function GET(req: NextRequest) {
       const mappedOffers = extractOffers(offers.data);
       const mappedInstances = mapInstances(extractInstances(instances.data));
       const mappedSshKeys = mapSshKeys(extractSshKeys(sshKeys.data));
+      const pricingSettings = await getVpsGpuPricingSettings();
+      const pricedHostnodes = applyVpsGpuPricing(mappedOffers.map(mapOfferToHostnode), pricingSettings);
+      await saveVpsGpuOfferCostSnapshots(mappedOffers, pricedHostnodes, pricingSettings);
 
       return json({
         success: offers.ok || instances.ok || sshKeys.ok || user.ok,
@@ -381,8 +582,9 @@ export async function GET(req: NextRequest) {
         data: {
           provider: 'vast-ai',
           account: user.data,
+          pricingSettings,
           locations: { data: { locations: mapOffersToLocations(mappedOffers) } },
-          hostnodes: { data: { hostnodes: mappedOffers.map(mapOfferToHostnode) } },
+          hostnodes: { data: { hostnodes: pricedHostnodes } },
           instances: { data: { instances: mappedInstances } },
           secrets: { data: { secrets: mappedSshKeys } },
           defaultSshKeySecretId: mappedSshKeys[0]?.id || '',
@@ -406,7 +608,13 @@ export async function GET(req: NextRequest) {
     if (resource === 'hostnodes' || resource === 'offers') {
       const payload = await getOfferOverview(req);
       const offers = extractOffers(payload);
-      return json({ success: true, data: { hostnodes: offers.map(mapOfferToHostnode), offers } });
+      const pricingSettings = await getVpsGpuPricingSettings();
+      const pricedHostnodes = applyVpsGpuPricing(offers.map(mapOfferToHostnode), pricingSettings);
+      await saveVpsGpuOfferCostSnapshots(offers, pricedHostnodes, pricingSettings);
+      return json({
+        success: true,
+        data: { hostnodes: pricedHostnodes, offers, pricingSettings },
+      });
     }
 
     if (resource.startsWith('hostnodes/') || resource.startsWith('offers/')) {
@@ -419,7 +627,13 @@ export async function GET(req: NextRequest) {
       if (!offer) {
         return json({ success: false, message: 'Không tìm thấy offer Vast.ai' }, { status: 404 });
       }
-      return json({ success: true, data: { hostnode: mapOfferToHostnode(offer), offer } });
+      const pricingSettings = await getVpsGpuPricingSettings();
+      const pricedHostnode = applyVpsGpuPricing([mapOfferToHostnode(offer)], pricingSettings);
+      await saveVpsGpuOfferCostSnapshots([offer], pricedHostnode, pricingSettings);
+      return json({
+        success: true,
+        data: { hostnode: pricedHostnode[0], offer, pricingSettings },
+      });
     }
 
     if (resource === 'instances') {
@@ -491,7 +705,13 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify(buildVastOfferSearch(asRecord(body?.payload))),
       });
       const offers = extractOffers(payload);
-      return json({ success: true, data: { hostnodes: offers.map(mapOfferToHostnode), offers } });
+      const pricingSettings = await getVpsGpuPricingSettings();
+      const pricedHostnodes = applyVpsGpuPricing(offers.map(mapOfferToHostnode), pricingSettings);
+      await saveVpsGpuOfferCostSnapshots(offers, pricedHostnodes, pricingSettings);
+      return json({
+        success: true,
+        data: { hostnodes: pricedHostnodes, offers, pricingSettings },
+      });
     }
 
     return json({ success: false, message: 'Action không hợp lệ' }, { status: 400 });

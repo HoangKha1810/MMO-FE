@@ -10,6 +10,7 @@ import {
   Briefcase,
   CheckCircle2,
   Cloud,
+  Cpu,
   CreditCard,
   ExternalLink,
   FileText,
@@ -128,6 +129,7 @@ const adminNavSections: NavSection[] = [
     accent: 'blue',
     items: [
       { href: '/admin/proxy', label: 'Cấu hình Proxy Cloud', icon: Cloud },
+      { href: '/admin/settings', label: 'Giá vốn VPS GPU', icon: Cpu, accent: 'blue' },
     ],
   },
   {

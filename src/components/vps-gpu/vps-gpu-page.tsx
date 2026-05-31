@@ -5,8 +5,6 @@ import { toast } from 'sonner';
 import {
   Cpu,
   Database,
-  DollarSign,
-  Globe2,
   KeyRound,
   Loader2,
   MapPin,
@@ -16,7 +14,6 @@ import {
   Server,
   ShieldCheck,
   Square,
-  TerminalSquare,
   Trash2,
 } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
@@ -54,6 +51,13 @@ interface VastGpu {
     per_gb_ram_hr?: number;
     per_gb_storage_hr?: number;
     total_hourly?: number;
+    cost_hourly_usd?: number;
+    cost_hourly_vnd?: number;
+    sale_hourly_vnd?: number;
+    profit_hourly_vnd?: number;
+    price_multiplier?: number;
+    hourly_fee_vnd?: number;
+    usd_to_vnd?: number;
   };
   network_features?: {
     dedicated_ip_available?: boolean;
@@ -95,6 +99,13 @@ interface VastHostnode {
     per_gb_ram_hr?: number;
     per_gb_storage_hr?: number;
     total_hourly?: number;
+    cost_hourly_usd?: number;
+    cost_hourly_vnd?: number;
+    sale_hourly_vnd?: number;
+    profit_hourly_vnd?: number;
+    price_multiplier?: number;
+    hourly_fee_vnd?: number;
+    usd_to_vnd?: number;
   };
   location?: {
     uuid?: string;
@@ -135,16 +146,6 @@ interface VastOverviewData {
   instances?: unknown;
   defaultSshKeySecretId?: unknown;
 }
-
-const deploymentOptions: Array<{
-  value: DeploymentMethod;
-  title: string;
-  description: string;
-  recommended?: boolean;
-}> = [
-  { value: 'hostnode', title: 'Vast Offer', description: 'Tạo đúng offer GPU đã chọn', recommended: true },
-  { value: 'location', title: 'Auto Offer', description: 'Chọn offer rẻ trong khu vực' },
-];
 
 const networkOptions: Array<{
   value: NetworkMode;
@@ -205,6 +206,14 @@ function formatUsd(value: number | undefined) {
   return `$${value.toFixed(value >= 1 ? 2 : 3)}/h`;
 }
 
+function formatVnd(value: number | undefined) {
+  if (!Number.isFinite(value || 0) || !value) {
+    return '0 đ/giờ';
+  }
+
+  return `${Math.round(value).toLocaleString('vi-VN')} đ/giờ`;
+}
+
 function formatLocation(location: VastLocation | VastHostnode['location']) {
   if (!location) {
     return 'Unknown location';
@@ -221,6 +230,16 @@ function getHostnodePrice(hostnode?: VastHostnode | null) {
   const offer = asRecord(hostnode?.vast);
   const price = Number(hostnode?.pricing?.total_hourly || offer.dph_total || offer.dph_base || offer.dph || 0);
   return Number.isFinite(price) ? price : 0;
+}
+
+function getHostnodeSalePrice(hostnode?: VastHostnode | null) {
+  const salePrice = Number(hostnode?.pricing?.sale_hourly_vnd || 0);
+  if (Number.isFinite(salePrice) && salePrice > 0) {
+    return salePrice;
+  }
+
+  const costUsd = getHostnodePrice(hostnode);
+  return costUsd > 0 ? Math.ceil((costUsd * 26000 * 1.25) / 1000) * 1000 : 0;
 }
 
 function getHostnodeGpuLabel(hostnode?: VastHostnode | null) {
@@ -576,11 +595,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       }));
     }
 
-    if (runtime === 'ssh' && !sshKey.trim()) {
-      throw new Error('Cần thêm SSH key trong Vast.ai trước khi tạo instance. Vào Vast.ai > Manage Keys > SSH Keys để thêm public key.');
-    }
-
-    if (runtime === 'ssh') {
+    if (runtime === 'ssh' && sshKey.trim()) {
       attributes.ssh_key = sshKey.trim();
     }
 
@@ -595,38 +610,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       },
     };
   }
-
-  const generatedPayload = useMemo(() => {
-    try {
-      return buildPayload();
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Payload chưa hợp lệ',
-      };
-    }
-  }, [
-    argsString,
-    cancelUnavailable,
-    deploymentMethod,
-    dockerImage,
-    envFlags,
-    gpuCount,
-    gpuV0Name,
-    instanceName,
-    networkMode,
-    onStartCommand,
-    portList,
-    ramGb,
-    runtime,
-    selectedHostnode,
-    selectedHostnodeId,
-    selectedLocation,
-    selectedLocationId,
-    sshKey,
-    storageGb,
-    targetState,
-    vcpuCount,
-  ]);
 
   const estimatedHourly = useMemo(() => {
     const hostnodeHourly = Number(selectedHostnode?.pricing?.total_hourly || 0);
@@ -655,6 +638,15 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       perStorage * Math.max(100, parsePositiveInt(storageGb, 200))
     );
   }, [gpuCount, ramGb, selectedGpu, selectedHostnode, storageGb, vcpuCount]);
+
+  const estimatedSaleHourly = useMemo(() => {
+    const hostnodeSale = getHostnodeSalePrice(selectedHostnode);
+    if (hostnodeSale > 0) {
+      return hostnodeSale;
+    }
+
+    return estimatedHourly > 0 ? Math.ceil((estimatedHourly * 26000 * 1.25) / 1000) * 1000 : 0;
+  }, [estimatedHourly, selectedHostnode]);
 
   async function handleCreateInstance() {
     let payload: ReturnType<typeof buildPayload>;
@@ -743,7 +735,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       <PageHero
         eyebrow="Vast.ai GPU Cloud"
         title="Thuê VPS GPU mạnh cho AI, game và render"
-        description="Tạo VPS GPU Vast.ai trực tiếp từ TRUNGTAMMMO. Chọn offer GPU, Docker image, network và xem payload API trước khi gửi lệnh."
+        description="Chọn gói GPU thật từ Vast.ai, xem giá bán theo VNĐ và tạo VPS GPU bằng tài khoản vận hành của hệ thống."
         actions={
           <>
             <Button type="button" onClick={() => void loadOverview()} disabled={loading} variant="outline">
@@ -757,18 +749,12 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           </>
         }
         stats={[
-          { label: 'Locations', value: String(locations.length), hint: 'Khu vực có GPU', tone: 'blue' },
-          { label: 'Offers', value: String(hostnodes.length), hint: 'Offer Vast.ai đang rentable', tone: 'emerald' },
+          { label: 'Khu vực', value: String(locations.length), hint: 'Nơi có GPU khả dụng', tone: 'blue' },
+          { label: 'Gói GPU', value: String(hostnodes.length), hint: 'Gói đang có thể thuê', tone: 'emerald' },
           { label: 'Instances', value: String(instances.length), hint: 'VM đang quản lý', tone: 'violet' },
-          { label: 'Est. Hourly', value: formatUsd(estimatedHourly), hint: 'Ước tính theo GPU/resource', tone: 'amber' },
+          { label: 'Giá bán', value: formatVnd(estimatedSaleHourly), hint: 'Đã gồm hệ số lời admin', tone: 'amber' },
         ]}
-      >
-        <div className="grid gap-3 sm:grid-cols-3">
-          <MiniInfo icon={<Globe2 />} label="API" value="/api/v0/bundles" />
-          <MiniInfo icon={<TerminalSquare />} label="Runtime" value={runtime.toUpperCase()} />
-          <MiniInfo icon={<DollarSign />} label="Selected" value={formatUsd(getHostnodePrice(selectedHostnode))} />
-        </div>
-      </PageHero>
+      />
 
       {loadError ? (
         <SectionPanel className="border-amber-500/25 bg-amber-500/10">
@@ -790,7 +776,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         <SectionHeader
           eyebrow="Offer Explorer"
           title="Chọn offer Vast.ai thật trước khi tạo VPS"
-          description="Dữ liệu lấy từ POST /api/v0/bundles. Chọn offer ở dưới để tự điền ask_id, GPU, giá giờ và cấu hình launch."
+          description="Lọc theo dòng GPU, RAM và độ ổn định. Giá hiển thị là giá bán cho khách sau khi cộng hệ số lời trong admin."
           actions={
             <Button type="button" onClick={() => void searchOffers()} loading={searchingOffers} loadingText="Đang lọc...">
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -854,7 +840,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       <div className="mt-2 truncate text-base font-black text-slate-950 dark:text-white">{getHostnodeGpuLabel(hostnode)}</div>
                     </div>
                     <Badge variant={active ? 'default' : 'success'} className="shrink-0 rounded-full">
-                      {formatUsd(getHostnodePrice(hostnode))}
+                      {formatVnd(getHostnodeSalePrice(hostnode))}
                     </Badge>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 dark:text-slate-300">
@@ -876,21 +862,15 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         )}
       </SectionPanel>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
+      <div>
         <SectionPanel className="space-y-5">
           <SectionHeader
             eyebrow="Launch Config"
-            title="Cấu hình instance theo Vast API"
-            description="Các trường này map trực tiếp sang payload PUT /api/v0/asks/{offer_id}: image, disk, runtype, target_state, env và onstart."
+            title="Cấu hình instance"
+            description="Giữ các thông tin cần thiết để tạo VPS GPU: gói GPU, tài nguyên, Docker image, SSH/port và lệnh khởi động."
           />
 
           <div className="space-y-7">
-            <ChoiceGroup
-              title="Deployment Method"
-              options={deploymentOptions}
-              value={deploymentMethod}
-              onChange={setDeploymentMethod}
-            />
             <ChoiceGroup
               title="Network Configuration"
               options={networkOptions}
@@ -948,7 +928,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               >
                 {gpuOptions.map((gpu) => (
                   <option key={gpu.v0Name} value={gpu.v0Name}>
-                    {gpu.displayName || gpu.v0Name} · {formatUsd(gpu.price_per_hr)}
+                    {gpu.displayName || gpu.v0Name}
                   </option>
                 ))}
               </select>
@@ -1015,7 +995,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             )}
 
             {runtime === 'ssh' ? (
-              <Field label="SSH key ID">
+              <Field label="SSH key optional">
                 <select
                   value={sshKey}
                   onChange={(event) => setSshKey(event.target.value)}
@@ -1026,14 +1006,17 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       {secret.name || secret.id}
                     </option>
                   ))}
-                  {!sshKeySecrets.length ? <option value="">Chưa có SSH key trên Vast.ai</option> : null}
+                  <option value="">Dùng SSH key mặc định trong account Vast.ai</option>
                 </select>
                 <Input
                   className="mt-2"
                   value={sshKey}
                   onChange={(event) => setSshKey(event.target.value)}
-                  placeholder="ID SSH key trên Vast.ai, có thể để trống nếu account đã có key mặc định"
+                  placeholder="Để trống nếu đã thêm SSH key trong Vast.ai > Manage Keys"
                 />
+                <p className="mt-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
+                  Vast.ai tự gắn SSH key cấp account vào instance mới. Chỉ nhập ID ở đây nếu anh muốn ép một key cụ thể.
+                </p>
               </Field>
             ) : (
               <Field label="Args string optional">
@@ -1065,17 +1048,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             />
             Hủy lệnh nếu offer đã hết rentable khi gửi request
           </label>
-        </SectionPanel>
-
-        <SectionPanel className="space-y-5">
-          <SectionHeader
-            eyebrow="Generated API Request"
-            title="PUT /api/v0/asks/{offer_id}"
-            description="Payload này được gửi qua server nội bộ, server sẽ tự gắn Bearer token Vast.ai."
-          />
-          <pre className="max-h-[620px] overflow-auto rounded-[1.35rem] border border-slate-200/80 bg-slate-950 p-4 text-xs font-semibold leading-6 text-cyan-100 shadow-inner dark:border-white/10">
-            {JSON.stringify(generatedPayload, null, 2)}
-          </pre>
         </SectionPanel>
       </div>
 
@@ -1185,9 +1157,6 @@ function ChoiceGroup<T extends string>({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <h3 className="text-lg font-black tracking-[-0.02em] text-slate-950 dark:text-white sm:text-xl">{title}</h3>
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 text-xs font-black text-slate-600 dark:border-white/20 dark:text-white/70">
-          i
-        </span>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {options.map((option) => {

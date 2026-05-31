@@ -285,6 +285,13 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     createFields: ['user_id', 'posted_by', 'title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'deadline_days', 'status', 'approval_status', 'is_pinned'],
     updateFields: ['title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'deadline_days', 'status', 'approval_status', 'is_pinned'],
   },
+  'vps-gpu-offer-costs': {
+    table: 'vps_gpu_offer_costs',
+    title: 'VPS GPU Vast.ai cost snapshots',
+    searchFields: ['offer_id', 'machine_id', 'host_id', 'gpu_name', 'location', 'cost_source'],
+    rawOrder: 'last_seen_at DESC, id DESC',
+    readonly: true,
+  },
   settings: {
     delegate: 'settings',
     title: 'Settings',

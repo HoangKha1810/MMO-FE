@@ -389,6 +389,20 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
   settings: [
     {
       resource: 'settings',
+      title: 'VPS GPU AI pricing',
+      description: 'Cấu hình giá bán VPS GPU từ cost Vast.ai. Dùng các key: vps_gpu_usd_to_vnd, vps_gpu_price_multiplier, vps_gpu_hourly_fee_vnd.',
+      columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
+      editableFields: ['setting_value'],
+      createFields: ['setting_key', 'setting_value'],
+    },
+    {
+      resource: 'vps-gpu-offer-costs',
+      title: 'VPS GPU Vast.ai costs',
+      description: 'Snapshot giá vốn lấy trực tiếp từ Vast.ai bundles. So sánh cost USD/VNĐ, giá bán và lời dự kiến theo từng offer.',
+      columns: ['id', 'offer_id', 'gpu_name', 'gpu_count', 'gpu_ram_gb', 'location', 'cost_source', 'cost_hourly_usd', 'cost_hourly_vnd', 'sale_hourly_vnd', 'profit_hourly_vnd', 'price_multiplier', 'last_seen_at'],
+    },
+    {
+      resource: 'settings',
       title: 'Settings',
       description: 'Cài đặt chung, giao diện, API domain/key, Telegram/Discord config dạng key-value.',
       columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
