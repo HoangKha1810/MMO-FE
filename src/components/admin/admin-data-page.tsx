@@ -139,7 +139,7 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
   'Card API config': 'Cấu hình API thẻ',
   'Interface settings': 'Cài đặt giao diện',
   'VPS GPU AI pricing': 'Nâng giá VPS GPU',
-  'VPS GPU Vast.ai costs': 'Giá vốn Vast.ai',
+  'VPS GPU provider costs': 'Giá vốn nguồn GPU',
   Settings: 'Cài đặt',
   Providers: 'Provider API',
   'IP blacklist': 'Danh sách đen IP',
@@ -321,7 +321,7 @@ const COLUMN_LABELS: Record<string, string> = {
   price_multiplier: 'Hệ số lời',
   hourly_fee_vnd: 'Phí cộng thêm/giờ',
   usd_to_vnd: 'Tỷ giá USD/VNĐ',
-  last_seen_at: 'Cập nhật Vast',
+  last_seen_at: 'Cập nhật giá vốn',
 };
 const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
   'automxh-products': {

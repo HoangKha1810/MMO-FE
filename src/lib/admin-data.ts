@@ -288,7 +288,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
   },
   'vps-gpu-offer-costs': {
     table: 'vps_gpu_offer_costs',
-    title: 'VPS GPU Vast.ai cost snapshots',
+    title: 'VPS GPU provider cost snapshots',
     searchFields: ['offer_id', 'machine_id', 'host_id', 'gpu_name', 'location', 'cost_source'],
     rawOrder: 'last_seen_at DESC, id DESC',
     readonly: true,

@@ -72,6 +72,14 @@ function normalizeString(value: unknown, fallback = '') {
   return text || fallback;
 }
 
+function sanitizeProviderMessage(value: unknown, fallback = 'Nguồn GPU hiện chưa phản hồi') {
+  const text = normalizeString(value, fallback);
+  return text
+    .replace(/Vast\.ai/gi, 'API GPU')
+    .replace(/\bVast\b/g, 'API GPU')
+    .replace(/\bvast\b/g, 'API GPU');
+}
+
 function normalizeBoolean(value: unknown, fallback = false) {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number') return value !== 0;
@@ -256,7 +264,7 @@ async function saveVpsGpuOfferCostSnapshots(
     }
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[vps-gpu] Failed to save Vast.ai offer cost snapshots', error);
+      console.warn('[vps-gpu] Failed to save GPU offer cost snapshots', error);
     }
   }
 }
@@ -354,7 +362,7 @@ function mapOfferToHostnode(offer: VastOffer) {
   return {
     id,
     location_id: location.country,
-    engine: normalizeString(offer.hostname || offer.machine_id || offer.host_id, `Vast offer ${id}`),
+    engine: normalizeString(offer.hostname || offer.machine_id || offer.host_id, `Offer GPU ${id}`),
     uptime_percentage: Number.isFinite(reliability) ? reliability * 100 : undefined,
     available_resources: {
       gpus: [gpu],
@@ -404,7 +412,7 @@ function mapSshKeys(keys: VastSshKey[]) {
     const id = normalizeString(key.id || key.uuid || key.name || index);
     return {
       id,
-      name: normalizeString(key.name, `Vast SSH Key ${id}`),
+      name: normalizeString(key.name, `SSH Key ${id}`),
       type: 'SSHKEY',
     };
   });
@@ -421,7 +429,7 @@ function mapInstances(instances: VastInstance[]) {
 
     return {
       id,
-      name: normalizeString(instance.label || instance.name, id ? `Vast instance ${id}` : 'Vast instance'),
+      name: normalizeString(instance.label || instance.name, id ? `Instance GPU ${id}` : 'Instance GPU'),
       status,
       type: 'GPU Instance',
       ipAddress,
@@ -437,11 +445,12 @@ function mapInstances(instances: VastInstance[]) {
 }
 
 async function handleVastError(error: unknown) {
-  const message = error instanceof Error ? error.message : 'Không thể kết nối Vast.ai';
+  const rawMessage = error instanceof Error ? error.message : 'Không thể kết nối nguồn GPU';
+  const message = sanitizeProviderMessage(rawMessage, 'Không thể kết nối nguồn GPU');
   const status = error instanceof VastApiError
     ? error.status
     : message.includes('VAST_API_KEY') ? 500 : 502;
-  return json({ success: false, message }, { status });
+  return json({ success: false, message, upstream_status: status }, { status: 200 });
 }
 
 async function safeVastRequest<T>(path: string, init?: RequestInit, options?: { version?: 'v0' | 'v1' }) {
@@ -451,7 +460,7 @@ async function safeVastRequest<T>(path: string, init?: RequestInit, options?: { 
       data: await vastRequest<T>(path, init, options),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : `Không thể tải ${path}`;
+    const message = sanitizeProviderMessage(error instanceof Error ? error.message : `Không thể tải ${path}`);
     return {
       ok: false,
       data: null,
@@ -485,7 +494,7 @@ function buildCreateInstancePayload(rawPayload: unknown) {
     attributes.offer_id || attributes.ask_id || attributes.hostnode_id || payload.offer_id || payload.ask_id
   );
   if (!offerId) {
-    throw new Error('Thiếu Vast offer_id. Hãy chọn một offer/hostnode trước khi tạo instance.');
+    throw new Error('Thiếu offer_id. Hãy chọn một gói GPU trước khi tạo instance.');
   }
 
   const name = normalizeString(attributes.name || attributes.label, 'trungtammmo-gpu-ai');
@@ -549,7 +558,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!isVastConfigured()) {
-    return json({ success: false, message: 'Thiếu VAST_API_KEY' }, { status: 500 });
+    return json({ success: false, message: 'Thiếu API key nguồn GPU', upstream_status: 500 }, { status: 200 });
   }
 
   const resource = normalizePath(req.nextUrl.searchParams.get('resource') || 'overview');
@@ -625,7 +634,7 @@ export async function GET(req: NextRequest) {
       const payload = await getOfferOverview(req);
       const offer = extractOffers(payload).find((item) => String(item.id) === offerId);
       if (!offer) {
-        return json({ success: false, message: 'Không tìm thấy offer Vast.ai' }, { status: 404 });
+        return json({ success: false, message: 'Không tìm thấy gói GPU' }, { status: 404 });
       }
       const pricingSettings = await getVpsGpuPricingSettings();
       const pricedHostnode = applyVpsGpuPricing([mapOfferToHostnode(offer)], pricingSettings);
@@ -673,7 +682,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isVastConfigured()) {
-    return json({ success: false, message: 'Thiếu VAST_API_KEY' }, { status: 500 });
+    return json({ success: false, message: 'Thiếu API key nguồn GPU', upstream_status: 500 }, { status: 200 });
   }
 
   try {
@@ -727,7 +736,7 @@ export async function PUT(req: NextRequest) {
   }
 
   if (!isVastConfigured()) {
-    return json({ success: false, message: 'Thiếu VAST_API_KEY' }, { status: 500 });
+    return json({ success: false, message: 'Thiếu API key nguồn GPU', upstream_status: 500 }, { status: 200 });
   }
 
   try {
@@ -755,7 +764,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   if (!isVastConfigured()) {
-    return json({ success: false, message: 'Thiếu VAST_API_KEY' }, { status: 500 });
+    return json({ success: false, message: 'Thiếu API key nguồn GPU', upstream_status: 500 }, { status: 200 });
   }
 
   try {

@@ -312,11 +312,11 @@ function statusVariant(status: string) {
 
 function buildLoadErrorMessage(message: string) {
   if (message.includes('Thiếu VAST_API_KEY')) {
-    return `${message}. Cần cấu hình env VAST_API_KEY trên server rồi restart Next.js.`;
+    return `${message}. Cần cấu hình API key nguồn GPU trên server rồi restart Next.js.`;
   }
 
   if (message.includes('HTTP 401') || message.includes('HTTP 403')) {
-    return `${message}. API key Vast.ai có thể sai, hết hạn hoặc thiếu quyền.`;
+    return `${message}. API key nguồn GPU có thể sai, hết hạn hoặc thiếu quyền.`;
   }
 
   return message;
@@ -350,7 +350,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [vcpuCount, setVcpuCount] = useState('4');
   const [ramGb, setRamGb] = useState('16');
   const [storageGb, setStorageGb] = useState('200');
-  const [dockerImage, setDockerImage] = useState('vastai/base-image:@vastai-automatic-tag');
+  const [dockerImage, setDockerImage] = useState('nvidia/cuda:12.4.1-runtime-ubuntu22.04');
   const [targetState, setTargetState] = useState('running');
   const [envFlags, setEnvFlags] = useState('-p 22:22 -p 8080:8080');
   const [onStartCommand, setOnStartCommand] = useState('nvidia-smi');
@@ -380,7 +380,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       const sshKeySecretId = nextSecrets.find((secret) => String(secret.type || '').toUpperCase() === 'SSHKEY')?.id;
       setSecrets(nextSecrets);
       setSshKey((current) => current || sshKeySecretId || defaultSshKeySecretId);
-      setDockerImage((current) => current || String(asRecord(payload.data).defaultImage || 'vastai/base-image:@vastai-automatic-tag'));
+      setDockerImage((current) => current || String(asRecord(payload.data).defaultImage || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04'));
       setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu VPS GPU';
@@ -413,9 +413,9 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           },
         }),
       });
-      const payload = await readJsonResponse(response, 'Không thể tìm offer Vast.ai');
+      const payload = await readJsonResponse(response, 'Không thể tìm gói GPU');
       if (!payload.success) {
-        throw new Error(payload.message || 'Không thể tìm offer Vast.ai');
+        throw new Error(payload.message || 'Không thể tìm gói GPU');
       }
       const nextHostnodes = toArray<VastHostnode>(asRecord(payload.data).hostnodes);
       setHostnodes(nextHostnodes);
@@ -427,9 +427,9 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           setGpuV0Name(nextGpu);
         }
       }
-      toast.success(`Đã tải ${nextHostnodes.length} offer Vast.ai`);
+      toast.success(`Đã tải ${nextHostnodes.length} gói GPU`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể tìm offer Vast.ai');
+      toast.error(error instanceof Error ? error.message : 'Không thể tìm gói GPU');
     } finally {
       setSearchingOffers(false);
     }
@@ -536,7 +536,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     const attributes: Record<string, unknown> = {
       name,
       type: 'virtualmachine',
-      image: dockerImage.trim() || 'vastai/base-image:@vastai-automatic-tag',
+      image: dockerImage.trim() || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04',
       runtype: runtime,
       target_state: targetState,
       cancel_unavail: cancelUnavailable,
@@ -570,13 +570,13 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       ) || hostnodes.find((hostnode) => hostnode.location_id === locationId || hostnode.location?.country === locationId);
       const offerId = locationHostnode?.id || selectedHostnode?.id || selectedHostnodeId;
       if (!offerId) {
-        throw new Error('Không tìm thấy Vast offer trong khu vực đã chọn');
+        throw new Error('Không tìm thấy gói GPU trong khu vực đã chọn');
       }
       attributes.offer_id = offerId;
     } else {
       const hostnodeId = selectedHostnode?.id || selectedHostnodeId;
       if (!hostnodeId) {
-        throw new Error('Thiếu Vast offer_id');
+        throw new Error('Thiếu offer_id');
       }
       attributes.hostnode_id = hostnodeId;
       attributes.offer_id = hostnodeId;
@@ -658,8 +658,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     }
 
     const confirmed = await confirm({
-      title: 'Tạo VPS GPU trên Vast.ai',
-      description: `Instance ${instanceName.trim()} sẽ được tạo trực tiếp trên tài khoản Vast.ai cấu hình trong server. Kiểm tra kỹ offer, Docker image và số dư trước khi tiếp tục.`,
+      title: 'Tạo VPS GPU',
+      description: `Instance ${instanceName.trim()} sẽ được tạo bằng tài khoản vận hành cấu hình trong server. Kiểm tra kỹ gói GPU, Docker image và số dư trước khi tiếp tục.`,
       confirmText: 'Tạo instance',
       cancelText: 'Kiểm tra lại',
       tone: 'brand',
@@ -696,7 +696,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     if (action === 'delete') {
       const confirmed = await confirm({
         title: 'Xóa instance VPS GPU',
-        description: `Instance ${instanceId} sẽ bị xóa khỏi Vast.ai. Thao tác này không thể hoàn tác.`,
+        description: `Instance ${instanceId} sẽ bị xóa khỏi hệ thống GPU. Thao tác này không thể hoàn tác.`,
         confirmText: 'Xóa instance',
         cancelText: 'Hủy',
         tone: 'danger',
@@ -721,7 +721,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Thao tác instance thất bại');
       }
-      toast.success('Đã gửi lệnh tới Vast.ai');
+      toast.success('Đã gửi lệnh tới hệ thống GPU');
       await loadOverview();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Thao tác instance thất bại');
@@ -733,9 +733,9 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHero
-        eyebrow="Vast.ai GPU Cloud"
+        eyebrow="GPU Cloud"
         title="Thuê VPS GPU mạnh cho AI, game và render"
-        description="Chọn gói GPU thật từ Vast.ai, xem giá bán theo VNĐ và tạo VPS GPU bằng tài khoản vận hành của hệ thống."
+        description="Chọn gói GPU thật, xem giá bán theo VNĐ và tạo VPS GPU bằng tài khoản vận hành của hệ thống."
         actions={
           <>
             <Button type="button" onClick={() => void loadOverview()} disabled={loading} variant="outline">
@@ -760,7 +760,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         <SectionPanel className="border-amber-500/25 bg-amber-500/10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-black uppercase tracking-[0.18em] text-amber-600">Vast.ai chưa sẵn sàng</div>
+              <div className="text-sm font-black uppercase tracking-[0.18em] text-amber-600">Nguồn GPU chưa sẵn sàng</div>
               <p className="mt-2 text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
                 {buildLoadErrorMessage(loadError)}
               </p>
@@ -775,7 +775,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       <SectionPanel className="space-y-5">
         <SectionHeader
           eyebrow="Offer Explorer"
-          title="Chọn offer Vast.ai thật trước khi tạo VPS"
+          title="Chọn gói GPU trước khi tạo VPS"
           description="Lọc theo dòng GPU, RAM và độ ổn định. Giá hiển thị là giá bán cho khách sau khi cộng hệ số lời trong admin."
           actions={
             <Button type="button" onClick={() => void searchOffers()} loading={searchingOffers} loadingText="Đang lọc...">
@@ -808,7 +808,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         </div>
 
         {loading ? (
-          <EmptyState title="Đang tải offer Vast.ai" description="Hệ thống đang gọi bundles, user, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
+          <EmptyState title="Đang tải gói GPU" description="Hệ thống đang tải gói GPU, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
         ) : hostnodes.length ? (
           <div className="grid gap-4 xl:grid-cols-3">
             {hostnodes.slice(0, 9).map((hostnode) => {
@@ -890,7 +890,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <Input value={instanceName} onChange={(event) => setInstanceName(event.target.value)} />
             </Field>
 
-            <Field label={deploymentMethod === 'location' ? 'Khu vực' : 'Vast offer ID'}>
+            <Field label={deploymentMethod === 'location' ? 'Khu vực' : 'Offer ID'}>
               {deploymentMethod === 'location' ? (
                 <select
                   value={selectedLocation?.id || selectedLocationId}
@@ -912,7 +912,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 >
                   {hostnodes.map((hostnode) => (
                     <option key={hostnode.id} value={hostnode.id}>
-                      #{hostnode.id} · {hostnode.engine || 'Vast offer'} · {formatLocation(hostnode.location)}
+                      #{hostnode.id} · {hostnode.engine || 'Gói GPU'} · {formatLocation(hostnode.location)}
                     </option>
                   ))}
                   {!hostnodes.length ? <option value="">Chưa có hostnode</option> : null}
@@ -961,7 +961,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             </Field>
 
             <Field label="Docker image">
-              <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="vastai/base-image:@vastai-automatic-tag" />
+              <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="nvidia/cuda:12.4.1-runtime-ubuntu22.04" />
             </Field>
 
             <Field label="Target state">
@@ -987,7 +987,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <MetricCard
                 label="Dedicated IP"
                 value="Enabled"
-                hint="Vast.ai sẽ trả thông tin SSH/public IP khi instance sẵn sàng"
+                hint="Hệ thống GPU sẽ trả thông tin SSH/public IP khi instance sẵn sàng"
                 tone="blue"
                 icon={<ShieldCheck className="h-4 w-4" />}
                 className="p-4"
@@ -1006,16 +1006,16 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       {secret.name || secret.id}
                     </option>
                   ))}
-                  <option value="">Dùng SSH key mặc định trong account Vast.ai</option>
+                  <option value="">Dùng SSH key mặc định trong account GPU</option>
                 </select>
                 <Input
                   className="mt-2"
                   value={sshKey}
                   onChange={(event) => setSshKey(event.target.value)}
-                  placeholder="Để trống nếu đã thêm SSH key trong Vast.ai > Manage Keys"
+                  placeholder="Để trống nếu đã thêm SSH key trong account GPU"
                 />
                 <p className="mt-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-                  Vast.ai tự gắn SSH key cấp account vào instance mới. Chỉ nhập ID ở đây nếu anh muốn ép một key cụ thể.
+                  Hệ thống tự gắn SSH key cấp account vào instance mới. Chỉ nhập ID ở đây nếu anh muốn ép một key cụ thể.
                 </p>
               </Field>
             ) : (
@@ -1055,7 +1055,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         <SectionHeader
           eyebrow="Instance Management"
           title="VPS GPU đang chạy"
-          description="Theo dõi và gửi lệnh start, stop hoặc delete tới Vast.ai."
+          description="Theo dõi và gửi lệnh start, stop hoặc delete tới hệ thống GPU."
           actions={
             <Button type="button" variant="outline" size="sm" onClick={() => void loadOverview()} disabled={loading}>
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
@@ -1065,7 +1065,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         />
 
         {loading ? (
-          <EmptyState title="Đang tải Vast.ai" description="Hệ thống đang lấy offers, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
+          <EmptyState title="Đang tải VPS GPU" description="Hệ thống đang lấy gói GPU, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
         ) : instances.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {instances.map((instance) => {
@@ -1133,7 +1133,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         ) : (
           <EmptyState
             title="Chưa có VPS GPU"
-            description="Chọn cấu hình bên trên rồi tạo instance mới. Khi Vast.ai trả instance, danh sách sẽ hiện tại đây."
+            description="Chọn cấu hình bên trên rồi tạo instance mới. Khi hệ thống trả instance, danh sách sẽ hiện tại đây."
             icon={<Cpu className="h-5 w-5" />}
           />
         )}
