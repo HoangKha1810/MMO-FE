@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FilePenLine } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { formatDatabaseDateTime } from '@/lib/date-time';
 import { listUserForumPosts } from '@/lib/forum-actions';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -39,7 +40,7 @@ export default async function UserForumPostsPage() {
                   <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-500 dark:text-slate-400">{String(post.preview || '')}</p>
                 </div>
                 <div className="shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  {new Date(String(post.created_at || '')).toLocaleString('vi-VN')}
+                  {formatDatabaseDateTime(post.created_at)}
                 </div>
               </div>
             </Link>

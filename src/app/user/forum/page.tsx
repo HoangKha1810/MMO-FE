@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FolderOpen, MessageCircle, MessageSquare, Pin, Users, Zap } from 'lucide-react';
+import { FolderOpen, MessageCircle, MessageSquare, PenLine, Pin, Users, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumThreadList } from '@/components/forum/forum-thread-list';
 import { getForumOverview } from '@/lib/forum';
@@ -74,9 +74,16 @@ export default async function UserForumPage() {
         </section>
 
         <section className="space-y-4">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-sm font-black uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Danh mục forum</h2>
             <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+            <Link
+              href="/user/forum/create-thread"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-blue to-cyan-400 px-5 text-xs font-black uppercase tracking-[0.16em] text-white shadow-[0_16px_38px_rgba(37,99,235,0.28)] transition hover:-translate-y-0.5"
+            >
+              <PenLine className="h-4 w-4" />
+              Đăng bài
+            </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {categories.map((category) => (

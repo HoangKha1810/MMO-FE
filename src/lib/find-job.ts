@@ -17,7 +17,7 @@ export interface FindJobRow {
 }
 
 let resolvedFindJobTable: 'find_job_jobs' | 'find_jobs' | null = null;
-const ensuredPinColumns: Partial<Record<'find_job_jobs' | 'find_jobs', boolean>> = {};
+const ensuredFindJobColumns: Partial<Record<'find_job_jobs' | 'find_jobs', { ok: boolean; hasApprovalStatus: boolean }>> = {};
 
 export async function resolveFindJobTable(): Promise<'find_job_jobs' | 'find_jobs'> {
   if (resolvedFindJobTable) {
@@ -38,27 +38,42 @@ export async function resolveFindJobTable(): Promise<'find_job_jobs' | 'find_job
 
 export async function ensureFindJobPinColumn(tableName?: 'find_job_jobs' | 'find_jobs') {
   const table = tableName || (await resolveFindJobTable());
-  if (ensuredPinColumns[table] !== undefined) {
-    return ensuredPinColumns[table]!;
+  if (ensuredFindJobColumns[table] !== undefined) {
+    return ensuredFindJobColumns[table]!.ok;
   }
 
   try {
-    const rows = await db.$queryRawUnsafe<Array<{ Field: string }>>(
-      `SHOW COLUMNS FROM \`${table}\` LIKE 'is_pinned'`
-    );
+    const rows = await db.$queryRawUnsafe<Array<{ Field: string }>>(`SHOW COLUMNS FROM \`${table}\``);
+    const columns = new Set(rows.map((row) => row.Field));
+    const updates: string[] = [];
 
-    if (rows.length === 0) {
-      await db.$executeRawUnsafe(
-        `ALTER TABLE \`${table}\` ADD COLUMN \`is_pinned\` TINYINT(1) NOT NULL DEFAULT 0 AFTER \`status\``
-      );
+    if (!columns.has('is_pinned')) {
+      updates.push('ADD COLUMN `is_pinned` TINYINT(1) NOT NULL DEFAULT 0 AFTER `status`');
     }
 
-    ensuredPinColumns[table] = true;
+    if (!columns.has('approval_status')) {
+      updates.push("ADD COLUMN `approval_status` VARCHAR(20) NOT NULL DEFAULT 'pending' AFTER `status`");
+    }
+
+    if (updates.length) {
+      await db.$executeRawUnsafe(`ALTER TABLE \`${table}\` ${updates.join(', ')}`);
+    }
+
+    ensuredFindJobColumns[table] = { ok: true, hasApprovalStatus: true };
   } catch {
-    ensuredPinColumns[table] = false;
+    ensuredFindJobColumns[table] = { ok: false, hasApprovalStatus: false };
   }
 
-  return ensuredPinColumns[table]!;
+  return ensuredFindJobColumns[table]!.ok;
+}
+
+export async function hasFindJobApprovalStatusColumn(tableName?: 'find_job_jobs' | 'find_jobs') {
+  const table = tableName || (await resolveFindJobTable());
+  if (!ensuredFindJobColumns[table]) {
+    await ensureFindJobPinColumn(table);
+  }
+
+  return Boolean(ensuredFindJobColumns[table]?.hasApprovalStatus);
 }
 
 export async function listOpenFindJobs(limit = 50) {
@@ -99,6 +114,7 @@ export async function listOpenFindJobs(limit = 50) {
       FROM find_jobs j
       LEFT JOIN users u ON u.id = j.user_id
       WHERE j.status = 'open'
+        AND COALESCE(j.approval_status, 'pending') = 'approved'
       ORDER BY ${hasPinColumn ? 'j.is_pinned DESC,' : ''} j.updated_at DESC, j.created_at DESC
       LIMIT ?
     `,

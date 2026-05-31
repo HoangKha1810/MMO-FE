@@ -4,14 +4,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   Cpu,
+  Database,
+  DollarSign,
+  Globe2,
   KeyRound,
   Loader2,
   MapPin,
+  Network,
   Play,
   RefreshCw,
   Server,
   ShieldCheck,
   Square,
+  TerminalSquare,
   Trash2,
 } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
@@ -20,12 +25,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { EmptyState, MetricCard, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { readJsonResponse } from '@/lib/client-api';
 import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/hooks/use-session-user';
 
 type DeploymentMethod = 'location' | 'hostnode';
 type NetworkMode = 'port-forwarding' | 'dedicated-ip';
-type OperatingSystem = 'ubuntu2404' | 'windows10';
+type VastRuntime = 'ssh' | 'jupyter' | 'args';
+type OfferType = 'ondemand' | 'bid';
 
 interface VpsGpuPageProps {
   initialUser?: SessionUser;
@@ -149,13 +156,14 @@ const networkOptions: Array<{
   { value: 'dedicated-ip', title: 'Public IP', description: 'Ưu tiên kết nối trực tiếp', recommended: true },
 ];
 
-const osOptions: Array<{
-  value: OperatingSystem;
+const runtimeOptions: Array<{
+  value: VastRuntime;
   title: string;
   description: string;
 }> = [
-  { value: 'ubuntu2404', title: 'Docker CUDA', description: 'Image Vast.ai CUDA + SSH' },
-  { value: 'windows10', title: 'Custom image', description: 'Dùng image riêng nếu cần' },
+  { value: 'ssh', title: 'SSH Docker', description: 'Runtime chuẩn cho VPS GPU' },
+  { value: 'jupyter', title: 'Jupyter Lab', description: 'Mở notebook trên container' },
+  { value: 'args', title: 'Custom Args', description: 'Chạy lệnh/args riêng' },
 ];
 
 const ramSteps = [8, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 512];
@@ -203,6 +211,45 @@ function formatLocation(location: VastLocation | VastHostnode['location']) {
   }
 
   return [location.city, location.stateprovince, location.country].filter(Boolean).join(', ') || 'Unknown location';
+}
+
+function getHostnodeGpu(hostnode?: VastHostnode | null) {
+  return hostnode?.available_resources?.gpus?.[0] || null;
+}
+
+function getHostnodePrice(hostnode?: VastHostnode | null) {
+  const offer = asRecord(hostnode?.vast);
+  const price = Number(hostnode?.pricing?.total_hourly || offer.dph_total || offer.dph_base || offer.dph || 0);
+  return Number.isFinite(price) ? price : 0;
+}
+
+function getHostnodeGpuLabel(hostnode?: VastHostnode | null) {
+  const gpu = getHostnodeGpu(hostnode);
+  return gpu?.displayName || gpu?.v0Name || normalizeOfferText(asRecord(hostnode?.vast).gpu_name, 'GPU');
+}
+
+function normalizeOfferText(value: unknown, fallback = 'N/A') {
+  const text = String(value ?? '').trim();
+  return text || fallback;
+}
+
+function formatPercent(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 'N/A';
+  const percent = parsed > 1 ? parsed : parsed * 100;
+  return `${percent.toFixed(percent >= 99 ? 2 : 1)}%`;
+}
+
+function formatGb(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 'N/A';
+  return `${Math.round(parsed)} GB`;
+}
+
+function formatNetworkSpeed(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 'N/A';
+  return parsed >= 1 ? `${parsed.toFixed(1)} Gbps` : `${Math.round(parsed * 1000)} Mbps`;
 }
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -256,7 +303,7 @@ function buildLoadErrorMessage(message: string) {
   return message;
 }
 
-export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
+export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const { confirm } = useConfirmDialog();
   const [locations, setLocations] = useState<VastLocation[]>([]);
   const [hostnodes, setHostnodes] = useState<VastHostnode[]>([]);
@@ -267,9 +314,15 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [instanceAction, setInstanceAction] = useState<string | null>(null);
 
+  const [offerType, setOfferType] = useState<OfferType>('ondemand');
+  const [offerGpuFilter, setOfferGpuFilter] = useState('');
+  const [minGpuRamGb, setMinGpuRamGb] = useState('16');
+  const [minReliability, setMinReliability] = useState('0.98');
+  const [searchingOffers, setSearchingOffers] = useState(false);
+
   const [deploymentMethod, setDeploymentMethod] = useState<DeploymentMethod>('hostnode');
   const [networkMode, setNetworkMode] = useState<NetworkMode>('port-forwarding');
-  const [operatingSystem, setOperatingSystem] = useState<OperatingSystem>('ubuntu2404');
+  const [runtime, setRuntime] = useState<VastRuntime>('ssh');
   const [instanceName, setInstanceName] = useState('trungtammmo-gpu-ai');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedHostnodeId, setSelectedHostnodeId] = useState('');
@@ -278,10 +331,14 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   const [vcpuCount, setVcpuCount] = useState('4');
   const [ramGb, setRamGb] = useState('16');
   const [storageGb, setStorageGb] = useState('200');
+  const [dockerImage, setDockerImage] = useState('vastai/base-image:@vastai-automatic-tag');
+  const [targetState, setTargetState] = useState('running');
+  const [envFlags, setEnvFlags] = useState('-p 22:22 -p 8080:8080');
+  const [onStartCommand, setOnStartCommand] = useState('nvidia-smi');
+  const [cancelUnavailable, setCancelUnavailable] = useState(true);
   const [sshKey, setSshKey] = useState('');
-  const [windowsPassword, setWindowsPassword] = useState('MySecureP@ssw0rd123!');
   const [portList, setPortList] = useState('22, 8080');
-  const [cloudInitJson, setCloudInitJson] = useState('');
+  const [argsString, setArgsString] = useState('');
 
   async function loadOverview() {
     setLoading(true);
@@ -290,7 +347,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-store' },
       });
-      const payload = await response.json();
+      const payload = await readJsonResponse(response, 'Không thể tải dữ liệu VPS GPU');
       if (!response.ok || !payload.success) {
         throw new Error(payload.message || 'Không thể tải dữ liệu VPS GPU');
       }
@@ -304,6 +361,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
       const sshKeySecretId = nextSecrets.find((secret) => String(secret.type || '').toUpperCase() === 'SSHKEY')?.id;
       setSecrets(nextSecrets);
       setSshKey((current) => current || sshKeySecretId || defaultSshKeySecretId);
+      setDockerImage((current) => current || String(asRecord(payload.data).defaultImage || 'vastai/base-image:@vastai-automatic-tag'));
       setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu VPS GPU';
@@ -317,6 +375,46 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
   useEffect(() => {
     void loadOverview();
   }, []);
+
+  async function searchOffers() {
+    setSearchingOffers(true);
+    try {
+      const response = await fetch('/api/vps-gpu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'search-offers',
+          payload: {
+            gpuName: offerGpuFilter.trim() || undefined,
+            minGpus: gpuCount,
+            minGpuRamMb: Math.max(0, Number(minGpuRamGb) || 0) * 1024,
+            minReliability,
+            type: offerType,
+            limit: 80,
+          },
+        }),
+      });
+      const payload = await readJsonResponse(response, 'Không thể tìm offer Vast.ai');
+      if (!payload.success) {
+        throw new Error(payload.message || 'Không thể tìm offer Vast.ai');
+      }
+      const nextHostnodes = toArray<VastHostnode>(asRecord(payload.data).hostnodes);
+      setHostnodes(nextHostnodes);
+      const nextHostnodeId = nextHostnodes[0]?.id || '';
+      if (nextHostnodeId) {
+        setSelectedHostnodeId(nextHostnodeId);
+        const nextGpu = nextHostnodes[0]?.available_resources?.gpus?.[0]?.v0Name;
+        if (nextGpu) {
+          setGpuV0Name(nextGpu);
+        }
+      }
+      toast.success(`Đã tải ${nextHostnodes.length} offer Vast.ai`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể tìm offer Vast.ai');
+    } finally {
+      setSearchingOffers(false);
+    }
+  }
 
   const selectedHostnode = useMemo(
     () => hostnodes.find((item) => item.id === selectedHostnodeId) || hostnodes[0] || null,
@@ -419,7 +517,15 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
     const attributes: Record<string, unknown> = {
       name,
       type: 'virtualmachine',
-      image: 'vastai/base-image:@vastai-automatic-tag',
+      image: dockerImage.trim() || 'vastai/base-image:@vastai-automatic-tag',
+      runtype: runtime,
+      target_state: targetState,
+      cancel_unavail: cancelUnavailable,
+      onstart: onStartCommand.trim() || 'nvidia-smi',
+      python_utf8: true,
+      lang_utf8: true,
+      use_jupyter_lab: runtime === 'jupyter',
+      env: envFlags.trim(),
       resources: {
         vcpu_count: vcpus,
         ram_gb: ram,
@@ -470,18 +576,16 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
       }));
     }
 
-    if (operatingSystem === 'ubuntu2404') {
-      if (!sshKey.trim()) {
-        throw new Error('Cần thêm SSH key trong Vast.ai trước khi tạo instance. Vào Vast.ai > Manage Keys > SSH Keys để thêm public key.');
-      }
-      attributes.ssh_key = sshKey.trim();
-    } else if (windowsPassword.trim()) {
-      attributes.password = windowsPassword.trim();
+    if (runtime === 'ssh' && !sshKey.trim()) {
+      throw new Error('Cần thêm SSH key trong Vast.ai trước khi tạo instance. Vào Vast.ai > Manage Keys > SSH Keys để thêm public key.');
     }
 
-    if (cloudInitJson.trim()) {
-      const parsed = JSON.parse(cloudInitJson) as Record<string, unknown>;
-      attributes.cloud_init = parsed.cloud_init || parsed;
+    if (runtime === 'ssh') {
+      attributes.ssh_key = sshKey.trim();
+    }
+
+    if (argsString.trim()) {
+      attributes.args_str = argsString.trim();
     }
 
     return {
@@ -501,23 +605,27 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
       };
     }
   }, [
-    cloudInitJson,
+    argsString,
+    cancelUnavailable,
     deploymentMethod,
+    dockerImage,
+    envFlags,
     gpuCount,
     gpuV0Name,
     instanceName,
     networkMode,
-    operatingSystem,
+    onStartCommand,
     portList,
     ramGb,
+    runtime,
     selectedHostnode,
     selectedHostnodeId,
     selectedLocation,
     selectedLocationId,
     sshKey,
     storageGb,
+    targetState,
     vcpuCount,
-    windowsPassword,
   ]);
 
   const estimatedHourly = useMemo(() => {
@@ -579,7 +687,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
           payload,
         }),
       });
-      const result = await response.json();
+      const result = await readJsonResponse(response, 'Không thể tạo VPS GPU');
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Không thể tạo VPS GPU');
       }
@@ -617,7 +725,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
             : { action: `instances/${instanceId}/${action}` }
         ),
       });
-      const result = await response.json();
+      const result = await readJsonResponse(response, 'Thao tác instance thất bại');
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Thao tác instance thất bại');
       }
@@ -654,7 +762,13 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
           { label: 'Instances', value: String(instances.length), hint: 'VM đang quản lý', tone: 'violet' },
           { label: 'Est. Hourly', value: formatUsd(estimatedHourly), hint: 'Ước tính theo GPU/resource', tone: 'amber' },
         ]}
-      />
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MiniInfo icon={<Globe2 />} label="API" value="/api/v0/bundles" />
+          <MiniInfo icon={<TerminalSquare />} label="Runtime" value={runtime.toUpperCase()} />
+          <MiniInfo icon={<DollarSign />} label="Selected" value={formatUsd(getHostnodePrice(selectedHostnode))} />
+        </div>
+      </PageHero>
 
       {loadError ? (
         <SectionPanel className="border-amber-500/25 bg-amber-500/10">
@@ -672,42 +786,124 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
         </SectionPanel>
       ) : null}
 
-      <SectionPanel className="space-y-6">
+      <SectionPanel className="space-y-5">
         <SectionHeader
-          eyebrow="Instance Creation"
-          title="Configure Your Instance"
-          description="Ba nhóm bên dưới sẽ thay đổi payload tạo instance theo Vast.ai API PUT /asks/{offer_id}."
+          eyebrow="Offer Explorer"
+          title="Chọn offer Vast.ai thật trước khi tạo VPS"
+          description="Dữ liệu lấy từ POST /api/v0/bundles. Chọn offer ở dưới để tự điền ask_id, GPU, giá giờ và cấu hình launch."
+          actions={
+            <Button type="button" onClick={() => void searchOffers()} loading={searchingOffers} loadingText="Đang lọc...">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Lọc offer
+            </Button>
+          }
         />
 
-        <div className="space-y-7">
-          <ChoiceGroup
-            title="Deployment Method"
-            options={deploymentOptions}
-            value={deploymentMethod}
-            onChange={setDeploymentMethod}
-          />
-          <ChoiceGroup
-            title="Network Configuration"
-            options={networkOptions}
-            value={networkMode}
-            onChange={setNetworkMode}
-          />
-          <ChoiceGroup
-            title="Operating System"
-            options={osOptions}
-            value={operatingSystem}
-            onChange={setOperatingSystem}
-          />
+        <div className="grid gap-4 md:grid-cols-4">
+          <Field label="Loại thuê">
+            <select
+              value={offerType}
+              onChange={(event) => setOfferType(event.target.value as OfferType)}
+              className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold dark:text-white"
+            >
+              <option value="ondemand">Ondemand</option>
+              <option value="bid">Bid</option>
+            </select>
+          </Field>
+          <Field label="GPU name optional">
+            <Input value={offerGpuFilter} onChange={(event) => setOfferGpuFilter(event.target.value)} placeholder="RTX 4090 / A100..." />
+          </Field>
+          <Field label="Min GPU RAM">
+            <Input type="number" min={1} value={minGpuRamGb} onChange={(event) => setMinGpuRamGb(event.target.value)} />
+          </Field>
+          <Field label="Reliability">
+            <Input type="number" min={0} max={1} step={0.01} value={minReliability} onChange={(event) => setMinReliability(event.target.value)} />
+          </Field>
         </div>
+
+        {loading ? (
+          <EmptyState title="Đang tải offer Vast.ai" description="Hệ thống đang gọi bundles, user, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
+        ) : hostnodes.length ? (
+          <div className="grid gap-4 xl:grid-cols-3">
+            {hostnodes.slice(0, 9).map((hostnode) => {
+              const active = String(hostnode.id) === String(selectedHostnode?.id || selectedHostnodeId);
+              const gpu = getHostnodeGpu(hostnode);
+              const offer = asRecord(hostnode.vast);
+              return (
+                <button
+                  key={hostnode.id}
+                  type="button"
+                  onClick={() => {
+                    setDeploymentMethod('hostnode');
+                    setSelectedHostnodeId(hostnode.id);
+                    if (gpu?.v0Name) setGpuV0Name(gpu.v0Name);
+                    if (hostnode.available_resources?.vcpu_count) setVcpuCount(String(hostnode.available_resources.vcpu_count));
+                    if (hostnode.available_resources?.ram_gb) setRamGb(String(Math.max(8, Math.round(hostnode.available_resources.ram_gb))));
+                    if (hostnode.available_resources?.storage_gb) setStorageGb(String(Math.max(100, Math.round(hostnode.available_resources.storage_gb))));
+                  }}
+                  className={cn(
+                    'min-w-0 rounded-[1.2rem] border p-4 text-left transition-all',
+                    active
+                      ? 'border-brand-blue/45 bg-brand-blue/10 shadow-[0_0_0_3px_rgba(37,99,235,0.12)]'
+                      : 'border-slate-200/80 bg-white/70 hover:border-brand-blue/25 hover:bg-white dark:border-white/10 dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-black uppercase tracking-[0.26em] text-brand-blue">Ask #{hostnode.id}</div>
+                      <div className="mt-2 truncate text-base font-black text-slate-950 dark:text-white">{getHostnodeGpuLabel(hostnode)}</div>
+                    </div>
+                    <Badge variant={active ? 'default' : 'success'} className="shrink-0 rounded-full">
+                      {formatUsd(getHostnodePrice(hostnode))}
+                    </Badge>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 dark:text-slate-300">
+                    <MiniInfo icon={<Cpu />} label="GPU RAM" value={formatGb((Number(offer.gpu_ram || 0) || 0) / 1024 || gpu?.resources?.max_ram_gb)} />
+                    <MiniInfo icon={<ShieldCheck />} label="Reliability" value={formatPercent(offer.reliability || hostnode.uptime_percentage)} />
+                    <MiniInfo icon={<Database />} label="RAM" value={formatGb(hostnode.available_resources?.ram_gb)} />
+                    <MiniInfo icon={<Network />} label="Network" value={formatNetworkSpeed(hostnode.location?.network_speed_gbps)} />
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    <MapPin className="h-3.5 w-3.5" />
+                    <span className="truncate">{formatLocation(hostnode.location)}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState title="Chưa có offer phù hợp" description="Thử giảm điều kiện GPU RAM/reliability hoặc bỏ filter GPU name." icon={<Cpu className="h-5 w-5" />} />
+        )}
       </SectionPanel>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
         <SectionPanel className="space-y-5">
           <SectionHeader
-            eyebrow="Resources"
-            title="Cấu hình VPS GPU"
-            description="Storage tối thiểu 100GB. Vast.ai cần chọn một offer còn rentable; SSH key nên được thêm trong tài khoản Vast.ai."
+            eyebrow="Launch Config"
+            title="Cấu hình instance theo Vast API"
+            description="Các trường này map trực tiếp sang payload PUT /api/v0/asks/{offer_id}: image, disk, runtype, target_state, env và onstart."
           />
+
+          <div className="space-y-7">
+            <ChoiceGroup
+              title="Deployment Method"
+              options={deploymentOptions}
+              value={deploymentMethod}
+              onChange={setDeploymentMethod}
+            />
+            <ChoiceGroup
+              title="Network Configuration"
+              options={networkOptions}
+              value={networkMode}
+              onChange={setNetworkMode}
+            />
+            <ChoiceGroup
+              title="Runtime"
+              options={runtimeOptions}
+              value={runtime}
+              onChange={setRuntime}
+            />
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Tên instance">
@@ -784,6 +980,25 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
               <Input min={100} step={50} type="number" value={storageGb} onChange={(event) => setStorageGb(event.target.value)} />
             </Field>
 
+            <Field label="Docker image">
+              <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="vastai/base-image:@vastai-automatic-tag" />
+            </Field>
+
+            <Field label="Target state">
+              <select
+                value={targetState}
+                onChange={(event) => setTargetState(event.target.value)}
+                className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold dark:text-white"
+              >
+                <option value="running">Running sau khi tạo</option>
+                <option value="stopped">Tạo nhưng để stopped</option>
+              </select>
+            </Field>
+
+            <Field label="Onstart command">
+              <Input value={onStartCommand} onChange={(event) => setOnStartCommand(event.target.value)} placeholder="nvidia-smi" />
+            </Field>
+
             {networkMode === 'port-forwarding' ? (
               <Field label="Port forwarding">
                 <Input value={portList} onChange={(event) => setPortList(event.target.value)} placeholder="22, 8080" />
@@ -799,7 +1014,7 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
               />
             )}
 
-            {operatingSystem === 'ubuntu2404' ? (
+            {runtime === 'ssh' ? (
               <Field label="SSH key ID">
                 <select
                   value={sshKey}
@@ -821,26 +1036,35 @@ export function VpsGpuPage({ initialUser }: VpsGpuPageProps) {
                 />
               </Field>
             ) : (
-              <Field label="Custom image/password note">
+              <Field label="Args string optional">
                 <Input
-                  type="password"
-                  value={windowsPassword}
-                  onChange={(event) => setWindowsPassword(event.target.value)}
-                  placeholder="Ghi chú image riêng nếu cần"
+                  value={argsString}
+                  onChange={(event) => setArgsString(event.target.value)}
+                  placeholder="Command args nếu dùng runtime custom"
                 />
               </Field>
             )}
           </div>
 
-          <Field label="Cloud init JSON optional">
+          <Field label="Docker env flags">
             <textarea
-              value={cloudInitJson}
-              onChange={(event) => setCloudInitJson(event.target.value)}
+              value={envFlags}
+              onChange={(event) => setEnvFlags(event.target.value)}
               rows={5}
-              placeholder='{"package_update":true,"packages":["curl","git"],"runcmd":["nvidia-smi"]}'
+              placeholder="-p 22:22 -p 8080:8080 -e JUPYTER_PASSWORD=..."
               className="field-elevated w-full rounded-[1.2rem] px-4 py-3 font-mono text-xs font-semibold leading-6 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
             />
           </Field>
+
+          <label className="flex items-center gap-3 rounded-[1rem] border border-slate-200/80 bg-white/70 p-4 text-sm font-bold text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200">
+            <input
+              type="checkbox"
+              checked={cancelUnavailable}
+              onChange={(event) => setCancelUnavailable(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
+            />
+            Hủy lệnh nếu offer đã hết rentable khi gửi request
+          </label>
         </SectionPanel>
 
         <SectionPanel className="space-y-5">

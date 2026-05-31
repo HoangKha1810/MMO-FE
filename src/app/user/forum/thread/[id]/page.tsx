@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ChevronLeft, Clock, Eye, Lock, MessageSquare, Pin, ShieldCheck } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumPostActions, ForumThreadInteractions } from '@/components/forum/forum-thread-interactions';
+import { formatDatabaseDateTime } from '@/lib/date-time';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { getForumThreadDetails, isActiveForumStatus } from '@/lib/forum';
 import { cn, formatNumber } from '@/lib/utils';
@@ -11,18 +12,7 @@ import { getCurrentUserForShell } from '@/lib/user-session';
 export const dynamic = 'force-dynamic';
 
 function formatDate(value: Date | string) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '...';
-  }
-
-  return new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
+  return formatDatabaseDateTime(value) || '...';
 }
 
 function isBlueTickActive(isBlueTick: unknown, expiry: Date | string | null) {

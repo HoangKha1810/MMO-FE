@@ -244,8 +244,9 @@ export async function listResourceHistory(userId: number) {
 
 function canViewModeratedJob(job: LegacyRow, viewerId?: number, viewerRole?: string | null) {
   const status = String(job.status || '').toLowerCase();
+  const approvalStatus = String(job.approval_status || '').toLowerCase();
   if (['open', 'active', 'approved'].includes(status)) {
-    return true;
+    return !approvalStatus || approvalStatus === 'approved';
   }
 
   const ownerId = Number(job.user_id || job.posted_by || 0);
@@ -301,8 +302,8 @@ export async function createFindJob(userId: number, input: { title: string; desc
   }
 
   await db.$executeRawUnsafe(`
-    INSERT INTO find_jobs (user_id, title, description, budget_min, budget_max, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+    INSERT INTO find_jobs (user_id, title, description, budget_min, budget_max, status, approval_status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'pending', 'pending', ?, ?)
   `, userId, input.title, input.description, input.price_min || null, input.price_max || null, now, now);
   return safeOne<LegacyRow>('SELECT * FROM find_jobs WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);
 }

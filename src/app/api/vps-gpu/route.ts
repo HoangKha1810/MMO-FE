@@ -59,6 +59,27 @@ function normalizeString(value: unknown, fallback = '') {
   return text || fallback;
 }
 
+function normalizeBoolean(value: unknown, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function formatDockerEnvFlags(value: unknown) {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  const record = asRecord(value);
+  return Object.entries(record)
+    .filter(([key, item]) => key.trim() && item !== undefined && item !== null && String(item).trim())
+    .map(([key, item]) => `-e ${key.trim()}=${String(item).trim()}`)
+    .join(' ');
+}
+
 function getAllowedInstanceAction(path: string) {
   const match = path.match(/^instances\/([^/]+)\/(start|stop)$/);
   if (!match) {
@@ -275,7 +296,7 @@ function buildCreateInstancePayload(rawPayload: unknown) {
   const storageGb = normalizePositiveInt(asRecord(resources).storage_gb || attributes.disk, 100);
   const gpuCount = normalizePositiveInt(gpuEntry?.[1] && asRecord(gpuEntry[1]).count, 1);
   const onstart = normalizeString(attributes.onstart, 'nvidia-smi');
-  const env = asRecord(attributes.env);
+  const env = formatDockerEnvFlags(attributes.env);
   const ports = Array.isArray(attributes.port_forwards)
     ? attributes.port_forwards
         .map((item) => normalizePositiveInt(asRecord(item).internal_port, 0))
@@ -288,12 +309,21 @@ function buildCreateInstancePayload(rawPayload: unknown) {
     disk: storageGb,
     label: name,
     onstart,
-    runtype: 'ssh',
-    python_utf8: true,
-    lang_utf8: true,
-    use_jupyter_lab: false,
+    runtype: normalizeString(attributes.runtype, 'ssh'),
+    target_state: normalizeString(attributes.target_state, 'running'),
+    python_utf8: normalizeBoolean(attributes.python_utf8, true),
+    lang_utf8: normalizeBoolean(attributes.lang_utf8, true),
+    use_jupyter_lab: normalizeBoolean(attributes.use_jupyter_lab, false),
+    cancel_unavail: normalizeBoolean(attributes.cancel_unavail, true),
     env,
   };
+
+  const optionalFields = ['price', 'template_hash_id', 'args', 'args_str', 'vm', 'force', 'use_ssh'] as const;
+  for (const field of optionalFields) {
+    if (attributes[field] !== undefined && attributes[field] !== '') {
+      vastPayload[field] = attributes[field];
+    }
+  }
 
   if (gpuCount > 1) {
     vastPayload.num_gpus = gpuCount;
@@ -460,7 +490,8 @@ export async function POST(req: NextRequest) {
         method: 'POST',
         body: JSON.stringify(buildVastOfferSearch(asRecord(body?.payload))),
       });
-      return json({ success: true, data: payload });
+      const offers = extractOffers(payload);
+      return json({ success: true, data: { hostnodes: offers.map(mapOfferToHostnode), offers } });
     }
 
     return json({ success: false, message: 'Action không hợp lệ' }, { status: 400 });

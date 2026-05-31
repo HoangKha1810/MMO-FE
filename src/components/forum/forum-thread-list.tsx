@@ -1,20 +1,12 @@
 import Link from 'next/link';
 import { Eye, MessageCircle, MessageSquare, Pin } from 'lucide-react';
 import type { ForumThreadSummary } from '@/lib/forum';
+import { formatDatabaseDateTime } from '@/lib/date-time';
 import { formatNumber } from '@/lib/utils';
 
 function formatDate(value: Date | string) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '...';
-  }
-
-  return new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
+  const formatted = formatDatabaseDateTime(value);
+  return formatted ? formatted.replace(/^(\d{2}:\d{2}):\d{2}\s+/, '$1 ') : '...';
 }
 
 export function ForumThreadList({ threads, emptyText = 'Chưa có bài viết.' }: { threads: ForumThreadSummary[]; emptyText?: string }) {

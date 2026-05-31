@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       title,
       content,
     });
-    return NextResponse.json({ success: true, message: 'Đã đăng thread thành công.', data: thread });
+    return NextResponse.json({ success: true, message: 'Đã gửi thread cho admin duyệt. Khi được duyệt bài mới hiển thị công khai.', data: thread });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Không tạo được thread';
     return NextResponse.json({ success: false, message }, { status: 500 });

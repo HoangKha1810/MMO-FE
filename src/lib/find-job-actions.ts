@@ -146,6 +146,7 @@ export async function createOrUpdateFindJob(userId: number, input: {
         budget_min: input.priceMin || null,
         budget_max: input.priceMax || null,
         status: 'pending',
+        approval_status: 'pending',
         updated_at: new Date(),
       });
 
@@ -161,6 +162,7 @@ export async function createOrUpdateFindJob(userId: number, input: {
       budget_min: input.priceMin || null,
       budget_max: input.priceMax || null,
       status: 'pending',
+      approval_status: 'pending',
       created_at: now,
       updated_at: now,
     });

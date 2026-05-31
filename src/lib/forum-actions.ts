@@ -423,7 +423,7 @@ export async function createForumThreadWithPrefix(userId: number, input: {
     await tx.$executeRawUnsafe(
       `
         INSERT INTO forum_threads (forum_id, user_id, title, slug, status, created_at, updated_at, prefix_id, is_pinned, is_locked, is_deleted)
-        VALUES (?, ?, ?, ?, 'active', NOW(), NOW(), ?, 0, 0, 0)
+        VALUES (?, ?, ?, ?, 'pending', NOW(), NOW(), ?, 0, 0, 0)
       `,
       input.forumId,
       userId,
@@ -440,7 +440,7 @@ export async function createForumThreadWithPrefix(userId: number, input: {
     await tx.$executeRawUnsafe(
       `
         INSERT INTO forum_posts (thread_id, user_id, content, is_first_post, status, created_at, updated_at, is_deleted)
-        VALUES (?, ?, ?, 1, 'active', NOW(), NOW(), 0)
+        VALUES (?, ?, ?, 1, 'pending', NOW(), NOW(), 0)
       `,
       threadId,
       userId,
@@ -454,11 +454,6 @@ export async function createForumThreadWithPrefix(userId: number, input: {
       postId,
       threadId
     ).catch(() => undefined);
-    await tx.$executeRawUnsafe(
-      'UPDATE users SET post_count = COALESCE(post_count, 0) + 1, last_activity = NOW() WHERE id = ?',
-      userId
-    ).catch(() => undefined);
-
     return { id: threadId };
   });
 }

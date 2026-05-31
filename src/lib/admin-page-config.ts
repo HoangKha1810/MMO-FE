@@ -227,7 +227,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'forum-threads',
       title: 'Threads',
       description: 'Duyệt/ẩn/ghim/khóa thread forum. Bài ghim luôn được đẩy lên đầu trang Forum MMO.',
-      columns: ['id', 'forum_id', 'user_id', 'title', 'views', 'is_pinned', 'is_locked', 'status', 'is_deleted', 'created_at'],
+      columns: ['id', 'forum_id', 'user_id', 'title', 'views', 'is_pinned', 'is_locked', 'status', 'is_deleted', 'updated_at', 'created_at'],
       editableFields: ['forum_id', 'user_id', 'title', 'slug', 'status', 'is_pinned', 'is_locked', 'is_deleted'],
       createFields: ['forum_id', 'user_id', 'title', 'slug', 'status', 'is_pinned', 'is_locked'],
       statusOptions: ['active', 'hidden', 'deleted', 'pending', 'rejected'],
@@ -244,7 +244,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'forum-posts',
       title: 'Posts',
       description: 'Duyệt bài trả lời, hidden/restore/delete.',
-      columns: ['id', 'thread_id', 'user_id', 'is_first_post', 'content', 'status', 'is_deleted', 'created_at'],
+      columns: ['id', 'thread_id', 'user_id', 'is_first_post', 'content', 'status', 'is_deleted', 'updated_at', 'created_at'],
       editableFields: ['content', 'status', 'is_deleted'],
       statusOptions: ['active', 'pending', 'rejected', 'hidden', 'deleted'],
       actions: [
@@ -341,7 +341,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'find-jobs',
       title: 'Find Job posts',
       description: 'Quản lý tin tuyển dụng, duyệt trạng thái và ghim tin tốt lên đầu trang Find Job MMO.',
-      columns: ['id', 'title', 'category', 'user_id', 'posted_by', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'is_pinned', 'created_at', 'posted_at'],
+      columns: ['id', 'title', 'category', 'user_id', 'posted_by', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'approval_status', 'is_pinned', 'updated_at', 'created_at', 'posted_at'],
       editableFields: ['title', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'is_pinned'],
       statusOptions: ['open', 'filled', 'closed', 'pending', 'hidden', 'rejected'],
       actions: [

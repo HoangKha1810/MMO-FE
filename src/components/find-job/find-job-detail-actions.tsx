@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AlertTriangle, FilePenLine, Send, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { readJsonResponse } from '@/lib/client-api';
 
 export function FindJobDetailActions({
   jobId,
@@ -27,8 +28,8 @@ export function FindJobDetailActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ job_id: jobId }),
         });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
+        const payload = await readJsonResponse(response, 'Không thể ứng tuyển');
+        if (!payload.success) {
           throw new Error(payload.message || 'Không thể ứng tuyển');
         }
         toast.success(payload.message || 'Đã ứng tuyển');
@@ -47,8 +48,8 @@ export function FindJobDetailActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'delete', job_id: jobId }),
         });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
+        const payload = await readJsonResponse(response, 'Không thể đóng tin');
+        if (!payload.success) {
           throw new Error(payload.message || 'Không thể đóng tin');
         }
         toast.success(payload.message || 'Đã đóng tin tuyển dụng');
@@ -67,8 +68,8 @@ export function FindJobDetailActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ job_id: jobId, reason: reportReason, note: reportNote }),
         });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
+        const payload = await readJsonResponse(response, 'Không thể report');
+        if (!payload.success) {
           throw new Error(payload.message || 'Không thể report');
         }
         toast.success(payload.message || 'Đã gửi report');

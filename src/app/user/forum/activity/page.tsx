@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Activity } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { formatDatabaseDateTime } from '@/lib/date-time';
 import { listForumActivity } from '@/lib/legacy-modules';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
@@ -22,7 +23,7 @@ export default async function ForumActivityPage() {
             <Link key={`${String(item.type)}-${String(item.id)}`} href={item.thread_id ? `/user/forum/thread/${String(item.thread_id)}` : item.type === 'thread' ? `/user/forum/thread/${String(item.id)}` : '/user/forum/ads'} className="block rounded-xl p-4 transition hover:bg-slate-50 dark:hover:bg-white/5">
               <div className="text-[10px] font-black uppercase tracking-widest text-brand-blue">{String(item.type)}</div>
               <div className="mt-1 font-black text-slate-950 dark:text-white">{String(item.title || `#${item.id}`)}</div>
-              <div className="mt-1 text-xs text-slate-400">{String(item.username || item.status || '')} · {new Date(String(item.created_at)).toLocaleString('vi-VN')}</div>
+              <div className="mt-1 text-xs text-slate-400">{String(item.username || item.status || '')} · {formatDatabaseDateTime(item.created_at)}</div>
             </Link>
           ))}
         </div>
