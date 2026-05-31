@@ -11,6 +11,7 @@ import { runDdosGuard } from '@/lib/admin-ddos-guard';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { applySmmProviderStatusToOrder, refundCanceledSmmOrder } from '@/lib/smm-refund';
 import { toNumber } from '@/lib/utils';
+import { runVpsGpuHourlyBilling } from '@/lib/vps-gpu-billing';
 
 type CronSummary = Record<string, unknown>;
 
@@ -322,6 +323,7 @@ async function runTask(task: string, options: { force?: boolean } = {}): Promise
   if (shouldRun('card')) summary.card = await runCardMaintenance();
   if (shouldRun('deposits')) summary.deposits = await runDepositMaintenance();
   if (shouldRun('ddos-guard')) summary.ddos_guard = await runDdosMaintenance();
+  if (shouldRun('vps-gpu')) summary.vps_gpu = await runVpsGpuHourlyBilling();
   if (shouldRun('admin-digest')) {
     summary.admin_digest = options.force
       ? await runDailyAdminAnomalyDigestWithOptions({ force: true, markSent: true, subjectPrefix: '[FORCED]' })

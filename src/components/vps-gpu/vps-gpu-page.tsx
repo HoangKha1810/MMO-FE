@@ -7,9 +7,13 @@ import {
   Clipboard,
   Cpu,
   Database,
+  Eye,
+  EyeOff,
   HardDrive,
+  KeyRound,
   Loader2,
   MapPin,
+  Monitor,
   Network,
   Play,
   RefreshCw,
@@ -28,6 +32,7 @@ import { EmptyState, MetricCard, PageHero, SectionHeader, SectionPanel } from '@
 import { readJsonResponse } from '@/lib/client-api';
 import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/hooks/use-session-user';
+import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 
 type DeploymentMethod = 'location' | 'hostnode';
 type NetworkMode = 'port-forwarding' | 'dedicated-ip';
@@ -147,6 +152,13 @@ interface VastInstance {
     host?: string;
     port?: number;
     command?: string;
+    username?: string;
+    password?: string;
+    rdpPort?: number;
+    rdpAddress?: string;
+    rdpCommand?: string;
+    webDesktopPort?: number;
+    webDesktopUrl?: string;
     publicIp?: string;
     localIps?: string[];
     portRange?: string;
@@ -169,7 +181,15 @@ interface VastInstance {
     dlperf?: number;
     networkUpMbps?: number;
     networkDownMbps?: number;
+    image?: string;
   };
+  billing?: {
+    saleHourlyVnd?: number;
+    totalChargedVnd?: number;
+    nextChargeAt?: string | null;
+    lowBalanceWarningForAt?: string | null;
+    status?: string;
+  } | null;
 }
 
 interface VastOverviewData {
@@ -201,6 +221,29 @@ const runtimeOptions: Array<{
 ];
 
 const ramSteps = [8, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 512];
+
+const osImageOptions = [
+  {
+    value: 'nvidia/cuda:12.4.1-runtime-ubuntu22.04',
+    label: 'Ubuntu 22.04 + CUDA 12.4',
+    hint: 'Khuyến nghị cho AI, render và SSH',
+  },
+  {
+    value: 'nvidia/cuda:12.4.1-runtime-ubuntu20.04',
+    label: 'Ubuntu 20.04 + CUDA 12.4',
+    hint: 'Tương thích tốt với nhiều tool cũ',
+  },
+  {
+    value: 'pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime',
+    label: 'PyTorch CUDA Runtime',
+    hint: 'Sẵn môi trường PyTorch cho ML',
+  },
+  {
+    value: 'custom',
+    label: 'Image Docker tùy chỉnh',
+    hint: 'Dùng image riêng nếu cần desktop/RDP hoặc tool đặc biệt',
+  },
+] as const;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
@@ -245,6 +288,36 @@ function formatVnd(value: number | undefined) {
   }
 
   return `${Math.round(value).toLocaleString('vi-VN')} đ/giờ`;
+}
+
+function formatMoneyVnd(value: number | undefined) {
+  if (!Number.isFinite(value || 0) || !value) {
+    return '0 đ';
+  }
+
+  return `${Math.round(value).toLocaleString('vi-VN')} đ`;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return 'N/A';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'N/A';
+  }
+
+  return date.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+  });
+}
+
+function selectedOsPresetValue(image: string) {
+  return osImageOptions.some((option) => option.value === image) ? image : 'custom';
 }
 
 function formatLocation(location: VastLocation | VastHostnode['location']) {
@@ -382,11 +455,12 @@ function isInstancePending(instance: VastInstance) {
     return false;
   }
 
-  return !['stopped', 'exited', 'deleted', 'destroyed'].some((item) => status.includes(item));
+  return !['stopped', 'exited', 'deleted', 'destroyed', 'paused'].some((item) => status.includes(item));
 }
 
 function statusVariant(status: string) {
   const normalized = status.toLowerCase();
+  if (normalized.includes('creating') || normalized.includes('loading') || normalized.includes('not running')) return 'warning';
   if (normalized.includes('running')) return 'success';
   if (normalized.includes('stopping') || normalized.includes('starting')) return 'warning';
   if (normalized.includes('stop')) return 'muted';
@@ -424,6 +498,7 @@ function normalizeUiErrorMessage(message: string) {
 
 export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const { confirm } = useConfirmDialog();
+  const { setBalances } = useWalletBalance();
   const [locations, setLocations] = useState<VastLocation[]>([]);
   const [hostnodes, setHostnodes] = useState<VastHostnode[]>([]);
   const [secrets, setSecrets] = useState<VastSecret[]>([]);
@@ -456,6 +531,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [onStartCommand, setOnStartCommand] = useState('nvidia-smi');
   const [cancelUnavailable, setCancelUnavailable] = useState(true);
   const [argsString, setArgsString] = useState('');
+  const [revealedPasswordId, setRevealedPasswordId] = useState<string | null>(null);
 
   async function loadOverview(options?: { silent?: boolean }) {
     if (!options?.silent) {
@@ -757,7 +833,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
     const confirmed = await confirm({
       title: 'Tạo VPS GPU',
-      description: `Instance ${instanceName.trim()} sẽ được tạo bằng tài khoản vận hành cấu hình trong server. Kiểm tra kỹ gói GPU, image hệ thống và số dư trước khi tiếp tục.`,
+      description: `Instance ${instanceName.trim()} sẽ trừ trước ${formatMoneyVnd(estimatedSaleHourly)} từ ví game cho giờ đầu tiên. Sau đó hệ thống tự trừ theo giờ; nếu ví game không đủ, VPS sẽ bị xóa tự động.`,
       confirmText: 'Tạo instance',
       cancelText: 'Kiểm tra lại',
       tone: 'brand',
@@ -784,7 +860,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         }
         throw new Error(result.message || 'Không thể tạo VPS GPU');
       }
-      toast.success('Đã gửi lệnh tạo VPS GPU');
+      const nextGameBalance = Number(asRecord(asRecord(result).data).gameBalance);
+      if (Number.isFinite(nextGameBalance)) {
+        setBalances({ gameBalance: nextGameBalance });
+      }
+      toast.success('Đã tạo VPS GPU và trừ ví game giờ đầu tiên');
       await loadOverview();
     } catch (error) {
       toast.error(normalizeUiErrorMessage(error instanceof Error ? error.message : 'Không thể tạo VPS GPU'));
@@ -840,6 +920,20 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     try {
       await navigator.clipboard.writeText(command);
       toast.success('Đã sao chép lệnh SSH');
+    } catch {
+      toast.error('Không thể sao chép, hãy copy thủ công');
+    }
+  }
+
+  async function copyText(value: string | undefined, successMessage: string) {
+    if (!value) {
+      toast.error('Chưa có dữ liệu để sao chép');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(successMessage);
     } catch {
       toast.error('Không thể sao chép, hãy copy thủ công');
     }
@@ -1075,7 +1169,29 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <Input min={100} step={50} type="number" value={storageGb} onChange={(event) => setStorageGb(event.target.value)} />
             </Field>
 
-            <Field label="Image hệ thống">
+            <Field label="Hệ điều hành / môi trường">
+              <select
+                value={selectedOsPresetValue(dockerImage)}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value !== 'custom') {
+                    setDockerImage(value);
+                  }
+                }}
+                className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold dark:text-white"
+              >
+                {osImageOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
+                {osImageOptions.find((option) => option.value === selectedOsPresetValue(dockerImage))?.hint}
+              </p>
+            </Field>
+
+            <Field label="Image Docker">
               <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="nvidia/cuda:12.4.1-runtime-ubuntu22.04" />
             </Field>
 
@@ -1160,7 +1276,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         <SectionHeader
           eyebrow="Quản lý VPS"
           title="VPS GPU đang chạy"
-          description="Theo dõi và gửi lệnh start, stop hoặc delete tới hệ thống GPU."
+          description="Theo dõi kết nối, giá thuê và gửi lệnh start, stop hoặc delete. Phí thuê được trừ từ ví game theo từng giờ."
           actions={
             <Button type="button" variant="outline" size="sm" onClick={() => void loadOverview()} disabled={loading}>
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
@@ -1180,6 +1296,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               const pending = isInstancePending(instance);
               const specs = instance.specs || {};
               const connection = instance.connection || {};
+              const billing = instance.billing || null;
               return (
                 <Card key={id || getInstanceName(instance)} className="overflow-hidden">
                   <CardHeader>
@@ -1233,9 +1350,117 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       </div>
                     )}
 
+                    {billing?.lowBalanceWarningForAt ? (
+                      <div className="rounded-[1rem] border border-amber-400/30 bg-amber-500/10 p-4">
+                        <div className="text-sm font-black text-amber-600 dark:text-amber-300">
+                          Ví game chưa đủ cho lần gia hạn tiếp theo
+                        </div>
+                        <p className="mt-2 text-xs font-semibold leading-6 text-slate-500 dark:text-slate-300">
+                          Hệ thống đã gửi email nhắc nạp. Nếu trước {formatDateTime(billing.lowBalanceWarningForAt)} ví game vẫn chưa đủ {formatMoneyVnd(billing.saleHourlyVnd)}, VPS sẽ tự động bị xóa để tránh phát sinh chi phí.
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {connection.rdpAddress ? (
+                      <div className="rounded-[1rem] border border-sky-400/25 bg-sky-500/10 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-sm font-black text-sky-700 dark:text-sky-200">
+                            <Monitor className="h-4 w-4" />
+                            Remote Desktop có thể kết nối
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void copyText(connection.rdpCommand || connection.rdpAddress, 'Đã sao chép lệnh Remote Desktop')}
+                          >
+                            <Clipboard className="mr-2 h-4 w-4" />
+                            Copy RDP
+                          </Button>
+                        </div>
+                        <div className="mt-3 overflow-x-auto rounded-[0.9rem] border border-sky-300/20 bg-slate-950/90 px-3 py-2 font-mono text-xs font-bold text-cyan-100">
+                          {connection.rdpCommand || connection.rdpAddress}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {connection.webDesktopUrl ? (
+                      <div className="rounded-[1rem] border border-cyan-400/25 bg-cyan-500/10 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-sm font-black text-cyan-700 dark:text-cyan-200">
+                            <Monitor className="h-4 w-4" />
+                            Web desktop / app port đã mở
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(connection.webDesktopUrl, '_blank', 'noopener,noreferrer')}
+                            >
+                              Mở remote
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void copyText(connection.webDesktopUrl, 'Đã sao chép link remote')}
+                            >
+                              <Clipboard className="mr-2 h-4 w-4" />
+                              Copy link
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-3 overflow-x-auto rounded-[0.9rem] border border-cyan-300/20 bg-slate-950/90 px-3 py-2 font-mono text-xs font-bold text-cyan-100">
+                          {connection.webDesktopUrl}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {connection.password ? (
+                      <div className="rounded-[1rem] border border-violet-400/25 bg-violet-500/10 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-sm font-black text-violet-700 dark:text-violet-200">
+                            <KeyRound className="h-4 w-4" />
+                            Thông tin đăng nhập do nguồn GPU cung cấp
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setRevealedPasswordId(revealedPasswordId === id ? null : id)}
+                            >
+                              {revealedPasswordId === id ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                              {revealedPasswordId === id ? 'Ẩn' : 'Hiện'}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void copyText(connection.password, 'Đã sao chép mật khẩu')}
+                            >
+                              <Clipboard className="mr-2 h-4 w-4" />
+                              Copy mật khẩu
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <MiniInfo icon={<Terminal />} label="User" value={connection.username || 'root'} />
+                          <MiniInfo
+                            icon={<KeyRound />}
+                            label="Mật khẩu"
+                            value={revealedPasswordId === id ? connection.password : '••••••••••••'}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       <MiniInfo icon={<Network />} label="Public IP" value={connection.publicIp || connection.host || 'Đang cập nhật'} />
                       <MiniInfo icon={<Terminal />} label="SSH Port" value={connection.port ? String(connection.port) : 'Đang cập nhật'} />
+                      <MiniInfo icon={<Monitor />} label="RDP Port" value={connection.rdpPort ? String(connection.rdpPort) : 'N/A'} />
+                      <MiniInfo icon={<Monitor />} label="Remote Web" value={connection.webDesktopPort ? String(connection.webDesktopPort) : 'N/A'} />
                       <MiniInfo icon={<Server />} label="Port Range" value={connection.portRange || 'N/A'} />
                       <MiniInfo icon={<MapPin />} label="Khu vực" value={instance.attributes?.region || instance.ipAddress || 'N/A'} />
                       <MiniInfo icon={<ShieldCheck />} label="IP Type" value={connection.ipAddressType || 'N/A'} />
@@ -1251,17 +1476,20 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       <MiniInfo icon={<Cpu />} label="CPU" value={[specs.cpuName, formatCpuCores(specs.cpuCores)].filter(Boolean).join(' · ')} />
                       <MiniInfo icon={<Database />} label="RAM" value={specs.ramGb ? `${specs.ramGb} GB` : 'N/A'} />
                       <MiniInfo icon={<HardDrive />} label="Disk" value={specs.diskGb ? `${Math.round(specs.diskGb)} GB` : 'N/A'} />
+                      <MiniInfo icon={<Server />} label="Image" value={specs.image || 'N/A'} />
                       <MiniInfo
                         icon={<Network />}
                         label="Network"
                         value={`${formatMbps(specs.networkDownMbps)} down / ${formatMbps(specs.networkUpMbps)} up`}
                       />
-                      <MiniInfo icon={<Cpu />} label="Giá vốn" value={formatUsd(instance.rateHourly)} />
+                      <MiniInfo icon={<Cpu />} label="Giá thuê" value={formatVnd(billing?.saleHourlyVnd)} />
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <MiniInfo icon={<Server />} label="Machine ID" value={specs.machineId || 'N/A'} />
                       <MiniInfo icon={<Server />} label="Host ID" value={specs.hostId || 'N/A'} />
+                      <MiniInfo icon={<Database />} label="Đã trừ ví game" value={formatMoneyVnd(billing?.totalChargedVnd)} />
+                      <MiniInfo icon={<RefreshCw />} label="Trừ tiếp lúc" value={formatDateTime(billing?.nextChargeAt)} />
                     </div>
 
                     <div className="flex flex-wrap gap-2">

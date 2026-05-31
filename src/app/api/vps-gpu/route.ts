@@ -9,6 +9,17 @@ import {
 } from '@/lib/vast-ai';
 import { getLegacySettingsMap } from '@/lib/legacy-settings';
 import { db } from '@/lib/db';
+import {
+  assertGameWalletCanPay,
+  chargeFirstHourAndSaveVpsGpu,
+  deleteOwnedVpsGpuInstance,
+  extractCreatedProviderInstanceId,
+  listOwnedVpsGpuBillings,
+  markVpsGpuProviderStatus,
+  requireOwnedVpsGpuBilling,
+  toPublicBilling,
+  type VpsGpuBillingRow,
+} from '@/lib/vps-gpu-billing';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -446,6 +457,80 @@ function getInstancePortFromMap(instance: VastInstance, portName: string) {
   return normalizePositiveInt(firstEntry.HostPort || firstEntry.host_port || firstEntry.port, 0);
 }
 
+function getInstanceRdpPort(instance: VastInstance) {
+  return normalizePositiveInt(
+    instance.rdp_port ||
+      instance.rdpPort ||
+      getInstancePortFromMap(instance, '3389/tcp') ||
+      getInstancePortFromMap(instance, '3389'),
+    0
+  );
+}
+
+function getInstanceWebDesktopPort(instance: VastInstance) {
+  const candidatePorts = [
+    instance.web_port,
+    instance.webPort,
+    instance.desktop_port,
+    instance.desktopPort,
+    instance.vnc_port,
+    instance.vncPort,
+    getInstancePortFromMap(instance, '6901/tcp'),
+    getInstancePortFromMap(instance, '6901'),
+    getInstancePortFromMap(instance, '6080/tcp'),
+    getInstancePortFromMap(instance, '6080'),
+    getInstancePortFromMap(instance, '8080/tcp'),
+    getInstancePortFromMap(instance, '8080'),
+    getInstancePortFromMap(instance, '3000/tcp'),
+    getInstancePortFromMap(instance, '3000'),
+  ];
+
+  for (const port of candidatePorts) {
+    const normalized = normalizePositiveInt(port, 0);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return 0;
+}
+
+function normalizeCredential(value: unknown) {
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return '';
+  }
+  const text = String(value).trim();
+  return text && text !== '[object Object]' ? text : '';
+}
+
+function getInstancePassword(instance: VastInstance) {
+  return (
+    normalizeCredential(instance.password) ||
+    normalizeCredential(instance.root_password) ||
+    normalizeCredential(instance.rootPassword) ||
+    normalizeCredential(instance.ssh_password) ||
+    normalizeCredential(instance.rdp_password) ||
+    normalizeCredential(instance.image_password) ||
+    normalizeCredential(instance.passwd) ||
+    normalizeCredential(instance.login_password)
+  );
+}
+
+function getInstanceUsername(instance: VastInstance, rdpPort: number) {
+  return normalizeString(
+    instance.username ||
+      instance.user ||
+      instance.ssh_user ||
+      instance.rdp_username ||
+      instance.login_user,
+    rdpPort ? 'Administrator' : 'root'
+  );
+}
+
+function getInstanceId(instance: VastInstance) {
+  return normalizeString(instance.id || instance.instance_id || instance.contract_id);
+}
+
 function getInstanceSshPort(instance: VastInstance) {
   return normalizePositiveInt(
     instance.ssh_port ||
@@ -481,9 +566,10 @@ function getInstancePortRange(instance: VastInstance) {
 function formatInstanceStatusLabel(status: string, ready: boolean) {
   const normalized = status.toLowerCase();
   if (ready && normalized.includes('running')) return 'Sẵn sàng kết nối';
-  if (normalized.includes('loading') || normalized.includes('starting') || normalized.includes('created') || normalized.includes('transferring')) {
+  if (normalized.includes('creating') || normalized.includes('loading') || normalized.includes('starting') || normalized.includes('created') || normalized.includes('transferring')) {
     return 'Đang khởi tạo';
   }
+  if (normalized.includes('not running')) return 'Đang khởi tạo';
   if (normalized.includes('running')) return 'Đang mở kết nối';
   if (normalized.includes('stop')) return 'Đã dừng';
   if (normalized.includes('exit')) return 'Đã thoát';
@@ -492,32 +578,49 @@ function formatInstanceStatusLabel(status: string, ready: boolean) {
 
 function mapInstances(instances: VastInstance[]) {
   return instances.map((instance) => {
-    const id = normalizeString(instance.id || instance.instance_id || instance.contract_id);
+    const id = getInstanceId(instance);
     const status = normalizeString(instance.actual_status || instance.cur_state || instance.status, 'unknown');
     const publicIp = normalizeString(instance.public_ipaddr);
     const sshHost = normalizeString(instance.ssh_host || publicIp || instance.hostname);
     const sshPort = getInstanceSshPort(instance);
+    const rdpPort = getInstanceRdpPort(instance);
+    const webDesktopPort = getInstanceWebDesktopPort(instance);
+    const rdpHost = publicIp || sshHost;
+    const webDesktopHost = publicIp || sshHost;
+    const password = getInstancePassword(instance);
+    const username = getInstanceUsername(instance, rdpPort);
     const portRange = getInstancePortRange(instance);
     const localIps = normalizeStringList(instance.local_ipaddrs);
-    const isRunning = status.toLowerCase().includes('running');
-    const ready = Boolean(isRunning && sshHost && sshPort);
     const statusMessage = normalizeString(instance.status_msg || instance.status_message);
+    const runtimeState = [
+      status,
+      instance.cur_state,
+      instance.actual_status,
+      instance.next_state,
+      instance.intended_status,
+      statusMessage,
+    ].map((item) => normalizeString(item).toLowerCase()).join(' ');
+    const isRunning = /\brunning\b/.test(runtimeState);
+    const isProvisioning = /creating|loading|starting|created|transferring|not running|installing|pending|queued|initializing|dockerfile/i.test(runtimeState);
+    const isStopped = /stopped|exited|deleted|destroyed|paused/i.test(runtimeState);
+    const ready = Boolean(isRunning && !isProvisioning && !isStopped && sshHost && sshPort);
     const gpuRamMb = normalizeNumber(instance.gpu_ram || instance.gpu_totalram, 0);
     const cpuRamMb = normalizeNumber(instance.cpu_ram || instance.mem_limit, 0);
     const hourlyUsd = normalizeNumber(instance.dph_total || instance.dph_base || instance.dph, 0);
+    const displayStatus = isProvisioning && !ready ? 'creating' : status;
 
     return {
       id,
       name: normalizeString(instance.label || instance.name, id ? `Instance GPU ${id}` : 'Instance GPU'),
-      status,
-      statusLabel: formatInstanceStatusLabel(status, ready),
+      status: displayStatus,
+      statusLabel: formatInstanceStatusLabel(displayStatus, ready),
       statusMessage,
       type: 'GPU Instance',
       ipAddress: publicIp || sshHost,
       rateHourly: hourlyUsd,
       attributes: {
         name: normalizeString(instance.label || instance.name, id),
-        status,
+        status: displayStatus,
         region: normalizeString(instance.geolocation || instance.country_code || publicIp || sshHost, 'N/A'),
       },
       connection: {
@@ -525,6 +628,13 @@ function mapInstances(instances: VastInstance[]) {
         host: sshHost,
         port: sshPort,
         command: sshHost && sshPort ? `ssh -p ${sshPort} root@${sshHost}` : '',
+        username,
+        password,
+        rdpPort,
+        rdpAddress: rdpHost && rdpPort ? `${rdpHost}:${rdpPort}` : '',
+        rdpCommand: rdpHost && rdpPort ? `mstsc /v:${rdpHost}:${rdpPort}` : '',
+        webDesktopPort,
+        webDesktopUrl: webDesktopHost && webDesktopPort ? `http://${webDesktopHost}:${webDesktopPort}` : '',
         publicIp,
         localIps,
         portRange,
@@ -547,8 +657,58 @@ function mapInstances(instances: VastInstance[]) {
         dlperf: normalizeNumber(instance.dlperf, 0),
         networkUpMbps: normalizeNumber(instance.inet_up || instance.network_up_mbps, 0),
         networkDownMbps: normalizeNumber(instance.inet_down || instance.network_down_mbps, 0),
+        image: normalizeString(instance.image || instance.image_uuid || instance.template_name || instance.docker_image),
       },
     };
+  });
+}
+
+function makeBillingFallbackInstance(row: VpsGpuBillingRow): VastInstance {
+  return {
+    id: row.provider_instance_id,
+    instance_id: row.provider_instance_id,
+    label: row.instance_name || `VPS GPU ${row.provider_instance_id}`,
+    status: row.status === 'deletion_pending' ? 'deletion_pending' : (row.provider_status || 'creating'),
+    actual_status: row.provider_status || row.status,
+    status_msg: row.status === 'deletion_pending'
+      ? 'Ví game không đủ cho giờ tiếp theo, hệ thống đang xóa VPS GPU.'
+      : 'Hệ thống đang đồng bộ trạng thái VPS GPU.',
+    dph_total: row.cost_hourly_usd,
+  };
+}
+
+function attachBillingToInstance(mappedInstance: ReturnType<typeof mapInstances>[number], row: VpsGpuBillingRow) {
+  const billing = toPublicBilling(row);
+  const nextStatus = row.status === 'deletion_pending' ? 'deletion_pending' : mappedInstance.status;
+
+  return {
+    ...mappedInstance,
+    id: row.provider_instance_id || mappedInstance.id,
+    name: row.instance_name || mappedInstance.name,
+    status: nextStatus,
+    statusLabel: row.status === 'deletion_pending' ? 'Đang xóa vì ví game không đủ' : mappedInstance.statusLabel,
+    billing,
+  };
+}
+
+async function mapOwnedVpsGpuInstances(userId: number, providerInstances: VastInstance[]) {
+  const billings = await listOwnedVpsGpuBillings(userId);
+  const providerById = new Map(providerInstances.map((instance) => [getInstanceId(instance), instance]));
+
+  await Promise.all(
+    billings.map((row) => {
+      const providerInstance = providerById.get(row.provider_instance_id);
+      if (!providerInstance) return Promise.resolve();
+      const providerStatus = normalizeString(providerInstance.actual_status || providerInstance.cur_state || providerInstance.status);
+      return providerStatus
+        ? markVpsGpuProviderStatus(row.provider_instance_id, providerStatus).catch(() => undefined)
+        : Promise.resolve();
+    })
+  );
+
+  return billings.map((row) => {
+    const providerInstance = providerById.get(row.provider_instance_id) || makeBillingFallbackInstance(row);
+    return attachBillingToInstance(mapInstances([providerInstance])[0], row);
   });
 }
 
@@ -732,7 +892,7 @@ export async function GET(req: NextRequest) {
       ]);
 
       const mappedOffers = extractOffers(offers.data);
-      const mappedInstances = mapInstances(extractInstances(instances.data));
+      const mappedInstances = await mapOwnedVpsGpuInstances(userId, extractInstances(instances.data));
       const mappedSshKeys = mapSshKeys(extractSshKeys(sshKeys.data));
       const pricingSettings = await getVpsGpuPricingSettings();
       const pricedHostnodes = applyVpsGpuPricing(mappedOffers.map(mapOfferToHostnode), pricingSettings);
@@ -803,7 +963,7 @@ export async function GET(req: NextRequest) {
 
     if (resource === 'instances') {
       const payload = await vastRequest('/instances/', undefined, { version: 'v1' });
-      return json({ success: true, data: { instances: mapInstances(extractInstances(payload)) } });
+      return json({ success: true, data: { instances: await mapOwnedVpsGpuInstances(userId, extractInstances(payload)) } });
     }
 
     if (resource.startsWith('instances/')) {
@@ -811,10 +971,10 @@ export async function GET(req: NextRequest) {
       if (!instanceId || instanceId.includes('/')) {
         return json({ success: false, message: 'Instance ID không hợp lệ' }, { status: 400 });
       }
-      const payload = await vastRequest(`/instances/${encodeURIComponent(instanceId)}/`);
-      const instances = extractInstances(payload);
-      const instance = instances[0] || asRecord(payload);
-      return json({ success: true, data: { instance: mapInstances([instance])[0] } });
+      const billing = await requireOwnedVpsGpuBilling(userId, instanceId);
+      const payload = await vastRequest('/instances/', undefined, { version: 'v1' });
+      const instance = extractInstances(payload).find((item) => getInstanceId(item) === instanceId) || makeBillingFallbackInstance(billing);
+      return json({ success: true, data: { instance: attachBillingToInstance(mapInstances([instance])[0], billing) } });
     }
 
     if (resource === 'secrets' || resource === 'ssh-keys') {
@@ -859,6 +1019,15 @@ export async function POST(req: NextRequest) {
       }
 
       const { offerId, payload } = buildCreateInstancePayload(body?.payload, liveOffer);
+      const pricingSettings = await getVpsGpuPricingSettings();
+      const pricedHostnode = applyVpsGpuPricing([mapOfferToHostnode(liveOffer)], pricingSettings)[0];
+      const pricing = asRecord(pricedHostnode.pricing);
+      const saleHourlyVnd = normalizePositiveNumber(pricing.sale_hourly_vnd, 0);
+      const costHourlyVnd = normalizePositiveNumber(pricing.cost_hourly_vnd, 0);
+      const costHourlyUsd = normalizePositiveNumber(pricing.cost_hourly_usd, getOfferCostSource(liveOffer).value);
+
+      await assertGameWalletCanPay(userId, saleHourlyVnd);
+
       let response: unknown;
       try {
         response = await vastRequest(`/asks/${encodeURIComponent(offerId)}/`, {
@@ -876,11 +1045,40 @@ export async function POST(req: NextRequest) {
         }
         throw error;
       }
-      return json({ success: true, data: response });
+
+      const providerInstanceId = extractCreatedProviderInstanceId(response);
+      if (!providerInstanceId) {
+        throw new Error('Nguồn GPU đã nhận lệnh nhưng chưa trả instance ID. Hãy kiểm tra lại danh sách VPS GPU sau vài giây.');
+      }
+
+      try {
+        const billingResult = await chargeFirstHourAndSaveVpsGpu({
+          userId,
+          providerInstanceId,
+          offerId,
+          instanceName: normalizeString(asRecord(payload).label, 'trungtammmo-gpu-ai'),
+          costHourlyUsd,
+          costHourlyVnd,
+          saleHourlyVnd,
+        });
+
+        return json({
+          success: true,
+          data: {
+            instanceId: providerInstanceId,
+            billing: billingResult.billing,
+            gameBalance: billingResult.gameBalance,
+          },
+        });
+      } catch (error) {
+        await vastRequest(`/instances/${encodeURIComponent(providerInstanceId)}/`, { method: 'DELETE' }).catch(() => undefined);
+        throw error;
+      }
     }
 
     const instanceAction = getAllowedInstanceAction(action);
     if (instanceAction) {
+      await requireOwnedVpsGpuBilling(userId, instanceAction.id);
       const desiredState = instanceAction.action === 'start' ? 'running' : 'stopped';
       const payload = await vastRequest(`/instances/${encodeURIComponent(instanceAction.id)}/`, {
         method: 'PUT',
@@ -928,6 +1126,8 @@ export async function PUT(req: NextRequest) {
       return json({ success: false, message: 'Thiếu instanceId' }, { status: 400 });
     }
 
+    await requireOwnedVpsGpuBilling(userId, instanceId);
+
     const payload = await vastRequest(`/instances/${encodeURIComponent(instanceId)}/`, {
       method: 'PUT',
       body: JSON.stringify(body.payload || {}),
@@ -956,7 +1156,7 @@ export async function DELETE(req: NextRequest) {
       return json({ success: false, message: 'Thiếu instanceId' }, { status: 400 });
     }
 
-    const payload = await vastRequest(`/instances/${encodeURIComponent(instanceId)}/`, { method: 'DELETE' });
+    const payload = await deleteOwnedVpsGpuInstance(userId, instanceId);
     return json({ success: true, data: payload });
   } catch (error) {
     return handleVastError(error);
