@@ -621,6 +621,10 @@ function buildDirtyValues(
 function normalizeAdminEditorPayload(resource: string, values: Record<string, unknown>) {
   const next = { ...values };
 
+  if (resource === 'settings' && Object.prototype.hasOwnProperty.call(next, 'setting_value')) {
+    next.setting_value = String(next.setting_value ?? '');
+  }
+
   if (resource === 'automxh-variants') {
     const integerFallbacks: Record<string, number> = {
       product_id: 0,

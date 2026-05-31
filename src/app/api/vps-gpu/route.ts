@@ -72,9 +72,23 @@ function normalizeString(value: unknown, fallback = '') {
   return text || fallback;
 }
 
+function isStaleOfferMessage(text: string) {
+  return /no_such_ask|not available|instance type by id|offer.*(hết|không|not)|\/asks\/\d+/i.test(text);
+}
+
 function sanitizeProviderMessage(value: unknown, fallback = 'Nguồn GPU hiện chưa phản hồi') {
   const text = normalizeString(value, fallback);
+  if (isStaleOfferMessage(text)) {
+    return 'Gói GPU vừa được người khác thuê hoặc không còn khả dụng. Bấm Lọc gói rồi chọn gói khác.';
+  }
+
+  if (/HTTP\s+5\d\d|Something went wrong|Service Temporarily Unavailable/i.test(text)) {
+    return 'Nguồn GPU đang bận hoặc chưa tạo được VPS lúc này. Hãy làm mới gói rồi thử lại.';
+  }
+
   return text
+    .replace(/API nguồn GPU\s+\/[^\s]+/gi, 'Nguồn GPU')
+    .replace(/GPU API\s+\/[^\s]+/gi, 'Nguồn GPU')
     .replace(/Vast\.ai/gi, 'API GPU')
     .replace(/\bVast\b/g, 'API GPU')
     .replace(/\bvast\b/g, 'API GPU');
@@ -92,6 +106,20 @@ function normalizeBoolean(value: unknown, fallback = false) {
 function normalizePositiveNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizeNumber(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeStringList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeString(item)).filter(Boolean);
+  }
+
+  const text = normalizeString(value);
+  return text ? text.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean) : [];
 }
 
 async function getVpsGpuPricingSettings(): Promise<VpsGpuPricingSettings> {
@@ -157,6 +185,10 @@ function getOfferCostSource(offer: VastOffer) {
   return { key: 'unknown', value: 0 };
 }
 
+function getOfferId(offer: VastOffer) {
+  return normalizeString(offer.ask_contract_id || offer.id || offer.machine_id);
+}
+
 async function ensureVpsGpuOfferCostsTable() {
   await db.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS \`${VPS_GPU_OFFER_COSTS_TABLE}\` (
@@ -202,7 +234,7 @@ async function saveVpsGpuOfferCostSnapshots(
     const hostnodeById = new Map(hostnodes.map((hostnode) => [String(hostnode.id), hostnode]));
 
     for (const offer of offers.slice(0, 120)) {
-      const offerId = normalizeString(offer.id || offer.ask_contract_id || offer.machine_id);
+      const offerId = getOfferId(offer);
       if (!offerId) {
         continue;
       }
@@ -267,18 +299,6 @@ async function saveVpsGpuOfferCostSnapshots(
       console.warn('[vps-gpu] Failed to save GPU offer cost snapshots', error);
     }
   }
-}
-
-function formatDockerEnvFlags(value: unknown) {
-  if (typeof value === 'string') {
-    return value.trim();
-  }
-
-  const record = asRecord(value);
-  return Object.entries(record)
-    .filter(([key, item]) => key.trim() && item !== undefined && item !== null && String(item).trim())
-    .map(([key, item]) => `-e ${key.trim()}=${String(item).trim()}`)
-    .join(' ');
 }
 
 function getAllowedInstanceAction(path: string) {
@@ -353,7 +373,7 @@ function formatOfferLocation(offer: VastOffer) {
 }
 
 function mapOfferToHostnode(offer: VastOffer) {
-  const id = normalizeString(offer.id || offer.ask_contract_id || offer.machine_id);
+  const id = getOfferId(offer);
   const location = parseGeolocation(offer.geolocation || offer.location || offer.country);
   const gpu = mapOfferGpu(offer);
   const priceHourly = Number(offer.dph_total || offer.dph_base || offer.dph || 0);
@@ -418,28 +438,116 @@ function mapSshKeys(keys: VastSshKey[]) {
   });
 }
 
+function getInstancePortFromMap(instance: VastInstance, portName: string) {
+  const ports = asRecord(instance.ports);
+  const direct = ports[portName];
+  const entries = Array.isArray(direct) ? direct : [];
+  const firstEntry = asRecord(entries[0]);
+  return normalizePositiveInt(firstEntry.HostPort || firstEntry.host_port || firstEntry.port, 0);
+}
+
+function getInstanceSshPort(instance: VastInstance) {
+  return normalizePositiveInt(
+    instance.ssh_port ||
+      instance.machine_dir_ssh_port ||
+      getInstancePortFromMap(instance, '22/tcp') ||
+      getInstancePortFromMap(instance, '22'),
+    0
+  );
+}
+
+function getInstancePortRange(instance: VastInstance) {
+  const start = normalizePositiveInt(instance.direct_port_start, 0);
+  const end = normalizePositiveInt(instance.direct_port_end, 0);
+  if (start && end) {
+    return start === end ? String(start) : `${start}-${end}`;
+  }
+
+  const ports = asRecord(instance.ports);
+  const hostPorts = Object.values(ports)
+    .flatMap((value) => (Array.isArray(value) ? value : []))
+    .map((value) => normalizePositiveInt(asRecord(value).HostPort || asRecord(value).host_port, 0))
+    .filter(Boolean);
+
+  if (!hostPorts.length) {
+    return '';
+  }
+
+  const min = Math.min(...hostPorts);
+  const max = Math.max(...hostPorts);
+  return min === max ? String(min) : `${min}-${max}`;
+}
+
+function formatInstanceStatusLabel(status: string, ready: boolean) {
+  const normalized = status.toLowerCase();
+  if (ready && normalized.includes('running')) return 'Sẵn sàng kết nối';
+  if (normalized.includes('loading') || normalized.includes('starting') || normalized.includes('created') || normalized.includes('transferring')) {
+    return 'Đang khởi tạo';
+  }
+  if (normalized.includes('running')) return 'Đang mở kết nối';
+  if (normalized.includes('stop')) return 'Đã dừng';
+  if (normalized.includes('exit')) return 'Đã thoát';
+  return status || 'Đang cập nhật';
+}
+
 function mapInstances(instances: VastInstance[]) {
   return instances.map((instance) => {
     const id = normalizeString(instance.id || instance.instance_id || instance.contract_id);
     const status = normalizeString(instance.actual_status || instance.cur_state || instance.status, 'unknown');
-    const ipAddress = normalizeString(
-      instance.public_ipaddr || instance.ssh_host || instance.hostname || instance.direct_port_end,
-      ''
-    );
+    const publicIp = normalizeString(instance.public_ipaddr);
+    const sshHost = normalizeString(instance.ssh_host || publicIp || instance.hostname);
+    const sshPort = getInstanceSshPort(instance);
+    const portRange = getInstancePortRange(instance);
+    const localIps = normalizeStringList(instance.local_ipaddrs);
+    const isRunning = status.toLowerCase().includes('running');
+    const ready = Boolean(isRunning && sshHost && sshPort);
+    const statusMessage = normalizeString(instance.status_msg || instance.status_message);
+    const gpuRamMb = normalizeNumber(instance.gpu_ram || instance.gpu_totalram, 0);
+    const cpuRamMb = normalizeNumber(instance.cpu_ram || instance.mem_limit, 0);
+    const hourlyUsd = normalizeNumber(instance.dph_total || instance.dph_base || instance.dph, 0);
 
     return {
       id,
       name: normalizeString(instance.label || instance.name, id ? `Instance GPU ${id}` : 'Instance GPU'),
       status,
+      statusLabel: formatInstanceStatusLabel(status, ready),
+      statusMessage,
       type: 'GPU Instance',
-      ipAddress,
-      rateHourly: Number(instance.dph_total || instance.dph_base || instance.dph || 0),
+      ipAddress: publicIp || sshHost,
+      rateHourly: hourlyUsd,
       attributes: {
         name: normalizeString(instance.label || instance.name, id),
         status,
-        region: normalizeString(instance.geolocation || instance.public_ipaddr || instance.ssh_host, 'N/A'),
+        region: normalizeString(instance.geolocation || instance.country_code || publicIp || sshHost, 'N/A'),
       },
-      vast: instance,
+      connection: {
+        ready,
+        host: sshHost,
+        port: sshPort,
+        command: sshHost && sshPort ? `ssh -p ${sshPort} root@${sshHost}` : '',
+        publicIp,
+        localIps,
+        portRange,
+        ipAddressType: normalizeBoolean(instance.static_ip) ? 'Static' : 'Shared',
+      },
+      specs: {
+        gpuName: normalizeString(instance.gpu_name || instance.gpu_name_full || instance.gpu_display_name, 'GPU'),
+        gpuCount: normalizePositiveInt(instance.num_gpus, 1),
+        gpuRamGb: gpuRamMb > 0 ? Math.round(gpuRamMb / 1024) : 0,
+        gpuUtil: normalizeNumber(instance.gpu_util, 0),
+        gpuTemp: normalizeNumber(instance.gpu_temp, 0),
+        cpuName: normalizeString(instance.cpu_name),
+        cpuCores: normalizeNumber(instance.cpu_cores || instance.cpu_cores_effective, 0),
+        ramGb: cpuRamMb > 0 ? Math.round(cpuRamMb / 1024) : 0,
+        diskName: normalizeString(instance.disk_name),
+        diskGb: normalizeNumber(instance.disk_space, 0),
+        diskUsageGb: normalizeNumber(instance.disk_usage, 0),
+        machineId: normalizeString(instance.machine_id),
+        hostId: normalizeString(instance.host_id),
+        dlperf: normalizeNumber(instance.dlperf, 0),
+        networkUpMbps: normalizeNumber(instance.inet_up || instance.network_up_mbps, 0),
+        networkDownMbps: normalizeNumber(instance.inet_down || instance.network_down_mbps, 0),
+      },
     };
   });
 }
@@ -475,6 +583,8 @@ async function getOfferOverview(req: NextRequest) {
     gpuName,
     minGpus: req.nextUrl.searchParams.get('minGpus') || req.nextUrl.searchParams.get('gpuCount'),
     minGpuRamMb: req.nextUrl.searchParams.get('minGpuRamMb'),
+    minDiskGb: req.nextUrl.searchParams.get('minDiskGb'),
+    maxHourlyUsd: req.nextUrl.searchParams.get('maxHourlyUsd'),
     limit: req.nextUrl.searchParams.get('limit') || 60,
   });
   return vastRequest('/bundles/', {
@@ -483,7 +593,67 @@ async function getOfferOverview(req: NextRequest) {
   });
 }
 
-function buildCreateInstancePayload(rawPayload: unknown) {
+async function findLiveOfferById(offerId: string) {
+  const offerNumber = Number(offerId);
+  if (!Number.isFinite(offerNumber) || offerNumber <= 0) {
+    return null;
+  }
+
+  const payload = await vastRequest('/bundles/', {
+    method: 'POST',
+    body: JSON.stringify({
+      rentable: { eq: true },
+      ask_contract_id: { eq: offerNumber },
+      limit: 1,
+    }),
+  });
+
+  return extractOffers(payload).find((offer) => getOfferId(offer) === offerId) || null;
+}
+
+function normalizeRuntime(value: unknown) {
+  const runtime = normalizeString(value, 'ssh').toLowerCase();
+  if (runtime === 'jupyter') return 'jupyter_direct';
+  if (runtime === 'args') return 'args';
+  if (['ssh_direct', 'ssh_proxy', 'jupyter_direct', 'jupyter_proxy'].includes(runtime)) return runtime;
+  return 'ssh_direct';
+}
+
+function normalizeVastEnv(value: unknown) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key, item]) => key.trim() && item !== undefined && item !== null && String(item).trim())
+        .map(([key, item]) => [key.trim(), String(item).trim()])
+    );
+  }
+
+  const text = normalizeString(value);
+  if (!text) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return normalizeVastEnv(parsed);
+    }
+  } catch {
+    // Allow shell-style flags from older UI state, but only keep environment variables.
+  }
+
+  const env: Record<string, string> = {};
+  const matches = text.matchAll(/(?:^|\s)-e\s+([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s]+)/g);
+  for (const match of matches) {
+    const key = match[1];
+    const rawValue = match[2] || '';
+    env[key] = rawValue.replace(/^["']|["']$/g, '');
+  }
+
+  return env;
+}
+
+function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer | null) {
   const payload = asRecord(rawPayload);
   const attributes = asRecord(asRecord(payload.data).attributes || payload.attributes || payload);
   const resources = asRecord(attributes.resources);
@@ -494,55 +664,41 @@ function buildCreateInstancePayload(rawPayload: unknown) {
     attributes.offer_id || attributes.ask_id || attributes.hostnode_id || payload.offer_id || payload.ask_id
   );
   if (!offerId) {
-    throw new Error('Thiếu offer_id. Hãy chọn một gói GPU trước khi tạo instance.');
+    throw new Error('Thiếu gói GPU. Hãy chọn một gói GPU trước khi tạo instance.');
   }
 
   const name = normalizeString(attributes.name || attributes.label, 'trungtammmo-gpu-ai');
   const rawImage = normalizeString(attributes.image);
   const dockerImage = rawImage.includes('/') || rawImage.includes(':') ? rawImage : getVastDefaultImage();
-  const storageGb = normalizePositiveInt(asRecord(resources).storage_gb || attributes.disk, 100);
-  const gpuCount = normalizePositiveInt(gpuEntry?.[1] && asRecord(gpuEntry[1]).count, 1);
+  const requestedStorageGb = normalizePositiveInt(asRecord(resources).storage_gb || attributes.disk, 100);
+  const liveOfferDiskGb = liveOffer ? normalizePositiveInt(liveOffer.disk_space, requestedStorageGb) : requestedStorageGb;
+  const storageGb = Math.max(20, Math.min(requestedStorageGb, liveOfferDiskGb || requestedStorageGb));
   const onstart = normalizeString(attributes.onstart, 'nvidia-smi');
-  const env = formatDockerEnvFlags(attributes.env);
-  const ports = Array.isArray(attributes.port_forwards)
-    ? attributes.port_forwards
-        .map((item) => normalizePositiveInt(asRecord(item).internal_port, 0))
-        .filter(Boolean)
-    : [];
+  const runtime = normalizeRuntime(attributes.runtype);
+  const env = normalizeVastEnv(attributes.env);
 
   const vastPayload: Record<string, unknown> = {
-    client_id: 'me',
     image: dockerImage,
     disk: storageGb,
     label: name,
     onstart,
-    runtype: normalizeString(attributes.runtype, 'ssh'),
+    runtype: runtime,
     target_state: normalizeString(attributes.target_state, 'running'),
     python_utf8: normalizeBoolean(attributes.python_utf8, true),
     lang_utf8: normalizeBoolean(attributes.lang_utf8, true),
-    use_jupyter_lab: normalizeBoolean(attributes.use_jupyter_lab, false),
     cancel_unavail: normalizeBoolean(attributes.cancel_unavail, true),
     env,
   };
 
-  const optionalFields = ['price', 'template_hash_id', 'args', 'args_str', 'vm', 'force', 'use_ssh'] as const;
+  if (runtime.startsWith('jupyter')) {
+    vastPayload.use_jupyter_lab = normalizeBoolean(attributes.use_jupyter_lab, true);
+  }
+
+  const optionalFields = ['price', 'template_hash_id', 'args', 'args_str', 'vm', 'force', 'user', 'image_login', 'volume_info'] as const;
   for (const field of optionalFields) {
     if (attributes[field] !== undefined && attributes[field] !== '') {
       vastPayload[field] = attributes[field];
     }
-  }
-
-  if (gpuCount > 1) {
-    vastPayload.num_gpus = gpuCount;
-  }
-
-  if (ports.length) {
-    vastPayload.ports = ports.join(',');
-  }
-
-  const sshKey = normalizeString(attributes.ssh_key || attributes.sshKey || attributes.ssh_key_id);
-  if (sshKey) {
-    vastPayload.ssh_key = sshKey;
   }
 
   return {
@@ -589,7 +745,7 @@ export async function GET(req: NextRequest) {
           .map((item) => item.message)
           .join(' | ') || undefined,
         data: {
-          provider: 'vast-ai',
+          provider: 'gpu-cloud',
           account: user.data,
           pricingSettings,
           locations: { data: { locations: mapOffersToLocations(mappedOffers) } },
@@ -632,7 +788,7 @@ export async function GET(req: NextRequest) {
         return json({ success: false, message: 'Offer ID không hợp lệ' }, { status: 400 });
       }
       const payload = await getOfferOverview(req);
-      const offer = extractOffers(payload).find((item) => String(item.id) === offerId);
+      const offer = extractOffers(payload).find((item) => getOfferId(item) === offerId);
       if (!offer) {
         return json({ success: false, message: 'Không tìm thấy gói GPU' }, { status: 404 });
       }
@@ -655,8 +811,10 @@ export async function GET(req: NextRequest) {
       if (!instanceId || instanceId.includes('/')) {
         return json({ success: false, message: 'Instance ID không hợp lệ' }, { status: 400 });
       }
-      const payload = await vastRequest(`/instances/${encodeURIComponent(instanceId)}/`, undefined, { version: 'v1' });
-      return json({ success: true, data: payload });
+      const payload = await vastRequest(`/instances/${encodeURIComponent(instanceId)}/`);
+      const instances = extractInstances(payload);
+      const instance = instances[0] || asRecord(payload);
+      return json({ success: true, data: { instance: mapInstances([instance])[0] } });
     }
 
     if (resource === 'secrets' || resource === 'ssh-keys') {
@@ -690,11 +848,34 @@ export async function POST(req: NextRequest) {
     const action = normalizePath(String(body?.action || 'create-instance'));
 
     if (action === 'create-instance') {
-      const { offerId, payload } = buildCreateInstancePayload(body?.payload);
-      const response = await vastRequest(`/asks/${encodeURIComponent(offerId)}/`, {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-      });
+      const initialPayload = buildCreateInstancePayload(body?.payload);
+      const liveOffer = await findLiveOfferById(initialPayload.offerId);
+      if (!liveOffer) {
+        return json({
+          success: false,
+          staleOffer: true,
+          message: 'Gói GPU vừa hết hoặc không còn cho thuê. Bấm Lọc gói rồi chọn gói khác.',
+        });
+      }
+
+      const { offerId, payload } = buildCreateInstancePayload(body?.payload, liveOffer);
+      let response: unknown;
+      try {
+        response = await vastRequest(`/asks/${encodeURIComponent(offerId)}/`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+      } catch (error) {
+        const rawMessage = error instanceof Error ? error.message : '';
+        if (isStaleOfferMessage(rawMessage)) {
+          return json({
+            success: false,
+            staleOffer: true,
+            message: 'Gói GPU vừa được người khác thuê hoặc không còn khả dụng. Danh sách đã cũ, bấm Lọc gói rồi chọn gói khác.',
+          });
+        }
+        throw error;
+      }
       return json({ success: true, data: response });
     }
 

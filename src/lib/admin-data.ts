@@ -530,7 +530,7 @@ function sanitizeData(input: Record<string, unknown>, allowedFields: string[] = 
   const output: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (Object.prototype.hasOwnProperty.call(input, field)) {
-      output[field] = coerceInput(field, input[field]);
+      output[field] = field === 'setting_value' ? String(input[field] ?? '') : coerceInput(field, input[field]);
     }
   }
   return output;

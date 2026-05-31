@@ -1,6 +1,6 @@
 const DEFAULT_VAST_API_BASE_URL = 'https://console.vast.ai/api/v0';
 const DEFAULT_VAST_API_TIMEOUT_MS = 10000;
-const DEFAULT_VAST_IMAGE = 'vastai/base-image:@vastai-automatic-tag';
+const DEFAULT_VAST_IMAGE = 'nvidia/cuda:12.4.1-runtime-ubuntu22.04';
 
 export class VastApiError extends Error {
   status: number;
@@ -48,7 +48,7 @@ export async function vastRequest<T>(
 ): Promise<T> {
   const apiKey = getVastApiKey();
   if (!apiKey) {
-    throw new Error('Thiếu VAST_API_KEY');
+    throw new Error('Thiếu API key nguồn GPU');
   }
 
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -70,7 +70,7 @@ export async function vastRequest<T>(
     });
   } catch {
     throw new VastApiError(
-      `Không kết nối được Vast.ai API ${normalizedPath}. Kiểm tra mạng server, DNS/firewall hoặc VAST_API_BASE_URL.`,
+      `Không kết nối được API nguồn GPU ${normalizedPath}. Kiểm tra mạng server, DNS/firewall hoặc endpoint nguồn GPU.`,
       502
     );
   } finally {
@@ -92,8 +92,8 @@ export async function vastRequest<T>(
     const message = String(record.msg || record.message || record.error || '').trim();
     throw new VastApiError(
       message
-        ? `Vast.ai API ${normalizedPath} trả HTTP ${response.status}: ${message}`
-        : `Vast.ai API ${normalizedPath} trả HTTP ${response.status}`,
+        ? `API nguồn GPU ${normalizedPath} trả HTTP ${response.status}: ${message}`
+        : `API nguồn GPU ${normalizedPath} trả HTTP ${response.status}`,
       response.status
     );
   }
@@ -105,7 +105,9 @@ export function buildVastOfferSearch(params: {
   gpuName?: string | null;
   minGpus?: string | number | null;
   minGpuRamMb?: string | number | null;
+  minDiskGb?: string | number | null;
   minReliability?: string | number | null;
+  maxHourlyUsd?: string | number | null;
   limit?: string | number | null;
   type?: 'ondemand' | 'bid';
 }) {
@@ -113,6 +115,7 @@ export function buildVastOfferSearch(params: {
     rentable: { eq: true },
     type: params.type || 'ondemand',
     limit: normalizePositiveInt(params.limit, 40),
+    order: [['dph_total', 'asc']],
   };
 
   const gpuName = String(params.gpuName || '').trim();
@@ -128,6 +131,16 @@ export function buildVastOfferSearch(params: {
   const minGpuRamMb = normalizePositiveInt(params.minGpuRamMb, 0);
   if (minGpuRamMb > 0) {
     payload.gpu_ram = { gte: minGpuRamMb };
+  }
+
+  const minDiskGb = normalizePositiveInt(params.minDiskGb, 0);
+  if (minDiskGb > 0) {
+    payload.disk_space = { gte: minDiskGb };
+  }
+
+  const maxHourlyUsd = normalizePositiveNumber(params.maxHourlyUsd, 0);
+  if (maxHourlyUsd > 0) {
+    payload.dph_total = { lte: maxHourlyUsd };
   }
 
   const minReliability = normalizePositiveNumber(params.minReliability, 0.98);

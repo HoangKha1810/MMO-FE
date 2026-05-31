@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  CheckCircle2,
+  Clipboard,
   Cpu,
   Database,
-  KeyRound,
+  HardDrive,
   Loader2,
   MapPin,
   Network,
@@ -14,6 +16,7 @@ import {
   Server,
   ShieldCheck,
   Square,
+  Terminal,
   Trash2,
 } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
@@ -129,6 +132,8 @@ interface VastInstance {
   id?: string;
   name?: string;
   status?: string;
+  statusLabel?: string;
+  statusMessage?: string;
   type?: string;
   ipAddress?: string;
   rateHourly?: number;
@@ -136,6 +141,34 @@ interface VastInstance {
     name?: string;
     status?: string;
     region?: string;
+  };
+  connection?: {
+    ready?: boolean;
+    host?: string;
+    port?: number;
+    command?: string;
+    publicIp?: string;
+    localIps?: string[];
+    portRange?: string;
+    ipAddressType?: string;
+  };
+  specs?: {
+    gpuName?: string;
+    gpuCount?: number;
+    gpuRamGb?: number;
+    gpuUtil?: number;
+    gpuTemp?: number;
+    cpuName?: string;
+    cpuCores?: number;
+    ramGb?: number;
+    diskName?: string;
+    diskGb?: number;
+    diskUsageGb?: number;
+    machineId?: string;
+    hostId?: string;
+    dlperf?: number;
+    networkUpMbps?: number;
+    networkDownMbps?: number;
   };
 }
 
@@ -153,8 +186,8 @@ const networkOptions: Array<{
   description: string;
   recommended?: boolean;
 }> = [
-  { value: 'port-forwarding', title: 'SSH / Port', description: 'Mở SSH và port app' },
-  { value: 'dedicated-ip', title: 'Public IP', description: 'Ưu tiên kết nối trực tiếp', recommended: true },
+  { value: 'port-forwarding', title: 'SSH trực tiếp', description: 'Dùng key đã lưu trong tài khoản GPU', recommended: true },
+  { value: 'dedicated-ip', title: 'Public IP', description: 'Ưu tiên máy có IP tĩnh khi gói hỗ trợ' },
 ];
 
 const runtimeOptions: Array<{
@@ -162,9 +195,9 @@ const runtimeOptions: Array<{
   title: string;
   description: string;
 }> = [
-  { value: 'ssh', title: 'SSH Docker', description: 'Runtime chuẩn cho VPS GPU' },
+  { value: 'ssh', title: 'SSH', description: 'Runtime chuẩn cho VPS GPU' },
   { value: 'jupyter', title: 'Jupyter Lab', description: 'Mở notebook trên container' },
-  { value: 'args', title: 'Custom Args', description: 'Chạy lệnh/args riêng' },
+  { value: 'args', title: 'Lệnh riêng', description: 'Chạy command hoặc args tùy chỉnh' },
 ];
 
 const ramSteps = [8, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 512];
@@ -271,16 +304,53 @@ function formatNetworkSpeed(value: unknown) {
   return parsed >= 1 ? `${parsed.toFixed(1)} Gbps` : `${Math.round(parsed * 1000)} Mbps`;
 }
 
+function formatMbps(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 'N/A';
+  return parsed >= 1000 ? `${(parsed / 1000).toFixed(1)} Gbps` : `${Math.round(parsed)} Mbps`;
+}
+
+function formatCpuCores(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 'N/A';
+  return `${Number.isInteger(parsed) ? parsed : parsed.toFixed(1)} core`;
+}
+
 function parsePositiveInt(value: string, fallback: number) {
   const parsed = Math.trunc(Number(value));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function parsePorts(value: string) {
-  return value
-    .split(/[,\n\s]+/)
-    .map((item) => Math.trunc(Number(item.trim())))
-    .filter((item) => Number.isFinite(item) && item > 0 && item <= 65535);
+function parseEnvObject(value: string) {
+  const text = value.trim();
+  if (!text) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return Object.fromEntries(
+        Object.entries(parsed as Record<string, unknown>)
+          .filter(([key, item]) => key.trim() && item !== undefined && item !== null && String(item).trim())
+          .map(([key, item]) => [key.trim(), String(item).trim()])
+      );
+    }
+  } catch {
+    // Keep a simple KEY=VALUE per line format for operators.
+  }
+
+  return Object.fromEntries(
+    text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [key, ...rest] = line.split('=');
+        return [key.trim(), rest.join('=').trim()];
+      })
+      .filter(([key, item]) => key && item)
+  );
 }
 
 function uniqueGpus(gpus: VastGpu[]) {
@@ -302,6 +372,19 @@ function getInstanceStatus(instance: VastInstance) {
   return instance.attributes?.status || instance.status || 'unknown';
 }
 
+function getInstanceStatusLabel(instance: VastInstance) {
+  return instance.statusLabel || getInstanceStatus(instance);
+}
+
+function isInstancePending(instance: VastInstance) {
+  const status = getInstanceStatus(instance).toLowerCase();
+  if (instance.connection?.ready) {
+    return false;
+  }
+
+  return !['stopped', 'exited', 'deleted', 'destroyed'].some((item) => status.includes(item));
+}
+
 function statusVariant(status: string) {
   const normalized = status.toLowerCase();
   if (normalized.includes('running')) return 'success';
@@ -311,7 +394,7 @@ function statusVariant(status: string) {
 }
 
 function buildLoadErrorMessage(message: string) {
-  if (message.includes('Thiếu VAST_API_KEY')) {
+  if (message.includes('Thiếu API key nguồn GPU') || message.includes('Thiếu VAST_API_KEY')) {
     return `${message}. Cần cấu hình API key nguồn GPU trên server rồi restart Next.js.`;
   }
 
@@ -320,6 +403,23 @@ function buildLoadErrorMessage(message: string) {
   }
 
   return message;
+}
+
+function normalizeUiErrorMessage(message: string) {
+  if (/no_such_ask|not available|\/asks\/\d+|Instance type by id/i.test(message)) {
+    return 'Gói GPU vừa hết hoặc không còn khả dụng. Mình đã làm mới danh sách, bạn chọn gói khác rồi tạo lại nhé.';
+  }
+
+  if (/HTTP\s+5\d\d|Something went wrong|Service Temporarily Unavailable/i.test(message)) {
+    return 'Nguồn GPU đang bận hoặc chưa tạo được VPS lúc này. Hãy làm mới gói rồi thử lại.';
+  }
+
+  return message
+    .replace(/API nguồn GPU\s+\/[^\s]+/gi, 'Nguồn GPU')
+    .replace(/GPU API\s+\/[^\s]+/gi, 'Nguồn GPU')
+    .replace(/Vast\.ai/gi, 'nguồn GPU')
+    .replace(/\bVast\b/g, 'nguồn GPU')
+    .replace(/\bvast\b/g, 'nguồn GPU');
 }
 
 export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
@@ -352,15 +452,15 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [storageGb, setStorageGb] = useState('200');
   const [dockerImage, setDockerImage] = useState('nvidia/cuda:12.4.1-runtime-ubuntu22.04');
   const [targetState, setTargetState] = useState('running');
-  const [envFlags, setEnvFlags] = useState('-p 22:22 -p 8080:8080');
+  const [envFlags, setEnvFlags] = useState('');
   const [onStartCommand, setOnStartCommand] = useState('nvidia-smi');
   const [cancelUnavailable, setCancelUnavailable] = useState(true);
-  const [sshKey, setSshKey] = useState('');
-  const [portList, setPortList] = useState('22, 8080');
   const [argsString, setArgsString] = useState('');
 
-  async function loadOverview() {
-    setLoading(true);
+  async function loadOverview(options?: { silent?: boolean }) {
+    if (!options?.silent) {
+      setLoading(true);
+    }
     try {
       const response = await fetch('/api/vps-gpu?resource=overview', {
         cache: 'no-store',
@@ -376,24 +476,39 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       setHostnodes(extractHostnodes(data.hostnodes));
       setInstances(extractInstances(data.instances));
       const nextSecrets = extractSecrets(data.secrets);
-      const defaultSshKeySecretId = String(data.defaultSshKeySecretId || '').trim();
-      const sshKeySecretId = nextSecrets.find((secret) => String(secret.type || '').toUpperCase() === 'SSHKEY')?.id;
       setSecrets(nextSecrets);
-      setSshKey((current) => current || sshKeySecretId || defaultSshKeySecretId);
       setDockerImage((current) => current || String(asRecord(payload.data).defaultImage || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04'));
       setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu VPS GPU';
+      const message = normalizeUiErrorMessage(error instanceof Error ? error.message : 'Không thể tải dữ liệu VPS GPU');
       setLoadError(message);
-      toast.error(message);
+      if (!options?.silent) {
+        toast.error(message);
+      }
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
     void loadOverview();
   }, []);
+
+  const hasPendingInstances = useMemo(() => instances.some(isInstancePending), [instances]);
+
+  useEffect(() => {
+    if (!hasPendingInstances) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void loadOverview({ silent: true });
+    }, 8000);
+
+    return () => window.clearInterval(timer);
+  }, [hasPendingInstances]);
 
   async function searchOffers() {
     setSearchingOffers(true);
@@ -407,6 +522,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             gpuName: offerGpuFilter.trim() || undefined,
             minGpus: gpuCount,
             minGpuRamMb: Math.max(0, Number(minGpuRamGb) || 0) * 1024,
+            minDiskGb: Math.max(100, parsePositiveInt(storageGb, 100)),
+            maxHourlyUsd: 0.5,
             minReliability,
             type: offerType,
             limit: 80,
@@ -429,7 +546,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       }
       toast.success(`Đã tải ${nextHostnodes.length} gói GPU`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể tìm gói GPU');
+      toast.error(normalizeUiErrorMessage(error instanceof Error ? error.message : 'Không thể tìm gói GPU'));
     } finally {
       setSearchingOffers(false);
     }
@@ -511,12 +628,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     }
   }, [gpuOptions, gpuV0Name]);
 
-  useEffect(() => {
-    if (!sshKey && sshKeySecrets[0]?.id) {
-      setSshKey(sshKeySecrets[0].id);
-    }
-  }, [sshKey, sshKeySecrets]);
-
   function buildPayload() {
     const name = instanceName.trim();
     const gpuName = gpuV0Name.trim();
@@ -544,7 +655,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       python_utf8: true,
       lang_utf8: true,
       use_jupyter_lab: runtime === 'jupyter',
-      env: envFlags.trim(),
+      env: parseEnvObject(envFlags),
       resources: {
         vcpu_count: vcpus,
         ram_gb: ram,
@@ -560,7 +671,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     if (deploymentMethod === 'location') {
       const locationId = selectedLocation?.id || selectedLocationId;
       if (!locationId) {
-        throw new Error('Thiếu location_id');
+        throw new Error('Thiếu khu vực');
       }
       attributes.location_id = locationId;
       const locationHostnode = hostnodes.find(
@@ -576,7 +687,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     } else {
       const hostnodeId = selectedHostnode?.id || selectedHostnodeId;
       if (!hostnodeId) {
-        throw new Error('Thiếu offer_id');
+        throw new Error('Thiếu gói GPU');
       }
       attributes.hostnode_id = hostnodeId;
       attributes.offer_id = hostnodeId;
@@ -584,19 +695,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
     if (networkMode === 'dedicated-ip') {
       attributes.useDedicatedIp = true;
-    } else {
-      const ports = parsePorts(portList);
-      if (!ports.length) {
-        throw new Error('Thiếu port forwarding');
-      }
-      attributes.port_forwards = ports.map((port) => ({
-        internal_port: port,
-        external_port: 0,
-      }));
-    }
-
-    if (runtime === 'ssh' && sshKey.trim()) {
-      attributes.ssh_key = sshKey.trim();
     }
 
     if (argsString.trim()) {
@@ -659,7 +757,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
     const confirmed = await confirm({
       title: 'Tạo VPS GPU',
-      description: `Instance ${instanceName.trim()} sẽ được tạo bằng tài khoản vận hành cấu hình trong server. Kiểm tra kỹ gói GPU, Docker image và số dư trước khi tiếp tục.`,
+      description: `Instance ${instanceName.trim()} sẽ được tạo bằng tài khoản vận hành cấu hình trong server. Kiểm tra kỹ gói GPU, image hệ thống và số dư trước khi tiếp tục.`,
       confirmText: 'Tạo instance',
       cancelText: 'Kiểm tra lại',
       tone: 'brand',
@@ -681,12 +779,15 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       });
       const result = await readJsonResponse(response, 'Không thể tạo VPS GPU');
       if (!response.ok || !result.success) {
+        if (asRecord(result).staleOffer) {
+          void searchOffers();
+        }
         throw new Error(result.message || 'Không thể tạo VPS GPU');
       }
       toast.success('Đã gửi lệnh tạo VPS GPU');
       await loadOverview();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể tạo VPS GPU');
+      toast.error(normalizeUiErrorMessage(error instanceof Error ? error.message : 'Không thể tạo VPS GPU'));
     } finally {
       setSubmitting(false);
     }
@@ -724,9 +825,23 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       toast.success('Đã gửi lệnh tới hệ thống GPU');
       await loadOverview();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Thao tác instance thất bại');
+      toast.error(normalizeUiErrorMessage(error instanceof Error ? error.message : 'Thao tác instance thất bại'));
     } finally {
       setInstanceAction(null);
+    }
+  }
+
+  async function copyConnectionCommand(command: string) {
+    if (!command) {
+      toast.error('VPS chưa có lệnh kết nối');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(command);
+      toast.success('Đã sao chép lệnh SSH');
+    } catch {
+      toast.error('Không thể sao chép, hãy copy thủ công');
     }
   }
 
@@ -740,7 +855,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           <>
             <Button type="button" onClick={() => void loadOverview()} disabled={loading} variant="outline">
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
-              Refresh API
+              Làm mới gói
             </Button>
             <Button type="button" onClick={() => void handleCreateInstance()} loading={submitting} loadingText="Đang tạo...">
               <Cpu className="mr-2 h-4 w-4" />
@@ -774,13 +889,13 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
       <SectionPanel className="space-y-5">
         <SectionHeader
-          eyebrow="Offer Explorer"
+          eyebrow="Bảng giá GPU"
           title="Chọn gói GPU trước khi tạo VPS"
           description="Lọc theo dòng GPU, RAM và độ ổn định. Giá hiển thị là giá bán cho khách sau khi cộng hệ số lời trong admin."
           actions={
             <Button type="button" onClick={() => void searchOffers()} loading={searchingOffers} loadingText="Đang lọc...">
               <RefreshCw className="mr-2 h-4 w-4" />
-              Lọc offer
+              Lọc gói
             </Button>
           }
         />
@@ -796,19 +911,19 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <option value="bid">Bid</option>
             </select>
           </Field>
-          <Field label="GPU name optional">
+          <Field label="Tên GPU">
             <Input value={offerGpuFilter} onChange={(event) => setOfferGpuFilter(event.target.value)} placeholder="RTX 4090 / A100..." />
           </Field>
-          <Field label="Min GPU RAM">
+          <Field label="GPU RAM tối thiểu">
             <Input type="number" min={1} value={minGpuRamGb} onChange={(event) => setMinGpuRamGb(event.target.value)} />
           </Field>
-          <Field label="Reliability">
+          <Field label="Độ ổn định">
             <Input type="number" min={0} max={1} step={0.01} value={minReliability} onChange={(event) => setMinReliability(event.target.value)} />
           </Field>
         </div>
 
         {loading ? (
-          <EmptyState title="Đang tải gói GPU" description="Hệ thống đang tải gói GPU, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
+          <EmptyState title="Đang tải gói GPU" description="Hệ thống đang tải gói GPU và các VPS đang chạy." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
         ) : hostnodes.length ? (
           <div className="grid gap-4 xl:grid-cols-3">
             {hostnodes.slice(0, 9).map((hostnode) => {
@@ -836,7 +951,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-[0.26em] text-brand-blue">Ask #{hostnode.id}</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.26em] text-brand-blue">Gói #{hostnode.id}</div>
                       <div className="mt-2 truncate text-base font-black text-slate-950 dark:text-white">{getHostnodeGpuLabel(hostnode)}</div>
                     </div>
                     <Badge variant={active ? 'default' : 'success'} className="shrink-0 rounded-full">
@@ -858,27 +973,27 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             })}
           </div>
         ) : (
-          <EmptyState title="Chưa có offer phù hợp" description="Thử giảm điều kiện GPU RAM/reliability hoặc bỏ filter GPU name." icon={<Cpu className="h-5 w-5" />} />
+          <EmptyState title="Chưa có gói phù hợp" description="Thử giảm điều kiện GPU RAM, độ ổn định hoặc bỏ lọc tên GPU." icon={<Cpu className="h-5 w-5" />} />
         )}
       </SectionPanel>
 
       <div>
         <SectionPanel className="space-y-5">
           <SectionHeader
-            eyebrow="Launch Config"
+            eyebrow="Cấu hình VPS"
             title="Cấu hình instance"
-            description="Giữ các thông tin cần thiết để tạo VPS GPU: gói GPU, tài nguyên, Docker image, SSH/port và lệnh khởi động."
+            description="Giữ các thông tin cần thiết để tạo VPS GPU: gói GPU, tài nguyên, image hệ thống và lệnh khởi động."
           />
 
           <div className="space-y-7">
             <ChoiceGroup
-              title="Network Configuration"
+              title="Kết nối"
               options={networkOptions}
               value={networkMode}
               onChange={setNetworkMode}
             />
             <ChoiceGroup
-              title="Runtime"
+              title="Môi trường chạy"
               options={runtimeOptions}
               value={runtime}
               onChange={setRuntime}
@@ -890,7 +1005,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <Input value={instanceName} onChange={(event) => setInstanceName(event.target.value)} />
             </Field>
 
-            <Field label={deploymentMethod === 'location' ? 'Khu vực' : 'Offer ID'}>
+            <Field label={deploymentMethod === 'location' ? 'Khu vực' : 'Gói GPU'}>
               {deploymentMethod === 'location' ? (
                 <select
                   value={selectedLocation?.id || selectedLocationId}
@@ -920,7 +1035,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               )}
             </Field>
 
-            <Field label="GPU model">
+            <Field label="Dòng GPU">
               <select
                 value={selectedGpu?.v0Name || gpuV0Name}
                 onChange={(event) => setGpuV0Name(event.target.value)}
@@ -956,15 +1071,15 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               </select>
             </Field>
 
-            <Field label="Storage GB">
+            <Field label="Ổ đĩa GB">
               <Input min={100} step={50} type="number" value={storageGb} onChange={(event) => setStorageGb(event.target.value)} />
             </Field>
 
-            <Field label="Docker image">
+            <Field label="Image hệ thống">
               <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="nvidia/cuda:12.4.1-runtime-ubuntu22.04" />
             </Field>
 
-            <Field label="Target state">
+            <Field label="Trạng thái sau tạo">
               <select
                 value={targetState}
                 onChange={(event) => setTargetState(event.target.value)}
@@ -975,14 +1090,19 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               </select>
             </Field>
 
-            <Field label="Onstart command">
+            <Field label="Lệnh khởi động">
               <Input value={onStartCommand} onChange={(event) => setOnStartCommand(event.target.value)} placeholder="nvidia-smi" />
             </Field>
 
             {networkMode === 'port-forwarding' ? (
-              <Field label="Port forwarding">
-                <Input value={portList} onChange={(event) => setPortList(event.target.value)} placeholder="22, 8080" />
-              </Field>
+              <MetricCard
+                label="SSH trực tiếp"
+                value="Enabled"
+                hint="Nguồn GPU tự cấp port SSH sau khi instance sẵn sàng"
+                tone="blue"
+                icon={<Network className="h-4 w-4" />}
+                className="p-4"
+              />
             ) : (
               <MetricCard
                 label="Dedicated IP"
@@ -995,31 +1115,16 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             )}
 
             {runtime === 'ssh' ? (
-              <Field label="SSH key optional">
-                <select
-                  value={sshKey}
-                  onChange={(event) => setSshKey(event.target.value)}
-                  className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold dark:text-white"
-                >
-                  {sshKeySecrets.map((secret) => (
-                    <option key={secret.id} value={secret.id}>
-                      {secret.name || secret.id}
-                    </option>
-                  ))}
-                  <option value="">Dùng SSH key mặc định trong account GPU</option>
-                </select>
-                <Input
-                  className="mt-2"
-                  value={sshKey}
-                  onChange={(event) => setSshKey(event.target.value)}
-                  placeholder="Để trống nếu đã thêm SSH key trong account GPU"
-                />
-                <p className="mt-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-                  Hệ thống tự gắn SSH key cấp account vào instance mới. Chỉ nhập ID ở đây nếu anh muốn ép một key cụ thể.
-                </p>
-              </Field>
+              <MetricCard
+                label="SSH key"
+                value={sshKeySecrets.length ? 'Đã sẵn sàng' : 'Mặc định'}
+                hint="Key đã lưu trong tài khoản GPU sẽ tự gắn vào VPS mới"
+                tone="emerald"
+                icon={<ShieldCheck className="h-4 w-4" />}
+                className="p-4"
+              />
             ) : (
-              <Field label="Args string optional">
+              <Field label="Args tùy chọn">
                 <Input
                   value={argsString}
                   onChange={(event) => setArgsString(event.target.value)}
@@ -1029,12 +1134,12 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             )}
           </div>
 
-          <Field label="Docker env flags">
+          <Field label="Biến môi trường">
             <textarea
               value={envFlags}
               onChange={(event) => setEnvFlags(event.target.value)}
               rows={5}
-              placeholder="-p 22:22 -p 8080:8080 -e JUPYTER_PASSWORD=..."
+              placeholder={'HF_TOKEN=...\nMODEL_ID=...'}
               className="field-elevated w-full rounded-[1.2rem] px-4 py-3 font-mono text-xs font-semibold leading-6 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
             />
           </Field>
@@ -1046,31 +1151,35 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               onChange={(event) => setCancelUnavailable(event.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
             />
-            Hủy lệnh nếu offer đã hết rentable khi gửi request
+            Hủy lệnh nếu gói đã hết thuê được khi gửi request
           </label>
         </SectionPanel>
       </div>
 
       <SectionPanel className="space-y-5">
         <SectionHeader
-          eyebrow="Instance Management"
+          eyebrow="Quản lý VPS"
           title="VPS GPU đang chạy"
           description="Theo dõi và gửi lệnh start, stop hoặc delete tới hệ thống GPU."
           actions={
             <Button type="button" variant="outline" size="sm" onClick={() => void loadOverview()} disabled={loading}>
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
-              Refresh
+              Làm mới
             </Button>
           }
         />
 
         {loading ? (
-          <EmptyState title="Đang tải VPS GPU" description="Hệ thống đang lấy gói GPU, SSH keys và instances." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
+          <EmptyState title="Đang tải VPS GPU" description="Hệ thống đang lấy gói GPU và danh sách VPS đang chạy." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
         ) : instances.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {instances.map((instance) => {
               const id = instance.id || '';
               const status = getInstanceStatus(instance);
+              const ready = Boolean(instance.connection?.ready);
+              const pending = isInstancePending(instance);
+              const specs = instance.specs || {};
+              const connection = instance.connection || {};
               return (
                 <Card key={id || getInstanceName(instance)} className="overflow-hidden">
                   <CardHeader>
@@ -1080,16 +1189,81 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                         <CardDescription className="mt-2 font-mono text-xs">{id || 'No ID'}</CardDescription>
                       </div>
                       <Badge variant={statusVariant(status)} className="shrink-0 rounded-full">
-                        {status}
+                        {getInstanceStatusLabel(instance)}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <MiniInfo icon={<Server />} label="Type" value={instance.type || 'VM'} />
-                      <MiniInfo icon={<MapPin />} label="Region" value={instance.attributes?.region || instance.ipAddress || 'N/A'} />
-                      <MiniInfo icon={<KeyRound />} label="Hourly" value={formatUsd(instance.rateHourly)} />
+                    {ready ? (
+                      <div className="rounded-[1rem] border border-emerald-400/30 bg-emerald-500/10 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-sm font-black text-emerald-600 dark:text-emerald-300">
+                            <CheckCircle2 className="h-4 w-4" />
+                            VPS đã sẵn sàng kết nối
+                          </div>
+                          {connection.command ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void copyConnectionCommand(connection.command || '')}
+                            >
+                              <Clipboard className="mr-2 h-4 w-4" />
+                              Copy SSH
+                            </Button>
+                          ) : null}
+                        </div>
+                        {connection.command ? (
+                          <div className="mt-3 overflow-x-auto rounded-[0.9rem] border border-emerald-300/20 bg-slate-950/90 px-3 py-2 font-mono text-xs font-bold text-cyan-100">
+                            {connection.command}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="rounded-[1rem] border border-amber-400/25 bg-amber-500/10 p-4">
+                        <div className="flex items-center gap-2 text-sm font-black text-amber-600 dark:text-amber-300">
+                          <Loader2 className={cn('h-4 w-4', pending && 'animate-spin')} />
+                          {pending ? 'VPS đang cài đặt, trang sẽ tự cập nhật mỗi 8 giây' : 'VPS chưa có thông tin kết nối'}
+                        </div>
+                        {instance.statusMessage ? (
+                          <p className="mt-2 text-xs font-semibold leading-6 text-slate-500 dark:text-slate-300">
+                            {instance.statusMessage}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <MiniInfo icon={<Network />} label="Public IP" value={connection.publicIp || connection.host || 'Đang cập nhật'} />
+                      <MiniInfo icon={<Terminal />} label="SSH Port" value={connection.port ? String(connection.port) : 'Đang cập nhật'} />
+                      <MiniInfo icon={<Server />} label="Port Range" value={connection.portRange || 'N/A'} />
+                      <MiniInfo icon={<MapPin />} label="Khu vực" value={instance.attributes?.region || instance.ipAddress || 'N/A'} />
+                      <MiniInfo icon={<ShieldCheck />} label="IP Type" value={connection.ipAddressType || 'N/A'} />
+                      <MiniInfo icon={<Network />} label="Local IP" value={connection.localIps?.length ? connection.localIps.join(', ') : 'N/A'} />
                     </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <MiniInfo
+                        icon={<Cpu />}
+                        label="GPU"
+                        value={`${specs.gpuCount || 1}x ${specs.gpuName || 'GPU'}${specs.gpuRamGb ? ` · ${specs.gpuRamGb}GB` : ''}`}
+                      />
+                      <MiniInfo icon={<Cpu />} label="CPU" value={[specs.cpuName, formatCpuCores(specs.cpuCores)].filter(Boolean).join(' · ')} />
+                      <MiniInfo icon={<Database />} label="RAM" value={specs.ramGb ? `${specs.ramGb} GB` : 'N/A'} />
+                      <MiniInfo icon={<HardDrive />} label="Disk" value={specs.diskGb ? `${Math.round(specs.diskGb)} GB` : 'N/A'} />
+                      <MiniInfo
+                        icon={<Network />}
+                        label="Network"
+                        value={`${formatMbps(specs.networkDownMbps)} down / ${formatMbps(specs.networkUpMbps)} up`}
+                      />
+                      <MiniInfo icon={<Cpu />} label="Giá vốn" value={formatUsd(instance.rateHourly)} />
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <MiniInfo icon={<Server />} label="Machine ID" value={specs.machineId || 'N/A'} />
+                      <MiniInfo icon={<Server />} label="Host ID" value={specs.hostId || 'N/A'} />
+                    </div>
+
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
@@ -1100,7 +1274,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                         disabled={!id}
                       >
                         <Play className="mr-2 h-4 w-4" />
-                        Start
+                        Chạy
                       </Button>
                       <Button
                         type="button"
@@ -1111,7 +1285,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                         disabled={!id}
                       >
                         <Square className="mr-2 h-4 w-4" />
-                        Stop
+                        Dừng
                       </Button>
                       <Button
                         type="button"
@@ -1122,7 +1296,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                         disabled={!id}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        Xóa
                       </Button>
                     </div>
                   </CardContent>
