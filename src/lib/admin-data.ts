@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
@@ -535,6 +536,115 @@ function sanitizeData(input: Record<string, unknown>, allowedFields: string[] = 
   return output;
 }
 
+type PrismaFieldMeta = {
+  name: string;
+  type: string;
+  isRequired: boolean;
+  isList: boolean;
+};
+
+function getPrismaModelFields(modelName: string) {
+  const model = Prisma.dmmf.datamodel.models.find((item) => item.name === modelName);
+  if (!model) {
+    return new Map<string, PrismaFieldMeta>();
+  }
+
+  return new Map(
+    model.fields.map((field) => [
+      field.name,
+      {
+        name: field.name,
+        type: String(field.type),
+        isRequired: Boolean(field.isRequired),
+        isList: Boolean(field.isList),
+      },
+    ])
+  );
+}
+
+const prismaModelFieldsCache = new Map<string, Map<string, PrismaFieldMeta>>();
+
+function getCachedPrismaModelFields(modelName: string) {
+  let fields = prismaModelFieldsCache.get(modelName);
+  if (!fields) {
+    fields = getPrismaModelFields(modelName);
+    prismaModelFieldsCache.set(modelName, fields);
+  }
+  return fields;
+}
+
+function parseBooleanInput(value: unknown, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (['true', '1', 'yes', 'on', 'bật', 'bat'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off', 'tắt', 'tat'].includes(normalized)) return false;
+  return fallback;
+}
+
+function coercePrismaField(field: PrismaFieldMeta, value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+
+  const type = field.type;
+  const isEmptyString = typeof value === 'string' && value.trim() === '';
+
+  if (isEmptyString) {
+    if (type === 'String') return '';
+    if (!field.isRequired) return null;
+    if (['Int', 'BigInt', 'Float', 'Decimal'].includes(type)) return 0;
+    if (type === 'Boolean') return false;
+    return '';
+  }
+
+  if (type === 'String') {
+    return String(value);
+  }
+
+  if (type === 'Int') {
+    return Math.trunc(toNumber(value, 0));
+  }
+
+  if (type === 'BigInt') {
+    return BigInt(Math.trunc(toNumber(value, 0)));
+  }
+
+  if (type === 'Float' || type === 'Decimal') {
+    return toNumber(value, 0);
+  }
+
+  if (type === 'Boolean') {
+    return parseBooleanInput(value, false);
+  }
+
+  if (type === 'DateTime') {
+    if (value instanceof Date) return value;
+    const date = new Date(String(value));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return typeof value === 'string' ? value.trim() : value;
+}
+
+function normalizePrismaPayload(config: ResourceConfig, data: Record<string, unknown>) {
+  if (!config.delegate) {
+    return data;
+  }
+
+  const fields = getCachedPrismaModelFields(config.delegate);
+  if (fields.size === 0) {
+    return data;
+  }
+
+  const output: Record<string, unknown> = {};
+  for (const [field, value] of Object.entries(data)) {
+    const meta = fields.get(field);
+    output[field] = meta ? coercePrismaField(meta, value) : value;
+  }
+  return output;
+}
+
 async function getRawColumnTypes(table: string) {
   const rows = await db.$queryRawUnsafe<Array<{ Field: string; Type: string }>>(`SHOW COLUMNS FROM \`${table}\``);
   return new Map(rows.map((column) => [column.Field, String(column.Type || '').toLowerCase()]));
@@ -689,7 +799,6 @@ function coerceInput(field: string, value: unknown) {
 
   if (trimmed === 'true') return true;
   if (trimmed === 'false') return false;
-  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
   if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return new Date(trimmed);
   return trimmed;
 }
@@ -1679,7 +1788,7 @@ export async function createAdminResource(resource: string, input: Record<string
 
   const normalizedData = resource === 'automxh-variants'
     ? normalizeAutoMxhVariantPatch(data)
-    : data;
+    : normalizePrismaPayload(config, data);
 
   let created: unknown;
   if (config.table) {
@@ -1726,6 +1835,8 @@ export async function updateAdminResource(resource: string, id: number, input: R
   if (resource === 'automxh-variants') {
     data = normalizeAutoMxhVariantPatch(data);
   }
+
+  data = normalizePrismaPayload(config, data);
 
   if (resource === 'smm-orders' && typeof data.status === 'string') {
     const requestedStatus = String(data.status || '').trim().toLowerCase();
