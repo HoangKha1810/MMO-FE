@@ -195,7 +195,7 @@ interface AppShellProps {
 
 const SIDEBAR_SERVICES_CACHE_TTL_MS = 5 * 60 * 1000;
 const SMM_SIDEBAR_CACHE_TTL_MS = 2 * 60 * 1000;
-const SIDEBAR_SERVICES_CACHE_KEY = 'app_shell_sidebar_services_v1';
+const SIDEBAR_SERVICES_CACHE_KEY = 'app_shell_sidebar_services_v2';
 const SMM_SIDEBAR_CACHE_KEY = 'app_shell_smm_sidebar_v1';
 
 let sidebarServicesCache:
@@ -320,6 +320,7 @@ function formatBreadcrumb(pathname: string) {
     card: 'Đổi Thẻ',
     deposit: 'Nạp Tiền',
     'support-tiktok': 'Support TikTok',
+    'meta-support': 'Auto kích nút Meta',
     forum: 'Forum MMO',
     'game-market': 'Mua Bán Game',
     'game-accounts': 'Tài khoản game',

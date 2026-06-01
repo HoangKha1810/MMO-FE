@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Activity, ArrowUpRight, Boxes, Cloud, CreditCard, PackageCheck, ReceiptText, ShieldCheck, Zap } from 'lucide-react';
+import { Activity, ArrowUpRight, Boxes, Cloud, CreditCard, Headset, PackageCheck, ReceiptText, ShieldCheck, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Badge } from '@/components/ui/badge';
 import { LiveRefresh } from '@/components/live/live-refresh';
@@ -31,6 +31,7 @@ interface OrderRow {
 const typeMeta: Record<string, { label: string; variant: OrderTone; icon: ReactNode }> = {
   smm: { label: 'SMM', variant: 'info', icon: <ShieldCheck className="h-4 w-4" /> },
   automxh: { label: 'Auto MXH', variant: 'orange', icon: <Zap className="h-4 w-4" /> },
+  meta: { label: 'Kích nút Meta', variant: 'info', icon: <Headset className="h-4 w-4" /> },
   resource: { label: 'Resource', variant: 'purple', icon: <Boxes className="h-4 w-4" /> },
   game: { label: 'Game', variant: 'success', icon: <Activity className="h-4 w-4" /> },
   card: { label: 'Card', variant: 'warning', icon: <CreditCard className="h-4 w-4" /> },
@@ -39,7 +40,7 @@ const typeMeta: Record<string, { label: string; variant: OrderTone; icon: ReactN
 
 export default async function UserOrdersPage() {
   const { raw, shell } = await getCurrentUserForShell();
-  const [smmOrders, autoOrders, resourceOrders, gameOrders, cardOrders, proxyOrders] = await Promise.all([
+  const [smmOrders, autoOrders, metaOrders, resourceOrders, gameOrders, cardOrders, proxyOrders] = await Promise.all([
     safeRows(`
       SELECT id, api_order_id, service_name, quantity, price, status, created_at
       FROM smm_orders
@@ -53,6 +54,13 @@ export default async function UserOrdersPage() {
       LEFT JOIN automxh_products p ON p.id = o.product_id
       WHERE o.user_id = ?
       ORDER BY o.created_at DESC
+      LIMIT 50
+    `, raw.id),
+    safeRowsFromTable('meta_support_orders', `
+      SELECT id, contact, quantity, price, status, created_at
+      FROM meta_support_orders
+      WHERE user_id = ?
+      ORDER BY created_at DESC
       LIMIT 50
     `, raw.id),
     safeRows(`
@@ -109,6 +117,17 @@ export default async function UserOrdersPage() {
       createdAt: serializeDatabaseDateTime(item.created_at),
       href: '/user/automxh',
     })),
+    ...metaOrders.map((item) => ({
+      id: `meta-${item.id}`,
+      type: 'meta',
+      title: `Auto kích nút + Chat Support Meta - ${String(item.quantity || 1)} tài khoản`,
+      code: String(item.id),
+      amount: toNumber(item.price, 0),
+      quantity: toNumber(item.quantity, 0),
+      status: String(item.status || 'pending'),
+      createdAt: serializeDatabaseDateTime(item.created_at),
+      href: '/user/meta-support',
+    })),
     ...resourceOrders.map((item) => ({
       id: `resource-${item.id}`,
       type: 'resource',
@@ -164,7 +183,7 @@ export default async function UserOrdersPage() {
         <PageHero
           eyebrow="Order Center"
           title="Trung tâm theo dõi đơn hàng đa dịch vụ"
-          description="Quản lý SMM, Auto MXH, tài nguyên, game market và thẻ cào trong cùng một dòng thời gian để kiểm tra tiến độ và giá trị giao dịch thuận tiện hơn."
+          description="Quản lý SMM, Auto MXH, kích nút Meta, tài nguyên, game market và thẻ cào trong cùng một dòng thời gian để kiểm tra tiến độ và giá trị giao dịch thuận tiện hơn."
           stats={[
             { label: 'Tổng đơn', value: String(orders.length), hint: 'Tối đa 120 đơn mới nhất', tone: 'blue' },
             { label: 'Đang chạy', value: String(pendingCount), hint: 'Processing', tone: 'amber' },

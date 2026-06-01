@@ -101,6 +101,8 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
   'Auto MXH products': 'Dịch vụ con Auto MXH',
   'Auto MXH orders': 'Đơn Auto MXH',
   'Auto MXH variants': 'Máy chủ dịch vụ Auto MXH',
+  'Meta Support orders': 'Đơn Auto kích nút Meta',
+  'Auto kích nút Meta orders': 'Đơn Auto kích nút Meta',
   'Support TikTok orders': 'Đơn Support TikTok',
   'Support TikTok menus': 'Menu Support TikTok',
   'Support TikTok region services': 'Dịch vụ theo khu vực',
@@ -217,6 +219,9 @@ const COLUMN_LABELS: Record<string, string> = {
   tiktok_id: 'TikTok ID',
   buyer_name: 'Người mua',
   buyer_contact: 'Liên hệ mua',
+  contact: 'Thông tin liên hệ',
+  gmail: 'Gmail cần kích nút',
+  admin_note: 'Ghi chú admin',
   region: 'Khu vực',
   product_id: 'Dịch vụ cha',
   variant_id: 'Biến thể ID',
@@ -386,6 +391,8 @@ const STATUS_LABELS: Record<string, string> = {
   high: 'Cao',
   critical: 'Nghiêm trọng',
   out_of_stock: 'Hết hàng',
+  filled: 'Đã nhận đủ',
+  closed: 'Đã đóng',
 };
 const TOKEN_LABELS: Record<string, string> = {
   id: 'ID',
@@ -571,6 +578,24 @@ function normalizeHexColor(value: unknown) {
   return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : '';
 }
 
+function normalizeActiveInactiveStatus(value: unknown, fallback: 'active' | 'inactive' = 'active') {
+  if (value === null || value === undefined || value === '') return fallback;
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (['active', 'enabled', 'enable', 'open', '1', 'true', 'yes', 'on', 'dang bat', 'bat'].includes(normalized)) {
+    return 'active';
+  }
+  if (['inactive', 'disabled', 'disable', 'closed', '0', 'false', 'no', 'off', 'dang tat', 'tat'].includes(normalized)) {
+    return 'inactive';
+  }
+
+  return fallback;
+}
+
 function hydrateEditorValues(resource: string, fields: string[], row?: Record<string, unknown>) {
   const values = initialValues(fields, row);
   if (resource === 'smm-services' && fields.includes('name_color')) {
@@ -583,6 +608,7 @@ function hydrateEditorValues(resource: string, fields: string[], row?: Record<st
     if (fields.includes('original_price')) values.original_price = 0;
     if (fields.includes('allow_avatar')) values.allow_avatar = 0;
     if (fields.includes('allow_files')) values.allow_files = 0;
+    if (fields.includes('status')) values.status = 'active';
   }
   return values;
 }
@@ -651,6 +677,10 @@ function normalizeAdminEditorPayload(resource: string, values: Record<string, un
       if (Object.prototype.hasOwnProperty.call(next, field)) {
         next[field] = toNumber(next[field], fallback);
       }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(next, 'status')) {
+      next.status = normalizeActiveInactiveStatus(next.status, 'active');
     }
   }
 
@@ -991,7 +1021,7 @@ function getQuickStatusOptions(resource: string) {
     return [
       { value: '', label: 'Tất cả' },
       { value: 'pending', label: 'Đang chờ' },
-      { value: 'open', label: 'Đã duyệt' },
+      { value: 'approved', label: 'Đã duyệt' },
       { value: 'rejected', label: 'Từ chối' },
     ];
   }

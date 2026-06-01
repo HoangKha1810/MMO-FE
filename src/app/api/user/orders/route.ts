@@ -34,9 +34,10 @@ export async function GET(req: NextRequest) {
 
   try {
     if (type === 'all') {
-      const [smmOrders, autoOrders, resourceOrders, gameOrders, cardOrders] = await Promise.all([
+      const [smmOrders, autoOrders, metaOrders, resourceOrders, gameOrders, cardOrders] = await Promise.all([
         safeRows('SELECT id, api_order_id, service_name, quantity, price, status, created_at FROM smm_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', userId),
         safeRows('SELECT id, product_id, variant_id, price, status, created_at FROM automxh_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', userId),
+        safeRowsFromTable('meta_support_orders', 'SELECT id, quantity, price, status, created_at FROM meta_support_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', userId),
         safeRows('SELECT o.id, o.resource_id, o.quantity, o.total_price, o.status, o.created_at, r.title FROM resource_orders o LEFT JOIN mmo_resources r ON r.id = o.resource_id WHERE o.user_id = ? ORDER BY o.created_at DESC LIMIT 100', userId),
         safeRows('SELECT o.id, o.item_id, o.amount, o.status, o.created_at, i.title FROM game_market_orders o LEFT JOIN game_market_items i ON i.id = o.item_id WHERE o.buyer_id = ? ORDER BY o.created_at DESC LIMIT 100', userId),
         safeRowsFromTable('card_orders', 'SELECT id, type, telco, serial, amount, status, created_at FROM card_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', userId),
@@ -61,6 +62,17 @@ export async function GET(req: NextRequest) {
           title: `Auto MXH #${item.product_id || item.variant_id || item.id}`,
           code: String(item.id),
           amount: toNumber(item.price, 0),
+          status: String(item.status || 'pending'),
+          created_at: item.created_at,
+        })),
+        ...metaOrders.map((item) => ({
+          id: `meta-${item.id}`,
+          source_id: Number(item.id),
+          type: 'meta',
+          title: `Auto kích nút Meta #${item.id} - ${item.quantity || 1} tài khoản`,
+          code: String(item.id),
+          amount: toNumber(item.price, 0),
+          quantity: toNumber(item.quantity, 0),
           status: String(item.status || 'pending'),
           created_at: item.created_at,
         })),

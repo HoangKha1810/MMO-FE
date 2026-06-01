@@ -7,17 +7,18 @@ import { safeRows, safeRowsFromTable } from '@/lib/legacy-modules';
 import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
-import { Activity, ArrowDownUp, Boxes, CreditCard, ShieldCheck, Zap } from 'lucide-react';
+import { Activity, ArrowDownUp, Boxes, CreditCard, Headset, ShieldCheck, Zap } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function UserHistoryPage() {
   const { raw, shell } = await getCurrentUserForShell();
-  const [transactions, smmOrders, cardOrders, autoOrders, resourceOrders, gameOrders] = await Promise.all([
+  const [transactions, smmOrders, cardOrders, autoOrders, metaOrders, resourceOrders, gameOrders] = await Promise.all([
     safeRows('SELECT id, type, amount, balance_after, content, status, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 30', raw.id),
     safeRows('SELECT id, service_name, price, status, created_at FROM smm_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 30', raw.id),
     safeRowsFromTable('card_orders', 'SELECT id, telco, serial, amount, status, created_at FROM card_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 30', raw.id),
     safeRows('SELECT id, product_id, variant_id, price, status, created_at FROM automxh_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 30', raw.id),
+    safeRowsFromTable('meta_support_orders', 'SELECT id, quantity, price, status, created_at FROM meta_support_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 30', raw.id),
     safeRows(`
       SELECT o.id, o.resource_id, o.total_price, o.status, o.created_at, r.title
       FROM resource_orders o
@@ -69,6 +70,14 @@ export default async function UserHistoryPage() {
       status: String(item.status),
       created_at: serializeDatabaseDateTime(item.created_at),
     })),
+    ...metaOrders.map((item) => ({
+      id: `meta-${item.id}`,
+      type: 'meta',
+      title: `Auto kích nút Meta #${item.id} - ${item.quantity || 1} tài khoản`,
+      amount: toNumber(item.price),
+      status: String(item.status),
+      created_at: serializeDatabaseDateTime(item.created_at),
+    })),
     ...resourceOrders.map((item) => ({
       id: `resource-${item.id}`,
       type: 'resource',
@@ -97,6 +106,7 @@ export default async function UserHistoryPage() {
     smm: { label: 'SMM', variant: 'info' },
     card: { label: 'Card', variant: 'warning' },
     automxh: { label: 'Auto MXH', variant: 'orange' },
+    meta: { label: 'Kích nút Meta', variant: 'info' },
     resource: { label: 'Resource', variant: 'purple' },
     game: { label: 'Game', variant: 'success' },
     trx: { label: 'Transaction', variant: 'muted' },
@@ -113,7 +123,7 @@ export default async function UserHistoryPage() {
             { label: 'Tổng dòng', value: String(rows.length), hint: 'Gộp tối đa 80 bản ghi gần nhất', tone: 'blue' },
             { label: 'Tổng volume', value: formatCurrency(totalVolume), hint: 'Cộng giá trị hiển thị trên bảng', tone: 'emerald' },
             { label: 'Đơn SMM', value: String(typeSummary.smm || 0), hint: 'Bản ghi dịch vụ tăng tương tác', tone: 'amber' },
-            { label: 'Auto + Resource', value: String((typeSummary.automxh || 0) + (typeSummary.resource || 0)), hint: 'Nhóm mua sản phẩm/dịch vụ', tone: 'violet' },
+            { label: 'Auto + Resource', value: String((typeSummary.automxh || 0) + (typeSummary.meta || 0) + (typeSummary.resource || 0)), hint: 'Nhóm mua sản phẩm/dịch vụ', tone: 'violet' },
           ]}
         />
 
@@ -160,6 +170,7 @@ export default async function UserHistoryPage() {
                         smm: <ShieldCheck className="h-4 w-4" />,
                         card: <CreditCard className="h-4 w-4" />,
                         automxh: <Zap className="h-4 w-4" />,
+                        meta: <Headset className="h-4 w-4" />,
                         resource: <Boxes className="h-4 w-4" />,
                         game: <Activity className="h-4 w-4" />,
                       };

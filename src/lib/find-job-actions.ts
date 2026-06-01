@@ -5,6 +5,8 @@ import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 
 type Row = Record<string, unknown>;
 const columnCache = new Map<string, Set<string>>();
+const FIND_JOB_OPEN_STATUS = 'open';
+const FIND_JOB_PENDING_APPROVAL = 'pending';
 
 async function safeOne<T extends Row>(query: string, ...values: unknown[]) {
   try {
@@ -27,6 +29,21 @@ function slugify(value: string) {
     .replace(/^-|-$/g, '');
 }
 
+function normalizePositiveInteger(value: unknown, fallback: number) {
+  const parsed = Math.trunc(Number(value || 0));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizeNonNegativeNumber(value: unknown, fallback = 0) {
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function buildExpiresAt(startAt: Date, deadlineDays: unknown) {
+  const days = normalizePositiveInteger(deadlineDays, 7);
+  return new Date(startAt.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
 async function getTableColumns(table: string) {
   const cached = columnCache.get(table);
   if (cached) return cached;
@@ -43,10 +60,16 @@ async function insertFiltered(table: string, data: Record<string, unknown>) {
     throw new Error('Không có field hợp lệ để tạo tin');
   }
 
-  await db.$executeRawUnsafe(
-    `INSERT INTO \`${table}\` (${fields.map((field) => `\`${field}\``).join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
-    ...fields.map((field) => data[field])
-  );
+  const insertedRows = await db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      `INSERT INTO \`${table}\` (${fields.map((field) => `\`${field}\``).join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
+      ...fields.map((field) => data[field])
+    );
+
+    return tx.$queryRawUnsafe<Array<{ id: number | bigint }>>('SELECT LAST_INSERT_ID() AS id');
+  });
+
+  return Number(insertedRows[0]?.id || 0);
 }
 
 async function updateFiltered(table: string, id: number, userField: 'posted_by' | 'user_id', userId: number, data: Record<string, unknown>) {
@@ -100,16 +123,19 @@ export async function createOrUpdateFindJob(userId: number, input: {
         throw new Error('Không tìm thấy tin tuyển dụng để cập nhật');
       }
 
+      const now = new Date();
+      const deadlineDays = normalizePositiveInteger(input.deadlineDays, 7);
       await updateFiltered('find_job_jobs', input.id, 'posted_by', userId, {
         title: input.title.trim(),
         description: input.description.trim(),
         category: input.category.trim() || 'general',
-        price_min: input.priceMin || null,
-        price_max: input.priceMax || null,
-        deadline_days: input.deadlineDays || null,
-        status: 'pending',
-        approval_status: 'pending',
-        updated_at: new Date(),
+        price_min: normalizeNonNegativeNumber(input.priceMin, 0),
+        price_max: normalizeNonNegativeNumber(input.priceMax, 0),
+        deadline_days: deadlineDays,
+        expires_at: buildExpiresAt(now, deadlineDays),
+        status: FIND_JOB_OPEN_STATUS,
+        approval_status: FIND_JOB_PENDING_APPROVAL,
+        updated_at: now,
       });
 
       return { id: input.id };
@@ -117,21 +143,24 @@ export async function createOrUpdateFindJob(userId: number, input: {
 
     const slug = `${slugify(input.title)}-${Date.now()}`;
     const now = new Date();
-    await insertFiltered('find_job_jobs', {
+    const deadlineDays = normalizePositiveInteger(input.deadlineDays, 7);
+    const insertedId = await insertFiltered('find_job_jobs', {
       title: input.title.trim(),
       slug,
       description: input.description.trim(),
       category: input.category.trim() || 'general',
       budget_type: 'fixed',
-      price_min: input.priceMin || null,
-      price_max: input.priceMax || null,
-      deadline_days: input.deadlineDays || null,
+      price_min: normalizeNonNegativeNumber(input.priceMin, 0),
+      price_max: normalizeNonNegativeNumber(input.priceMax, 0),
+      deadline_days: deadlineDays,
       posted_by: userId,
       posted_at: now,
-      status: 'pending',
-      approval_status: 'pending',
+      status: FIND_JOB_OPEN_STATUS,
+      approval_status: FIND_JOB_PENDING_APPROVAL,
+      expires_at: buildExpiresAt(now, deadlineDays),
       updated_at: now,
     });
+    return { id: insertedId };
   } else {
     if (input.id) {
       const owned = await safeOne<Row>('SELECT id FROM find_jobs WHERE id = ? AND user_id = ? LIMIT 1', input.id, userId);
@@ -139,37 +168,36 @@ export async function createOrUpdateFindJob(userId: number, input: {
         throw new Error('Không tìm thấy tin tuyển dụng để cập nhật');
       }
 
+      const now = new Date();
       await updateFiltered('find_jobs', input.id, 'user_id', userId, {
         title: input.title.trim(),
         description: input.description.trim(),
         category: input.category.trim() || 'general',
-        budget_min: input.priceMin || null,
-        budget_max: input.priceMax || null,
-        status: 'pending',
-        approval_status: 'pending',
-        updated_at: new Date(),
+        budget_min: normalizeNonNegativeNumber(input.priceMin, 0),
+        budget_max: normalizeNonNegativeNumber(input.priceMax, 0),
+        status: FIND_JOB_OPEN_STATUS,
+        approval_status: FIND_JOB_PENDING_APPROVAL,
+        updated_at: now,
       });
 
       return { id: input.id };
     }
 
     const now = new Date();
-    await insertFiltered('find_jobs', {
+    const insertedId = await insertFiltered('find_jobs', {
       user_id: userId,
       title: input.title.trim(),
       description: input.description.trim(),
       category: input.category.trim() || 'general',
-      budget_min: input.priceMin || null,
-      budget_max: input.priceMax || null,
-      status: 'pending',
-      approval_status: 'pending',
+      budget_min: normalizeNonNegativeNumber(input.priceMin, 0),
+      budget_max: normalizeNonNegativeNumber(input.priceMax, 0),
+      status: FIND_JOB_OPEN_STATUS,
+      approval_status: FIND_JOB_PENDING_APPROVAL,
       created_at: now,
       updated_at: now,
     });
+    return { id: insertedId };
   }
-
-  const inserted = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>('SELECT LAST_INSERT_ID() AS id');
-  return { id: Number(inserted[0]?.id || 0) };
 }
 
 export async function deleteFindJob(userId: number, jobId: number) {

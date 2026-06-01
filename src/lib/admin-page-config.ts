@@ -139,6 +139,16 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       statusOptions: ['active', 'inactive'],
     },
   ],
+  'meta-support': [
+    {
+      resource: 'meta-support-orders',
+      title: 'Auto kích nút Meta orders',
+      description: 'Quản lý đơn Auto kích nút + Chat Support Meta. Admin cập nhật trạng thái và ghi chú trả về cho user.',
+      columns: ['id', 'user_id', 'contact', 'gmail', 'quantity', 'price', 'status', 'admin_note', 'updated_at', 'created_at'],
+      editableFields: ['contact', 'gmail', 'quantity', 'price', 'note', 'admin_note', 'status'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled'],
+    },
+  ],
   'support-tiktok': [
     {
       resource: 'tiktok-orders',
@@ -359,8 +369,8 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       title: 'Find Job posts',
       description: 'Quản lý tin tuyển dụng, duyệt trạng thái và ghim tin tốt lên đầu trang Find Job MMO.',
       columns: ['id', 'title', 'category', 'user_id', 'posted_by', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'approval_status', 'is_pinned', 'updated_at', 'created_at', 'posted_at'],
-      editableFields: ['title', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'is_pinned'],
-      statusOptions: ['open', 'filled', 'closed', 'pending', 'hidden', 'rejected'],
+      editableFields: ['title', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'approval_status', 'is_pinned'],
+      statusOptions: ['pending', 'approved', 'rejected', 'open', 'filled', 'closed'],
       actions: [
         { key: 'approve', label: 'Duyệt', tone: 'success' },
         { key: 'reject', label: 'Từ chối', tone: 'danger' },

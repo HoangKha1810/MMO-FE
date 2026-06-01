@@ -112,6 +112,7 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/automxh/products', label: 'Dịch vụ cha / tab', icon: ListVideo },
       { href: '/admin/automxh/variants', label: 'Máy chủ dịch vụ', icon: Layers },
       { href: '/admin/automxh/orders', label: 'Quản Lý Đơn Hàng Auto MXH', icon: ShoppingCart },
+      { href: '/admin/meta-support', label: 'Đơn kích nút Meta', icon: Headset },
     ],
   },
   {

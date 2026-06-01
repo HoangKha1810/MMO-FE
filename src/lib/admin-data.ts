@@ -8,6 +8,7 @@ import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
 import { isTrackableIp } from '@/lib/ip-security';
 import { decryptLegacyData } from '@/lib/legacy-crypto';
 import { getLegacySettingsMap, getVatPercent, invalidateLegacySettingsCache } from '@/lib/legacy-settings';
+import { ensureMetaSupportOrdersTable, normalizeMetaSupportStatus } from '@/lib/meta-support';
 import { approveDepositById } from '@/lib/deposit-processing';
 import { ensureGameApiKeyForUser } from '@/lib/game-integration-api';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
@@ -149,6 +150,14 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     rawOrder: 'updated_at DESC, id DESC',
     createFields: ['product_id', 'api_provider_id', 'api_service_id', 'quantity', 'name', 'price', 'cost', 'original_price', 'description', 'badge', 'type', 'status', 'allow_avatar', 'allow_files'],
     updateFields: ['product_id', 'api_provider_id', 'api_service_id', 'quantity', 'name', 'price', 'cost', 'original_price', 'description', 'badge', 'type', 'status', 'allow_avatar', 'allow_files', 'is_deleted'],
+  },
+  'meta-support-orders': {
+    table: 'meta_support_orders',
+    title: 'Auto kích nút Meta orders',
+    searchFields: ['contact', 'gmail', 'note', 'admin_note', 'status'],
+    statusField: 'status',
+    rawOrder: 'updated_at DESC, id DESC',
+    updateFields: ['contact', 'gmail', 'quantity', 'price', 'note', 'admin_note', 'status'],
   },
   resources: {
     table: 'mmo_resources',
@@ -723,6 +732,28 @@ function normalizeOptionalBooleanNumber(value: unknown, fallback = 0) {
   return fallback;
 }
 
+function normalizeActiveInactiveStatus(value: unknown, fallback: 'active' | 'inactive' = 'active') {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (['active', 'enabled', 'enable', 'open', '1', 'true', 'yes', 'on', 'dang bat', 'bat'].includes(normalized)) {
+    return 'active';
+  }
+
+  if (['inactive', 'disabled', 'disable', 'closed', '0', 'false', 'no', 'off', 'dang tat', 'tat'].includes(normalized)) {
+    return 'inactive';
+  }
+
+  return fallback;
+}
+
 function normalizeAutoMxhVariantPatch(input: Record<string, unknown>) {
   const output = { ...input };
 
@@ -735,6 +766,73 @@ function normalizeAutoMxhVariantPatch(input: Record<string, unknown>) {
   if ('allow_avatar' in output) output.allow_avatar = normalizeOptionalBooleanNumber(output.allow_avatar, 0);
   if ('allow_files' in output) output.allow_files = normalizeOptionalBooleanNumber(output.allow_files, 0);
   if ('is_deleted' in output) output.is_deleted = normalizeOptionalBooleanNumber(output.is_deleted, 0);
+  if ('status' in output) output.status = normalizeActiveInactiveStatus(output.status, 'active');
+
+  return output;
+}
+
+function normalizeFindJobStatus(value: unknown, fallback: 'open' | 'filled' | 'closed' = 'open') {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (['open', 'active', 'approved', 'publish', 'published', 'dang mo', 'da duyet'].includes(normalized)) return 'open';
+  if (['filled', 'done', 'completed', 'da nhan', 'da du nguoi'].includes(normalized)) return 'filled';
+  if (['closed', 'close', 'rejected', 'hidden', 'deleted', 'inactive', 'dang tat', 'tu choi'].includes(normalized)) return 'closed';
+  if (['pending', 'review', 'waiting', 'cho duyet', 'dang cho'].includes(normalized)) return 'open';
+
+  return fallback;
+}
+
+function normalizeFindJobApprovalStatus(value: unknown, fallback: 'pending' | 'approved' | 'rejected' = 'pending') {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (['approved', 'open', 'active', 'publish', 'published', 'da duyet'].includes(normalized)) return 'approved';
+  if (['rejected', 'closed', 'hidden', 'deleted', 'tu choi'].includes(normalized)) return 'rejected';
+  if (['pending', 'review', 'waiting', 'cho duyet', 'dang cho'].includes(normalized)) return 'pending';
+
+  return fallback;
+}
+
+function normalizeFindJobPatch(table: string, input: Record<string, unknown>, columnTypes: Map<string, string>) {
+  const output = { ...input };
+
+  if ('status' in output) {
+    const rawStatus = output.status;
+    output.status = normalizeFindJobStatus(rawStatus, 'open');
+    const normalizedRaw = String(rawStatus || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    if (columnTypes.has('approval_status') && ['pending', 'review', 'waiting', 'cho duyet', 'dang cho'].includes(normalizedRaw)) {
+      output.approval_status = 'pending';
+    }
+    if (columnTypes.has('approval_status') && ['rejected', 'hidden', 'deleted', 'tu choi', 'closed', 'close'].includes(normalizedRaw)) {
+      output.approval_status = 'rejected';
+    }
+    if (columnTypes.has('approval_status') && ['approved', 'open', 'active', 'publish', 'published', 'da duyet'].includes(normalizedRaw)) {
+      output.approval_status = 'approved';
+    }
+  }
+
+  if ('approval_status' in output) {
+    output.approval_status = normalizeFindJobApprovalStatus(output.approval_status, 'pending');
+  }
 
   return output;
 }
@@ -770,6 +868,17 @@ async function normalizeRawTablePayload(table: string, data: Record<string, unkn
       normalized.quantity = Math.max(1, normalizeOptionalInteger(normalized.quantity, 1));
     }
     return normalized;
+  }
+
+  if (table === 'find_job_jobs' || table === 'find_jobs') {
+    return normalizeFindJobPatch(table, output, columnTypes);
+  }
+
+  if (table === 'meta_support_orders') {
+    if ('quantity' in output) output.quantity = Math.max(1, normalizeOptionalInteger(output.quantity, 1));
+    if ('price' in output) output.price = normalizeOptionalNumber(output.price, 0);
+    if ('status' in output) output.status = normalizeMetaSupportStatus(output.status);
+    return output;
   }
 
   return output;
@@ -1715,8 +1824,13 @@ async function listRawTable(config: ResourceConfig, params: URLSearchParams, pag
   }
 
   if (status && config.statusField) {
-    conditions.push(`\`${config.statusField}\` = ?`);
-    values.push(status);
+    if (config.table === 'find_jobs' && ['pending', 'approved', 'rejected'].includes(status)) {
+      conditions.push('`approval_status` = ?');
+      values.push(status);
+    } else {
+      conditions.push(`\`${config.statusField}\` = ?`);
+      values.push(status);
+    }
   }
 
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -2740,7 +2854,7 @@ async function moderateFindJob(id: number, approved: boolean, adminId: number, r
 
   const ownerId = Number(job.posted_by || job.user_id || 0);
   const patch: Record<string, unknown> = {
-    status: approved ? 'open' : 'rejected',
+    status: approved ? 'open' : 'closed',
     approval_status: approved ? 'approved' : 'rejected',
     updated_at: new Date(),
     approved_at: approved ? new Date() : null,
@@ -2768,7 +2882,7 @@ async function moderateFindJob(id: number, approved: boolean, adminId: number, r
   await logAdminAction({ adminId, action: approved ? 'approve find job' : 'reject find job', target: `#${id}`, req });
 
   const updated = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM \`${table}\` WHERE id = ? LIMIT 1`, id);
-  return updated[0] || { id, status: approved ? 'open' : 'rejected' };
+  return updated[0] || { id, status: approved ? 'open' : 'closed', approval_status: approved ? 'approved' : 'rejected' };
 }
 
 async function moderateGameItem(id: number, approved: boolean, adminId: number, req: NextRequest) {
@@ -3048,6 +3162,10 @@ async function deleteRawTable(config: ResourceConfig, id: number) {
 async function getActualRawTable(config: ResourceConfig) {
   if (config.table === 'find_jobs') {
     return resolveFindJobTable();
+  }
+
+  if (config.table === 'meta_support_orders') {
+    await ensureMetaSupportOrdersTable();
   }
 
   return config.table!;

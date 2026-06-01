@@ -291,20 +291,22 @@ export async function getFindJobDetail(id: number, viewerId?: number, viewerRole
 export async function createFindJob(userId: number, input: { title: string; description: string; category: string; price_min?: number; price_max?: number; deadline_days?: number }) {
   const table = await tableExists('find_job_jobs') ? 'find_job_jobs' : 'find_jobs';
   const now = new Date();
+  const deadlineDays = Math.max(1, Math.trunc(Number(input.deadline_days || 7)));
+  const expiresAt = new Date(now.getTime() + deadlineDays * 24 * 60 * 60 * 1000);
 
   if (table === 'find_job_jobs') {
     const slug = `${input.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Date.now()}`;
     await db.$executeRawUnsafe(`
-      INSERT INTO find_job_jobs (title, slug, description, category, budget_type, price_min, price_max, deadline_days, posted_by, posted_at, status, approval_status, updated_at)
-      VALUES (?, ?, ?, ?, 'fixed', ?, ?, ?, ?, ?, 'pending', 'pending', ?)
-    `, input.title, slug, input.description, input.category, input.price_min || null, input.price_max || null, input.deadline_days || null, userId, now, now);
+      INSERT INTO find_job_jobs (title, slug, description, category, budget_type, price_min, price_max, deadline_days, posted_by, posted_at, status, approval_status, expires_at, updated_at)
+      VALUES (?, ?, ?, ?, 'fixed', ?, ?, ?, ?, ?, 'open', 'pending', ?, ?)
+    `, input.title, slug, input.description, input.category, input.price_min || 0, input.price_max || 0, deadlineDays, userId, now, expiresAt, now);
     return safeOne<LegacyRow>('SELECT * FROM find_job_jobs WHERE posted_by = ? ORDER BY id DESC LIMIT 1', userId);
   }
 
   await db.$executeRawUnsafe(`
     INSERT INTO find_jobs (user_id, title, description, budget_min, budget_max, status, approval_status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, 'pending', 'pending', ?, ?)
-  `, userId, input.title, input.description, input.price_min || null, input.price_max || null, now, now);
+    VALUES (?, ?, ?, ?, ?, 'open', 'pending', ?, ?)
+  `, userId, input.title, input.description, input.price_min || 0, input.price_max || 0, now, now);
   return safeOne<LegacyRow>('SELECT * FROM find_jobs WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);
 }
 

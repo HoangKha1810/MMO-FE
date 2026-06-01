@@ -3,17 +3,18 @@ import { MetricCard, PageHero, SectionHeader, SectionPanel } from '@/components/
 import { safeCount, safeCountFromTable, safeRows } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
-import { Boxes, CreditCard, HandCoins, ShieldCheck, Wallet, Zap } from 'lucide-react';
+import { Boxes, CreditCard, HandCoins, Headset, ShieldCheck, Wallet, Zap } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function UserStatisticsPage() {
   const { raw, shell } = await getCurrentUserForShell();
-  const [depositSum, smmSum, smmCount, autoCount, cardCount, resourceCount, gameCount] = await Promise.all([
+  const [depositSum, smmSum, smmCount, autoCount, metaCount, cardCount, resourceCount, gameCount] = await Promise.all([
     safeRows('SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE user_id = ? AND type = ? AND status = ?', raw.id, 'deposit', 'success'),
     safeRows('SELECT COALESCE(SUM(price), 0) AS total FROM smm_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM smm_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM automxh_orders WHERE user_id = ?', raw.id),
+    safeCountFromTable('meta_support_orders', 'SELECT COUNT(*) AS total FROM meta_support_orders WHERE user_id = ?', raw.id),
     safeCountFromTable('card_orders', 'SELECT COUNT(*) AS total FROM card_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM resource_orders WHERE user_id = ?', raw.id),
     safeCount('SELECT COUNT(*) AS total FROM game_market_orders WHERE buyer_id = ?', raw.id),
@@ -56,6 +57,13 @@ export default async function UserStatisticsPage() {
       icon: <Zap className="h-4 w-4" />,
     },
     {
+      label: 'Đơn kích nút Meta',
+      value: metaCount.toLocaleString('vi-VN'),
+      hint: 'Đơn Auto kích nút + Chat Support Meta',
+      tone: 'blue' as const,
+      icon: <Headset className="h-4 w-4" />,
+    },
+    {
       label: 'Đơn card',
       value: cardCount.toLocaleString('vi-VN'),
       hint: 'Order đổi hoặc mua thẻ',
@@ -78,7 +86,7 @@ export default async function UserStatisticsPage() {
     },
   ];
 
-  const totalOrders = smmCount + autoCount + cardCount + resourceCount + gameCount;
+  const totalOrders = smmCount + autoCount + metaCount + cardCount + resourceCount + gameCount;
 
   return (
     <AppShell user={shell}>
