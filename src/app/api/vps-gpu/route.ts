@@ -83,6 +83,15 @@ function normalizeString(value: unknown, fallback = '') {
   return text || fallback;
 }
 
+function normalizeStatusValue(value: unknown) {
+  const text = normalizeString(value).toLowerCase();
+  return text === 'null' ? '' : text;
+}
+
+function hasOwnField(record: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
 function isStaleOfferMessage(text: string) {
   return /no_such_ask|not available|instance type by id|offer.*(hết|không|not)|\/asks\/\d+/i.test(text);
 }
@@ -566,6 +575,7 @@ function getInstancePortRange(instance: VastInstance) {
 function formatInstanceStatusLabel(status: string, ready: boolean) {
   const normalized = status.toLowerCase();
   if (ready && normalized.includes('running')) return 'Sẵn sàng kết nối';
+  if (normalized.includes('loading')) return 'Đang tải Docker';
   if (normalized.includes('creating') || normalized.includes('loading') || normalized.includes('starting') || normalized.includes('created') || normalized.includes('transferring')) {
     return 'Đang khởi tạo';
   }
@@ -579,7 +589,16 @@ function formatInstanceStatusLabel(status: string, ready: boolean) {
 function mapInstances(instances: VastInstance[]) {
   return instances.map((instance) => {
     const id = getInstanceId(instance);
-    const status = normalizeString(instance.actual_status || instance.cur_state || instance.status, 'unknown');
+    const actualStatus = normalizeStatusValue(instance.actual_status);
+    const hasActualStatusField = hasOwnField(instance, 'actual_status');
+    const curState = normalizeStatusValue(instance.cur_state);
+    const nextState = normalizeStatusValue(instance.next_state);
+    const intendedStatus = normalizeStatusValue(instance.intended_status);
+    const rawStatus = normalizeStatusValue(instance.status);
+    const actualStatusIsProvisioning = hasActualStatusField && !actualStatus;
+    const status = actualStatusIsProvisioning
+      ? 'creating'
+      : actualStatus || rawStatus || curState || 'unknown';
     const publicIp = normalizeString(instance.public_ipaddr);
     const sshHost = normalizeString(instance.ssh_host || publicIp || instance.hostname);
     const sshPort = getInstanceSshPort(instance);
@@ -594,27 +613,50 @@ function mapInstances(instances: VastInstance[]) {
     const statusMessage = normalizeString(instance.status_msg || instance.status_message);
     const runtimeState = [
       status,
-      instance.cur_state,
-      instance.actual_status,
-      instance.next_state,
-      instance.intended_status,
+      actualStatus,
+      curState,
+      nextState,
+      intendedStatus,
       statusMessage,
     ].map((item) => normalizeString(item).toLowerCase()).join(' ');
-    const isRunning = /\brunning\b/.test(runtimeState);
+    const isRunning = actualStatus === 'running';
     const isProvisioning = /creating|loading|starting|created|transferring|not running|installing|pending|queued|initializing|dockerfile/i.test(runtimeState);
-    const isStopped = /stopped|exited|deleted|destroyed|paused/i.test(runtimeState);
-    const ready = Boolean(isRunning && !isProvisioning && !isStopped && sshHost && sshPort);
+    const isStopped = /stopped|exited|deleted|destroyed|paused|frozen|offline|unknown|unloaded/i.test(runtimeState);
+    const ready = Boolean(
+      isRunning &&
+      curState !== 'unloaded' &&
+      intendedStatus !== 'stopped' &&
+      intendedStatus !== 'frozen' &&
+      !isProvisioning &&
+      !isStopped &&
+      sshHost &&
+      sshPort
+    );
     const gpuRamMb = normalizeNumber(instance.gpu_ram || instance.gpu_totalram, 0);
     const cpuRamMb = normalizeNumber(instance.cpu_ram || instance.mem_limit, 0);
     const hourlyUsd = normalizeNumber(instance.dph_total || instance.dph_base || instance.dph, 0);
-    const displayStatus = isProvisioning && !ready ? 'creating' : status;
+    const displayStatus = actualStatusIsProvisioning
+      ? 'creating'
+      : isProvisioning && !ready
+        ? status === 'running' ? 'loading' : status
+        : status;
+    const displayStatusMessage = statusMessage || (actualStatusIsProvisioning
+      ? 'Instance đang được cấp phát. Chờ nguồn GPU chuyển actual_status sang running rồi mới có thể kết nối.'
+      : '');
 
     return {
       id,
       name: normalizeString(instance.label || instance.name, id ? `Instance GPU ${id}` : 'Instance GPU'),
       status: displayStatus,
       statusLabel: formatInstanceStatusLabel(displayStatus, ready),
-      statusMessage,
+      statusMessage: displayStatusMessage,
+      sourceStatus: {
+        actualStatus: actualStatus || null,
+        curState: curState || null,
+        nextState: nextState || null,
+        intendedStatus: intendedStatus || null,
+        statusMessage: statusMessage || null,
+      },
       type: 'GPU Instance',
       ipAddress: publicIp || sshHost,
       rateHourly: hourlyUsd,
@@ -699,7 +741,7 @@ async function mapOwnedVpsGpuInstances(userId: number, providerInstances: VastIn
     billings.map((row) => {
       const providerInstance = providerById.get(row.provider_instance_id);
       if (!providerInstance) return Promise.resolve();
-      const providerStatus = normalizeString(providerInstance.actual_status || providerInstance.cur_state || providerInstance.status);
+      const providerStatus = normalizeString(providerInstance.actual_status || providerInstance.status || providerInstance.cur_state);
       return providerStatus
         ? markVpsGpuProviderStatus(row.provider_instance_id, providerStatus).catch(() => undefined)
         : Promise.resolve();

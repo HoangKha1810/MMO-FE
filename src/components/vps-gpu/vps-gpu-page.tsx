@@ -139,6 +139,13 @@ interface VastInstance {
   status?: string;
   statusLabel?: string;
   statusMessage?: string;
+  sourceStatus?: {
+    actualStatus?: string | null;
+    curState?: string | null;
+    nextState?: string | null;
+    intendedStatus?: string | null;
+    statusMessage?: string | null;
+  };
   type?: string;
   ipAddress?: string;
   rateHourly?: number;
@@ -187,7 +194,9 @@ interface VastInstance {
     saleHourlyVnd?: number;
     totalChargedVnd?: number;
     nextChargeAt?: string | null;
+    nextChargeAtMs?: number | null;
     lowBalanceWarningForAt?: string | null;
+    lowBalanceWarningForAtMs?: number | null;
     status?: string;
   } | null;
 }
@@ -298,22 +307,29 @@ function formatMoneyVnd(value: number | undefined) {
   return `${Math.round(value).toLocaleString('vi-VN')} đ`;
 }
 
-function formatDateTime(value?: string | null) {
+const VIETNAM_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
+function formatDateTime(value?: string | number | null) {
   if (!value) {
     return 'N/A';
   }
 
-  const date = new Date(value);
+  const date = typeof value === 'number' ? new Date(value) : new Date(value);
   if (Number.isNaN(date.getTime())) {
     return 'N/A';
   }
 
-  return date.toLocaleString('vi-VN', {
+  const parts = new Intl.DateTimeFormat('vi-VN', {
+    timeZone: VIETNAM_TIME_ZONE,
     hour: '2-digit',
     minute: '2-digit',
     day: '2-digit',
     month: '2-digit',
-  });
+    hour12: false,
+  }).formatToParts(date);
+
+  const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || '';
+  return `${getPart('hour')}:${getPart('minute')} ${getPart('day')}-${getPart('month')}`;
 }
 
 function selectedOsPresetValue(image: string) {
@@ -1350,13 +1366,13 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       </div>
                     )}
 
-                    {billing?.lowBalanceWarningForAt ? (
+                    {billing?.lowBalanceWarningForAtMs || billing?.lowBalanceWarningForAt ? (
                       <div className="rounded-[1rem] border border-amber-400/30 bg-amber-500/10 p-4">
                         <div className="text-sm font-black text-amber-600 dark:text-amber-300">
                           Ví game chưa đủ cho lần gia hạn tiếp theo
                         </div>
                         <p className="mt-2 text-xs font-semibold leading-6 text-slate-500 dark:text-slate-300">
-                          Hệ thống đã gửi email nhắc nạp. Nếu trước {formatDateTime(billing.lowBalanceWarningForAt)} ví game vẫn chưa đủ {formatMoneyVnd(billing.saleHourlyVnd)}, VPS sẽ tự động bị xóa để tránh phát sinh chi phí.
+                          Hệ thống đã gửi email nhắc nạp. Nếu trước {formatDateTime(billing.lowBalanceWarningForAtMs ?? billing.lowBalanceWarningForAt)} theo giờ Việt Nam ví game vẫn chưa đủ {formatMoneyVnd(billing.saleHourlyVnd)}, VPS sẽ tự động bị xóa để tránh phát sinh chi phí.
                         </p>
                       </div>
                     ) : null}
@@ -1457,6 +1473,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                     ) : null}
 
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <MiniInfo icon={<RefreshCw />} label="Trạng thái nguồn" value={instance.sourceStatus?.actualStatus || 'Đang tạo'} />
+                      <MiniInfo icon={<RefreshCw />} label="Trạng thái máy" value={instance.sourceStatus?.curState || 'N/A'} />
                       <MiniInfo icon={<Network />} label="Public IP" value={connection.publicIp || connection.host || 'Đang cập nhật'} />
                       <MiniInfo icon={<Terminal />} label="SSH Port" value={connection.port ? String(connection.port) : 'Đang cập nhật'} />
                       <MiniInfo icon={<Monitor />} label="RDP Port" value={connection.rdpPort ? String(connection.rdpPort) : 'N/A'} />
@@ -1489,7 +1507,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       <MiniInfo icon={<Server />} label="Machine ID" value={specs.machineId || 'N/A'} />
                       <MiniInfo icon={<Server />} label="Host ID" value={specs.hostId || 'N/A'} />
                       <MiniInfo icon={<Database />} label="Đã trừ ví game" value={formatMoneyVnd(billing?.totalChargedVnd)} />
-                      <MiniInfo icon={<RefreshCw />} label="Trừ tiếp lúc" value={formatDateTime(billing?.nextChargeAt)} />
+                      <MiniInfo icon={<RefreshCw />} label="Trừ tiếp lúc (VN)" value={formatDateTime(billing?.nextChargeAtMs ?? billing?.nextChargeAt)} />
                     </div>
 
                     <div className="flex flex-wrap gap-2">

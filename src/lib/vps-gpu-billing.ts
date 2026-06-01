@@ -23,10 +23,15 @@ export interface VpsGpuBillingRow extends Record<string, unknown> {
   sale_hourly_vnd: number;
   total_charged_vnd: number;
   started_at: Date | null;
+  started_at_ms: number | null;
   next_charge_at: Date | null;
+  next_charge_at_ms: number | null;
   last_charged_at: Date | null;
+  last_charged_at_ms: number | null;
   low_balance_warning_for_at: Date | null;
+  low_balance_warning_for_at_ms: number | null;
   ended_at: Date | null;
+  ended_at_ms: number | null;
   end_reason: string | null;
 }
 
@@ -46,7 +51,9 @@ interface BillingSnapshot {
   saleHourlyVnd: number;
   totalChargedVnd: number;
   nextChargeAt: string | null;
+  nextChargeAtMs: number | null;
   lowBalanceWarningForAt: string | null;
+  lowBalanceWarningForAtMs: number | null;
   status: string;
 }
 
@@ -70,6 +77,28 @@ function toDate(value: unknown) {
   if (!value) return null;
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toTimestampMs(value: unknown) {
+  const normalized = normalizeValue(value);
+  if (normalized instanceof Date) {
+    return normalized.getTime();
+  }
+
+  const timestampMs = Number(normalized);
+  return Number.isFinite(timestampMs) && timestampMs > 0 ? Math.trunc(timestampMs) : null;
+}
+
+function addMilliseconds(date: Date, milliseconds: number) {
+  return new Date(date.getTime() + milliseconds);
+}
+
+function dateIsoFromTimestampMs(timestampMs: number | null) {
+  return timestampMs ? new Date(timestampMs).toISOString() : null;
+}
+
+function timestampMsFromDateFallback(timestampMs: unknown, date: Date | null) {
+  return toTimestampMs(timestampMs) ?? (date ? date.getTime() : null);
 }
 
 function formatVnd(value: number) {
@@ -160,23 +189,59 @@ export async function ensureVpsGpuInstancesTable() {
       sale_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       total_charged_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      started_at_ms BIGINT NULL,
       next_charge_at DATETIME NOT NULL,
+      next_charge_at_ms BIGINT NULL,
       last_charged_at DATETIME NULL,
+      last_charged_at_ms BIGINT NULL,
       low_balance_warning_for_at DATETIME NULL,
+      low_balance_warning_for_at_ms BIGINT NULL,
       ended_at DATETIME NULL,
+      ended_at_ms BIGINT NULL,
       end_reason VARCHAR(255) NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY uniq_vps_gpu_provider_instance (provider_instance_id),
       KEY idx_vps_gpu_user_status (user_id, status),
-      KEY idx_vps_gpu_next_charge (status, next_charge_at)
+      KEY idx_vps_gpu_next_charge (status, next_charge_at),
+      KEY idx_vps_gpu_next_charge_ms (status, next_charge_at_ms)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
   await db.$executeRawUnsafe(`
     ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
-      ADD COLUMN low_balance_warning_for_at DATETIME NULL AFTER last_charged_at
+      ADD COLUMN IF NOT EXISTS low_balance_warning_for_at DATETIME NULL AFTER last_charged_at
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS started_at_ms BIGINT NULL AFTER started_at
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS next_charge_at_ms BIGINT NULL AFTER next_charge_at
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS last_charged_at_ms BIGINT NULL AFTER last_charged_at
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS low_balance_warning_for_at_ms BIGINT NULL AFTER low_balance_warning_for_at
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS ended_at_ms BIGINT NULL AFTER ended_at
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD KEY IF NOT EXISTS idx_vps_gpu_next_charge_ms (status, next_charge_at_ms)
   `).catch(() => 0);
 }
 
@@ -236,6 +301,9 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
       throw new Error(insufficientGameWalletMessage(Math.abs(nextGameBalance)));
     }
 
+    const chargedAt = new Date();
+    const nextChargeAt = addMilliseconds(chargedAt, ONE_HOUR_MS);
+
     await tx.users.update({
       where: { id: input.userId },
       data: { game_balance: nextGameBalance, last_activity: new Date() },
@@ -258,9 +326,9 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
         INSERT INTO \`${VPS_GPU_INSTANCES_TABLE}\` (
           user_id, provider_instance_id, offer_id, instance_name, status,
           cost_hourly_usd, cost_hourly_vnd, sale_hourly_vnd, total_charged_vnd,
-          started_at, next_charge_at, last_charged_at
+          started_at, started_at_ms, next_charge_at, next_charge_at_ms, last_charged_at, last_charged_at_ms
         )
-        VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())
+        VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       input.userId,
       input.providerInstanceId,
@@ -269,7 +337,13 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
       Math.max(0, input.costHourlyUsd),
       Math.max(0, Math.ceil(input.costHourlyVnd)),
       saleHourlyVnd,
-      saleHourlyVnd
+      saleHourlyVnd,
+      chargedAt,
+      chargedAt.getTime(),
+      nextChargeAt,
+      nextChargeAt.getTime(),
+      chargedAt,
+      chargedAt.getTime()
     );
 
     const rows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
@@ -291,6 +365,12 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
 
 export function normalizeBillingRow(row: Record<string, unknown>): VpsGpuBillingRow {
   const normalized = normalizeRow(row);
+  const startedAt = toDate(normalized.started_at);
+  const nextChargeAt = toDate(normalized.next_charge_at);
+  const lastChargedAt = toDate(normalized.last_charged_at);
+  const lowBalanceWarningForAt = toDate(normalized.low_balance_warning_for_at);
+  const endedAt = toDate(normalized.ended_at);
+
   return {
     ...normalized,
     id: Math.trunc(toNumber(normalized.id, 0)),
@@ -304,11 +384,16 @@ export function normalizeBillingRow(row: Record<string, unknown>): VpsGpuBilling
     cost_hourly_vnd: toNumber(normalized.cost_hourly_vnd, 0),
     sale_hourly_vnd: toNumber(normalized.sale_hourly_vnd, 0),
     total_charged_vnd: toNumber(normalized.total_charged_vnd, 0),
-    started_at: toDate(normalized.started_at),
-    next_charge_at: toDate(normalized.next_charge_at),
-    last_charged_at: toDate(normalized.last_charged_at),
-    low_balance_warning_for_at: toDate(normalized.low_balance_warning_for_at),
-    ended_at: toDate(normalized.ended_at),
+    started_at: startedAt,
+    started_at_ms: timestampMsFromDateFallback(normalized.started_at_ms, startedAt),
+    next_charge_at: nextChargeAt,
+    next_charge_at_ms: timestampMsFromDateFallback(normalized.next_charge_at_ms, nextChargeAt),
+    last_charged_at: lastChargedAt,
+    last_charged_at_ms: timestampMsFromDateFallback(normalized.last_charged_at_ms, lastChargedAt),
+    low_balance_warning_for_at: lowBalanceWarningForAt,
+    low_balance_warning_for_at_ms: timestampMsFromDateFallback(normalized.low_balance_warning_for_at_ms, lowBalanceWarningForAt),
+    ended_at: endedAt,
+    ended_at_ms: timestampMsFromDateFallback(normalized.ended_at_ms, endedAt),
     end_reason: normalized.end_reason ? String(normalized.end_reason) : null,
   };
 }
@@ -320,8 +405,10 @@ export function toPublicBilling(row: VpsGpuBillingRow | null): BillingSnapshot |
     providerInstanceId: row.provider_instance_id,
     saleHourlyVnd: Math.max(0, Math.ceil(row.sale_hourly_vnd)),
     totalChargedVnd: Math.max(0, Math.ceil(row.total_charged_vnd)),
-    nextChargeAt: row.next_charge_at ? row.next_charge_at.toISOString() : null,
-    lowBalanceWarningForAt: row.low_balance_warning_for_at ? row.low_balance_warning_for_at.toISOString() : null,
+    nextChargeAt: dateIsoFromTimestampMs(row.next_charge_at_ms),
+    nextChargeAtMs: row.next_charge_at_ms,
+    lowBalanceWarningForAt: dateIsoFromTimestampMs(row.low_balance_warning_for_at_ms),
+    lowBalanceWarningForAtMs: row.low_balance_warning_for_at_ms,
     status: row.status,
   };
 }
@@ -393,15 +480,19 @@ export async function markVpsGpuProviderStatus(providerInstanceId: string, provi
 
 export async function markVpsGpuEnded(providerInstanceId: string, reason: string) {
   await ensureVpsGpuInstancesTable();
+  const endedAt = new Date();
   await db.$executeRawUnsafe(
     `
       UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
       SET status = 'ended',
-          ended_at = COALESCE(ended_at, NOW()),
+          ended_at = COALESCE(ended_at, ?),
+          ended_at_ms = COALESCE(ended_at_ms, ?),
           end_reason = ?,
           updated_at = NOW()
       WHERE provider_instance_id = ?
     `,
+    endedAt,
+    endedAt.getTime(),
     reason,
     providerInstanceId
   );
@@ -453,8 +544,8 @@ async function chargeDueBillingRow(rowId: number) {
       return { charged: 0, chargedHours: 0, deleteNeeded: true, providerInstanceId: row.provider_instance_id };
     }
 
-    const nextChargeAt = row.next_charge_at;
-    if (!nextChargeAt || nextChargeAt.getTime() > Date.now()) {
+    const nextChargeAtMs = row.next_charge_at_ms;
+    if (!nextChargeAtMs || nextChargeAtMs > Date.now()) {
       return { charged: 0, chargedHours: 0, deleteNeeded: false, providerInstanceId: row.provider_instance_id };
     }
 
@@ -473,7 +564,7 @@ async function chargeDueBillingRow(rowId: number) {
       return { charged: 0, chargedHours: 0, deleteNeeded: true, providerInstanceId: row.provider_instance_id };
     }
 
-    const hoursDue = Math.min(168, Math.max(1, Math.floor((Date.now() - nextChargeAt.getTime()) / ONE_HOUR_MS) + 1));
+    const hoursDue = Math.min(168, Math.max(1, Math.floor((Date.now() - nextChargeAtMs) / ONE_HOUR_MS) + 1));
     const user = await tx.users.findUnique({
       where: { id: row.user_id },
       select: { game_balance: true },
@@ -484,9 +575,13 @@ async function chargeDueBillingRow(rowId: number) {
     const nextGameBalance = currentGameBalance - chargedAmount;
 
     if (chargeableHours > 0) {
+      const chargedAt = new Date();
+      const nextChargeAtAfterChargeMs = nextChargeAtMs + chargeableHours * ONE_HOUR_MS;
+      const nextChargeAtAfterCharge = new Date(nextChargeAtAfterChargeMs);
+
       await tx.users.update({
         where: { id: row.user_id },
-        data: { game_balance: nextGameBalance, last_activity: new Date() },
+        data: { game_balance: nextGameBalance, last_activity: chargedAt },
       });
 
       await tx.transactions.create({
@@ -505,13 +600,20 @@ async function chargeDueBillingRow(rowId: number) {
         `
           UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
           SET total_charged_vnd = total_charged_vnd + ?,
-              last_charged_at = NOW(),
-              next_charge_at = DATE_ADD(next_charge_at, INTERVAL ${Math.max(1, Math.trunc(chargeableHours))} HOUR),
+              last_charged_at = ?,
+              last_charged_at_ms = ?,
+              next_charge_at = ?,
+              next_charge_at_ms = ?,
               low_balance_warning_for_at = NULL,
+              low_balance_warning_for_at_ms = NULL,
               updated_at = NOW()
           WHERE id = ?
         `,
         chargedAmount,
+        chargedAt,
+        chargedAt.getTime(),
+        nextChargeAtAfterCharge,
+        nextChargeAtAfterChargeMs,
         row.id
       );
     }
@@ -556,20 +658,20 @@ async function reserveLowBalanceWarning(rowId: number) {
       return null;
     }
 
-    const nextChargeAt = row.next_charge_at;
-    if (!nextChargeAt) {
+    const nextChargeAtMs = row.next_charge_at_ms;
+    if (!nextChargeAtMs) {
       return null;
     }
 
     const now = Date.now();
-    const remainingMs = nextChargeAt.getTime() - now;
+    const remainingMs = nextChargeAtMs - now;
     if (remainingMs <= 0 || remainingMs > LOW_BALANCE_WARNING_MS) {
       return null;
     }
 
     if (
-      row.low_balance_warning_for_at &&
-      row.low_balance_warning_for_at.getTime() === nextChargeAt.getTime()
+      row.low_balance_warning_for_at_ms &&
+      row.low_balance_warning_for_at_ms === nextChargeAtMs
     ) {
       return null;
     }
@@ -592,14 +694,18 @@ async function reserveLowBalanceWarning(rowId: number) {
       return null;
     }
 
+    const nextChargeAt = new Date(nextChargeAtMs);
+
     await tx.$executeRawUnsafe(
       `
         UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
         SET low_balance_warning_for_at = ?,
+            low_balance_warning_for_at_ms = ?,
             updated_at = NOW()
         WHERE id = ?
       `,
       nextChargeAt,
+      nextChargeAtMs,
       row.id
     );
 
@@ -664,12 +770,13 @@ async function sendLowBalanceWarning(rowId: number) {
         `
           UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
           SET low_balance_warning_for_at = NULL,
+              low_balance_warning_for_at_ms = NULL,
               updated_at = NOW()
           WHERE id = ?
-            AND low_balance_warning_for_at = ?
+            AND low_balance_warning_for_at_ms = ?
         `,
         notice.rowId,
-        notice.nextChargeAt
+        notice.nextChargeAt.getTime()
       ).catch(() => 0);
       return { sent: false, skipped: true, error: 'reason' in result ? String(result.reason || '') : '' };
     }
@@ -680,12 +787,13 @@ async function sendLowBalanceWarning(rowId: number) {
       `
         UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
         SET low_balance_warning_for_at = NULL,
+            low_balance_warning_for_at_ms = NULL,
             updated_at = NOW()
         WHERE id = ?
-          AND low_balance_warning_for_at = ?
+          AND low_balance_warning_for_at_ms = ?
       `,
       notice.rowId,
-      notice.nextChargeAt
+      notice.nextChargeAt.getTime()
     ).catch(() => 0);
     return { sent: false, skipped: false, error: error instanceof Error ? error.message : 'Không gửi được email cảnh báo ví game' };
   }
@@ -694,16 +802,23 @@ async function sendLowBalanceWarning(rowId: number) {
 export async function runVpsGpuHourlyBilling() {
   await ensureVpsGpuInstancesTable();
   const providerInstances = await listProviderInstanceIds();
+  const warningThreshold = addMilliseconds(new Date(), LOW_BALANCE_WARNING_MS);
+  const warningThresholdMs = warningThreshold.getTime();
 
   const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
     `
-      SELECT id, provider_instance_id, next_charge_at
+      SELECT id, provider_instance_id, next_charge_at, next_charge_at_ms
       FROM \`${VPS_GPU_INSTANCES_TABLE}\`
       WHERE status IN (${activeStatusListSql()})
-        AND next_charge_at <= DATE_ADD(NOW(), INTERVAL 15 MINUTE)
-      ORDER BY next_charge_at ASC, id ASC
+        AND (
+          next_charge_at_ms <= ?
+          OR (next_charge_at_ms IS NULL AND next_charge_at <= ?)
+        )
+      ORDER BY COALESCE(next_charge_at_ms, 9223372036854775807) ASC, next_charge_at ASC, id ASC
       LIMIT 120
-    `
+    `,
+    warningThresholdMs,
+    warningThreshold
   );
 
   let charged = 0;
@@ -717,7 +832,8 @@ export async function runVpsGpuHourlyBilling() {
   for (const rawRow of rows) {
     const rowId = Math.trunc(toNumber(normalizeValue(rawRow.id), 0));
     const providerInstanceId = String(normalizeValue(rawRow.provider_instance_id) || '').trim();
-    const nextChargeAt = toDate(normalizeValue(rawRow.next_charge_at));
+    const nextChargeAtDate = toDate(normalizeValue(rawRow.next_charge_at));
+    const nextChargeAtMs = timestampMsFromDateFallback(rawRow.next_charge_at_ms, nextChargeAtDate);
     if (!rowId) continue;
 
     try {
@@ -726,7 +842,7 @@ export async function runVpsGpuHourlyBilling() {
         continue;
       }
 
-      if (nextChargeAt && nextChargeAt.getTime() > Date.now()) {
+      if (nextChargeAtMs && nextChargeAtMs > Date.now()) {
         const warning = await sendLowBalanceWarning(rowId);
         if (warning.sent) {
           warningsSent += 1;
