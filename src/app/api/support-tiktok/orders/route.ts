@@ -25,22 +25,6 @@ const DEFAULT_TIKTOK_SUPPORT_SERVICES = [
     description: 'Goi chat support TikTok 30 ngay cho 1 tai khoan.',
     displayOrder: 1,
   },
-  {
-    regionSlug: 'vn',
-    name: 'Chat Support TikTok - 10 tai khoan',
-    serviceKey: 'support-10-account',
-    price: 4500000,
-    description: 'Goi chat support TikTok 30 ngay cho 10 tai khoan.',
-    displayOrder: 2,
-  },
-  {
-    regionSlug: 'vn',
-    name: 'Chat Support TikTok - 100 tai khoan',
-    serviceKey: 'support-100-account',
-    price: 45000000,
-    description: 'Goi chat support TikTok 30 ngay cho 100 tai khoan.',
-    displayOrder: 3,
-  },
 ];
 
 function getClientIp(req: NextRequest) {
@@ -97,12 +81,16 @@ async function ensureDefaultTikTokSupportServices() {
       UPDATE tiktok_region_services
       SET status = 'inactive'
       WHERE region_slug = ?
-        AND service_key = ?
-        AND price <= ?
+        AND (
+          (service_key = ? AND price <= ?)
+          OR service_key IN (?, ?)
+        )
     `,
     'vn',
     'support-basic',
-    50000
+    50000,
+    'support-10-account',
+    'support-100-account'
   ).catch(() => undefined);
 
   for (const service of DEFAULT_TIKTOK_SUPPORT_SERVICES) {

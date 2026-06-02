@@ -79,6 +79,16 @@ interface VastOfferMeta {
   gpu_name?: string;
   num_gpus?: number;
   dph_total?: number;
+  verified?: boolean | number | string;
+  is_verified?: boolean | number | string;
+  verified_machine?: boolean | number | string;
+  machine_verified?: boolean | number | string;
+  verification?: string;
+  verification_status?: string;
+  machine_verification?: string;
+  host_verification?: string;
+  vericode?: number | string;
+  verification_code?: number | string;
 }
 
 interface VastLocation {
@@ -262,12 +272,57 @@ function toArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
+function normalizeBoolean(value: unknown, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function hasOwnField(record: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function isVerifiedHostnode(hostnode: VastHostnode) {
+  const offer = asRecord(hostnode.vast);
+  const verificationText = String(
+    offer.verification || offer.verification_status || offer.machine_verification || offer.host_verification || ''
+  )
+    .trim()
+    .toLowerCase();
+
+  if (verificationText) {
+    return verificationText === 'verified' || verificationText === 'secure cloud';
+  }
+
+  if (hasOwnField(offer, 'secure_cloud') && normalizeBoolean(offer.secure_cloud, false)) {
+    return true;
+  }
+
+  for (const key of ['verified', 'is_verified', 'verified_machine', 'machine_verified']) {
+    if (hasOwnField(offer, key)) {
+      return normalizeBoolean(offer[key], false);
+    }
+  }
+
+  for (const key of ['vericode', 'verification_code']) {
+    if (hasOwnField(offer, key)) {
+      const parsed = Number(offer[key]);
+      return Number.isFinite(parsed) && parsed > 0;
+    }
+  }
+
+  return true;
+}
+
 function extractLocations(payload: unknown): VastLocation[] {
   return toArray<VastLocation>(asRecord(asRecord(payload).data).locations);
 }
 
 function extractHostnodes(payload: unknown): VastHostnode[] {
-  return toArray<VastHostnode>(asRecord(asRecord(payload).data).hostnodes);
+  return toArray<VastHostnode>(asRecord(asRecord(payload).data).hostnodes).filter(isVerifiedHostnode);
 }
 
 function extractSecrets(payload: unknown): VastSecret[] {
@@ -637,7 +692,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       if (!payload.success) {
         throw new Error(payload.message || 'Không thể tìm gói GPU');
       }
-      const nextHostnodes = toArray<VastHostnode>(asRecord(payload.data).hostnodes);
+      const nextHostnodes = toArray<VastHostnode>(asRecord(payload.data).hostnodes).filter(isVerifiedHostnode);
       setHostnodes(nextHostnodes);
       const nextHostnodeId = nextHostnodes[0]?.id || '';
       if (nextHostnodeId) {

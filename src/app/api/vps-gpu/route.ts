@@ -152,6 +152,33 @@ function normalizeNumber(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function isVerifiedOffer(offer: VastOffer) {
+  const verificationText = normalizeString(
+    offer.verification || offer.verification_status || offer.machine_verification || offer.host_verification
+  ).toLowerCase();
+  if (verificationText) {
+    return verificationText === 'verified' || verificationText === 'secure cloud';
+  }
+
+  if (hasOwnField(offer, 'secure_cloud') && normalizeBoolean(offer.secure_cloud, false)) {
+    return true;
+  }
+
+  for (const key of ['verified', 'is_verified', 'verified_machine', 'machine_verified']) {
+    if (hasOwnField(offer, key)) {
+      return normalizeBoolean(offer[key], false);
+    }
+  }
+
+  for (const key of ['vericode', 'verification_code']) {
+    if (hasOwnField(offer, key)) {
+      return normalizeNumber(offer[key], 0) > 0;
+    }
+  }
+
+  return true;
+}
+
 function normalizeStringList(value: unknown) {
   if (Array.isArray(value)) {
     return value.map((item) => normalizeString(item)).filter(Boolean);
@@ -354,7 +381,7 @@ function getAllowedInstanceAction(path: string) {
 
 function extractOffers(payload: unknown): VastOffer[] {
   const data = asRecord(payload);
-  return toArray(data.offers || data.results || data.data || payload);
+  return toArray(data.offers || data.results || data.data || payload).filter(isVerifiedOffer);
 }
 
 function extractInstances(payload: unknown): VastInstance[] {
@@ -858,6 +885,7 @@ async function findLiveOfferById(offerId: string) {
     method: 'POST',
     body: JSON.stringify({
       rentable: { eq: true },
+      verified: { eq: true },
       ask_contract_id: { eq: offerNumber },
       limit: 1,
     }),
@@ -1114,7 +1142,7 @@ export async function POST(req: NextRequest) {
         return json({
           success: false,
           staleOffer: true,
-          message: 'Gói GPU vừa hết hoặc không còn cho thuê. Bấm Lọc gói rồi chọn gói khác.',
+          message: 'Gói GPU vừa hết, không còn cho thuê hoặc chưa được xác minh. Bấm Lọc gói rồi chọn gói đã xác minh khác.',
         });
       }
 

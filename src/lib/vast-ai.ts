@@ -113,6 +113,7 @@ export function buildVastOfferSearch(params: {
 }) {
   const payload: Record<string, unknown> = {
     rentable: { eq: true },
+    verified: { eq: true },
     type: params.type || 'ondemand',
     limit: normalizePositiveInt(params.limit, 40),
     order: [['dph_total', 'asc']],
