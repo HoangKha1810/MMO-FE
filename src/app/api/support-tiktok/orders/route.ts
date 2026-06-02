@@ -16,6 +16,33 @@ interface LegacyOrderRow extends Record<string, unknown> {
   status: string | null;
 }
 
+const DEFAULT_TIKTOK_SUPPORT_SERVICES = [
+  {
+    regionSlug: 'vn',
+    name: 'Chat Support TikTok - 1 tai khoan',
+    serviceKey: 'support-1-account',
+    price: 450000,
+    description: 'Goi chat support TikTok 30 ngay cho 1 tai khoan.',
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'vn',
+    name: 'Chat Support TikTok - 10 tai khoan',
+    serviceKey: 'support-10-account',
+    price: 4500000,
+    description: 'Goi chat support TikTok 30 ngay cho 10 tai khoan.',
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'vn',
+    name: 'Chat Support TikTok - 100 tai khoan',
+    serviceKey: 'support-100-account',
+    price: 45000000,
+    description: 'Goi chat support TikTok 30 ngay cho 100 tai khoan.',
+    displayOrder: 3,
+  },
+];
+
 function getClientIp(req: NextRequest) {
   return (
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -40,6 +67,69 @@ function readBodyValue(body: FormData | Record<string, unknown> | null, key: str
   return String(body?.[key] || '').trim();
 }
 
+async function ensureDefaultTikTokSupportServices() {
+  const [hasMenuTable, hasServiceTable] = await Promise.all([
+    tableExists('tiktok_service_menus'),
+    tableExists('tiktok_region_services'),
+  ]);
+
+  if (!hasMenuTable || !hasServiceTable) {
+    return;
+  }
+
+  await db.$executeRawUnsafe(
+    `
+      INSERT INTO tiktok_service_menus (name, slug, display_order, status)
+      SELECT ?, ?, ?, ?
+      WHERE NOT EXISTS (
+        SELECT 1 FROM tiktok_service_menus WHERE slug = ?
+      )
+    `,
+    'TikTok Viet Nam',
+    'vn',
+    1,
+    'active',
+    'vn'
+  ).catch(() => undefined);
+
+  await db.$executeRawUnsafe(
+    `
+      UPDATE tiktok_region_services
+      SET status = 'inactive'
+      WHERE region_slug = ?
+        AND service_key = ?
+        AND price <= ?
+    `,
+    'vn',
+    'support-basic',
+    50000
+  ).catch(() => undefined);
+
+  for (const service of DEFAULT_TIKTOK_SUPPORT_SERVICES) {
+    await db.$executeRawUnsafe(
+      `
+        INSERT INTO tiktok_region_services
+          (region_slug, name, service_key, price, description, display_order, status)
+        SELECT ?, ?, ?, ?, ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM tiktok_region_services
+          WHERE region_slug = ? AND service_key = ?
+        )
+      `,
+      service.regionSlug,
+      service.name,
+      service.serviceKey,
+      service.price,
+      service.description,
+      service.displayOrder,
+      'active',
+      service.regionSlug,
+      service.serviceKey
+    ).catch(() => undefined);
+  }
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireContext(req);
   if (auth.response) return auth.response;
@@ -62,6 +152,8 @@ export async function GET(req: NextRequest) {
     `,
     ...(auth.context!.isSupport && targetUserId === 0 ? [] : [ownerFilter])
   );
+
+  await ensureDefaultTikTokSupportServices();
 
   const services = await tableExists('tiktok_region_services')
     ? db.$queryRawUnsafe<Record<string, unknown>[]>(`
@@ -265,6 +357,8 @@ export async function POST(req: NextRequest) {
   if (!(await tableExists('tiktok_region_services'))) {
     return NextResponse.json({ success: false, message: 'Thiếu bảng tiktok_region_services' }, { status: 500 });
   }
+
+  await ensureDefaultTikTokSupportServices();
 
   const created = await db.$transaction(async (tx) => {
     const serviceRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(

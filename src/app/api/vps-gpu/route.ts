@@ -15,6 +15,7 @@ import {
   deleteOwnedVpsGpuInstance,
   extractCreatedProviderInstanceId,
   listOwnedVpsGpuBillings,
+  markVpsGpuEnded,
   markVpsGpuProviderStatus,
   requireOwnedVpsGpuBilling,
   toPublicBilling,
@@ -45,6 +46,7 @@ interface VpsGpuPricingSettings {
 }
 
 const VPS_GPU_OFFER_COSTS_TABLE = 'vps_gpu_offer_costs';
+const PROVIDER_MISSING_GRACE_MS = 2 * 60 * 1000;
 
 async function requireUser() {
   const cookieStore = await cookies();
@@ -94,6 +96,23 @@ function hasOwnField(record: Record<string, unknown>, key: string) {
 
 function isStaleOfferMessage(text: string) {
   return /no_such_ask|not available|instance type by id|offer.*(hết|không|not)|\/asks\/\d+/i.test(text);
+}
+
+function isProviderRuntimeError(text: string) {
+  return /error response from daemon|failed to create task|oci runtime|cdi devices|unresolvable cdi|failed to create shim task|failed to inject|container.*failed|pull access denied|manifest unknown/i.test(text);
+}
+
+function sanitizeInstanceStatusMessage(value: unknown, fallback = '') {
+  const text = normalizeString(value, fallback);
+  if (!text) {
+    return '';
+  }
+
+  if (isProviderRuntimeError(text)) {
+    return 'Máy nguồn không dựng được môi trường VPS cho gói này. Hãy xóa VPS này rồi chọn gói GPU hoặc image khác để tạo lại.';
+  }
+
+  return sanitizeProviderMessage(text, fallback);
 }
 
 function sanitizeProviderMessage(value: unknown, fallback = 'Nguồn GPU hiện chưa phản hồi') {
@@ -340,7 +359,17 @@ function extractOffers(payload: unknown): VastOffer[] {
 
 function extractInstances(payload: unknown): VastInstance[] {
   const data = asRecord(payload);
-  return toArray(data.instances || data.results || data.data || payload);
+  const nestedData = asRecord(data.data);
+  const nestedAttributes = asRecord(nestedData.attributes);
+  return toArray(
+    data.instances ||
+    data.results ||
+    nestedData.instances ||
+    nestedData.results ||
+    nestedAttributes.instances ||
+    data.data ||
+    payload
+  );
 }
 
 function extractSshKeys(payload: unknown): VastSshKey[] {
@@ -574,6 +603,7 @@ function getInstancePortRange(instance: VastInstance) {
 
 function formatInstanceStatusLabel(status: string, ready: boolean) {
   const normalized = status.toLowerCase();
+  if (normalized.includes('failed') || normalized.includes('error')) return 'Nguồn GPU không tạo được VPS';
   if (ready && normalized.includes('running')) return 'Sẵn sàng kết nối';
   if (normalized.includes('loading')) return 'Đang tải Docker';
   if (normalized.includes('creating') || normalized.includes('loading') || normalized.includes('starting') || normalized.includes('created') || normalized.includes('transferring')) {
@@ -611,6 +641,7 @@ function mapInstances(instances: VastInstance[]) {
     const portRange = getInstancePortRange(instance);
     const localIps = normalizeStringList(instance.local_ipaddrs);
     const statusMessage = normalizeString(instance.status_msg || instance.status_message);
+    const hasRuntimeError = isProviderRuntimeError(statusMessage);
     const runtimeState = [
       status,
       actualStatus,
@@ -619,7 +650,7 @@ function mapInstances(instances: VastInstance[]) {
       intendedStatus,
       statusMessage,
     ].map((item) => normalizeString(item).toLowerCase()).join(' ');
-    const isRunning = actualStatus === 'running';
+    const isRunning = actualStatus === 'running' && !hasRuntimeError;
     const isProvisioning = /creating|loading|starting|created|transferring|not running|installing|pending|queued|initializing|dockerfile/i.test(runtimeState);
     const isStopped = /stopped|exited|deleted|destroyed|paused|frozen|offline|unknown|unloaded/i.test(runtimeState);
     const ready = Boolean(
@@ -637,10 +668,12 @@ function mapInstances(instances: VastInstance[]) {
     const hourlyUsd = normalizeNumber(instance.dph_total || instance.dph_base || instance.dph, 0);
     const displayStatus = actualStatusIsProvisioning
       ? 'creating'
-      : isProvisioning && !ready
+      : hasRuntimeError
+        ? 'failed'
+        : isProvisioning && !ready
         ? status === 'running' ? 'loading' : status
         : status;
-    const displayStatusMessage = statusMessage || (actualStatusIsProvisioning
+    const displayStatusMessage = sanitizeInstanceStatusMessage(statusMessage) || (actualStatusIsProvisioning
       ? 'Instance đang được cấp phát. Chờ nguồn GPU chuyển actual_status sang running rồi mới có thể kết nối.'
       : '');
 
@@ -655,7 +688,7 @@ function mapInstances(instances: VastInstance[]) {
         curState: curState || null,
         nextState: nextState || null,
         intendedStatus: intendedStatus || null,
-        statusMessage: statusMessage || null,
+        statusMessage: displayStatusMessage || null,
       },
       type: 'GPU Instance',
       ipAddress: publicIp || sshHost,
@@ -733,7 +766,16 @@ function attachBillingToInstance(mappedInstance: ReturnType<typeof mapInstances>
   };
 }
 
-async function mapOwnedVpsGpuInstances(userId: number, providerInstances: VastInstance[]) {
+function shouldEndMissingProviderInstance(row: VpsGpuBillingRow) {
+  const startedAtMs = row.started_at_ms || row.started_at?.getTime() || 0;
+  return startedAtMs > 0 && Date.now() - startedAtMs > PROVIDER_MISSING_GRACE_MS;
+}
+
+async function mapOwnedVpsGpuInstances(
+  userId: number,
+  providerInstances: VastInstance[],
+  options: { providerListReliable?: boolean } = {}
+) {
   const billings = await listOwnedVpsGpuBillings(userId);
   const providerById = new Map(providerInstances.map((instance) => [getInstanceId(instance), instance]));
 
@@ -748,7 +790,18 @@ async function mapOwnedVpsGpuInstances(userId: number, providerInstances: VastIn
     })
   );
 
-  return billings.map((row) => {
+  const visibleBillings: VpsGpuBillingRow[] = [];
+
+  for (const row of billings) {
+    if (!providerById.has(row.provider_instance_id) && options.providerListReliable && shouldEndMissingProviderInstance(row)) {
+      await markVpsGpuEnded(row.provider_instance_id, 'provider_missing').catch(() => undefined);
+      continue;
+    }
+
+    visibleBillings.push(row);
+  }
+
+  return visibleBillings.map((row) => {
     const providerInstance = providerById.get(row.provider_instance_id) || makeBillingFallbackInstance(row);
     return attachBillingToInstance(mapInstances([providerInstance])[0], row);
   });
@@ -934,7 +987,9 @@ export async function GET(req: NextRequest) {
       ]);
 
       const mappedOffers = extractOffers(offers.data);
-      const mappedInstances = await mapOwnedVpsGpuInstances(userId, extractInstances(instances.data));
+      const mappedInstances = await mapOwnedVpsGpuInstances(userId, extractInstances(instances.data), {
+        providerListReliable: instances.ok,
+      });
       const mappedSshKeys = mapSshKeys(extractSshKeys(sshKeys.data));
       const pricingSettings = await getVpsGpuPricingSettings();
       const pricedHostnodes = applyVpsGpuPricing(mappedOffers.map(mapOfferToHostnode), pricingSettings);
@@ -1005,7 +1060,10 @@ export async function GET(req: NextRequest) {
 
     if (resource === 'instances') {
       const payload = await vastRequest('/instances/', undefined, { version: 'v1' });
-      return json({ success: true, data: { instances: await mapOwnedVpsGpuInstances(userId, extractInstances(payload)) } });
+      return json({
+        success: true,
+        data: { instances: await mapOwnedVpsGpuInstances(userId, extractInstances(payload), { providerListReliable: true }) },
+      });
     }
 
     if (resource.startsWith('instances/')) {

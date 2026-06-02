@@ -465,9 +465,19 @@ function getInstanceStatusLabel(instance: VastInstance) {
   return instance.statusLabel || getInstanceStatus(instance);
 }
 
+function isInstanceFailed(instance: VastInstance) {
+  const status = getInstanceStatus(instance).toLowerCase();
+  const message = String(instance.statusMessage || instance.sourceStatus?.statusMessage || '').toLowerCase();
+  return /failed|error|daemon|oci runtime|cdi devices|không tạo được/.test(`${status} ${message}`);
+}
+
 function isInstancePending(instance: VastInstance) {
   const status = getInstanceStatus(instance).toLowerCase();
   if (instance.connection?.ready) {
+    return false;
+  }
+
+  if (isInstanceFailed(instance)) {
     return false;
   }
 
@@ -476,6 +486,7 @@ function isInstancePending(instance: VastInstance) {
 
 function statusVariant(status: string) {
   const normalized = status.toLowerCase();
+  if (normalized.includes('failed') || normalized.includes('error')) return 'danger';
   if (normalized.includes('creating') || normalized.includes('loading') || normalized.includes('not running')) return 'warning';
   if (normalized.includes('running')) return 'success';
   if (normalized.includes('stopping') || normalized.includes('starting')) return 'warning';
@@ -1310,6 +1321,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               const status = getInstanceStatus(instance);
               const ready = Boolean(instance.connection?.ready);
               const pending = isInstancePending(instance);
+              const failed = isInstanceFailed(instance);
               const specs = instance.specs || {};
               const connection = instance.connection || {};
               const billing = instance.billing || null;
@@ -1353,10 +1365,22 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                         ) : null}
                       </div>
                     ) : (
-                      <div className="rounded-[1rem] border border-amber-400/25 bg-amber-500/10 p-4">
-                        <div className="flex items-center gap-2 text-sm font-black text-amber-600 dark:text-amber-300">
-                          <Loader2 className={cn('h-4 w-4', pending && 'animate-spin')} />
-                          {pending ? 'VPS đang cài đặt, trang sẽ tự cập nhật mỗi 8 giây' : 'VPS chưa có thông tin kết nối'}
+                      <div className={cn(
+                        'rounded-[1rem] border p-4',
+                        failed
+                          ? 'border-red-400/30 bg-red-500/10'
+                          : 'border-amber-400/25 bg-amber-500/10'
+                      )}>
+                        <div className={cn(
+                          'flex items-center gap-2 text-sm font-black',
+                          failed ? 'text-red-600 dark:text-red-300' : 'text-amber-600 dark:text-amber-300'
+                        )}>
+                          <Loader2 className={cn('h-4 w-4', pending && !failed && 'animate-spin')} />
+                          {failed
+                            ? 'Nguồn GPU không tạo được VPS này'
+                            : pending
+                              ? 'VPS đang cài đặt, trang sẽ tự cập nhật mỗi 8 giây'
+                              : 'VPS chưa có thông tin kết nối'}
                         </div>
                         {instance.statusMessage ? (
                           <p className="mt-2 text-xs font-semibold leading-6 text-slate-500 dark:text-slate-300">

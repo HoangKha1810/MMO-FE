@@ -82,16 +82,25 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO `tiktok_region_services` (`region_slug`, `name`, `service_key`, `price`, `description`, `display_order`, `status`)
-SELECT
-  'vn',
-  'Support TikTok co ban',
-  'support-basic',
-  50000.00,
-  'Goi mac dinh de test module Support TikTok sau khi tao bang.',
-  1,
-  'active'
+SELECT 'vn', 'Chat Support TikTok - 1 tai khoan', 'support-1-account', 450000.00, 'Goi chat support TikTok 30 ngay cho 1 tai khoan.', 1, 'active'
 WHERE NOT EXISTS (
-  SELECT 1
-  FROM `tiktok_region_services`
-  WHERE `region_slug` = 'vn' AND `service_key` = 'support-basic'
+  SELECT 1 FROM `tiktok_region_services` WHERE `region_slug` = 'vn' AND `service_key` = 'support-1-account'
+);
+
+UPDATE `tiktok_region_services`
+SET `status` = 'inactive'
+WHERE `region_slug` = 'vn'
+  AND `service_key` = 'support-basic'
+  AND `price` <= 50000.00;
+
+INSERT INTO `tiktok_region_services` (`region_slug`, `name`, `service_key`, `price`, `description`, `display_order`, `status`)
+SELECT 'vn', 'Chat Support TikTok - 10 tai khoan', 'support-10-account', 4500000.00, 'Goi chat support TikTok 30 ngay cho 10 tai khoan.', 2, 'active'
+WHERE NOT EXISTS (
+  SELECT 1 FROM `tiktok_region_services` WHERE `region_slug` = 'vn' AND `service_key` = 'support-10-account'
+);
+
+INSERT INTO `tiktok_region_services` (`region_slug`, `name`, `service_key`, `price`, `description`, `display_order`, `status`)
+SELECT 'vn', 'Chat Support TikTok - 100 tai khoan', 'support-100-account', 45000000.00, 'Goi chat support TikTok 30 ngay cho 100 tai khoan.', 3, 'active'
+WHERE NOT EXISTS (
+  SELECT 1 FROM `tiktok_region_services` WHERE `region_slug` = 'vn' AND `service_key` = 'support-100-account'
 );

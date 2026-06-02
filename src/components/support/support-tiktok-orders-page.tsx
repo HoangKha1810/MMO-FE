@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Plus, RefreshCw, Repeat2, TicketCheck } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Repeat2 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +59,9 @@ export function SupportTiktokOrdersPage() {
   );
   const regions = useMemo(() => Array.from(new Set(services.map((service) => service.region_slug).filter(Boolean))), [services]);
   const selectedService = services.find((service) => service.region_slug === form.region && service.service_key === form.service_key);
+  const selectedPrice = toNumber(selectedService?.price, 0);
+  const selectedPriceLabel = selectedService ? formatCurrency(selectedPrice) : services.length > 0 ? 'Chọn dịch vụ' : 'Chưa có đơn giá';
+  const canCreateOrder = Boolean(selectedService && selectedPrice > 0 && form.region && form.service_key && form.tiktok_id.trim());
 
   async function loadOrders() {
     setLoading(true);
@@ -86,8 +89,26 @@ export function SupportTiktokOrdersPage() {
     void loadOrders();
   }, []);
 
+  useEffect(() => {
+    if (!form.region || filteredServices.length === 0) {
+      return;
+    }
+
+    const hasSelectedService = filteredServices.some((service) => String(service.service_key) === form.service_key);
+    if (hasSelectedService) {
+      return;
+    }
+
+    setForm((current) => ({ ...current, service_key: String(filteredServices[0]?.service_key || '') }));
+  }, [filteredServices, form.region, form.service_key]);
+
   async function createOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!selectedService || selectedPrice <= 0) {
+      setError('Chọn dịch vụ có đơn giá hợp lệ trước khi tạo đơn.');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     setMessage('');
@@ -167,25 +188,90 @@ export function SupportTiktokOrdersPage() {
               value={form.service_key}
               onChange={(event) => setForm((current) => ({ ...current, service_key: event.target.value }))}
               className="field-elevated h-12 rounded-[1rem] px-4 text-sm font-bold text-slate-900 dark:text-white lg:col-span-2"
+              disabled={filteredServices.length === 0}
               required
             >
-              <option value="">Chọn dịch vụ</option>
+              <option value="">{filteredServices.length === 0 ? 'Region này chưa có đơn giá' : 'Chọn dịch vụ'}</option>
               {filteredServices.map((service) => (
                 <option key={String(service.id)} value={String(service.service_key)}>{service.name} - {formatCurrency(toNumber(service.price, 0))}</option>
               ))}
             </select>
             <Input value={form.tiktok_id} onChange={(event) => setForm((current) => ({ ...current, tiktok_id: event.target.value }))} placeholder="@tiktok hoặc ID" required />
-            <Button type="submit" loading={submitting} loadingText="Đang tạo...">
+            <Button type="submit" loading={submitting} loadingText="Đang tạo..." disabled={!canCreateOrder}>
               <Plus className="mr-2 h-4 w-4" />
               Tạo đơn
             </Button>
+            <div className="rounded-[1.25rem] border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 lg:col-span-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-300">
+                    Đơn giá đang chọn
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-300">
+                    Giá này được trừ trực tiếp khi tạo đơn, admin có thể chỉnh trong bảng dịch vụ TikTok.
+                  </div>
+                </div>
+                <span className="font-mono text-2xl font-black text-emerald-500">{selectedPriceLabel}</span>
+              </div>
+            </div>
             <Input value={form.buyer_name} onChange={(event) => setForm((current) => ({ ...current, buyer_name: event.target.value }))} placeholder="Tên người mua" />
             <Input value={form.buyer_contact} onChange={(event) => setForm((current) => ({ ...current, buyer_contact: event.target.value }))} placeholder="Zalo/SĐT liên hệ" className="lg:col-span-2" />
-            <div className="surface-card flex items-center justify-between rounded-[1rem] px-4 py-3 lg:col-span-2">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Giá dịch vụ</span>
-              <span className="font-mono text-lg font-black text-emerald-500">{formatCurrency(toNumber(selectedService?.price, 0))}</span>
-            </div>
           </form>
+          <div className="rounded-[1.4rem] border border-cyan-400/20 bg-cyan-500/10 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-300">
+                  Bảng đơn giá
+                </div>
+                <div className="mt-1 text-sm font-bold text-slate-600 dark:text-slate-300">
+                  Chọn region và dịch vụ, hệ thống sẽ tính đúng đơn giá trước khi tạo đơn.
+                </div>
+              </div>
+              <div className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-right">
+                <div className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-300">
+                  Đang chọn
+                </div>
+                <div className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-300">
+                  {selectedService ? formatCurrency(selectedPrice) : 'Chưa chọn'}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {filteredServices.length === 0 ? (
+                <div className="rounded-[1rem] border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-bold text-slate-400 dark:border-white/10">
+                  Region này chưa có đơn giá.
+                </div>
+              ) : (
+                filteredServices.map((service) => {
+                  const active = String(service.service_key) === form.service_key;
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => setForm((current) => ({ ...current, service_key: String(service.service_key || '') }))}
+                      className={`rounded-[1rem] border p-4 text-left transition ${
+                        active
+                          ? 'border-brand-blue/40 bg-brand-blue/10 shadow-[0_0_0_3px_rgba(37,99,235,0.12)]'
+                          : 'border-slate-200 bg-white/60 hover:border-brand-blue/25 dark:border-white/10 dark:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="line-clamp-2 min-h-[2.5rem] text-sm font-black uppercase tracking-tight text-slate-950 dark:text-white">
+                        {service.name || service.service_key}
+                      </div>
+                      <div className="mt-3 font-mono text-xl font-black text-emerald-500">
+                        {formatCurrency(toNumber(service.price, 0))}
+                      </div>
+                      {service.description ? (
+                        <div className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
+                          {service.description}
+                        </div>
+                      ) : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </SectionPanel>
 
         <SectionPanel className="space-y-5">
@@ -221,14 +307,6 @@ export function SupportTiktokOrdersPage() {
               ))}
             </div>
           )}
-        </SectionPanel>
-
-        <SectionPanel className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Support-wide</div>
-            <div className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">Đội ngũ TRUNGTAMMMO theo dõi toàn bộ đơn Support TikTok tại trung tâm vận hành chuyên dụng.</div>
-          </div>
-          <TicketCheck className="h-8 w-8 text-brand-blue" />
         </SectionPanel>
       </div>
     </AppShell>

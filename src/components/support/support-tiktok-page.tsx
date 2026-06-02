@@ -688,7 +688,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
         description={
           meta?.isSupport
             ? 'Theo dõi hội thoại khách hàng, trả lời trực tiếp, xem đơn TikTok và xử lý trạng thái trong cùng một hộp điều phối.'
-            : 'Trao đổi trực tiếp với đội Support TikTok. Gửi TikTok ID, mã đơn hoặc ảnh lỗi để được xử lý nhanh và không còn hiện tên handle cố định trên giao diện.'
+            : 'Trao đổi trực tiếp với đội Support TikTok. Gửi TikTok ID, mã đơn hoặc ảnh lỗi để được xử lý nhanh.'
         }
         actions={
           <>
@@ -1176,84 +1176,6 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
               ) : null}
             </SectionPanel>
 
-            {!meta?.isSupport ? (
-              <SectionPanel className="space-y-5">
-                <SectionHeader
-                  eyebrow="Thông Tin Module"
-                  title="Kênh hỗ trợ hiện tại"
-                  description="Mình đã bỏ chỗ hiển thị handle cố định kiểu @nhatmediatiktok. Từ giờ giao diện chỉ hiện nhãn chung của đội hỗ trợ."
-                />
-                <div className="grid gap-3">
-                  <div className="surface-card rounded-[1.35rem] p-4">
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                      Kênh hỗ trợ
-                    </div>
-                    <div className="mt-2 flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-blue/10 text-brand-blue">
-                        <Headphones className="h-5 w-5" />
-                      </div>
-                      <div className="text-base font-black uppercase tracking-tight text-slate-950 dark:text-white">
-                        {SUPPORT_LABEL}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="surface-card rounded-[1.35rem] p-4">
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                      Trạng thái chat
-                    </div>
-                    <div className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-                      {canUseChat
-                        ? 'Chat đã mở. Bạn có thể gửi tin nhắn và ảnh lỗi trực tiếp cho đội hỗ trợ.'
-                        : meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'}
-                    </div>
-                    {meta?.latestOrderStatus ? (
-                      <div className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                        Đơn gần nhất: {getOrderStatusLabel(meta.latestOrderStatus)}
-                        {meta.latestOrderExpiresAt ? ` · Hết hạn ${formatShortTime(meta.latestOrderExpiresAt)}` : ''}
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="surface-card rounded-[1.35rem] p-4">
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                      Gợi ý gửi support
-                    </div>
-                    <div className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-                      Gửi TikTok ID, mô tả lỗi, ảnh chụp màn hình hoặc mã đơn để đội support kiểm tra nhanh hơn.
-                    </div>
-                  </div>
-                </div>
-
-                {orders.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                      Đơn gần đây
-                    </div>
-                    {orders.slice(0, 3).map((order) => (
-                      <div key={`summary-${order.id}`} className="surface-chip rounded-[1.2rem] px-4 py-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-black uppercase tracking-tight text-slate-950 dark:text-white">
-                              {order.service_name || order.service_key || `Đơn #${order.id}`}
-                            </div>
-                            <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                              TikTok ID: {order.tiktok_id || '-'}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-mono text-sm font-black text-emerald-500">
-                              {formatCurrency(toNumber(order.price, 0))}
-                            </div>
-                            <div className={cn('mt-1 text-[10px] font-black uppercase tracking-[0.16em]', String(order.status || '').toLowerCase() === 'canceled' ? 'text-rose-500' : 'text-slate-400')}>
-                              {getOrderStatusLabel(order.status)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </SectionPanel>
-            ) : null}
           </div>
         </div>
       )}
