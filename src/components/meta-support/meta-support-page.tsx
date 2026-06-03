@@ -186,7 +186,7 @@ export function MetaSupportPage() {
         <PageHero
           eyebrow="Dịch vụ độc quyền"
           title="Auto kích nút + Chat Support Meta"
-          description="Gửi Gmail cần xử lý, thông tin liên hệ và ghi chú support. Admin nhận đơn để vận hành tool riêng, không cần cấu hình cha con như Auto MXH."
+          description="Gửi Gmail cần xử lý, thông tin liên hệ và ghi chú support. AI tool sẽ hỗ trợ xử lý đúng hướng và cập nhật trạng thái ngay trong lịch sử đơn."
           stats={[
             { label: 'Gói dịch vụ', value: '1 TK', hint: formatCurrency(toNumber(packages[0]?.price, 450_000)), tone: 'blue' },
             { label: 'Đơn của bạn', value: String(totalOrders), hint: 'đã gửi', tone: 'slate' },

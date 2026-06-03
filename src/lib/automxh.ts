@@ -19,6 +19,7 @@ interface AutoMxhProductRow {
   category_id: number;
   name: string;
   description: string | null;
+  badge?: string | null;
   custom_inputs?: string | null;
   input_label?: string | null;
   input_placeholder?: string | null;
@@ -74,6 +75,7 @@ export interface AutoMxhProduct {
   category_id: number;
   name: string;
   description: string;
+  badge: string;
   min_price: number;
   variant_count: number;
   custom_inputs?: string;
@@ -124,6 +126,7 @@ function normalizeProduct(row: AutoMxhProductRow): AutoMxhProduct {
     category_id: Number(row.category_id),
     name: row.name,
     description: row.description || '',
+    badge: row.badge || '',
     min_price: toNumber(row.min_price, 0),
     variant_count: Number(row.variant_count || 0),
     custom_inputs: row.custom_inputs || '',
@@ -183,29 +186,74 @@ export function parseProductInputs(product: Pick<AutoMxhProduct, 'custom_inputs'
   return inputs;
 }
 
+async function autoMxhProductBadgeColumnExists() {
+  const rows = await db.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `
+      SELECT COLUMN_NAME AS column_name
+      FROM information_schema.columns
+      WHERE table_schema = DATABASE()
+        AND table_name = 'automxh_products'
+        AND column_name = 'badge'
+      LIMIT 1
+    `
+  ).catch(() => []);
+
+  return rows.length > 0;
+}
+
+async function autoMxhColumnExists(tableName: string, columnName: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `
+      SELECT COLUMN_NAME AS column_name
+      FROM information_schema.columns
+      WHERE table_schema = DATABASE()
+        AND table_name = ?
+        AND column_name = ?
+      LIMIT 1
+    `,
+    tableName,
+    columnName
+  ).catch(() => []);
+
+  return rows.length > 0;
+}
+
 export async function listAutoMxhCatalog(): Promise<AutoMxhCatalogSection[]> {
-  const [categoriesRows, productRows] = await Promise.all([
+  const [categoriesRows, hasProductBadge] = await Promise.all([
     db.$queryRaw<AutoMxhCategoryRow[]>`
       SELECT id, name, slug, icon, gif, status
       FROM automxh_categories
       WHERE status = 'active'
       ORDER BY name ASC
     `,
-    db.$queryRaw<AutoMxhProductRow[]>`
+    autoMxhProductBadgeColumnExists(),
+  ]);
+  const productBadgeSelect = hasProductBadge ? 'p.badge' : "''";
+  const productBadgeGroupBy = hasProductBadge ? ', p.badge' : '';
+  const productDeletedCondition = await autoMxhColumnExists('automxh_products', 'is_deleted')
+    ? 'AND COALESCE(p.is_deleted, 0) = 0'
+    : '';
+  const variantDeletedCondition = await autoMxhColumnExists('automxh_variants', 'is_deleted')
+    ? 'AND COALESCE(v.is_deleted, 0) = 0'
+    : '';
+  const productRows = await db.$queryRawUnsafe<AutoMxhProductRow[]>(
+    `
       SELECT
         p.id,
         p.category_id,
         p.name,
         p.description,
+        ${productBadgeSelect} AS badge,
         COALESCE(MIN(v.price), p.price, 0) AS min_price,
         COUNT(v.id) AS variant_count
       FROM automxh_products p
-      LEFT JOIN automxh_variants v ON p.id = v.product_id AND v.status = 'active'
+      LEFT JOIN automxh_variants v ON p.id = v.product_id AND v.status = 'active' ${variantDeletedCondition}
       WHERE p.status = 'active'
-      GROUP BY p.id, p.category_id, p.name, p.description, p.price
+        ${productDeletedCondition}
+      GROUP BY p.id, p.category_id, p.name, p.description, p.price${productBadgeGroupBy}
       ORDER BY p.id ASC
-    `,
-  ]);
+    `
+  );
 
   const categories = categoriesRows.map(normalizeCategory);
   const products = productRows.map(normalizeProduct);
@@ -231,12 +279,18 @@ export async function getAutoMxhCategory(slug: string) {
 }
 
 export async function getAutoMxhProductsForCategory(categoryId: number): Promise<AutoMxhProductWithVariants[]> {
-  const productRows = await db.$queryRaw<AutoMxhProductRow[]>`
+  const hasProductBadge = await autoMxhProductBadgeColumnExists();
+  const productDeletedCondition = await autoMxhColumnExists('automxh_products', 'is_deleted')
+    ? 'AND COALESCE(is_deleted, 0) = 0'
+    : '';
+  const productRows = await db.$queryRawUnsafe<AutoMxhProductRow[]>(
+    `
     SELECT
       id,
       category_id,
       name,
       description,
+      ${hasProductBadge ? 'badge' : "''"} AS badge,
       custom_inputs,
       input_label,
       input_placeholder,
@@ -245,15 +299,21 @@ export async function getAutoMxhProductsForCategory(categoryId: number): Promise
       COALESCE(price, 0) AS min_price,
       0 AS variant_count
     FROM automxh_products
-    WHERE category_id = ${categoryId} AND status = 'active'
+    WHERE category_id = ? AND status = 'active'
+      ${productDeletedCondition}
     ORDER BY id ASC
-  `;
+  `,
+    categoryId
+  );
 
   const products = productRows.map(normalizeProduct);
   if (products.length === 0) {
     return [];
   }
 
+  const variantDeletedSql = await autoMxhColumnExists('automxh_variants', 'is_deleted')
+    ? Prisma.sql`AND COALESCE(is_deleted, 0) = 0`
+    : Prisma.empty;
   const variantRows = await db.$queryRaw<AutoMxhVariantRow[]>(Prisma.sql`
     SELECT
       id,
@@ -270,6 +330,7 @@ export async function getAutoMxhProductsForCategory(categoryId: number): Promise
       allow_files
     FROM automxh_variants
     WHERE product_id IN (${Prisma.join(products.map((product) => product.id))}) AND status = 'active'
+    ${variantDeletedSql}
     ORDER BY id ASC
   `);
   const variants = variantRows.map(normalizeVariant);

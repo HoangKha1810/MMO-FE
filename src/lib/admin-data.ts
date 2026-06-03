@@ -128,11 +128,11 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
   'automxh-products': {
     table: 'automxh_products',
     title: 'Auto MXH products',
-    searchFields: ['name', 'description', 'status', 'type'],
+    searchFields: ['name', 'description', 'badge', 'status', 'type'],
     statusField: 'status',
     rawOrder: 'updated_at DESC, id DESC',
-    createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
-    updateFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
+    createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
+    updateFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
   },
   'automxh-orders': {
     table: 'automxh_orders',
@@ -1417,8 +1417,25 @@ async function listAutoMxhProducts(config: ResourceConfig, params: URLSearchPara
   }
 
   if (search) {
-    conditions.push('(`name` LIKE ? OR COALESCE(`slug`, \'\') LIKE ? OR COALESCE(`description`, \'\') LIKE ? OR CAST(COALESCE(`api_service_id`, \'\') AS CHAR) LIKE ?)');
-    values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    const searchConditions = ['`name` LIKE ?'];
+    values.push(`%${search}%`);
+    if (columns.has('slug')) {
+      searchConditions.push('COALESCE(`slug`, \'\') LIKE ?');
+      values.push(`%${search}%`);
+    }
+    if (columns.has('description')) {
+      searchConditions.push('COALESCE(`description`, \'\') LIKE ?');
+      values.push(`%${search}%`);
+    }
+    if (columns.has('badge')) {
+      searchConditions.push('COALESCE(`badge`, \'\') LIKE ?');
+      values.push(`%${search}%`);
+    }
+    if (columns.has('api_service_id')) {
+      searchConditions.push('CAST(COALESCE(`api_service_id`, \'\') AS CHAR) LIKE ?');
+      values.push(`%${search}%`);
+    }
+    conditions.push(`(${searchConditions.join(' OR ')})`);
   }
 
   if (status && columns.has('status')) {
@@ -1440,27 +1457,34 @@ async function listAutoMxhProducts(config: ResourceConfig, params: URLSearchPara
             .replace(/\(`name`/g, '(p.`name`')
             .replace(/COALESCE\(`slug`/g, 'COALESCE(p.`slug`')
             .replace(/COALESCE\(`description`/g, 'COALESCE(p.`description`')
+            .replace(/COALESCE\(`badge`/g, 'COALESCE(p.`badge`')
             .replace(/COALESCE\(`api_service_id`/g, 'COALESCE(p.`api_service_id`')
             .replace(/`category_id`/g, 'p.`category_id`')
         )
         .join(' AND ')}`
     : '';
   const hasAutomxhCategoriesTable = await tableExists('automxh_categories');
+  const categoryJoinSql = hasAutomxhCategoriesTable ? 'LEFT JOIN automxh_categories c ON c.id = p.category_id' : '';
+  const categoryNameSelect = hasAutomxhCategoriesTable ? 'c.name AS category_name' : 'NULL AS category_name';
+  const variantDeletedCondition = (await getRawTableColumns('automxh_variants').catch(() => new Set<string>())).has('is_deleted')
+    ? 'AND COALESCE(v.is_deleted, 0) = 0'
+    : '';
+  const orderSql = columns.has('updated_at') ? 'p.updated_at DESC, p.id DESC' : 'p.id DESC';
   const [rows, countRows, categoryRows] = await Promise.all([
     db.$queryRawUnsafe<Record<string, unknown>[]>(
       `
         SELECT p.*,
-               c.name AS category_name,
+               ${categoryNameSelect},
                (
                  SELECT COUNT(*)
                  FROM automxh_variants v
                  WHERE v.product_id = p.id
-                   AND COALESCE(v.is_deleted, 0) = 0
+                   ${variantDeletedCondition}
                ) AS variant_count
         FROM \`${table}\` p
-        LEFT JOIN automxh_categories c ON c.id = p.category_id
+        ${categoryJoinSql}
         ${prefixedWhereSql}
-        ORDER BY p.updated_at DESC, p.id DESC
+        ORDER BY ${orderSql}
         LIMIT ? OFFSET ?
       `,
       ...values,
@@ -2209,6 +2233,30 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
     clearSmmServicesCache();
     await logAdminAction({ adminId, action: 'soft delete smm service', target: `#${id}`, req });
     return { success: true, data: normalizeValue(updated) };
+  }
+
+  if (resource === 'deposits') {
+    const deposit = await db.transactions.findFirst({
+      where: { id, type: 'deposit' },
+      select: { id: true, status: true },
+    });
+    if (!deposit) {
+      throw new Error('Không tìm thấy giao dịch nạp tiền');
+    }
+
+    const normalizedStatus = String(deposit.status || '').trim().toLowerCase();
+    if (normalizedStatus === 'success') {
+      const updated = await db.transactions.update({
+        where: { id },
+        data: { status: 'failed' },
+      });
+      await logAdminAction({ adminId, action: 'mark deposit failed', target: `#${id}`, req });
+      return { success: true, data: normalizeValue(updated) };
+    }
+
+    await db.transactions.delete({ where: { id } });
+    await logAdminAction({ adminId, action: 'delete deposit', target: `#${id}`, req });
+    return { success: true };
   }
 
   if (config.table) {

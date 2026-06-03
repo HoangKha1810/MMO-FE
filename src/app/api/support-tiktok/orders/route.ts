@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { tableExists } from '@/lib/legacy-modules';
+import { normalizeLegacyRow, normalizeLegacyRows, tableExists, type LegacyRow } from '@/lib/legacy-modules';
 import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
 import { getSupportTiktokContext } from '@/lib/support-tiktok';
 import { toNumber } from '@/lib/utils';
@@ -226,6 +226,20 @@ async function getTikTokOrderAllowedStatuses() {
   return Array.from(match[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)).map((item) => item[1].replace(/\\'/g, "'"));
 }
 
+async function getTableColumns(tableName: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `
+      SELECT COLUMN_NAME AS column_name
+      FROM information_schema.columns
+      WHERE table_schema = DATABASE()
+        AND table_name = ?
+    `,
+    tableName
+  ).catch(() => []);
+
+  return new Set(rows.map((row) => String(row.column_name)));
+}
+
 async function resolveTikTokOrderStatus(preferred: string) {
   const allowed = await getTikTokOrderAllowedStatuses();
   if (!allowed || allowed.includes(preferred)) {
@@ -253,20 +267,32 @@ function getClientIp(req: NextRequest) {
   );
 }
 
-async function requireContext(req: NextRequest) {
+async function requireContext(req: NextRequest, options: { allowMaintenance?: boolean } = {}) {
   const cookieStore = await cookies();
   const userId = Number(cookieStore.get('user_id')?.value || 0);
   if (!userId) return { response: NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 }) };
 
-  const context = await getSupportTiktokContext(userId, getClientIp(req));
+  const context = await getSupportTiktokContext(userId, getClientIp(req)).catch((error) => {
+    console.error('[support-tiktok/context]', error);
+    return null;
+  });
   if (!context) return { response: NextResponse.json({ success: false, message: 'User not found' }, { status: 404 }) };
-  if (!context.canAccess) return { response: NextResponse.json({ success: false, message: 'Module đang bảo trì' }, { status: 503 }) };
+  if (!options.allowMaintenance && !context.canAccess) {
+    return { response: NextResponse.json({ success: false, message: 'Module đang bảo trì' }, { status: 503 }) };
+  }
   return { userId, context };
 }
 
 function readBodyValue(body: FormData | Record<string, unknown> | null, key: string) {
   if (body instanceof FormData) return String(body.get(key) || '').trim();
   return String(body?.[key] || '').trim();
+}
+
+function supportTikTokError(error: unknown, fallback = 'Không xử lý được đơn Support TikTok') {
+  const message = error instanceof Error ? error.message : fallback;
+  const status = /số dư|không tìm thấy|thiếu|không hợp lệ/i.test(message) ? 400 : 500;
+  console.error('[support-tiktok/orders]', error);
+  return NextResponse.json({ success: false, message }, { status });
 }
 
 async function ensureDefaultTikTokSupportServices() {
@@ -340,78 +366,116 @@ async function ensureDefaultTikTokSupportServices() {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireContext(req);
-  if (auth.response) return auth.response;
+  try {
+    const auth = await requireContext(req, { allowMaintenance: true });
+    if (auth.response) return auth.response;
 
-  const hasOrders = await tableExists('tiktok_support_orders');
-  if (!hasOrders) {
-    return NextResponse.json({ success: false, message: 'Thiếu bảng tiktok_support_orders' }, { status: 500 });
-  }
+    await ensureDefaultTikTokSupportServices();
 
-  const targetUserId = Number(req.nextUrl.searchParams.get('user_id') || 0);
-  const ownerFilter = auth.context!.isSupport && targetUserId > 0 ? targetUserId : auth.userId!;
-  const orders = await db.$queryRawUnsafe<LegacyOrderRow[]>(
-    `
-      SELECT o.*, u.username
-      FROM tiktok_support_orders o
-      LEFT JOIN users u ON u.id = o.user_id
-      WHERE ${auth.context!.isSupport && targetUserId === 0 ? '1 = 1' : 'o.user_id = ?'}
-      ORDER BY o.updated_at DESC, o.id DESC
-      LIMIT 120
-    `,
-    ...(auth.context!.isSupport && targetUserId === 0 ? [] : [ownerFilter])
-  );
+    const hasOrders = await tableExists('tiktok_support_orders');
+    const targetUserId = Number(req.nextUrl.searchParams.get('user_id') || 0);
+    const ownerFilter = auth.context!.isSupport && targetUserId > 0 ? targetUserId : auth.userId!;
+    let orders: LegacyOrderRow[] = [];
+    let ordersError = '';
 
-  await ensureDefaultTikTokSupportServices();
+    if (hasOrders) {
+      const orderColumns = await getTableColumns('tiktok_support_orders');
+      const orderByColumn = orderColumns.has('updated_at')
+        ? 'o.updated_at'
+        : orderColumns.has('created_at')
+          ? 'o.created_at'
+          : 'o.id';
+      orders = await db.$queryRawUnsafe<LegacyOrderRow[]>(
+        `
+          SELECT o.*, u.username
+          FROM tiktok_support_orders o
+          LEFT JOIN users u ON u.id = o.user_id
+          WHERE ${auth.context!.isSupport && targetUserId === 0 ? '1 = 1' : 'o.user_id = ?'}
+          ORDER BY ${orderByColumn} DESC, o.id DESC
+          LIMIT 120
+        `,
+        ...(auth.context!.isSupport && targetUserId === 0 ? [] : [ownerFilter])
+      ).catch((error) => {
+        ordersError = error instanceof Error ? error.message : 'Không truy vấn được danh sách đơn';
+        return [];
+      });
+    }
 
-  const hasRegionServices = await tableExists('tiktok_region_services');
-  const dbServices = hasRegionServices
-    ? await db.$queryRawUnsafe<Record<string, unknown>[]>(`
-        SELECT s.id, s.region_slug, s.name, s.service_key, s.price, s.description, s.display_order, s.status
-        FROM tiktok_region_services s
-        WHERE s.status = 'active'
-          AND (
-            NOT EXISTS (SELECT 1 FROM tiktok_service_menus)
-            OR EXISTS (
-              SELECT 1
-              FROM tiktok_service_menus m
-              WHERE m.slug = s.region_slug AND m.status = 'active'
+    const hasRegionServices = await tableExists('tiktok_region_services');
+    const dbServices = hasRegionServices
+      ? await db.$queryRawUnsafe<Record<string, unknown>[]>(`
+          SELECT s.id, s.region_slug, s.name, s.service_key, s.price, s.description, s.display_order, s.status
+          FROM tiktok_region_services s
+          WHERE s.status = 'active'
+            AND (
+              NOT EXISTS (SELECT 1 FROM tiktok_service_menus)
+              OR EXISTS (
+                SELECT 1
+                FROM tiktok_service_menus m
+                WHERE m.slug = s.region_slug AND m.status = 'active'
+              )
             )
-          )
-        ORDER BY
-          COALESCE((SELECT m.display_order FROM tiktok_service_menus m WHERE m.slug = s.region_slug LIMIT 1), 999),
-          s.display_order ASC,
-          s.id ASC
-      `).catch(() => [])
-    : [];
+          ORDER BY
+            COALESCE((SELECT m.display_order FROM tiktok_service_menus m WHERE m.slug = s.region_slug LIMIT 1), 999),
+            s.display_order ASC,
+            s.id ASC
+        `).catch(() => [])
+      : [];
 
-  const hasMenus = await tableExists('tiktok_service_menus');
-  const dbMenus = hasMenus
-    ? await db.$queryRawUnsafe<Record<string, unknown>[]>(`
-        SELECT id, name, slug, display_order, status
-        FROM tiktok_service_menus
-        WHERE status = 'active'
-        ORDER BY display_order ASC, id ASC
-      `).catch(() => [])
-    : [];
-  const services = dbServices.length > 0 ? dbServices : defaultTikTokServicesForResponse();
-  const menus = dbMenus.length > 0 ? dbMenus : defaultTikTokMenusForResponse();
+    const hasMenus = await tableExists('tiktok_service_menus');
+    const dbMenus = hasMenus
+      ? await db.$queryRawUnsafe<Record<string, unknown>[]>(`
+          SELECT id, name, slug, display_order, status
+          FROM tiktok_service_menus
+          WHERE status = 'active'
+          ORDER BY display_order ASC, id ASC
+        `).catch(() => [])
+      : [];
+    const services = dbServices.length > 0 ? dbServices : defaultTikTokServicesForResponse();
+    const menus = dbMenus.length > 0 ? dbMenus : defaultTikTokMenusForResponse();
 
-  return NextResponse.json({ success: true, data: { orders, services, menus, is_support: auth.context!.isSupport } });
+    return NextResponse.json({
+      success: true,
+      data: {
+        orders: normalizeLegacyRows(orders as unknown as LegacyRow[]),
+        services: normalizeLegacyRows(services as LegacyRow[]),
+        menus: normalizeLegacyRows(menus as LegacyRow[]),
+        is_support: auth.context!.isSupport,
+        order_table_available: hasOrders,
+        warning: hasOrders ? '' : 'Bảng tiktok_support_orders chưa tồn tại, chỉ hiển thị bảng giá.',
+        orders_error: ordersError,
+      },
+    });
+  } catch (error) {
+    console.error('[support-tiktok/orders:get]', error);
+    return NextResponse.json({
+      success: true,
+      data: {
+        orders: [],
+        services: defaultTikTokServicesForResponse(),
+        menus: defaultTikTokMenusForResponse(),
+        is_support: false,
+        order_table_available: false,
+        warning: error instanceof Error ? error.message : 'Không tải được đơn Support TikTok',
+        orders_error: error instanceof Error ? error.message : 'Không tải được đơn Support TikTok',
+      },
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireContext(req);
-  if (auth.response) return auth.response;
-  if (!(await tableExists('tiktok_support_orders'))) {
-    return NextResponse.json({ success: false, message: 'Thiếu bảng tiktok_support_orders' }, { status: 500 });
-  }
+  try {
+    const auth = await requireContext(req);
+    if (auth.response) return auth.response;
+    if (!(await tableExists('tiktok_support_orders'))) {
+      return NextResponse.json({ success: false, message: 'Thiếu bảng tiktok_support_orders' }, { status: 500 });
+    }
 
-  const contentType = req.headers.get('content-type') || '';
-  const body = contentType.includes('multipart/form-data')
-    ? await req.formData().catch(() => null)
-    : await req.json().catch(() => null);
-  const action = readBodyValue(body, 'action') || 'create';
+    const contentType = req.headers.get('content-type') || '';
+    const body = contentType.includes('multipart/form-data')
+      ? await req.formData().catch(() => null)
+      : await req.json().catch(() => null);
+    const action = readBodyValue(body, 'action') || 'create';
 
   if (action === 'update_status') {
     if (!auth.context!.isSupport) {
@@ -494,7 +558,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Đã cập nhật trạng thái đơn TikTok',
-      data: updated,
+      data: updated ? normalizeLegacyRow(updated as unknown as LegacyRow) : null,
     });
   }
 
@@ -530,7 +594,7 @@ export async function POST(req: NextRequest) {
         `,
         String(order.region || ''),
         String(order.service_key || '')
-      );
+      ).catch(() => []);
       const renewSubtotal = Math.max(
         0,
         toNumber(serviceRows[0]?.price, toNumber(order.price, 0))
@@ -581,26 +645,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Thiếu region, service_key hoặc TikTok ID' }, { status: 400 });
   }
 
-  if (!(await tableExists('tiktok_region_services'))) {
-    return NextResponse.json({ success: false, message: 'Thiếu bảng tiktok_region_services' }, { status: 500 });
-  }
-
   await ensureDefaultTikTokSupportServices();
+  const hasRegionServiceTable = await tableExists('tiktok_region_services');
   const initialOrderStatus = await resolveTikTokOrderStatus('completed');
 
   const created = await db.$transaction(async (tx) => {
-    const serviceRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
-      `
-        SELECT *
-        FROM tiktok_region_services
-        WHERE region_slug = ?
-          AND service_key = ?
-          AND status = 'active'
-        LIMIT 1
-      `,
-      region,
-      serviceKey
-    );
+    const serviceRows = hasRegionServiceTable
+      ? await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
+          `
+            SELECT *
+            FROM tiktok_region_services
+            WHERE region_slug = ?
+              AND service_key = ?
+              AND status = 'active'
+            LIMIT 1
+          `,
+          region,
+          serviceKey
+        ).catch(() => [])
+      : [];
     const service = serviceRows[0] || findDefaultTikTokService(region, serviceKey);
     if (!service) throw new Error('Không tìm thấy dịch vụ TikTok đang bật');
 
@@ -642,7 +705,13 @@ export async function POST(req: NextRequest) {
       initialOrderStatus
     );
     const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>('SELECT * FROM tiktok_support_orders WHERE id = LAST_INSERT_ID() LIMIT 1');
-    return { order: rows[0] || null, balance_after: nextBalance, subtotal, vat_amount: vatAmount, total_to_pay: totalPrice };
+    return {
+      order: rows[0] ? normalizeLegacyRow(rows[0] as unknown as LegacyRow) : null,
+      balance_after: nextBalance,
+      subtotal,
+      vat_amount: vatAmount,
+      total_to_pay: totalPrice,
+    };
   });
 
   return NextResponse.json({
@@ -650,4 +719,7 @@ export async function POST(req: NextRequest) {
     message: 'Mua gói Support TikTok thành công. Bạn có thể chat ngay bây giờ.',
     data: created,
   });
+  } catch (error) {
+    return supportTikTokError(error);
+  }
 }

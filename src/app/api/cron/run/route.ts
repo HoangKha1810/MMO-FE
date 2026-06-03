@@ -283,19 +283,18 @@ async function runDepositMaintenance() {
     errors: [error instanceof Error ? error.message : 'SePay reconcile failed'],
   }));
 
-  const stale = await db.transactions.updateMany({
+  const stale = await db.transactions.deleteMany({
     where: {
       type: 'deposit',
       status: 'pending',
       created_at: {
-        lt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+        lt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
       },
     },
-    data: { status: 'failed' },
   }).catch(() => ({ count: 0 }));
 
   return {
-    stale_deposits: Number(stale.count || 0),
+    deleted_stale_pending_deposits: Number(stale.count || 0),
     sepay,
   };
 }

@@ -1,6 +1,6 @@
 const DEFAULT_VAST_API_BASE_URL = 'https://console.vast.ai/api/v0';
 const DEFAULT_VAST_API_TIMEOUT_MS = 10000;
-const DEFAULT_VAST_IMAGE = 'nvidia/cuda:12.4.1-runtime-ubuntu22.04';
+const DEFAULT_VAST_IMAGE = 'ghcr.io/selkies-project/nvidia-egl-desktop:latest';
 
 export class VastApiError extends Error {
   status: number;

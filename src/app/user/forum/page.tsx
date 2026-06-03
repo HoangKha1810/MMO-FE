@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FolderOpen, MessageCircle, MessageSquare, PenLine, Pin, Users, Zap } from 'lucide-react';
+import { FolderOpen, PenLine, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumThreadList } from '@/components/forum/forum-thread-list';
 import { getForumOverview } from '@/lib/forum';
@@ -10,16 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function UserForumPage() {
   const { shell } = await getCurrentUserForShell();
-  const { categories, threads, totalPosts, totalUsers } = await getForumOverview();
-
-  const totalThreads = categories.reduce((sum, category) => sum + category.threads_count, 0);
-  const pinnedThreads = threads.filter((thread) => thread.is_pinned).length;
-  const stats = [
-    { label: 'Thành viên', value: totalUsers, icon: Users },
-    { label: 'Chủ đề', value: totalThreads, icon: MessageCircle },
-    { label: 'Bài viết', value: totalPosts, icon: MessageSquare },
-    { label: 'Đang ghim', value: pinnedThreads, icon: Pin },
-  ];
+  const { categories, threads } = await getForumOverview();
 
   return (
     <AppShell user={shell}>
@@ -27,7 +18,7 @@ export default async function UserForumPage() {
         <section className="relative overflow-hidden rounded-[1.7rem] border border-slate-200 bg-[#f7f1e6] p-4 shadow-sm dark:border-white/10 dark:bg-[#0c1422] sm:rounded-[2.25rem] sm:p-7">
           <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-brand-blue/15 blur-3xl" />
           <div className="absolute -bottom-24 left-20 h-56 w-56 rounded-full bg-emerald-400/10 blur-3xl" />
-          <div className="relative grid gap-6 lg:grid-cols-[1fr_460px] lg:items-end">
+          <div className="relative">
             <div>
               <div className="inline-flex rounded-full border border-slate-900/10 bg-white/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300">
                 Forum MMO
@@ -55,20 +46,6 @@ export default async function UserForumPage() {
                   </Link>
                 ))}
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2">
-              {stats.map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/70 bg-white/60 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-                  <stat.icon className="h-4 w-4 text-brand-blue" />
-                  <div className="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">
-                    {formatNumber(stat.value)}
-                  </div>
-                  <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </section>

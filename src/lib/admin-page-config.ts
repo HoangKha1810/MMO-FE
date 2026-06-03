@@ -52,6 +52,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       actions: [
         { key: 'approve', label: 'Duyệt', tone: 'success' },
         { key: 'reject', label: 'Từ chối', tone: 'danger' },
+        { key: 'bulk-delete', label: 'Xóa đã chọn', tone: 'danger' },
         { key: 'check-new-deposits', label: 'Check pending' },
       ],
     },
@@ -116,9 +117,9 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'automxh-products',
       title: 'Auto MXH products',
       description: 'Thêm/sửa dịch vụ con/tab hiển thị trong từng mục cha Facebook, Instagram...',
-      columns: ['id', 'category_id', 'name', 'description', 'api_provider_id', 'api_service_id', 'price', 'cost', 'variant_count', 'status', 'created_at'],
-      editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
-      createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
+      columns: ['id', 'category_id', 'name', 'badge', 'description', 'api_provider_id', 'api_service_id', 'price', 'cost', 'variant_count', 'status', 'created_at'],
+      editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
+      createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
       statusOptions: ['active', 'inactive'],
     },
     {

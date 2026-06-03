@@ -19,6 +19,7 @@ interface AutoMxhProduct {
   category_id: number;
   name: string;
   description: string;
+  badge?: string;
   min_price: number;
   variant_count: number;
 }
@@ -188,6 +189,11 @@ export default function UserAutomxhPage() {
                     {section.products.map((product: AutoMxhProduct) => (
                       <div key={product.id} className="service-card-wrapper h-full">
                         <div className="smm-service-card-3d group relative flex h-full flex-col overflow-hidden rounded-[1rem] border transition-all hover:border-brand-blue hover:shadow-xl">
+                          {product.badge ? (
+                            <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-orange-400/30 bg-orange-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-orange-300 shadow-[0_12px_30px_-18px_rgba(249,115,22,0.9)]">
+                              {product.badge}
+                            </div>
+                          ) : null}
                           <Link
                             href={`/user/automxh/order/${slugify(section.category.name)}?product=${product.id}`}
                             className="group/link flex flex-1 flex-col p-4"

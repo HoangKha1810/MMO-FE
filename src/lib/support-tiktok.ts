@@ -93,6 +93,15 @@ async function getSettingsMap(keys: string[]) {
   }, {});
 }
 
+function getDefaultSupportSettings() {
+  return {
+    support_tiktok_chat_username: '',
+    service_chat_support_tiktok_status: 'active',
+    service_chat_support_tiktok_name: 'Chat Support Tiktok',
+    service_chat_support_tiktok_desc: 'Hỗ trợ chat TikTok chuyên nghiệp',
+  };
+}
+
 async function tableExists(tableName: string) {
   const rows = await db.$queryRawUnsafe<Array<{ table_name: string }>>(
     `
@@ -183,7 +192,7 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
 }
 
 export async function getSupportTiktokContext(userId: number, clientIp?: string) {
-  const [user, settings, hasOrderTable, hasRegionServiceTable, hasMenuTable, hasChatTable] = await Promise.all([
+  const [user, settingsResult, hasOrderTable, hasRegionServiceTable, hasMenuTable, hasChatTable] = await Promise.all([
     db.users.findUnique({
       where: { id: userId },
       select: {
@@ -191,13 +200,13 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
         username: true,
         role: true,
       },
-    }),
+    }).catch(() => null),
     getSettingsMap([
       'support_tiktok_chat_username',
       'service_chat_support_tiktok_status',
       'service_chat_support_tiktok_name',
       'service_chat_support_tiktok_desc',
-    ]),
+    ]).catch(() => getDefaultSupportSettings()),
     tableExists('tiktok_support_orders'),
     tableExists('tiktok_region_services'),
     tableExists('tiktok_service_menus'),
@@ -208,6 +217,7 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
     return null;
   }
 
+  const settings = { ...getDefaultSupportSettings(), ...settingsResult };
   const role = String(user.role || 'member');
   const supportUsername = getLegacyEnv(
     'SUPPORT_TIKTOK_SUPPORT_USERNAME',
@@ -255,7 +265,7 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
     ),
     supportUsername,
     chatModuleAvailable: hasChatTable,
-    orderModuleAvailable: hasOrderTable && hasRegionServiceTable && hasMenuTable,
+    orderModuleAvailable: true,
     canUseChat: isSupport ? hasChatTable : hasChatTable && orderAccess.hasUnlockedChat,
     chatBlockedReason: orderAccess.chatBlockedReason,
     latestOrderId: orderAccess.latestOrderId,

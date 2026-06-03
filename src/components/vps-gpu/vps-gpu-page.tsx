@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   CheckCircle2,
@@ -229,8 +228,6 @@ const DEFAULT_VPS_GPU_PRICING: VpsGpuPricingSettings = {
   hourlyFeeVnd: 0,
 };
 
-const VPS_GPU_IMAGE_PRESET_STORAGE_KEY = 'vps_gpu_custom_image_preset_v1';
-
 const networkOptions: Array<{
   value: NetworkMode;
   title: string;
@@ -253,28 +250,138 @@ const runtimeOptions: Array<{
 
 const ramSteps = [8, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 512];
 
-const osImageOptions = [
+interface VpsGpuImagePreset {
+  id: string;
+  image: string;
+  label: string;
+  category: string;
+  remote: string;
+  hint: string;
+  runtime: VastRuntime;
+  onstart: string;
+  envFlags?: string;
+  recommended?: boolean;
+}
+
+const vpsGpuImagePresets: VpsGpuImagePreset[] = [
   {
-    value: 'nvidia/cuda:12.4.1-runtime-ubuntu22.04',
-    label: 'Ubuntu 22.04 + CUDA 12.4',
-    hint: 'Khuyến nghị cho AI, render và SSH',
+    id: 'gpu-desktop-selkies',
+    image: 'ghcr.io/selkies-project/nvidia-egl-desktop:latest',
+    label: 'Desktop GPU WebRTC EGL',
+    category: 'Game / Render / Desktop',
+    remote: 'WebRTC/HTML5 port 8080',
+    hint: 'Desktop GPU public ổn định nhất để thao tác GUI, game nhẹ, AI web UI và render qua trình duyệt.',
+    runtime: 'ssh',
+    onstart: 'nvidia-smi',
+    envFlags: [
+      'TZ=Asia/Ho_Chi_Minh',
+      'DISPLAY_SIZEW=1920',
+      'DISPLAY_SIZEH=1080',
+      'DISPLAY_REFRESH=60',
+      'DISPLAY_DPI=96',
+      'PASSWD=trungtammmo',
+      'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
+      'SELKIES_ENCODER=nvh264enc',
+    ].join('\n'),
+    recommended: true,
   },
   {
-    value: 'nvidia/cuda:12.4.1-runtime-ubuntu20.04',
-    label: 'Ubuntu 20.04 + CUDA 12.4',
-    hint: 'Tương thích tốt với nhiều tool cũ',
+    id: 'gpu-desktop-glx',
+    image: 'ghcr.io/selkies-project/nvidia-glx-desktop:latest',
+    label: 'Desktop GPU WebRTC GLX',
+    category: 'Game / OpenGL / Render',
+    remote: 'WebRTC/HTML5 port 8080',
+    hint: 'Desktop NVIDIA có OpenGL/GLX, Vulkan và Wine/Proton, hợp test app/game/render có giao diện.',
+    runtime: 'ssh',
+    onstart: 'nvidia-smi',
+    envFlags: [
+      'TZ=Asia/Ho_Chi_Minh',
+      'DISPLAY_SIZEW=1920',
+      'DISPLAY_SIZEH=1080',
+      'DISPLAY_REFRESH=60',
+      'DISPLAY_DPI=96',
+      'PASSWD=trungtammmo',
+      'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
+      'SELKIES_ENCODER=nvh264enc',
+    ].join('\n'),
   },
   {
-    value: 'pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime',
-    label: 'PyTorch CUDA Runtime',
-    hint: 'Sẵn môi trường PyTorch cho ML',
+    id: 'blender-web-gui',
+    image: 'lscr.io/linuxserver/blender:latest',
+    label: 'Blender Web GUI',
+    category: 'Render Blender',
+    remote: 'Blender GUI port 3000/3001',
+    hint: 'Có sẵn Blender giao diện web. Dùng tốt để mở file/preview; nếu cần CUDA render nặng nên chọn Desktop GPU EGL rồi cài Blender.',
+    runtime: 'ssh',
+    onstart: 'nvidia-smi',
+    envFlags: [
+      'PUID=1000',
+      'PGID=1000',
+      'TZ=Asia/Ho_Chi_Minh',
+      'AUTO_GPU=true',
+      'PIXELFLUX_WAYLAND=true',
+    ].join('\n'),
   },
   {
-    value: 'custom',
-    label: 'Image Docker tùy chỉnh',
-    hint: 'Dán image desktop/noVNC/RDP riêng nếu cần mở Blender bằng giao diện và vẫn dùng GPU',
+    id: 'ubuntu-webtop',
+    image: 'lscr.io/linuxserver/webtop:ubuntu-xfce',
+    label: 'Ubuntu XFCE Webtop',
+    category: 'Desktop GUI',
+    remote: 'KasmVNC/noVNC qua trình duyệt',
+    hint: 'Desktop Ubuntu dễ dùng để cài tool GUI, trình duyệt, trình quản lý file và thao tác thủ công.',
+    runtime: 'ssh',
+    onstart: 'nvidia-smi',
+    envFlags: 'PUID=1000\nPGID=1000\nTZ=Asia/Ho_Chi_Minh\nCUSTOM_USER=ttmmo\nPASSWORD=trungtammmo',
   },
-] as const;
+  {
+    id: 'xfce-novnc',
+    image: 'accetto/ubuntu-vnc-xfce-g3:latest',
+    label: 'Ubuntu XFCE noVNC',
+    category: 'Game / Tool / Browser',
+    remote: 'noVNC port 6901, VNC port 5901',
+    hint: 'Desktop nhẹ, ít phụ thuộc, phù hợp thao tác web/tool và cài phần mềm nhỏ.',
+    runtime: 'ssh',
+    onstart: 'nvidia-smi',
+    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo',
+  },
+  {
+    id: 'ai-ml-desktop',
+    image: 'ghcr.io/selkies-project/nvidia-egl-desktop:latest',
+    label: 'AI/ML Desktop GPU',
+    category: 'AI / ML',
+    remote: 'WebRTC/HTML5 port 8080',
+    hint: 'Desktop GPU để cài Conda, PyTorch, web UI AI hoặc notebook theo nhu cầu sau khi máy lên.',
+    runtime: 'ssh',
+    onstart: 'nvidia-smi',
+    envFlags: [
+      'TZ=Asia/Ho_Chi_Minh',
+      'DISPLAY_SIZEW=1920',
+      'DISPLAY_SIZEH=1080',
+      'DISPLAY_REFRESH=60',
+      'DISPLAY_DPI=96',
+      'PASSWD=trungtammmo',
+      'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
+      'SELKIES_ENCODER=nvh264enc',
+    ].join('\n'),
+  },
+  {
+    id: 'blender-xfce-fallback',
+    image: 'accetto/ubuntu-vnc-xfce-blender-g3:latest',
+    label: 'Blender XFCE noVNC',
+    category: 'Render Blender fallback',
+    remote: 'noVNC port 6901, VNC port 5901',
+    hint: 'Image Blender/XFCE public nhẹ để fallback khi LinuxServer Blender không phù hợp máy đang chọn.',
+    runtime: 'ssh',
+    onstart: 'nvidia-smi',
+    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo',
+  },
+];
+
+const DEFAULT_VPS_GPU_IMAGE_PRESET = vpsGpuImagePresets[0];
+
+function getVpsGpuImagePreset(presetId: string) {
+  return vpsGpuImagePresets.find((preset) => preset.id === presetId) || DEFAULT_VPS_GPU_IMAGE_PRESET;
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
@@ -393,10 +500,6 @@ function formatDateTime(value?: string | number | null) {
 
   const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || '';
   return `${getPart('hour')}:${getPart('minute')} ${getPart('day')}-${getPart('month')}`;
-}
-
-function selectedOsPresetValue(image: string) {
-  return osImageOptions.some((option) => option.value === image) ? image : 'custom';
 }
 
 function formatLocation(location: VastLocation | VastHostnode['location']) {
@@ -659,10 +762,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [vcpuCount, setVcpuCount] = useState('4');
   const [ramGb, setRamGb] = useState('16');
   const [storageGb, setStorageGb] = useState('200');
-  const [dockerImage, setDockerImage] = useState('nvidia/cuda:12.4.1-runtime-ubuntu22.04');
+  const [imagePresetId, setImagePresetId] = useState(DEFAULT_VPS_GPU_IMAGE_PRESET.id);
+  const [dockerImage, setDockerImage] = useState(DEFAULT_VPS_GPU_IMAGE_PRESET.image);
   const [targetState, setTargetState] = useState('running');
-  const [envFlags, setEnvFlags] = useState('');
-  const [onStartCommand, setOnStartCommand] = useState('nvidia-smi');
+  const [envFlags, setEnvFlags] = useState(DEFAULT_VPS_GPU_IMAGE_PRESET.envFlags || '');
+  const [onStartCommand, setOnStartCommand] = useState(DEFAULT_VPS_GPU_IMAGE_PRESET.onstart);
   const [cancelUnavailable, setCancelUnavailable] = useState(true);
   const [argsString, setArgsString] = useState('');
   const [sshPublicKey, setSshPublicKey] = useState('');
@@ -692,7 +796,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         priceMultiplier: Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier,
         hourlyFeeVnd: Number(nextPricingSettings.hourlyFeeVnd) || DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
       });
-      setDockerImage((current) => current || String(asRecord(payload.data).defaultImage || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04'));
+      setDockerImage((current) => current || DEFAULT_VPS_GPU_IMAGE_PRESET.image);
       setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
       const message = normalizeUiErrorMessage(error instanceof Error ? error.message : 'Không thể tải dữ liệu VPS GPU');
@@ -709,34 +813,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
   useEffect(() => {
     void loadOverview();
-  }, []);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(VPS_GPU_IMAGE_PRESET_STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
-
-      const preset = asRecord(JSON.parse(raw));
-      const nextDockerImage = typeof preset.dockerImage === 'string' ? preset.dockerImage.trim() : '';
-      const nextOnStartCommand = typeof preset.onStartCommand === 'string' ? preset.onStartCommand.trim() : '';
-      const nextRuntime = typeof preset.runtime === 'string' ? preset.runtime.trim().toLowerCase() : '';
-      const nextEnvFlags = typeof preset.envFlags === 'string' ? preset.envFlags.trim() : '';
-
-      if (nextDockerImage) {
-        setDockerImage(nextDockerImage);
-      }
-      if (nextOnStartCommand) {
-        setOnStartCommand(nextOnStartCommand);
-      }
-      if (nextRuntime === 'ssh' || nextRuntime === 'jupyter' || nextRuntime === 'args') {
-        setRuntime(nextRuntime);
-      }
-      if (nextEnvFlags) {
-        setEnvFlags(nextEnvFlags);
-      }
-    } catch {}
   }, []);
 
   const hasPendingInstances = useMemo(() => instances.some(isInstancePending), [instances]);
@@ -893,6 +969,17 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     }
   }, [gpuOptions, gpuV0Name]);
 
+  const selectedImagePreset = getVpsGpuImagePreset(imagePresetId);
+
+  function applyImagePreset(presetId: string) {
+    const preset = getVpsGpuImagePreset(presetId);
+    setImagePresetId(preset.id);
+    setDockerImage(preset.image);
+    setRuntime(preset.runtime);
+    setOnStartCommand(preset.onstart);
+    setEnvFlags(preset.envFlags || '');
+  }
+
   function buildPayload() {
     const name = instanceName.trim();
     const gpuName = gpuV0Name.trim();
@@ -919,11 +1006,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       name,
       type: 'virtualmachine',
       ssh_public_key: normalizedSshPublicKey,
-      image: dockerImage.trim() || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04',
+      image: dockerImage.trim() || DEFAULT_VPS_GPU_IMAGE_PRESET.image,
       runtype: runtime,
       target_state: targetState,
       cancel_unavail: cancelUnavailable,
-      onstart: onStartCommand.trim() || 'nvidia-smi',
+      onstart: onStartCommand.trim() || selectedImagePreset.onstart,
       python_utf8: true,
       lang_utf8: true,
       use_jupyter_lab: runtime === 'jupyter',
@@ -1240,12 +1327,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
               Làm mới gói
             </Button>
-            <Button asChild type="button" variant="outline">
-              <Link href="/user/vps-gpu/images">
-                <Monitor className="mr-2 h-4 w-4" />
-                Tạo image riêng
-              </Link>
-            </Button>
             <Button type="button" onClick={openCreateDialog} loading={submitting} loadingText="Đang tạo...">
               <Cpu className="mr-2 h-4 w-4" />
               Tạo VPS GPU
@@ -1541,27 +1622,51 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
             <Field label="Hệ điều hành / môi trường">
               <select
-                value={selectedOsPresetValue(dockerImage)}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setDockerImage(value === 'custom' ? '' : value);
-                }}
+                value={imagePresetId}
+                onChange={(event) => applyImagePreset(event.target.value)}
                 className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold dark:text-white"
               >
-                {osImageOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {vpsGpuImagePresets.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label} - {option.category}
                   </option>
                 ))}
               </select>
               <p className="text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-                {osImageOptions.find((option) => option.value === selectedOsPresetValue(dockerImage))?.hint}
+                {selectedImagePreset.hint}
               </p>
             </Field>
 
-            <Field label="Image Docker">
-              <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="ten-image/blender-desktop-cuda:latest" />
+            <Field label="Image Docker public">
+              <Input value={dockerImage} readOnly className="font-mono text-xs" />
             </Field>
+
+            <div className="grid gap-3 md:col-span-2 md:grid-cols-3">
+              <MetricCard
+                label="Nhu cầu"
+                value={selectedImagePreset.category}
+                hint={selectedImagePreset.recommended ? 'Preset khuyến nghị' : 'Preset public đã kiểm tra'}
+                tone="blue"
+                icon={<Sparkles className="h-4 w-4" />}
+                className="p-4"
+              />
+              <MetricCard
+                label="Remote desktop"
+                value={selectedImagePreset.remote}
+                hint="Khi VPS ready, xem port web/SSH trong card VPS"
+                tone="emerald"
+                icon={<Monitor className="h-4 w-4" />}
+                className="p-4"
+              />
+              <MetricCard
+                label="Nguồn image"
+                value="Public"
+                hint="Không dùng image tự tạo hoặc image cần đăng nhập Docker"
+                tone="violet"
+                icon={<ShieldCheck className="h-4 w-4" />}
+                className="p-4"
+              />
+            </div>
 
             <Field label="Trạng thái sau tạo">
               <select
