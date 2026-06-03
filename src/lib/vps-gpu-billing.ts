@@ -135,8 +135,8 @@ function isValidEmail(value: unknown) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? '').trim());
 }
 
-function insufficientGameWalletMessage(missingAmount: number) {
-  return `Ví game không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để thuê VPS GPU.`;
+function insufficientMainWalletMessage(missingAmount: number) {
+  return `Ví chính không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để thuê VPS GPU.`;
 }
 
 function activeStatusListSql() {
@@ -256,7 +256,7 @@ export function extractCreatedProviderInstanceId(response: unknown) {
   ).trim();
 }
 
-export async function assertGameWalletCanPay(userId: number, amount: number) {
+export async function assertMainWalletCanPay(userId: number, amount: number) {
   const normalizedAmount = Math.max(0, Math.ceil(amount));
   if (normalizedAmount <= 0) {
     throw new Error('Giá thuê VPS GPU chưa hợp lệ. Hãy chọn lại gói GPU.');
@@ -264,19 +264,21 @@ export async function assertGameWalletCanPay(userId: number, amount: number) {
 
   const user = await db.users.findUnique({
     where: { id: userId },
-    select: { game_balance: true },
+    select: { balance: true },
   });
   if (!user) {
     throw new Error('Không tìm thấy người dùng');
   }
 
-  const currentGameBalance = toNumber(user.game_balance, 0);
-  if (currentGameBalance < normalizedAmount) {
-    throw new Error(insufficientGameWalletMessage(normalizedAmount - currentGameBalance));
+  const currentBalance = toNumber(user.balance, 0);
+  if (currentBalance < normalizedAmount) {
+    throw new Error(insufficientMainWalletMessage(normalizedAmount - currentBalance));
   }
 
-  return currentGameBalance;
+  return currentBalance;
 }
+
+export const assertGameWalletCanPay = assertMainWalletCanPay;
 
 export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
   await ensureVpsGpuInstancesTable();
@@ -289,16 +291,16 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
   return db.$transaction(async (tx) => {
     const user = await tx.users.findUnique({
       where: { id: input.userId },
-      select: { game_balance: true },
+      select: { balance: true },
     });
     if (!user) {
       throw new Error('Không tìm thấy người dùng');
     }
 
-    const currentGameBalance = toNumber(user.game_balance, 0);
-    const nextGameBalance = currentGameBalance - saleHourlyVnd;
-    if (nextGameBalance < 0) {
-      throw new Error(insufficientGameWalletMessage(Math.abs(nextGameBalance)));
+    const currentBalance = toNumber(user.balance, 0);
+    const nextBalance = currentBalance - saleHourlyVnd;
+    if (nextBalance < 0) {
+      throw new Error(insufficientMainWalletMessage(Math.abs(nextBalance)));
     }
 
     const chargedAt = new Date();
@@ -306,18 +308,18 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
 
     await tx.users.update({
       where: { id: input.userId },
-      data: { game_balance: nextGameBalance, last_activity: new Date() },
+      data: { balance: nextBalance, last_activity: new Date() },
     });
 
     await tx.transactions.create({
       data: {
         user_id: input.userId,
         amount: saleHourlyVnd,
-        balance_after: nextGameBalance,
-        wallet_type: 'game',
+        balance_after: nextBalance,
+        wallet_type: 'main',
         type: 'order',
         status: 'success',
-        content: `Thuê VPS GPU #${input.providerInstanceId}: giờ đầu tiên bằng ví game`,
+        content: `Thuê VPS GPU #${input.providerInstanceId}: giờ đầu tiên bằng ví chính`,
       },
     }).catch(() => undefined);
 
@@ -357,7 +359,7 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
     );
 
     return {
-      gameBalance: nextGameBalance,
+      balance: nextBalance,
       billing: toPublicBilling(rows[0] ? normalizeBillingRow(rows[0]) : null),
     };
   }, { maxWait: 10000, timeout: 15000 });
@@ -567,12 +569,12 @@ async function chargeDueBillingRow(rowId: number) {
     const hoursDue = Math.min(168, Math.max(1, Math.floor((Date.now() - nextChargeAtMs) / ONE_HOUR_MS) + 1));
     const user = await tx.users.findUnique({
       where: { id: row.user_id },
-      select: { game_balance: true },
+      select: { balance: true },
     });
-    const currentGameBalance = toNumber(user?.game_balance, 0);
-    const chargeableHours = Math.min(hoursDue, Math.floor(currentGameBalance / saleHourlyVnd));
+    const currentBalance = toNumber(user?.balance, 0);
+    const chargeableHours = Math.min(hoursDue, Math.floor(currentBalance / saleHourlyVnd));
     const chargedAmount = chargeableHours * saleHourlyVnd;
-    const nextGameBalance = currentGameBalance - chargedAmount;
+    const nextBalance = currentBalance - chargedAmount;
 
     if (chargeableHours > 0) {
       const chargedAt = new Date();
@@ -581,18 +583,18 @@ async function chargeDueBillingRow(rowId: number) {
 
       await tx.users.update({
         where: { id: row.user_id },
-        data: { game_balance: nextGameBalance, last_activity: chargedAt },
+        data: { balance: nextBalance, last_activity: chargedAt },
       });
 
       await tx.transactions.create({
         data: {
           user_id: row.user_id,
           amount: chargedAmount,
-          balance_after: nextGameBalance,
-          wallet_type: 'game',
+          balance_after: nextBalance,
+          wallet_type: 'main',
           type: 'order',
           status: 'success',
-          content: `Thuê VPS GPU #${row.provider_instance_id}: ${chargeableHours} giờ tiếp theo bằng ví game`,
+          content: `Thuê VPS GPU #${row.provider_instance_id}: ${chargeableHours} giờ tiếp theo bằng ví chính`,
         },
       }).catch(() => undefined);
 
@@ -624,7 +626,7 @@ async function chargeDueBillingRow(rowId: number) {
         `
           UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
           SET status = 'deletion_pending',
-              end_reason = 'insufficient_game_balance',
+              end_reason = 'insufficient_main_balance',
               updated_at = NOW()
           WHERE id = ?
         `,
@@ -683,14 +685,14 @@ async function reserveLowBalanceWarning(rowId: number) {
 
     const user = await tx.users.findUnique({
       where: { id: row.user_id },
-      select: { email: true, username: true, fullname: true, game_balance: true },
+      select: { email: true, username: true, fullname: true, balance: true },
     });
     if (!user?.email || !isValidEmail(user.email)) {
       return null;
     }
 
-    const gameBalance = toNumber(user.game_balance, 0);
-    if (gameBalance >= saleHourlyVnd) {
+    const balance = toNumber(user.balance, 0);
+    if (balance >= saleHourlyVnd) {
       return null;
     }
 
@@ -716,8 +718,8 @@ async function reserveLowBalanceWarning(rowId: number) {
       email: user.email,
       displayName: user.fullname || user.username || 'khách hàng',
       saleHourlyVnd,
-      gameBalance,
-      missingAmount: Math.max(0, saleHourlyVnd - gameBalance),
+      balance,
+      missingAmount: Math.max(0, saleHourlyVnd - balance),
       nextChargeAt,
     };
   }, { maxWait: 10000, timeout: 15000 });
@@ -731,16 +733,16 @@ async function sendLowBalanceWarning(rowId: number) {
 
   const depositUrl = `${appBaseUrl()}/user/deposit`;
   const expiryText = formatDateTimeForMail(notice.nextChargeAt);
-  const subject = 'VPS GPU sắp đến hạn gia hạn, ví game chưa đủ tiền';
+  const subject = 'VPS GPU sắp đến hạn gia hạn, ví chính chưa đủ tiền';
   const text = [
     `Xin chào ${notice.displayName},`,
     '',
     `VPS GPU ${notice.instanceName} (#${notice.providerInstanceId}) sẽ gia hạn lúc ${expiryText}.`,
     `Giá thuê giờ tiếp theo: ${formatVnd(notice.saleHourlyVnd)}.`,
-    `Ví game hiện tại: ${formatVnd(notice.gameBalance)}.`,
+    `Ví chính hiện tại: ${formatVnd(notice.balance)}.`,
     `Cần nạp thêm tối thiểu: ${formatVnd(notice.missingAmount)}.`,
     '',
-    'Nếu sau thời điểm trên ví game vẫn chưa đủ, hệ thống sẽ tự động xóa VPS để tránh phát sinh chi phí nguồn GPU.',
+    'Nếu sau thời điểm trên ví chính vẫn chưa đủ, hệ thống sẽ tự động xóa VPS để tránh phát sinh chi phí nguồn GPU.',
     `Nạp ví tại: ${depositUrl}`,
   ].join('\n');
 
@@ -756,11 +758,11 @@ async function sendLowBalanceWarning(rowId: number) {
           <p>VPS GPU <strong>${escapeHtml(notice.instanceName)}</strong> (#${escapeHtml(notice.providerInstanceId)}) sẽ gia hạn lúc <strong>${escapeHtml(expiryText)}</strong>.</p>
           <ul>
             <li>Giá thuê giờ tiếp theo: <strong>${escapeHtml(formatVnd(notice.saleHourlyVnd))}</strong></li>
-            <li>Ví game hiện tại: <strong>${escapeHtml(formatVnd(notice.gameBalance))}</strong></li>
+            <li>Ví chính hiện tại: <strong>${escapeHtml(formatVnd(notice.balance))}</strong></li>
             <li>Cần nạp thêm tối thiểu: <strong>${escapeHtml(formatVnd(notice.missingAmount))}</strong></li>
           </ul>
-          <p>Nếu sau thời điểm trên ví game vẫn chưa đủ, hệ thống sẽ tự động xóa VPS để tránh phát sinh chi phí nguồn GPU.</p>
-          <p><a href="${escapeHtml(depositUrl)}" style="display:inline-block;background:#2563eb;color:white;text-decoration:none;padding:10px 16px;border-radius:10px">Nạp ví game</a></p>
+          <p>Nếu sau thời điểm trên ví chính vẫn chưa đủ, hệ thống sẽ tự động xóa VPS để tránh phát sinh chi phí nguồn GPU.</p>
+          <p><a href="${escapeHtml(depositUrl)}" style="display:inline-block;background:#2563eb;color:white;text-decoration:none;padding:10px 16px;border-radius:10px">Nạp ví chính</a></p>
         </div>
       `,
     });
@@ -795,7 +797,7 @@ async function sendLowBalanceWarning(rowId: number) {
       notice.rowId,
       notice.nextChargeAt.getTime()
     ).catch(() => 0);
-    return { sent: false, skipped: false, error: error instanceof Error ? error.message : 'Không gửi được email cảnh báo ví game' };
+    return { sent: false, skipped: false, error: error instanceof Error ? error.message : 'Không gửi được email cảnh báo ví chính' };
   }
 }
 
@@ -862,7 +864,7 @@ export async function runVpsGpuHourlyBilling() {
       if (result.deleteNeeded && result.providerInstanceId) {
         const deleteResult = await deleteProviderInstance(result.providerInstanceId);
         if (deleteResult.ok) {
-          await markVpsGpuEnded(result.providerInstanceId, 'insufficient_game_balance');
+          await markVpsGpuEnded(result.providerInstanceId, 'insufficient_main_balance');
           deleted += 1;
         } else {
           deletionPending += 1;

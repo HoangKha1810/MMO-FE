@@ -23,7 +23,6 @@ import {
   Square,
   Terminal,
   Trash2,
-  Wallet,
 } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Badge } from '@/components/ui/badge';
@@ -279,9 +278,15 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'DISPLAY_SIZEH=1080',
       'DISPLAY_REFRESH=60',
       'DISPLAY_DPI=96',
+      'SIZEW=1920',
+      'SIZEH=1080',
+      'REFRESH=60',
       'PASSWD=trungtammmo',
+      'PASSWORD=trungtammmo',
       'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
       'SELKIES_ENCODER=nvh264enc',
+      '_TTMMO_REMOTE_PROFILE=selkies',
+      '_TTMMO_REMOTE_PORTS=8080',
     ].join('\n'),
     recommended: true,
   },
@@ -300,9 +305,15 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'DISPLAY_SIZEH=1080',
       'DISPLAY_REFRESH=60',
       'DISPLAY_DPI=96',
+      'SIZEW=1920',
+      'SIZEH=1080',
+      'REFRESH=60',
       'PASSWD=trungtammmo',
+      'PASSWORD=trungtammmo',
       'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
       'SELKIES_ENCODER=nvh264enc',
+      '_TTMMO_REMOTE_PROFILE=selkies',
+      '_TTMMO_REMOTE_PORTS=8080',
     ].join('\n'),
   },
   {
@@ -320,6 +331,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'TZ=Asia/Ho_Chi_Minh',
       'AUTO_GPU=true',
       'PIXELFLUX_WAYLAND=true',
+      '_TTMMO_REMOTE_PROFILE=linuxserver-web',
+      '_TTMMO_REMOTE_PORTS=3000,3001',
     ].join('\n'),
   },
   {
@@ -327,11 +340,11 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     image: 'lscr.io/linuxserver/webtop:ubuntu-xfce',
     label: 'Ubuntu XFCE Webtop',
     category: 'Desktop GUI',
-    remote: 'KasmVNC/noVNC qua trình duyệt',
+    remote: 'Webtop port 3000/3001',
     hint: 'Desktop Ubuntu dễ dùng để cài tool GUI, trình duyệt, trình quản lý file và thao tác thủ công.',
     runtime: 'ssh',
     onstart: 'nvidia-smi',
-    envFlags: 'PUID=1000\nPGID=1000\nTZ=Asia/Ho_Chi_Minh\nCUSTOM_USER=ttmmo\nPASSWORD=trungtammmo',
+    envFlags: 'PUID=1000\nPGID=1000\nTZ=Asia/Ho_Chi_Minh\nCUSTOM_USER=ttmmo\nPASSWORD=trungtammmo\n_TTMMO_REMOTE_PROFILE=linuxserver-web\n_TTMMO_REMOTE_PORTS=3000,3001',
   },
   {
     id: 'xfce-novnc',
@@ -342,7 +355,7 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     hint: 'Desktop nhẹ, ít phụ thuộc, phù hợp thao tác web/tool và cài phần mềm nhỏ.',
     runtime: 'ssh',
     onstart: 'nvidia-smi',
-    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo',
+    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo\n_TTMMO_REMOTE_PROFILE=novnc\n_TTMMO_REMOTE_PORTS=6901,6080',
   },
   {
     id: 'ai-ml-desktop',
@@ -359,9 +372,15 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'DISPLAY_SIZEH=1080',
       'DISPLAY_REFRESH=60',
       'DISPLAY_DPI=96',
+      'SIZEW=1920',
+      'SIZEH=1080',
+      'REFRESH=60',
       'PASSWD=trungtammmo',
+      'PASSWORD=trungtammmo',
       'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
       'SELKIES_ENCODER=nvh264enc',
+      '_TTMMO_REMOTE_PROFILE=selkies',
+      '_TTMMO_REMOTE_PORTS=8080',
     ].join('\n'),
   },
   {
@@ -373,7 +392,7 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     hint: 'Image Blender/XFCE public nhẹ để fallback khi LinuxServer Blender không phù hợp máy đang chọn.',
     runtime: 'ssh',
     onstart: 'nvidia-smi',
-    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo',
+    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo\n_TTMMO_REMOTE_PROFILE=novnc\n_TTMMO_REMOTE_PORTS=6901,6080',
   },
 ];
 
@@ -749,7 +768,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [searchingOffers, setSearchingOffers] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [deductAnimation, setDeductAnimation] = useState<{ amount: number; balance?: number } | null>(null);
 
   const [deploymentMethod, setDeploymentMethod] = useState<DeploymentMethod>('hostnode');
   const [networkMode, setNetworkMode] = useState<NetworkMode>('port-forwarding');
@@ -1155,13 +1173,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         }
         throw new Error(result.message || 'Không thể tạo VPS GPU');
       }
-      const nextGameBalance = Number(asRecord(asRecord(result).data).gameBalance);
-      if (Number.isFinite(nextGameBalance)) {
-        setBalances({ gameBalance: nextGameBalance });
-        setDeductAnimation({ amount: estimatedSaleHourly, balance: nextGameBalance });
-        window.setTimeout(() => setDeductAnimation(null), 2800);
+      const nextBalance = Number(asRecord(asRecord(result).data).balance);
+      if (Number.isFinite(nextBalance)) {
+        setBalances({ balance: nextBalance });
       }
-      toast.success('Đã tạo VPS GPU và trừ ví game giờ đầu tiên');
+      toast.success('Đã tạo VPS GPU và trừ tiền vào ví chính');
       setCreateDialogOpen(false);
       await loadOverview();
     } catch (error) {
@@ -1239,25 +1255,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {deductAnimation ? (
-        <div className="fixed right-4 top-24 z-[330] max-w-[calc(100vw-2rem)] animate-in slide-in-from-right-4 fade-in duration-300">
-          <div className="rounded-[1.2rem] border border-emerald-400/30 bg-slate-950/95 p-4 text-white shadow-[0_24px_70px_-28px_rgba(16,185,129,0.8)] backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
-                <Wallet className="h-5 w-5 animate-bounce" />
-              </span>
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-300">Đã trừ ví game</div>
-                <div className="mt-1 font-mono text-xl font-black tabular-nums">-{formatMoneyVnd(deductAnimation.amount)}</div>
-                {Number.isFinite(deductAnimation.balance) ? (
-                  <div className="mt-1 text-xs font-semibold text-slate-300">Còn lại {formatMoneyVnd(deductAnimation.balance)}</div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {createDialogOpen ? (
         <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
           <div className="w-full max-w-2xl animate-in zoom-in-95 fade-in duration-200 rounded-[1.6rem] border border-white/10 bg-slate-950 p-5 text-white shadow-[0_30px_120px_-40px_rgba(14,165,233,0.75)] sm:p-6">
@@ -1269,9 +1266,9 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 </div>
                 <h2 className="mt-4 text-2xl font-black uppercase leading-tight sm:text-3xl">Bạn có chắc chắn tạo VPS này?</h2>
                 <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                  Instance <span className="font-black text-white">{instanceName.trim()}</span> sẽ trừ trước{' '}
-                  <span className="font-mono font-black text-emerald-300">{formatMoneyVnd(estimatedSaleHourly)}</span> từ ví game cho giờ đầu tiên.
-                  Sau đó hệ thống tự trừ theo giờ, nếu ví game không đủ thì VPS sẽ bị xóa tự động.
+                  Instance <span className="font-black text-white">{instanceName.trim()}</span> sẽ trừ{' '}
+                  <span className="font-mono font-black text-emerald-300">{formatMoneyVnd(estimatedSaleHourly)}</span> từ ví chính cho giờ đầu tiên.
+                  Sau đó hệ thống gia hạn theo giờ và tự dừng VPS khi ví chính không đủ tiền duy trì.
                 </p>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => setCreateDialogOpen(false)} disabled={submitting}>
@@ -1293,8 +1290,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 className="mt-1 h-4 w-4 shrink-0 rounded border-amber-300 text-brand-blue focus:ring-brand-blue"
               />
               <span>
-                Tôi đồng ý điều khoản thuê VPS GPU: giá tính theo giờ từ ví game, phải dán đúng SSH public key, dữ liệu có thể mất khi VPS bị xóa hoặc gói GPU lỗi,
-                và hệ thống được quyền tự xóa VPS nếu ví game không đủ gia hạn.
+                Tôi đồng ý điều khoản thuê VPS GPU: giá tính theo giờ và trừ từ ví chính, phải dán đúng SSH public key, dữ liệu có thể mất khi VPS bị xóa hoặc gói GPU lỗi,
+                và hệ thống được quyền tự xóa VPS nếu ví chính không đủ tiền gia hạn.
               </span>
             </label>
 
@@ -1309,7 +1306,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 loading={submitting}
                 loadingText="Đang tạo..."
               >
-                <Wallet className="mr-2 h-4 w-4" />
                 Đồng ý và tạo VPS
               </Button>
             </div>
@@ -1644,27 +1640,27 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             <div className="grid gap-3 md:col-span-2 md:grid-cols-3">
               <MetricCard
                 label="Nhu cầu"
-                value={selectedImagePreset.category}
+                value={selectedImagePreset.category.replace(' / Desktop', '').replace(' / Render', '')}
                 hint={selectedImagePreset.recommended ? 'Preset khuyến nghị' : 'Preset public đã kiểm tra'}
                 tone="blue"
                 icon={<Sparkles className="h-4 w-4" />}
-                className="p-4"
+                className="min-w-0 p-4 [&_*]:min-w-0 [&_[class*='text-3xl']]:break-words [&_[class*='text-3xl']]:text-2xl [&_[class*='text-3xl']]:leading-tight"
               />
               <MetricCard
                 label="Remote desktop"
-                value={selectedImagePreset.remote}
-                hint="Khi VPS ready, xem port web/SSH trong card VPS"
+                value={selectedImagePreset.remote.replace('WebRTC/HTML5 port 8080', 'WebRTC 8080')}
+                hint="Khi VPS ready, xem port trong card VPS"
                 tone="emerald"
                 icon={<Monitor className="h-4 w-4" />}
-                className="p-4"
+                className="min-w-0 p-4 [&_*]:min-w-0 [&_[class*='text-3xl']]:break-words [&_[class*='text-3xl']]:text-2xl [&_[class*='text-3xl']]:leading-tight"
               />
               <MetricCard
                 label="Nguồn image"
                 value="Public"
-                hint="Không dùng image tự tạo hoặc image cần đăng nhập Docker"
+                hint="Không dùng image cần đăng nhập Docker"
                 tone="violet"
                 icon={<ShieldCheck className="h-4 w-4" />}
-                className="p-4"
+                className="min-w-0 p-4 [&_*]:min-w-0 [&_[class*='text-3xl']]:break-words [&_[class*='text-3xl']]:text-2xl [&_[class*='text-3xl']]:leading-tight"
               />
             </div>
 
@@ -1749,7 +1745,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         <SectionHeader
           eyebrow="Quản lý VPS"
           title="VPS GPU đang chạy"
-          description="Theo dõi kết nối, giá thuê và gửi lệnh start, stop hoặc delete. Phí thuê được trừ từ ví game theo từng giờ."
+          description="Theo dõi kết nối, giá thuê và gửi lệnh start, stop hoặc delete. Phí thuê được tính theo từng giờ."
           actions={
             <Button type="button" variant="outline" size="sm" onClick={() => void loadOverview()} disabled={loading}>
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
@@ -1839,10 +1835,10 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                     {billing?.lowBalanceWarningForAtMs || billing?.lowBalanceWarningForAt ? (
                       <div className="rounded-[1rem] border border-amber-400/30 bg-amber-500/10 p-4">
                         <div className="text-sm font-black text-amber-600 dark:text-amber-300">
-                          Ví game chưa đủ cho lần gia hạn tiếp theo
+                          Ví chính chưa đủ cho lần gia hạn tiếp theo
                         </div>
                         <p className="mt-2 text-xs font-semibold leading-6 text-slate-500 dark:text-slate-300">
-                          Hệ thống đã gửi email nhắc nạp. Nếu trước {formatDateTime(billing.lowBalanceWarningForAtMs ?? billing.lowBalanceWarningForAt)} theo giờ Việt Nam ví game vẫn chưa đủ {formatMoneyVnd(billing.saleHourlyVnd)}, VPS sẽ tự động bị xóa để tránh phát sinh chi phí.
+                          Hệ thống đã gửi email nhắc nạp. Nếu trước {formatDateTime(billing.lowBalanceWarningForAtMs ?? billing.lowBalanceWarningForAt)} theo giờ Việt Nam ví chính vẫn chưa đủ {formatMoneyVnd(billing.saleHourlyVnd)}, VPS sẽ tự động bị xóa để tránh phát sinh chi phí.
                         </p>
                       </div>
                     ) : null}
@@ -1976,8 +1972,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <MiniInfo icon={<Server />} label="Machine ID" value={specs.machineId || 'N/A'} />
                       <MiniInfo icon={<Server />} label="Host ID" value={specs.hostId || 'N/A'} />
-                      <MiniInfo icon={<Database />} label="Đã trừ ví game" value={formatMoneyVnd(billing?.totalChargedVnd)} />
-                      <MiniInfo icon={<RefreshCw />} label="Trừ tiếp lúc (VN)" value={formatDateTime(billing?.nextChargeAtMs ?? billing?.nextChargeAt)} />
+                      <MiniInfo icon={<Database />} label="Tổng chi phí" value={formatMoneyVnd(billing?.totalChargedVnd)} />
+                      <MiniInfo icon={<RefreshCw />} label="Gia hạn lúc (VN)" value={formatDateTime(billing?.nextChargeAtMs ?? billing?.nextChargeAt)} />
                     </div>
 
                     <div className="flex flex-wrap gap-2">

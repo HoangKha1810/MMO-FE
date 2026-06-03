@@ -541,23 +541,119 @@ function getInstanceRdpPort(instance: VastInstance) {
   );
 }
 
+function getRemoteProfileForImage(image: string) {
+  const normalizedImage = image.toLowerCase();
+  if (normalizedImage.includes('selkies-project/nvidia-egl-desktop') || normalizedImage.includes('selkies-project/nvidia-glx-desktop')) {
+    return {
+      name: 'selkies',
+      webPorts: [8080],
+      extraPorts: [],
+    };
+  }
+  if (normalizedImage.includes('linuxserver/webtop') || normalizedImage.includes('linuxserver/blender')) {
+    return {
+      name: 'linuxserver-web',
+      webPorts: [3000, 3001],
+      extraPorts: [],
+    };
+  }
+  if (normalizedImage.includes('accetto/') || normalizedImage.includes('novnc') || normalizedImage.includes('vnc')) {
+    return {
+      name: 'novnc',
+      webPorts: [6901, 6080],
+      extraPorts: [5901, 5900],
+    };
+  }
+  return {
+    name: 'generic',
+    webPorts: [8080, 3000, 3001, 6901, 6080],
+    extraPorts: [5901, 5900],
+  };
+}
+
+function parseRemotePortsFromEnv(instance: VastInstance) {
+  const env = asRecord(instance.env || instance.environment || instance.env_vars || instance.envVars);
+  const value = String(env._TTMMO_REMOTE_PORTS || env.TTMMO_REMOTE_PORTS || '').trim();
+  return value
+    .split(',')
+    .map((item) => normalizePositiveInt(item, 0))
+    .filter(Boolean);
+}
+
 function getInstanceWebDesktopPort(instance: VastInstance) {
-  const candidatePorts = [
+  const image = normalizeString(instance.image || instance.image_uuid || instance.template_name || instance.docker_image).toLowerCase();
+  const configuredPorts = parseRemotePortsFromEnv(instance);
+  const configuredPublicPorts = configuredPorts.flatMap((port) => [
+    getInstancePortFromMap(instance, `${port}/tcp`),
+    getInstancePortFromMap(instance, String(port)),
+  ]);
+  if (configuredPublicPorts.some(Boolean)) {
+    for (const port of configuredPublicPorts) {
+      const normalized = normalizePositiveInt(port, 0);
+      if (normalized) return normalized;
+    }
+  }
+
+  const profile = getRemoteProfileForImage(image);
+  const profilePorts = profile.webPorts.flatMap((port) => [
+    getInstancePortFromMap(instance, `${port}/tcp`),
+    getInstancePortFromMap(instance, String(port)),
+  ]);
+  if (profilePorts.some(Boolean)) {
+    for (const port of profilePorts) {
+      const normalized = normalizePositiveInt(port, 0);
+      if (normalized) return normalized;
+    }
+  }
+
+  const selkiesPorts = [
+    getInstancePortFromMap(instance, '8080/tcp'),
+    getInstancePortFromMap(instance, '8080'),
     instance.web_port,
     instance.webPort,
     instance.desktop_port,
     instance.desktopPort,
-    instance.vnc_port,
-    instance.vncPort,
+  ];
+  const linuxServerWebtopPorts = [
+    getInstancePortFromMap(instance, '3000/tcp'),
+    getInstancePortFromMap(instance, '3000'),
+    getInstancePortFromMap(instance, '3001/tcp'),
+    getInstancePortFromMap(instance, '3001'),
+    instance.web_port,
+    instance.webPort,
+  ];
+  const noVncPorts = [
     getInstancePortFromMap(instance, '6901/tcp'),
     getInstancePortFromMap(instance, '6901'),
     getInstancePortFromMap(instance, '6080/tcp'),
     getInstancePortFromMap(instance, '6080'),
+    instance.vnc_port,
+    instance.vncPort,
+  ];
+  const genericPorts = [
+    instance.web_port,
+    instance.webPort,
+    instance.desktop_port,
+    instance.desktopPort,
     getInstancePortFromMap(instance, '8080/tcp'),
     getInstancePortFromMap(instance, '8080'),
+    getInstancePortFromMap(instance, '6901/tcp'),
+    getInstancePortFromMap(instance, '6901'),
+    getInstancePortFromMap(instance, '6080/tcp'),
+    getInstancePortFromMap(instance, '6080'),
     getInstancePortFromMap(instance, '3000/tcp'),
     getInstancePortFromMap(instance, '3000'),
+    getInstancePortFromMap(instance, '3001/tcp'),
+    getInstancePortFromMap(instance, '3001'),
   ];
+  const candidatePorts =
+    image.includes('selkies-project/nvidia-egl-desktop') || image.includes('selkies-project/nvidia-glx-desktop')
+      ? [...selkiesPorts, ...noVncPorts, ...linuxServerWebtopPorts, ...genericPorts]
+      : image.includes('linuxserver/webtop') || image.includes('linuxserver/blender')
+        ? [...linuxServerWebtopPorts, ...noVncPorts, ...selkiesPorts, ...genericPorts]
+        : image.includes('vnc') || image.includes('novnc')
+          ? [...noVncPorts, ...selkiesPorts, ...linuxServerWebtopPorts, ...genericPorts]
+          : genericPorts;
 
   for (const port of candidatePorts) {
     const normalized = normalizePositiveInt(port, 0);
@@ -782,7 +878,7 @@ function makeBillingFallbackInstance(row: VpsGpuBillingRow): VastInstance {
     status: row.status === 'deletion_pending' ? 'deletion_pending' : (row.provider_status || 'creating'),
     actual_status: row.provider_status || row.status,
     status_msg: row.status === 'deletion_pending'
-      ? 'Ví game không đủ cho giờ tiếp theo, hệ thống đang xóa VPS GPU.'
+      ? 'Tài khoản chưa đủ cho giờ tiếp theo, hệ thống đang xóa VPS GPU.'
       : 'Hệ thống đang đồng bộ trạng thái VPS GPU.',
     dph_total: row.cost_hourly_usd,
   };
@@ -797,7 +893,7 @@ function attachBillingToInstance(mappedInstance: ReturnType<typeof mapInstances>
     id: row.provider_instance_id || mappedInstance.id,
     name: row.instance_name || mappedInstance.name,
     status: nextStatus,
-    statusLabel: row.status === 'deletion_pending' ? 'Đang xóa vì ví game không đủ' : mappedInstance.statusLabel,
+    statusLabel: row.status === 'deletion_pending' ? 'Đang xóa vì tài khoản chưa đủ' : mappedInstance.statusLabel,
     billing,
   };
 }
@@ -945,6 +1041,29 @@ function normalizeVastEnv(value: unknown) {
   return env;
 }
 
+function ensureVastAppPortMappings(image: string, env: Record<string, string>) {
+  const nextEnv = { ...env };
+  const profile = getRemoteProfileForImage(image);
+  const hasPortMapping = (internalPort: number) =>
+    Object.keys(nextEnv).some((key) => {
+      const normalizedKey = key.replace(/\s+/g, ' ').trim().toLowerCase();
+      return normalizedKey === `-p ${internalPort}:${internalPort}` ||
+        normalizedKey === `-p ${internalPort}:${internalPort}/tcp`;
+    });
+
+  const remotePorts = [...profile.webPorts, ...profile.extraPorts];
+  nextEnv._TTMMO_REMOTE_PROFILE = profile.name;
+  nextEnv._TTMMO_REMOTE_PORTS = profile.webPorts.join(',');
+
+  for (const port of remotePorts) {
+    if (!hasPortMapping(port)) {
+      nextEnv[`-p ${port}:${port}`] = '1';
+    }
+  }
+
+  return nextEnv;
+}
+
 function normalizePublicSshKey(value: unknown) {
   return normalizeString(value).replace(/\s+/g, ' ').trim();
 }
@@ -1029,7 +1148,7 @@ function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer |
   const storageGb = Math.max(20, Math.min(requestedStorageGb, liveOfferDiskGb || requestedStorageGb));
   const onstart = normalizeString(attributes.onstart, 'nvidia-smi');
   const runtime = normalizeRuntime(attributes.runtype);
-  const env = normalizeVastEnv(attributes.env);
+  const env = ensureVastAppPortMappings(dockerImage, normalizeVastEnv(attributes.env));
   const userSshKey = assertPublicSshKey(
     attributes.ssh_public_key || attributes.public_ssh_key || attributes.ssh_key || payload.ssh_public_key || payload.ssh_key
   );
@@ -1277,7 +1396,7 @@ export async function POST(req: NextRequest) {
           data: {
             instanceId: providerInstanceId,
             billing: billingResult.billing,
-            gameBalance: billingResult.gameBalance,
+            balance: billingResult.balance,
           },
         });
       } catch (error) {
