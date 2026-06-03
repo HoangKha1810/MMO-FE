@@ -216,6 +216,18 @@ interface VastOverviewData {
   defaultSshKeySecretId?: unknown;
 }
 
+interface VpsGpuPricingSettings {
+  usdToVnd: number;
+  priceMultiplier: number;
+  hourlyFeeVnd: number;
+}
+
+const DEFAULT_VPS_GPU_PRICING: VpsGpuPricingSettings = {
+  usdToVnd: 26000,
+  priceMultiplier: 1.67,
+  hourlyFeeVnd: 0,
+};
+
 const networkOptions: Array<{
   value: NetworkMode;
   title: string;
@@ -409,7 +421,22 @@ function getHostnodeSalePrice(hostnode?: VastHostnode | null) {
   }
 
   const costUsd = getHostnodePrice(hostnode);
-  return costUsd > 0 ? Math.ceil((costUsd * 26000 * 1.25) / 1000) * 1000 : 0;
+  return costUsd > 0
+    ? Math.ceil((costUsd * DEFAULT_VPS_GPU_PRICING.usdToVnd * DEFAULT_VPS_GPU_PRICING.priceMultiplier) / 1000) * 1000
+    : 0;
+}
+
+function computeSaleHourlyFromUsd(costUsd: number, settings: VpsGpuPricingSettings) {
+  if (!Number.isFinite(costUsd) || costUsd <= 0) {
+    return 0;
+  }
+
+  const usdToVnd = Number.isFinite(settings.usdToVnd) && settings.usdToVnd > 0 ? settings.usdToVnd : DEFAULT_VPS_GPU_PRICING.usdToVnd;
+  const multiplier = Number.isFinite(settings.priceMultiplier) && settings.priceMultiplier > 0
+    ? settings.priceMultiplier
+    : DEFAULT_VPS_GPU_PRICING.priceMultiplier;
+  const hourlyFeeVnd = Number.isFinite(settings.hourlyFeeVnd) && settings.hourlyFeeVnd > 0 ? settings.hourlyFeeVnd : 0;
+  return Math.ceil((costUsd * usdToVnd * multiplier + hourlyFeeVnd) / 1000) * 1000;
 }
 
 function getHostnodeGpuLabel(hostnode?: VastHostnode | null) {
@@ -602,6 +629,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [locations, setLocations] = useState<VastLocation[]>([]);
   const [hostnodes, setHostnodes] = useState<VastHostnode[]>([]);
   const [instances, setInstances] = useState<VastInstance[]>([]);
+  const [pricingSettings, setPricingSettings] = useState<VpsGpuPricingSettings>(DEFAULT_VPS_GPU_PRICING);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -655,6 +683,12 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       setLocations(extractLocations(data.locations));
       setHostnodes(extractHostnodes(data.hostnodes));
       setInstances(extractInstances(data.instances));
+      const nextPricingSettings = asRecord(payload.data).pricingSettings as Partial<VpsGpuPricingSettings>;
+      setPricingSettings({
+        usdToVnd: Number(nextPricingSettings.usdToVnd) || DEFAULT_VPS_GPU_PRICING.usdToVnd,
+        priceMultiplier: Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier,
+        hourlyFeeVnd: Number(nextPricingSettings.hourlyFeeVnd) || DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
+      });
       setDockerImage((current) => current || String(asRecord(payload.data).defaultImage || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04'));
       setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
@@ -713,6 +747,12 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         throw new Error(payload.message || 'Không thể tìm gói GPU');
       }
       const nextHostnodes = toArray<VastHostnode>(asRecord(payload.data).hostnodes).filter(isVerifiedHostnode);
+      const nextPricingSettings = asRecord(payload.data).pricingSettings as Partial<VpsGpuPricingSettings>;
+      setPricingSettings({
+        usdToVnd: Number(nextPricingSettings.usdToVnd) || DEFAULT_VPS_GPU_PRICING.usdToVnd,
+        priceMultiplier: Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier,
+        hourlyFeeVnd: Number(nextPricingSettings.hourlyFeeVnd) || DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
+      });
       setHostnodes(nextHostnodes);
       const nextHostnodeId = nextHostnodes[0]?.id || '';
       if (nextHostnodeId) {
@@ -944,8 +984,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       return hostnodeSale;
     }
 
-    return estimatedHourly > 0 ? Math.ceil((estimatedHourly * 26000 * 1.25) / 1000) * 1000 : 0;
-  }, [estimatedHourly, selectedHostnode]);
+    return computeSaleHourlyFromUsd(estimatedHourly, pricingSettings);
+  }, [estimatedHourly, pricingSettings, selectedHostnode]);
 
   function openCreateDialog() {
     try {

@@ -47,6 +47,10 @@ interface VpsGpuPricingSettings {
 
 const VPS_GPU_OFFER_COSTS_TABLE = 'vps_gpu_offer_costs';
 const PROVIDER_MISSING_GRACE_MS = 2 * 60 * 1000;
+const DEFAULT_VPS_GPU_USD_TO_VND = 26000;
+const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1.67;
+const MIN_VPS_GPU_PRICE_MULTIPLIER = 1.6;
+const MAX_VPS_GPU_PRICE_MULTIPLIER = 1.7;
 
 async function requireUser() {
   const cookieStore = await cookies();
@@ -147,6 +151,11 @@ function normalizePositiveNumber(value: unknown, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function normalizeVpsGpuPriceMultiplier(value: unknown) {
+  const parsed = normalizePositiveNumber(value, DEFAULT_VPS_GPU_PRICE_MULTIPLIER);
+  return Math.min(MAX_VPS_GPU_PRICE_MULTIPLIER, Math.max(MIN_VPS_GPU_PRICE_MULTIPLIER, parsed));
+}
+
 function normalizeNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -189,11 +198,11 @@ function normalizeStringList(value: unknown) {
 }
 
 async function getVpsGpuPricingSettings(): Promise<VpsGpuPricingSettings> {
-  const settings = await getLegacySettingsMap();
+  const settings = await getLegacySettingsMap(true);
 
   return {
-    usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, 26000),
-    priceMultiplier: normalizePositiveNumber(settings.vps_gpu_price_multiplier, 1.25),
+    usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, DEFAULT_VPS_GPU_USD_TO_VND),
+    priceMultiplier: normalizeVpsGpuPriceMultiplier(settings.vps_gpu_price_multiplier),
     hourlyFeeVnd: normalizePositiveNumber(settings.vps_gpu_hourly_fee_vnd, 0),
   };
 }

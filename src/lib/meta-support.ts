@@ -5,8 +5,6 @@ import { toNumber } from '@/lib/utils';
 
 export const META_SUPPORT_PACKAGES = [
   { quantity: 1, price: 450_000, label: '1 tài khoản' },
-  { quantity: 10, price: 4_500_000, label: '10 tài khoản' },
-  { quantity: 100, price: 45_000_000, label: '100 tài khoản' },
 ] as const;
 
 export const META_SUPPORT_SERVICE_NAME = 'Auto kích nút + Chat Support Meta';

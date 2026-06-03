@@ -42,9 +42,21 @@ type MetaSupportOrder = {
 
 const DEFAULT_PACKAGES: MetaSupportPackage[] = [
   { quantity: 1, price: 450_000, label: '1 tài khoản' },
-  { quantity: 10, price: 4_500_000, label: '10 tài khoản' },
-  { quantity: 100, price: 45_000_000, label: '100 tài khoản' },
 ];
+
+const META_SUPPORT_QUANTITY = 1;
+
+function normalizePackages(input?: MetaSupportPackage[]) {
+  const source = input?.length ? input : DEFAULT_PACKAGES;
+  const selected = source.find((item) => Math.trunc(toNumber(item.quantity, 0)) === META_SUPPORT_QUANTITY) || DEFAULT_PACKAGES[0];
+  return [
+    {
+      quantity: META_SUPPORT_QUANTITY,
+      price: toNumber(selected.price, DEFAULT_PACKAGES[0].price),
+      label: '1 tài khoản',
+    },
+  ];
+}
 
 function statusLabel(status: string) {
   const normalized = String(status || '').toLowerCase();
@@ -79,8 +91,8 @@ function formatDateTime(value?: string) {
 export function MetaSupportPage() {
   const { data: user } = useSessionUser();
   const { setBalances } = useWalletBalance();
-  const [packages, setPackages] = useState<MetaSupportPackage[]>(DEFAULT_PACKAGES);
-  const [selectedQuantity, setSelectedQuantity] = useState(DEFAULT_PACKAGES[0].quantity);
+  const [packages, setPackages] = useState<MetaSupportPackage[]>(() => normalizePackages());
+  const [selectedQuantity, setSelectedQuantity] = useState(META_SUPPORT_QUANTITY);
   const [contact, setContact] = useState('');
   const [gmail, setGmail] = useState('');
   const [note, setNote] = useState('');
@@ -109,8 +121,8 @@ export function MetaSupportPage() {
         success: boolean;
         data?: { orders?: MetaSupportOrder[]; packages?: MetaSupportPackage[] };
       }>(response, 'Không tải được đơn Auto kích nút Meta');
-      const nextPackages = payload.data?.packages?.length ? payload.data.packages : DEFAULT_PACKAGES;
-      setPackages(nextPackages.map((item) => ({ ...item, price: toNumber(item.price, 0) })));
+      setPackages(normalizePackages(payload.data?.packages));
+      setSelectedQuantity(META_SUPPORT_QUANTITY);
       setOrders(payload.data?.orders || []);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không tải được đơn Auto kích nút Meta');
@@ -176,8 +188,7 @@ export function MetaSupportPage() {
           title="Auto kích nút + Chat Support Meta"
           description="Gửi Gmail cần xử lý, thông tin liên hệ và ghi chú support. Admin nhận đơn để vận hành tool riêng, không cần cấu hình cha con như Auto MXH."
           stats={[
-            { label: 'Giá gói nhỏ', value: '450K', hint: '1 tài khoản', tone: 'blue' },
-            { label: 'Gói lớn', value: '100 TK', hint: '45.000.000đ', tone: 'emerald' },
+            { label: 'Gói dịch vụ', value: '1 TK', hint: formatCurrency(toNumber(packages[0]?.price, 450_000)), tone: 'blue' },
             { label: 'Đơn của bạn', value: String(totalOrders), hint: 'đã gửi', tone: 'slate' },
             { label: 'Đang xử lý', value: String(processingOrders), hint: 'chờ hoặc đang làm', tone: 'amber' },
           ]}
@@ -192,7 +203,7 @@ export function MetaSupportPage() {
             />
 
             <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:max-w-md">
                 {packages.map((item) => {
                   const active = item.quantity === selectedPackage.quantity;
                   return (
