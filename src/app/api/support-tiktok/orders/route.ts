@@ -16,16 +16,234 @@ interface LegacyOrderRow extends Record<string, unknown> {
   status: string | null;
 }
 
+const DEFAULT_TIKTOK_SUPPORT_MENUS = [
+  { name: 'SP TIK VN', slug: 'vn', displayOrder: 1 },
+  { name: 'SP TIK UK', slug: 'uk', displayOrder: 2 },
+  { name: 'SP TIK THAI LAN', slug: 'thai', displayOrder: 3 },
+  { name: 'SP THUỴ SĨ', slug: 'td', displayOrder: 4 },
+  { name: 'SP INDONESIA', slug: 'id', displayOrder: 5 },
+];
+
 const DEFAULT_TIKTOK_SUPPORT_SERVICES = [
   {
     regionSlug: 'vn',
-    name: 'Chat Support TikTok - 1 tai khoan',
-    serviceKey: 'support-1-account',
-    price: 450000,
-    description: 'Goi chat support TikTok 30 ngay cho 1 tai khoan.',
+    name: 'Chat Support TikTok 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 180000,
     displayOrder: 1,
   },
-];
+  {
+    regionSlug: 'vn',
+    name: 'Chat Support TikTok 10k - 20k FL',
+    serviceKey: '10_20k',
+    price: 320000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'vn',
+    name: 'Chat Support TikTok 20k - 50k FL',
+    serviceKey: '20_50k',
+    price: 500000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'vn',
+    name: 'Chat Support TikTok 50k - 100k FL',
+    serviceKey: '50_100k',
+    price: 690000,
+    displayOrder: 4,
+  },
+  {
+    regionSlug: 'vn',
+    name: 'Chat Support TikTok 100k - 190k FL',
+    serviceKey: '100_190k',
+    price: 889000,
+    displayOrder: 5,
+  },
+  {
+    regionSlug: 'uk',
+    name: 'Chat Support TikTok 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 360000,
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'uk',
+    name: 'Chat Support TikTok 10-20k FL',
+    serviceKey: '10-20k',
+    price: 640000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'uk',
+    name: 'Chat Support TikTok 20-50K FL',
+    serviceKey: '20-50',
+    price: 1000000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'uk',
+    name: 'Chat Support TikTok 50k - 100k FL',
+    serviceKey: '50k-100k',
+    price: 1380000,
+    displayOrder: 4,
+  },
+  {
+    regionSlug: 'thai',
+    name: 'Chat Support TikTok 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 360000,
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'thai',
+    name: 'Chat Support TikTok 10-20K FL',
+    serviceKey: '10-20',
+    price: 640000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'thai',
+    name: 'Chat Support TikTok 20-50K FL',
+    serviceKey: '20-50',
+    price: 1000000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'thai',
+    name: 'Chat Support TikTok 50k - 100k FL',
+    serviceKey: '50k-100k',
+    price: 1380000,
+    displayOrder: 4,
+  },
+  {
+    regionSlug: 'td',
+    name: 'Chat Support TikTok 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 360000,
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'td',
+    name: 'Chat Support TikTok 10-20K FL',
+    serviceKey: '10-20',
+    price: 640000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'td',
+    name: 'Chat Support TikTok 20-50K FL',
+    serviceKey: '20-50',
+    price: 1000000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'td',
+    name: 'Chat Support TikTok 50k - 100k FL',
+    serviceKey: '50k-100k',
+    price: 1380000,
+    displayOrder: 4,
+  },
+  {
+    regionSlug: 'id',
+    name: 'Chat Support TikTok 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 360000,
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'id',
+    name: 'Chat Support TikTok 10-20K FL',
+    serviceKey: '10-20',
+    price: 640000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'id',
+    name: 'Chat Support TikTok 20-50K FL',
+    serviceKey: '20-50',
+    price: 1000000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'id',
+    name: 'Chat Support TikTok 50k - 100k FL',
+    serviceKey: '50k-100k',
+    price: 1380000,
+    displayOrder: 4,
+  },
+].map((service) => ({
+  ...service,
+  description: service.name,
+}));
+
+function defaultTikTokMenusForResponse() {
+  return DEFAULT_TIKTOK_SUPPORT_MENUS.map((menu, index) => ({
+    id: -(index + 1),
+    name: menu.name,
+    slug: menu.slug,
+    display_order: menu.displayOrder,
+    status: 'active',
+  }));
+}
+
+function defaultTikTokServicesForResponse() {
+  return DEFAULT_TIKTOK_SUPPORT_SERVICES.map((service, index) => ({
+    id: -(index + 1),
+    region_slug: service.regionSlug,
+    name: service.name,
+    service_key: service.serviceKey,
+    price: service.price,
+    description: service.description,
+    display_order: service.displayOrder,
+    status: 'active',
+  }));
+}
+
+function findDefaultTikTokService(region: string, serviceKey: string) {
+  return defaultTikTokServicesForResponse().find(
+    (service) => String(service.region_slug) === region && String(service.service_key) === serviceKey
+  );
+}
+
+async function getTikTokOrderAllowedStatuses() {
+  const rows = await db.$queryRawUnsafe<Array<{ column_type: string }>>(
+    `
+      SELECT COLUMN_TYPE AS column_type
+      FROM information_schema.columns
+      WHERE table_schema = DATABASE()
+        AND table_name = 'tiktok_support_orders'
+        AND column_name = 'status'
+      LIMIT 1
+    `
+  ).catch(() => []);
+  const columnType = String(rows[0]?.column_type || '');
+  const match = columnType.match(/^enum\((.*)\)$/i);
+  if (!match) {
+    return null;
+  }
+
+  return Array.from(match[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)).map((item) => item[1].replace(/\\'/g, "'"));
+}
+
+async function resolveTikTokOrderStatus(preferred: string) {
+  const allowed = await getTikTokOrderAllowedStatuses();
+  if (!allowed || allowed.includes(preferred)) {
+    return preferred;
+  }
+
+  const fallbacks: Record<string, string[]> = {
+    active: ['completed', 'processing', 'pending'],
+    completed: ['active', 'success', 'processing', 'pending'],
+    processing: ['pending', 'active', 'completed'],
+    pending: ['processing', 'active', 'completed'],
+    canceled: ['cancelled', 'expired', 'pending'],
+    cancelled: ['canceled', 'expired', 'pending'],
+    expired: ['canceled', 'cancelled', 'pending'],
+  };
+
+  return fallbacks[preferred]?.find((status) => allowed.includes(status)) || allowed[0] || preferred;
+}
 
 function getClientIp(req: NextRequest) {
   return (
@@ -61,20 +279,22 @@ async function ensureDefaultTikTokSupportServices() {
     return;
   }
 
-  await db.$executeRawUnsafe(
-    `
-      INSERT INTO tiktok_service_menus (name, slug, display_order, status)
-      SELECT ?, ?, ?, ?
-      WHERE NOT EXISTS (
-        SELECT 1 FROM tiktok_service_menus WHERE slug = ?
-      )
-    `,
-    'TikTok Viet Nam',
-    'vn',
-    1,
-    'active',
-    'vn'
-  ).catch(() => undefined);
+  for (const menu of DEFAULT_TIKTOK_SUPPORT_MENUS) {
+    await db.$executeRawUnsafe(
+      `
+        INSERT INTO tiktok_service_menus (name, slug, display_order, status)
+        SELECT ?, ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM tiktok_service_menus WHERE slug = ?
+        )
+      `,
+      menu.name,
+      menu.slug,
+      menu.displayOrder,
+      'active',
+      menu.slug
+    ).catch(() => undefined);
+  }
 
   await db.$executeRawUnsafe(
     `
@@ -83,14 +303,15 @@ async function ensureDefaultTikTokSupportServices() {
       WHERE region_slug = ?
         AND (
           (service_key = ? AND price <= ?)
-          OR service_key IN (?, ?)
+          OR service_key IN (?, ?, ?)
         )
     `,
     'vn',
     'support-basic',
     50000,
     'support-10-account',
-    'support-100-account'
+    'support-100-account',
+    'support-1-account'
   ).catch(() => undefined);
 
   for (const service of DEFAULT_TIKTOK_SUPPORT_SERVICES) {
@@ -143,23 +364,38 @@ export async function GET(req: NextRequest) {
 
   await ensureDefaultTikTokSupportServices();
 
-  const services = await tableExists('tiktok_region_services')
-    ? db.$queryRawUnsafe<Record<string, unknown>[]>(`
-        SELECT id, region_slug, name, service_key, price, description, status
-        FROM tiktok_region_services
-        WHERE status = 'active'
-        ORDER BY region_slug ASC, display_order ASC, id ASC
+  const hasRegionServices = await tableExists('tiktok_region_services');
+  const dbServices = hasRegionServices
+    ? await db.$queryRawUnsafe<Record<string, unknown>[]>(`
+        SELECT s.id, s.region_slug, s.name, s.service_key, s.price, s.description, s.display_order, s.status
+        FROM tiktok_region_services s
+        WHERE s.status = 'active'
+          AND (
+            NOT EXISTS (SELECT 1 FROM tiktok_service_menus)
+            OR EXISTS (
+              SELECT 1
+              FROM tiktok_service_menus m
+              WHERE m.slug = s.region_slug AND m.status = 'active'
+            )
+          )
+        ORDER BY
+          COALESCE((SELECT m.display_order FROM tiktok_service_menus m WHERE m.slug = s.region_slug LIMIT 1), 999),
+          s.display_order ASC,
+          s.id ASC
       `).catch(() => [])
     : [];
 
-  const menus = await tableExists('tiktok_service_menus')
-    ? db.$queryRawUnsafe<Record<string, unknown>[]>(`
-        SELECT id, name, slug, status
+  const hasMenus = await tableExists('tiktok_service_menus');
+  const dbMenus = hasMenus
+    ? await db.$queryRawUnsafe<Record<string, unknown>[]>(`
+        SELECT id, name, slug, display_order, status
         FROM tiktok_service_menus
         WHERE status = 'active'
         ORDER BY display_order ASC, id ASC
       `).catch(() => [])
     : [];
+  const services = dbServices.length > 0 ? dbServices : defaultTikTokServicesForResponse();
+  const menus = dbMenus.length > 0 ? dbMenus : defaultTikTokMenusForResponse();
 
   return NextResponse.json({ success: true, data: { orders, services, menus, is_support: auth.context!.isSupport } });
 }
@@ -199,6 +435,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Thiếu order_id hoặc status không hợp lệ' }, { status: 400 });
     }
 
+    const dbStatus = await resolveTikTokOrderStatus(nextStatus);
     const updated = await db.$transaction(async (tx) => {
       const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>(
         `
@@ -227,7 +464,7 @@ export async function POST(req: NextRequest) {
                 updated_at = NOW()
             WHERE id = ?
           `,
-          nextStatus,
+          dbStatus,
           orderId
         );
       } else {
@@ -237,7 +474,7 @@ export async function POST(req: NextRequest) {
             SET status = ?, updated_at = NOW()
             WHERE id = ?
           `,
-          nextStatus,
+          dbStatus,
           orderId
         );
       }
@@ -264,6 +501,7 @@ export async function POST(req: NextRequest) {
   if (action === 'renew') {
     const orderId = Number(readBodyValue(body, 'order_id') || 0);
     if (!orderId) return NextResponse.json({ success: false, message: 'Thiếu order_id' }, { status: 400 });
+    const renewedStatus = await resolveTikTokOrderStatus('completed');
 
     const result = await db.$transaction(async (tx) => {
       const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>(
@@ -318,12 +556,13 @@ export async function POST(req: NextRequest) {
       await tx.$executeRawUnsafe(
         `
           UPDATE tiktok_support_orders
-          SET status = 'active',
+          SET status = ?,
               ngay_gia_han = NOW(),
               ngay_het_han = DATE_ADD(GREATEST(COALESCE(ngay_het_han, NOW()), NOW()), INTERVAL 30 DAY),
               updated_at = NOW()
           WHERE id = ?
         `,
+        renewedStatus,
         orderId
       );
       return { order_id: orderId, balance_after: nextBalance };
@@ -347,6 +586,7 @@ export async function POST(req: NextRequest) {
   }
 
   await ensureDefaultTikTokSupportServices();
+  const initialOrderStatus = await resolveTikTokOrderStatus('completed');
 
   const created = await db.$transaction(async (tx) => {
     const serviceRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
@@ -361,7 +601,7 @@ export async function POST(req: NextRequest) {
       region,
       serviceKey
     );
-    const service = serviceRows[0];
+    const service = serviceRows[0] || findDefaultTikTokService(region, serviceKey);
     if (!service) throw new Error('Không tìm thấy dịch vụ TikTok đang bật');
 
     const settings = await getLegacySettingsMap();
@@ -389,7 +629,7 @@ export async function POST(req: NextRequest) {
       `
         INSERT INTO tiktok_support_orders
           (user_id, region, service_key, service_name, tiktok_id, buyer_name, buyer_contact, price, status, ngay_gia_han, ngay_het_han, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW())
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW())
       `,
       auth.userId!,
       region,
@@ -398,7 +638,8 @@ export async function POST(req: NextRequest) {
       tiktokId,
       buyerName,
       buyerContact,
-      totalPrice
+      totalPrice,
+      initialOrderStatus
     );
     const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>('SELECT * FROM tiktok_support_orders WHERE id = LAST_INSERT_ID() LIMIT 1');
     return { order: rows[0] || null, balance_after: nextBalance, subtotal, vat_amount: vatAmount, total_to_pay: totalPrice };

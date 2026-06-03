@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   CheckCircle2,
@@ -228,6 +229,8 @@ const DEFAULT_VPS_GPU_PRICING: VpsGpuPricingSettings = {
   hourlyFeeVnd: 0,
 };
 
+const VPS_GPU_IMAGE_PRESET_STORAGE_KEY = 'vps_gpu_custom_image_preset_v1';
+
 const networkOptions: Array<{
   value: NetworkMode;
   title: string;
@@ -269,7 +272,7 @@ const osImageOptions = [
   {
     value: 'custom',
     label: 'Image Docker tùy chỉnh',
-    hint: 'Dùng image riêng nếu cần desktop/RDP hoặc tool đặc biệt',
+    hint: 'Dán image desktop/noVNC/RDP riêng nếu cần mở Blender bằng giao diện và vẫn dùng GPU',
   },
 ] as const;
 
@@ -706,6 +709,34 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
   useEffect(() => {
     void loadOverview();
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(VPS_GPU_IMAGE_PRESET_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+
+      const preset = asRecord(JSON.parse(raw));
+      const nextDockerImage = typeof preset.dockerImage === 'string' ? preset.dockerImage.trim() : '';
+      const nextOnStartCommand = typeof preset.onStartCommand === 'string' ? preset.onStartCommand.trim() : '';
+      const nextRuntime = typeof preset.runtime === 'string' ? preset.runtime.trim().toLowerCase() : '';
+      const nextEnvFlags = typeof preset.envFlags === 'string' ? preset.envFlags.trim() : '';
+
+      if (nextDockerImage) {
+        setDockerImage(nextDockerImage);
+      }
+      if (nextOnStartCommand) {
+        setOnStartCommand(nextOnStartCommand);
+      }
+      if (nextRuntime === 'ssh' || nextRuntime === 'jupyter' || nextRuntime === 'args') {
+        setRuntime(nextRuntime);
+      }
+      if (nextEnvFlags) {
+        setEnvFlags(nextEnvFlags);
+      }
+    } catch {}
   }, []);
 
   const hasPendingInstances = useMemo(() => instances.some(isInstancePending), [instances]);
@@ -1209,6 +1240,12 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
               Làm mới gói
             </Button>
+            <Button asChild type="button" variant="outline">
+              <Link href="/user/vps-gpu/images">
+                <Monitor className="mr-2 h-4 w-4" />
+                Tạo image riêng
+              </Link>
+            </Button>
             <Button type="button" onClick={openCreateDialog} loading={submitting} loadingText="Đang tạo...">
               <Cpu className="mr-2 h-4 w-4" />
               Tạo VPS GPU
@@ -1507,9 +1544,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 value={selectedOsPresetValue(dockerImage)}
                 onChange={(event) => {
                   const value = event.target.value;
-                  if (value !== 'custom') {
-                    setDockerImage(value);
-                  }
+                  setDockerImage(value === 'custom' ? '' : value);
                 }}
                 className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold dark:text-white"
               >
@@ -1525,7 +1560,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             </Field>
 
             <Field label="Image Docker">
-              <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="nvidia/cuda:12.4.1-runtime-ubuntu22.04" />
+              <Input value={dockerImage} onChange={(event) => setDockerImage(event.target.value)} placeholder="ten-image/blender-desktop-cuda:latest" />
             </Field>
 
             <Field label="Trạng thái sau tạo">

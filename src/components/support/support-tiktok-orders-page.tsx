@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Plus, RefreshCw, Repeat2 } from 'lucide-react';
+import { Loader2, MapPin, Plus, RefreshCw, Repeat2 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,14 @@ interface TikTokService {
   service_key?: string;
   price?: number | string;
   description?: string;
+  display_order?: number | string;
+}
+
+interface TikTokMenu {
+  id: number;
+  name?: string;
+  slug?: string;
+  display_order?: number | string;
 }
 
 export function SupportTiktokOrdersPage() {
@@ -41,6 +49,7 @@ export function SupportTiktokOrdersPage() {
   const user = currentUser.data;
   const [orders, setOrders] = useState<TikTokOrder[]>([]);
   const [services, setServices] = useState<TikTokService[]>([]);
+  const [menus, setMenus] = useState<TikTokMenu[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -54,14 +63,46 @@ export function SupportTiktokOrdersPage() {
   });
 
   const filteredServices = useMemo(
-    () => services.filter((service) => !form.region || service.region_slug === form.region),
+    () => services.filter((service) => !form.region || String(service.region_slug || '') === form.region),
     [form.region, services]
   );
-  const regions = useMemo(() => Array.from(new Set(services.map((service) => service.region_slug).filter(Boolean))), [services]);
-  const selectedService = services.find((service) => service.region_slug === form.region && service.service_key === form.service_key);
+  const regionOptions = useMemo(() => {
+    const bySlug = new Map<string, { slug: string; label: string; count: number; order: number }>();
+
+    menus.forEach((menu, index) => {
+      const slug = String(menu.slug || '').trim();
+      if (!slug) return;
+      bySlug.set(slug, {
+        slug,
+        label: String(menu.name || slug).trim(),
+        count: 0,
+        order: toNumber(menu.display_order, index + 1),
+      });
+    });
+
+    services.forEach((service) => {
+      const slug = String(service.region_slug || '').trim();
+      if (!slug) return;
+      const current = bySlug.get(slug);
+      bySlug.set(slug, {
+        slug,
+        label: current?.label || slug.toUpperCase(),
+        count: (current?.count || 0) + 1,
+        order: current?.order ?? 999,
+      });
+    });
+
+    return Array.from(bySlug.values())
+      .filter((region) => region.count > 0)
+      .sort((left, right) => left.order - right.order || left.label.localeCompare(right.label));
+  }, [menus, services]);
+  const selectedService = services.find(
+    (service) => String(service.region_slug || '') === form.region && String(service.service_key || '') === form.service_key
+  );
   const selectedPrice = toNumber(selectedService?.price, 0);
   const selectedPriceLabel = selectedService ? formatCurrency(selectedPrice) : services.length > 0 ? 'Chọn dịch vụ' : 'Chưa có đơn giá';
   const canCreateOrder = Boolean(selectedService && selectedPrice > 0 && form.region && form.service_key && form.tiktok_id.trim());
+  const selectedRegionLabel = regionOptions.find((region) => region.slug === form.region)?.label || form.region || 'Chưa chọn';
 
   async function loadOrders() {
     setLoading(true);
@@ -76,13 +117,28 @@ export function SupportTiktokOrdersPage() {
     }
 
     const nextServices = Array.isArray(payload.data?.services) ? payload.data.services : [];
+    const nextMenus = Array.isArray(payload.data?.menus) ? payload.data.menus : [];
     setOrders(Array.isArray(payload.data?.orders) ? payload.data.orders : []);
     setServices(nextServices);
-    setForm((current) => ({
-      ...current,
-      region: current.region || String(nextServices[0]?.region_slug || ''),
-      service_key: current.service_key || String(nextServices[0]?.service_key || ''),
-    }));
+    setMenus(nextMenus);
+    setForm((current) => {
+      const currentRegion = String(current.region || '');
+      const regionStillAvailable = nextServices.some((service: TikTokService) => String(service.region_slug || '') === currentRegion);
+      const nextRegion = regionStillAvailable ? currentRegion : String(nextServices[0]?.region_slug || '');
+      const currentServiceStillAvailable = nextServices.some(
+        (service: TikTokService) =>
+          String(service.region_slug || '') === nextRegion && String(service.service_key || '') === current.service_key
+      );
+      const nextServiceKey = currentServiceStillAvailable
+        ? current.service_key
+        : String(nextServices.find((service: TikTokService) => String(service.region_slug || '') === nextRegion)?.service_key || '');
+
+      return {
+        ...current,
+        region: nextRegion,
+        service_key: nextServiceKey,
+      };
+    });
   }
 
   useEffect(() => {
@@ -182,7 +238,7 @@ export function SupportTiktokOrdersPage() {
               required
             >
               <option value="">Chọn region</option>
-              {regions.map((region) => <option key={region} value={region}>{region}</option>)}
+              {regionOptions.map((region) => <option key={region.slug} value={region.slug}>{region.label}</option>)}
             </select>
             <select
               value={form.service_key}
@@ -221,6 +277,70 @@ export function SupportTiktokOrdersPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-300">
+                  Chọn region
+                </div>
+                <div className="mt-1 text-sm font-bold text-slate-600 dark:text-slate-300">
+                  Các region đang bật trong bảng dịch vụ TikTok.
+                </div>
+              </div>
+              <div className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-right">
+                <div className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-300">
+                  Region đang chọn
+                </div>
+                <div className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-300">
+                  {selectedRegionLabel}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {regionOptions.length === 0 ? (
+                <div className="rounded-[1rem] border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-bold text-slate-400 dark:border-white/10">
+                  Chưa có region đang bật.
+                </div>
+              ) : (
+                regionOptions.map((region) => {
+                  const active = region.slug === form.region;
+                  return (
+                    <button
+                      key={region.slug}
+                      type="button"
+                      onClick={() => {
+                        const firstService = services.find((service) => String(service.region_slug || '') === region.slug);
+                        setForm((current) => ({
+                          ...current,
+                          region: region.slug,
+                          service_key: String(firstService?.service_key || ''),
+                        }));
+                      }}
+                      className={`rounded-[1.15rem] border p-4 text-left transition ${
+                        active
+                          ? 'border-brand-blue/45 bg-brand-blue/15 shadow-[0_0_0_3px_rgba(37,99,235,0.16)]'
+                          : 'border-slate-200 bg-white/60 hover:border-brand-blue/25 dark:border-white/10 dark:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-500">
+                          <MapPin className="h-4 w-4" />
+                        </span>
+                        <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-xs font-black text-slate-500 dark:text-slate-300">
+                          {region.count} gói
+                        </span>
+                      </div>
+                      <div className="mt-4 text-base font-black uppercase tracking-[0.08em] text-slate-950 dark:text-white">
+                        {region.label}
+                      </div>
+                      <div className="mt-1 font-mono text-xs font-bold uppercase text-slate-400">{region.slug}</div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[1.4rem] border border-cyan-400/20 bg-cyan-500/10 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-300">
                   Bảng đơn giá
                 </div>
                 <div className="mt-1 text-sm font-bold text-slate-600 dark:text-slate-300">
@@ -239,7 +359,7 @@ export function SupportTiktokOrdersPage() {
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredServices.length === 0 ? (
                 <div className="rounded-[1rem] border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-bold text-slate-400 dark:border-white/10">
-                  Region này chưa có đơn giá.
+                  Region này chưa có gói đang bật.
                 </div>
               ) : (
                 filteredServices.map((service) => {
@@ -295,7 +415,7 @@ export function SupportTiktokOrdersPage() {
                     </div>
                     <h3 className="mt-3 text-lg font-black uppercase text-slate-950 dark:text-white">{order.service_name || order.service_key}</h3>
                     <p className="mt-1 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
-                      TikTok: <span className="font-black text-slate-800 dark:text-white">{order.tiktok_id}</span> · Hết hạn: {order.ngay_het_han ? new Date(order.ngay_het_han).toLocaleDateString('vi-VN') : 'chưa có'}
+                      TikTok: <span className="font-black text-slate-800 dark:text-white">{order.tiktok_id}</span> · Region: {regionOptions.find((region) => region.slug === order.region)?.label || order.region} · Hết hạn: {order.ngay_het_han ? new Date(order.ngay_het_han).toLocaleDateString('vi-VN') : 'chưa có'}
                     </p>
                   </div>
                   <div className="font-mono text-xl font-black text-emerald-500">{formatCurrency(toNumber(order.price, 0))}</div>
