@@ -987,6 +987,13 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     return computeSaleHourlyFromUsd(estimatedHourly, pricingSettings);
   }, [estimatedHourly, pricingSettings, selectedHostnode]);
 
+  const normalizedSshPublicKey = useMemo(() => normalizePublicSshKeyInput(sshPublicKey), [sshPublicKey]);
+  const sshPublicKeyError = useMemo(
+    () => (normalizedSshPublicKey ? validatePublicSshKeyInput(normalizedSshPublicKey) : ''),
+    [normalizedSshPublicKey]
+  );
+  const sshPublicKeyReady = Boolean(normalizedSshPublicKey && !sshPublicKeyError);
+
   function openCreateDialog() {
     try {
       buildPayload();
@@ -1214,7 +1221,49 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           { label: 'Instances', value: String(instances.length), hint: 'VM đang quản lý', tone: 'violet' },
           { label: 'Giá chỉ từ', value: formatMoneyVnd(lowestSaleHourly || estimatedSaleHourly), hint: '/ giờ', tone: 'amber' },
         ]}
-      />
+      >
+        {runtime === 'ssh' ? (
+          <div className="max-w-3xl rounded-[1.2rem] border border-brand-blue/20 bg-slate-950/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] dark:bg-white/[0.035] sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">SSH public key của bạn</div>
+                <p className="mt-2 text-xs font-semibold leading-6 text-slate-500 dark:text-slate-300">
+                  Dán public key của máy bạn vào đây trước khi tạo VPS để đăng nhập được bằng SSH.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('vps-gpu-ssh-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              >
+                <KeyRound className="mr-2 h-4 w-4" />
+                Xem cách lấy key
+              </Button>
+            </div>
+            <textarea
+              value={sshPublicKey}
+              onChange={(event) => setSshPublicKey(event.target.value)}
+              rows={4}
+              placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... ten-may-cua-ban"
+              className="field-elevated mt-4 w-full rounded-[1.2rem] px-4 py-3 font-mono text-xs font-semibold leading-6 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
+            />
+            <div className="mt-3 flex flex-col gap-2 text-xs font-semibold leading-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-slate-500 dark:text-slate-400">
+                Chỉ dán nội dung file <span className="font-mono font-black">.pub</span>. Không dán private key, mật khẩu hoặc file id_ed25519/id_rsa.
+              </p>
+              {sshPublicKeyReady ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 font-black text-emerald-500">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Key hợp lệ
+                </span>
+              ) : sshPublicKeyError ? (
+                <span className="font-black text-amber-500">{sshPublicKeyError}</span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </PageHero>
 
       {loadError ? (
         <SectionPanel className="border-amber-500/25 bg-amber-500/10">
@@ -1515,18 +1564,14 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             )}
 
             {runtime === 'ssh' ? (
-              <Field label="SSH public key của bạn">
-                <textarea
-                  value={sshPublicKey}
-                  onChange={(event) => setSshPublicKey(event.target.value)}
-                  rows={4}
-                  placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... ten-may-cua-ban"
-                  className="field-elevated w-full rounded-[1.2rem] px-4 py-3 font-mono text-xs font-semibold leading-6 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
-                />
-                <p className="text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-                  Chỉ dán public key trong file .pub. Không dán private key, password hay file id_ed25519/id_rsa.
-                </p>
-              </Field>
+              <MetricCard
+                label="SSH public key"
+                value={sshPublicKeyReady ? 'Đã sẵn sàng' : 'Chưa có key'}
+                hint={sshPublicKeyReady ? 'Hệ thống sẽ gắn key này vào VPS khi tạo.' : 'Dán key ở ô ngay dưới nút Tạo VPS GPU phía trên.'}
+                tone={sshPublicKeyReady ? 'emerald' : 'amber'}
+                icon={<KeyRound className="h-4 w-4" />}
+                className="p-4"
+              />
             ) : (
               <Field label="Args tùy chọn">
                 <Input
@@ -1844,6 +1889,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         )}
       </SectionPanel>
 
+      <div id="vps-gpu-ssh-guide" className="scroll-mt-28">
       <SectionPanel className="space-y-5">
         <SectionHeader
           eyebrow="Hướng dẫn kết nối"
@@ -1919,6 +1965,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           Nếu terminal báo <span className="font-mono font-black">Permission denied (publickey)</span>, nghĩa là public key của thiết bị hiện tại chưa được gắn vào VPS. Xóa VPS lỗi, tạo lại và dán đúng nội dung file <span className="font-mono font-black">.pub</span> của thiết bị bạn đang dùng.
         </div>
       </SectionPanel>
+      </div>
     </div>
   );
 }
