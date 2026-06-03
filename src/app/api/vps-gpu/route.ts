@@ -936,6 +936,68 @@ function normalizeVastEnv(value: unknown) {
   return env;
 }
 
+function normalizePublicSshKey(value: unknown) {
+  return normalizeString(value).replace(/\s+/g, ' ').trim();
+}
+
+function assertPublicSshKey(value: unknown) {
+  const key = normalizePublicSshKey(value);
+  if (!key) {
+    throw new Error('Thiếu SSH public key. Hãy dán nội dung file .pub của bạn trước khi tạo VPS.');
+  }
+
+  if (/BEGIN .*PRIVATE KEY/i.test(key) || key.includes('OPENSSH PRIVATE KEY')) {
+    throw new Error('Bạn đang dán private key. Hệ thống chỉ nhận public key trong file .pub để kết nối SSH.');
+  }
+
+  const parts = key.split(/\s+/);
+  const keyType = parts[0] || '';
+  const keyBody = parts[1] || '';
+  const supportedTypes = new Set([
+    'ssh-ed25519',
+    'ssh-rsa',
+    'ecdsa-sha2-nistp256',
+    'ecdsa-sha2-nistp384',
+    'ecdsa-sha2-nistp521',
+    'sk-ssh-ed25519@openssh.com',
+    'sk-ecdsa-sha2-nistp256@openssh.com',
+  ]);
+
+  if (!supportedTypes.has(keyType) || !/^[A-Za-z0-9+/]+={0,3}$/.test(keyBody)) {
+    throw new Error('SSH public key chưa đúng định dạng. Key thường bắt đầu bằng ssh-ed25519 hoặc ssh-rsa.');
+  }
+
+  return key;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function attachSshKeyToInstance(instanceId: string, publicKey: string) {
+  const normalizedKey = assertPublicSshKey(publicKey);
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      return await vastRequest(`/instances/${encodeURIComponent(instanceId)}/ssh/`, {
+        method: 'POST',
+        body: JSON.stringify({ ssh_key: normalizedKey }),
+      });
+    } catch (error) {
+      lastError = error;
+      const status = error instanceof VastApiError ? error.status : 500;
+      if (![404, 409, 429, 500, 502, 503, 504].includes(status) || attempt === 5) {
+        break;
+      }
+      await sleep(1200 * attempt);
+    }
+  }
+
+  const message = lastError instanceof Error ? sanitizeProviderMessage(lastError.message) : 'Nguồn GPU chưa nhận SSH key';
+  throw new Error(`Không gắn được SSH key vào VPS vừa tạo. Hệ thống đã hủy VPS để tránh tính phí. Chi tiết: ${message}`);
+}
+
 function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer | null) {
   const payload = asRecord(rawPayload);
   const attributes = asRecord(asRecord(payload.data).attributes || payload.attributes || payload);
@@ -959,6 +1021,9 @@ function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer |
   const onstart = normalizeString(attributes.onstart, 'nvidia-smi');
   const runtime = normalizeRuntime(attributes.runtype);
   const env = normalizeVastEnv(attributes.env);
+  const userSshKey = assertPublicSshKey(
+    attributes.ssh_public_key || attributes.public_ssh_key || attributes.ssh_key || payload.ssh_public_key || payload.ssh_key
+  );
 
   const vastPayload: Record<string, unknown> = {
     image: dockerImage,
@@ -987,6 +1052,7 @@ function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer |
   return {
     offerId,
     payload: vastPayload,
+    userSshKey,
   };
 }
 
@@ -1146,7 +1212,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const { offerId, payload } = buildCreateInstancePayload(body?.payload, liveOffer);
+      const { offerId, payload, userSshKey } = buildCreateInstancePayload(body?.payload, liveOffer);
       const pricingSettings = await getVpsGpuPricingSettings();
       const pricedHostnode = applyVpsGpuPricing([mapOfferToHostnode(liveOffer)], pricingSettings)[0];
       const pricing = asRecord(pricedHostnode.pricing);
@@ -1177,6 +1243,13 @@ export async function POST(req: NextRequest) {
       const providerInstanceId = extractCreatedProviderInstanceId(response);
       if (!providerInstanceId) {
         throw new Error('Nguồn GPU đã nhận lệnh nhưng chưa trả instance ID. Hãy kiểm tra lại danh sách VPS GPU sau vài giây.');
+      }
+
+      try {
+        await attachSshKeyToInstance(providerInstanceId, userSshKey);
+      } catch (error) {
+        await vastRequest(`/instances/${encodeURIComponent(providerInstanceId)}/`, { method: 'DELETE' }).catch(() => undefined);
+        throw error;
       }
 
       try {

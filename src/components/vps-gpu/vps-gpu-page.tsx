@@ -19,9 +19,11 @@ import {
   RefreshCw,
   Server,
   ShieldCheck,
+  Sparkles,
   Square,
   Terminal,
   Trash2,
+  Wallet,
 } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +40,7 @@ type DeploymentMethod = 'location' | 'hostnode';
 type NetworkMode = 'port-forwarding' | 'dedicated-ip';
 type VastRuntime = 'ssh' | 'jupyter' | 'args';
 type OfferType = 'ondemand' | 'bid';
+type OfferSort = 'price-asc' | 'price-desc';
 
 interface VpsGpuPageProps {
   initialUser?: SessionUser;
@@ -135,12 +138,6 @@ interface VastHostnode {
     tier?: number;
   };
   vast?: VastOfferMeta;
-}
-
-interface VastSecret {
-  id: string;
-  name?: string;
-  type?: string;
 }
 
 interface VastInstance {
@@ -323,10 +320,6 @@ function extractLocations(payload: unknown): VastLocation[] {
 
 function extractHostnodes(payload: unknown): VastHostnode[] {
   return toArray<VastHostnode>(asRecord(asRecord(payload).data).hostnodes).filter(isVerifiedHostnode);
-}
-
-function extractSecrets(payload: unknown): VastSecret[] {
-  return toArray<VastSecret>(asRecord(asRecord(payload).data).secrets);
 }
 
 function extractInstances(payload: unknown): VastInstance[] {
@@ -562,6 +555,10 @@ function buildLoadErrorMessage(message: string) {
 }
 
 function normalizeUiErrorMessage(message: string) {
+  if (/private key|public key|ssh public key|SSH public key|ssh-ed25519|ssh-rsa|Permission denied/i.test(message)) {
+    return message;
+  }
+
   if (/no_such_ask|not available|\/asks\/\d+|Instance type by id/i.test(message)) {
     return 'Gói GPU vừa hết hoặc không còn khả dụng. Mình đã làm mới danh sách, bạn chọn gói khác rồi tạo lại nhé.';
   }
@@ -578,12 +575,32 @@ function normalizeUiErrorMessage(message: string) {
     .replace(/\bvast\b/g, 'nguồn GPU');
 }
 
+function normalizePublicSshKeyInput(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function validatePublicSshKeyInput(value: string) {
+  const key = normalizePublicSshKeyInput(value);
+  if (!key) {
+    return 'Bạn cần dán SSH public key trước khi tạo VPS.';
+  }
+
+  if (/BEGIN .*PRIVATE KEY/i.test(key) || key.includes('OPENSSH PRIVATE KEY')) {
+    return 'Bạn đang dán private key. Chỉ dán public key trong file .pub.';
+  }
+
+  if (!/^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com)\s+[A-Za-z0-9+/]+={0,3}(\s+.+)?$/.test(key)) {
+    return 'SSH public key chưa đúng định dạng. Key thường bắt đầu bằng ssh-ed25519 hoặc ssh-rsa.';
+  }
+
+  return '';
+}
+
 export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const { confirm } = useConfirmDialog();
   const { setBalances } = useWalletBalance();
   const [locations, setLocations] = useState<VastLocation[]>([]);
   const [hostnodes, setHostnodes] = useState<VastHostnode[]>([]);
-  const [secrets, setSecrets] = useState<VastSecret[]>([]);
   const [instances, setInstances] = useState<VastInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -594,7 +611,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [offerGpuFilter, setOfferGpuFilter] = useState('');
   const [minGpuRamGb, setMinGpuRamGb] = useState('16');
   const [minReliability, setMinReliability] = useState('0.98');
+  const [offerSort, setOfferSort] = useState<OfferSort>('price-asc');
   const [searchingOffers, setSearchingOffers] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [deductAnimation, setDeductAnimation] = useState<{ amount: number; balance?: number } | null>(null);
 
   const [deploymentMethod, setDeploymentMethod] = useState<DeploymentMethod>('hostnode');
   const [networkMode, setNetworkMode] = useState<NetworkMode>('port-forwarding');
@@ -613,6 +634,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [onStartCommand, setOnStartCommand] = useState('nvidia-smi');
   const [cancelUnavailable, setCancelUnavailable] = useState(true);
   const [argsString, setArgsString] = useState('');
+  const [sshPublicKey, setSshPublicKey] = useState('');
   const [revealedPasswordId, setRevealedPasswordId] = useState<string | null>(null);
 
   async function loadOverview(options?: { silent?: boolean }) {
@@ -633,8 +655,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       setLocations(extractLocations(data.locations));
       setHostnodes(extractHostnodes(data.hostnodes));
       setInstances(extractInstances(data.instances));
-      const nextSecrets = extractSecrets(data.secrets);
-      setSecrets(nextSecrets);
       setDockerImage((current) => current || String(asRecord(payload.data).defaultImage || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04'));
       setLoadError(payload.message ? String(payload.message) : null);
     } catch (error) {
@@ -715,6 +735,27 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     [hostnodes, selectedHostnodeId]
   );
 
+  const sortedHostnodes = useMemo(() => {
+    return [...hostnodes].sort((left, right) => {
+      const leftPrice = getHostnodeSalePrice(left);
+      const rightPrice = getHostnodeSalePrice(right);
+      const leftMissing = leftPrice <= 0;
+      const rightMissing = rightPrice <= 0;
+      if (leftMissing && rightMissing) return 0;
+      if (leftMissing) return 1;
+      if (rightMissing) return -1;
+      const diff = leftPrice - rightPrice;
+      return offerSort === 'price-asc' ? diff : -diff;
+    });
+  }, [hostnodes, offerSort]);
+
+  const lowestSaleHourly = useMemo(() => {
+    const prices = hostnodes
+      .map((hostnode) => getHostnodeSalePrice(hostnode))
+      .filter((price) => Number.isFinite(price) && price > 0);
+    return prices.length ? Math.min(...prices) : 0;
+  }, [hostnodes]);
+
   const selectedLocation = useMemo(
     () =>
       locations.find((item) => item.id === selectedLocationId) ||
@@ -745,11 +786,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           },
         ];
   }, [deploymentMethod, hostnodes, locations, selectedHostnode, selectedLocation]);
-
-  const sshKeySecrets = useMemo(
-    () => secrets.filter((secret) => String(secret.type || '').toUpperCase() === 'SSHKEY'),
-    [secrets]
-  );
 
   const selectedGpu = useMemo(
     () => gpuOptions.find((gpu) => gpu.v0Name === gpuV0Name) || gpuOptions[0],
@@ -802,9 +838,16 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       throw new Error('Thiếu GPU model');
     }
 
+    const normalizedSshPublicKey = normalizePublicSshKeyInput(sshPublicKey);
+    const sshKeyError = validatePublicSshKeyInput(normalizedSshPublicKey);
+    if (sshKeyError) {
+      throw new Error(sshKeyError);
+    }
+
     const attributes: Record<string, unknown> = {
       name,
       type: 'virtualmachine',
+      ssh_public_key: normalizedSshPublicKey,
       image: dockerImage.trim() || 'nvidia/cuda:12.4.1-runtime-ubuntu22.04',
       runtype: runtime,
       target_state: targetState,
@@ -904,24 +947,29 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     return estimatedHourly > 0 ? Math.ceil((estimatedHourly * 26000 * 1.25) / 1000) * 1000 : 0;
   }, [estimatedHourly, selectedHostnode]);
 
-  async function handleCreateInstance() {
-    let payload: ReturnType<typeof buildPayload>;
+  function openCreateDialog() {
     try {
-      payload = buildPayload();
+      buildPayload();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Payload chưa hợp lệ');
       return;
     }
 
-    const confirmed = await confirm({
-      title: 'Tạo VPS GPU',
-      description: `Instance ${instanceName.trim()} sẽ trừ trước ${formatMoneyVnd(estimatedSaleHourly)} từ ví game cho giờ đầu tiên. Sau đó hệ thống tự trừ theo giờ; nếu ví game không đủ, VPS sẽ bị xóa tự động.`,
-      confirmText: 'Tạo instance',
-      cancelText: 'Kiểm tra lại',
-      tone: 'brand',
-    });
+    setTermsAccepted(false);
+    setCreateDialogOpen(true);
+  }
 
-    if (!confirmed) {
+  async function handleCreateInstance() {
+    if (!termsAccepted) {
+      toast.error('Bạn cần đồng ý điều khoản thuê VPS GPU trước khi tạo.');
+      return;
+    }
+
+    let payload: ReturnType<typeof buildPayload>;
+    try {
+      payload = buildPayload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Payload chưa hợp lệ');
       return;
     }
 
@@ -945,8 +993,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       const nextGameBalance = Number(asRecord(asRecord(result).data).gameBalance);
       if (Number.isFinite(nextGameBalance)) {
         setBalances({ gameBalance: nextGameBalance });
+        setDeductAnimation({ amount: estimatedSaleHourly, balance: nextGameBalance });
+        window.setTimeout(() => setDeductAnimation(null), 2800);
       }
       toast.success('Đã tạo VPS GPU và trừ ví game giờ đầu tiên');
+      setCreateDialogOpen(false);
       await loadOverview();
     } catch (error) {
       toast.error(normalizeUiErrorMessage(error instanceof Error ? error.message : 'Không thể tạo VPS GPU'));
@@ -1023,6 +1074,84 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {deductAnimation ? (
+        <div className="fixed right-4 top-24 z-[330] max-w-[calc(100vw-2rem)] animate-in slide-in-from-right-4 fade-in duration-300">
+          <div className="rounded-[1.2rem] border border-emerald-400/30 bg-slate-950/95 p-4 text-white shadow-[0_24px_70px_-28px_rgba(16,185,129,0.8)] backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
+                <Wallet className="h-5 w-5 animate-bounce" />
+              </span>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-300">Đã trừ ví game</div>
+                <div className="mt-1 font-mono text-xl font-black tabular-nums">-{formatMoneyVnd(deductAnimation.amount)}</div>
+                {Number.isFinite(deductAnimation.balance) ? (
+                  <div className="mt-1 text-xs font-semibold text-slate-300">Còn lại {formatMoneyVnd(deductAnimation.balance)}</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {createDialogOpen ? (
+        <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+          <div className="w-full max-w-2xl animate-in zoom-in-95 fade-in duration-200 rounded-[1.6rem] border border-white/10 bg-slate-950 p-5 text-white shadow-[0_30px_120px_-40px_rgba(14,165,233,0.75)] sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full border border-brand-blue/20 bg-brand-blue/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Xác nhận thuê VPS GPU
+                </div>
+                <h2 className="mt-4 text-2xl font-black uppercase leading-tight sm:text-3xl">Bạn có chắc chắn tạo VPS này?</h2>
+                <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
+                  Instance <span className="font-black text-white">{instanceName.trim()}</span> sẽ trừ trước{' '}
+                  <span className="font-mono font-black text-emerald-300">{formatMoneyVnd(estimatedSaleHourly)}</span> từ ví game cho giờ đầu tiên.
+                  Sau đó hệ thống tự trừ theo giờ, nếu ví game không đủ thì VPS sẽ bị xóa tự động.
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setCreateDialogOpen(false)} disabled={submitting}>
+                Đóng
+              </Button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <MiniInfo icon={<Cpu />} label="Gói GPU" value={getHostnodeGpuLabel(selectedHostnode)} />
+              <MiniInfo icon={<MapPin />} label="Khu vực" value={formatLocation(selectedHostnode?.location)} />
+              <MiniInfo icon={<Database />} label="RAM" value={formatGb(selectedHostnode?.available_resources?.ram_gb || ramGb)} />
+            </div>
+
+            <label className="mt-5 flex items-start gap-3 rounded-[1.1rem] border border-amber-400/25 bg-amber-500/10 p-4 text-sm font-semibold leading-7 text-amber-50">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(event) => setTermsAccepted(event.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-amber-300 text-brand-blue focus:ring-brand-blue"
+              />
+              <span>
+                Tôi đồng ý điều khoản thuê VPS GPU: giá tính theo giờ từ ví game, phải dán đúng SSH public key, dữ liệu có thể mất khi VPS bị xóa hoặc gói GPU lỗi,
+                và hệ thống được quyền tự xóa VPS nếu ví game không đủ gia hạn.
+              </span>
+            </label>
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)} disabled={submitting}>
+                Kiểm tra lại
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleCreateInstance()}
+                disabled={!termsAccepted || submitting}
+                loading={submitting}
+                loadingText="Đang tạo..."
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Đồng ý và tạo VPS
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <PageHero
         eyebrow="GPU Cloud"
         title="Thuê VPS GPU mạnh cho AI, game và render"
@@ -1033,7 +1162,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
               Làm mới gói
             </Button>
-            <Button type="button" onClick={() => void handleCreateInstance()} loading={submitting} loadingText="Đang tạo...">
+            <Button type="button" onClick={openCreateDialog} loading={submitting} loadingText="Đang tạo...">
               <Cpu className="mr-2 h-4 w-4" />
               Tạo VPS GPU
             </Button>
@@ -1043,7 +1172,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           { label: 'Khu vực', value: String(locations.length), hint: 'Nơi có GPU khả dụng', tone: 'blue' },
           { label: 'Gói GPU', value: String(hostnodes.length), hint: 'Gói đang có thể thuê', tone: 'emerald' },
           { label: 'Instances', value: String(instances.length), hint: 'VM đang quản lý', tone: 'violet' },
-          { label: 'Giá bán', value: formatVnd(estimatedSaleHourly), hint: 'Đã gồm hệ số lời admin', tone: 'amber' },
+          { label: 'Giá chỉ từ', value: formatMoneyVnd(lowestSaleHourly || estimatedSaleHourly), hint: '/ giờ', tone: 'amber' },
         ]}
       />
 
@@ -1067,16 +1196,21 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         <SectionHeader
           eyebrow="Bảng giá GPU"
           title="Chọn gói GPU trước khi tạo VPS"
-          description="Lọc theo dòng GPU, RAM và độ ổn định. Giá hiển thị là giá bán cho khách sau khi cộng hệ số lời trong admin."
+          description="Lọc theo dòng GPU, RAM và độ ổn định. Giá hiển thị là giá thuê mỗi giờ đã quy đổi sang VNĐ."
           actions={
-            <Button type="button" onClick={() => void searchOffers()} loading={searchingOffers} loadingText="Đang lọc...">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Lọc gói
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="muted" className="rounded-full">
+                {sortedHostnodes.length} gói
+              </Badge>
+              <Button type="button" onClick={() => void searchOffers()} loading={searchingOffers} loadingText="Đang lọc...">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Lọc gói
+              </Button>
+            </div>
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <Field label="Loại thuê">
             <select
               value={offerType}
@@ -1096,16 +1230,33 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           <Field label="Độ ổn định">
             <Input type="number" min={0} max={1} step={0.01} value={minReliability} onChange={(event) => setMinReliability(event.target.value)} />
           </Field>
+          <Field label="Sắp xếp">
+            <select
+              value={offerSort}
+              onChange={(event) => setOfferSort(event.target.value as OfferSort)}
+              className="field-elevated h-11 w-full rounded-[1rem] px-4 text-sm font-semibold dark:text-white"
+            >
+              <option value="price-asc">Giá thấp đến cao</option>
+              <option value="price-desc">Giá cao đến thấp</option>
+            </select>
+          </Field>
         </div>
 
         {loading ? (
           <EmptyState title="Đang tải gói GPU" description="Hệ thống đang tải gói GPU và các VPS đang chạy." icon={<Loader2 className="h-5 w-5 animate-spin" />} />
         ) : hostnodes.length ? (
           <div className="grid gap-4 xl:grid-cols-3">
-            {hostnodes.slice(0, 9).map((hostnode) => {
+            {sortedHostnodes.map((hostnode) => {
               const active = String(hostnode.id) === String(selectedHostnode?.id || selectedHostnodeId);
               const gpu = getHostnodeGpu(hostnode);
               const offer = asRecord(hostnode.vast);
+              const salePrice = getHostnodeSalePrice(hostnode);
+              const gpuRamGb = (Number(offer.gpu_ram || 0) || 0) / 1024 || gpu?.resources?.max_ram_gb;
+              const ramValue = hostnode.available_resources?.ram_gb || Number(offer.cpu_ram || 0) / 1024;
+              const diskValue = hostnode.available_resources?.storage_gb || Number(offer.disk_space || offer.disk_bw || 0);
+              const networkValue = offer.inet_down || offer.net_down || Number(hostnode.location?.network_speed_gbps || 0) * 1000;
+              const cpuValue = normalizeOfferText(offer.cpu_name || offer.cpu_cores_effective || offer.cpu_cores || hostnode.available_resources?.vcpu_count, 'CPU');
+              const reliabilityValue = offer.reliability2 || offer.reliability || hostnode.uptime_percentage;
               return (
                 <button
                   key={hostnode.id}
@@ -1128,17 +1279,28 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-[0.26em] text-brand-blue">Gói #{hostnode.id}</div>
-                      <div className="mt-2 truncate text-base font-black text-slate-950 dark:text-white">{getHostnodeGpuLabel(hostnode)}</div>
+                      <div className="mt-2 line-clamp-2 text-base font-black leading-tight text-slate-950 dark:text-white">{getHostnodeGpuLabel(hostnode)}</div>
                     </div>
-                    <Badge variant={active ? 'default' : 'success'} className="shrink-0 rounded-full">
-                      {formatVnd(getHostnodeSalePrice(hostnode))}
+                    <Badge variant={active ? 'default' : 'success'} className="shrink-0 rounded-full whitespace-nowrap">
+                      Verified
                     </Badge>
                   </div>
+
+                  <div className="mt-4 rounded-[1rem] border border-brand-blue/15 bg-brand-blue/10 p-3">
+                    <div className="text-[9px] font-black uppercase tracking-[0.24em] text-brand-blue">Giá thuê</div>
+                    <div className="mt-1 break-words font-mono text-2xl font-black leading-tight tabular-nums text-slate-950 dark:text-white">
+                      {formatMoneyVnd(salePrice)}
+                      <span className="ml-1 text-sm font-black text-slate-500 dark:text-slate-400">/ giờ</span>
+                    </div>
+                  </div>
+
                   <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 dark:text-slate-300">
-                    <MiniInfo icon={<Cpu />} label="GPU RAM" value={formatGb((Number(offer.gpu_ram || 0) || 0) / 1024 || gpu?.resources?.max_ram_gb)} />
-                    <MiniInfo icon={<ShieldCheck />} label="Reliability" value={formatPercent(offer.reliability || hostnode.uptime_percentage)} />
-                    <MiniInfo icon={<Database />} label="RAM" value={formatGb(hostnode.available_resources?.ram_gb)} />
-                    <MiniInfo icon={<Network />} label="Network" value={formatNetworkSpeed(hostnode.location?.network_speed_gbps)} />
+                    <MiniInfo icon={<Cpu />} label="GPU RAM" value={formatGb(gpuRamGb)} />
+                    <MiniInfo icon={<ShieldCheck />} label="Độ ổn định" value={formatPercent(reliabilityValue)} />
+                    <MiniInfo icon={<Database />} label="RAM" value={formatGb(ramValue)} />
+                    <MiniInfo icon={<Network />} label="Network" value={formatMbps(networkValue)} />
+                    <MiniInfo icon={<Cpu />} label="CPU" value={cpuValue} />
+                    <MiniInfo icon={<HardDrive />} label="SSD" value={formatGb(diskValue)} />
                   </div>
                   <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                     <MapPin className="h-3.5 w-3.5" />
@@ -1313,14 +1475,18 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
             )}
 
             {runtime === 'ssh' ? (
-              <MetricCard
-                label="SSH key"
-                value={sshKeySecrets.length ? 'Đã sẵn sàng' : 'Mặc định'}
-                hint="Key đã lưu trong tài khoản GPU sẽ tự gắn vào VPS mới"
-                tone="emerald"
-                icon={<ShieldCheck className="h-4 w-4" />}
-                className="p-4"
-              />
+              <Field label="SSH public key của bạn">
+                <textarea
+                  value={sshPublicKey}
+                  onChange={(event) => setSshPublicKey(event.target.value)}
+                  rows={4}
+                  placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... ten-may-cua-ban"
+                  className="field-elevated w-full rounded-[1.2rem] px-4 py-3 font-mono text-xs font-semibold leading-6 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
+                />
+                <p className="text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
+                  Chỉ dán public key trong file .pub. Không dán private key, password hay file id_ed25519/id_rsa.
+                </p>
+              </Field>
             ) : (
               <Field label="Args tùy chọn">
                 <Input
@@ -1637,6 +1803,82 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           />
         )}
       </SectionPanel>
+
+      <SectionPanel className="space-y-5">
+        <SectionHeader
+          eyebrow="Hướng dẫn kết nối"
+          title="Lấy SSH public key và đăng nhập VPS"
+          description="VPS chỉ cho đăng nhập bằng public key. Khi tạo VPS, dán public key của thiết bị bạn dùng để hệ thống gắn key vào đúng VPS."
+        />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <GuideCard
+            title="macOS / Linux"
+            steps={[
+              'Mở Terminal.',
+              'Chạy ssh-keygen -t ed25519 -C "email-cua-ban" nếu máy chưa có key.',
+              'Chạy cat ~/.ssh/id_ed25519.pub rồi copy toàn bộ dòng bắt đầu bằng ssh-ed25519.',
+              'Dán dòng đó vào ô SSH public key trước khi bấm tạo VPS.',
+            ]}
+            commands={[
+              'ssh-keygen -t ed25519 -C "email-cua-ban"',
+              'cat ~/.ssh/id_ed25519.pub',
+              'ssh -p PORT root@HOST',
+              'ssh -p PORT root@HOST -L 8080:localhost:8080',
+            ]}
+          />
+
+          <GuideCard
+            title="Windows"
+            steps={[
+              'Mở PowerShell hoặc Windows Terminal.',
+              'Chạy ssh-keygen -t ed25519 -C "email-cua-ban" nếu chưa có key.',
+              'Chạy type $env:USERPROFILE\\.ssh\\id_ed25519.pub rồi copy public key.',
+              'Dùng lệnh SSH mà website hiển thị sau khi VPS sẵn sàng.',
+            ]}
+            commands={[
+              'ssh-keygen -t ed25519 -C "email-cua-ban"',
+              'type $env:USERPROFILE\\.ssh\\id_ed25519.pub',
+              'ssh -p PORT root@HOST',
+            ]}
+          />
+
+          <GuideCard
+            title="Android"
+            steps={[
+              'Cài Termux hoặc JuiceSSH.',
+              'Trong Termux chạy ssh-keygen -t ed25519 rồi cat ~/.ssh/id_ed25519.pub.',
+              'Nếu dùng JuiceSSH, tạo identity/key rồi copy public key trong phần Identity.',
+              'Dán public key vào website, tạo VPS xong dùng host và port website cung cấp để SSH.',
+            ]}
+            commands={[
+              'ssh-keygen -t ed25519',
+              'cat ~/.ssh/id_ed25519.pub',
+              'ssh -p PORT root@HOST',
+            ]}
+          />
+
+          <GuideCard
+            title="iPhone / iPad"
+            steps={[
+              'Cài app Termius, Blink Shell hoặc Shelly.',
+              'Tạo SSH key trong app rồi copy public key, không copy private key.',
+              'Dán public key vào website trước khi tạo VPS.',
+              'Sau khi VPS sẵn sàng, tạo host mới trong app với username root, host và port website hiển thị.',
+            ]}
+            commands={[
+              'Host: HOST',
+              'Port: PORT',
+              'Username: root',
+              'Auth: Key / Identity vừa tạo',
+            ]}
+          />
+        </div>
+
+        <div className="rounded-[1rem] border border-amber-400/25 bg-amber-500/10 p-4 text-sm font-semibold leading-7 text-slate-600 dark:text-slate-300">
+          Nếu terminal báo <span className="font-mono font-black">Permission denied (publickey)</span>, nghĩa là public key của thiết bị hiện tại chưa được gắn vào VPS. Xóa VPS lỗi, tạo lại và dán đúng nội dung file <span className="font-mono font-black">.pub</span> của thiết bị bạn đang dùng.
+        </div>
+      </SectionPanel>
     </div>
   );
 }
@@ -1696,6 +1938,29 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function GuideCard({ title, steps, commands }: { title: string; steps: string[]; commands: string[] }) {
+  return (
+    <div className="rounded-[1.2rem] border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+      <h3 className="text-base font-black text-slate-950 dark:text-white">{title}</h3>
+      <ol className="mt-3 space-y-2 text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">
+        {steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+      <div className="mt-4 space-y-2">
+        {commands.map((command) => (
+          <div
+            key={command}
+            className="overflow-x-auto rounded-[0.8rem] border border-slate-200/70 bg-slate-950 px-3 py-2 font-mono text-xs font-bold text-cyan-100 dark:border-white/10"
+          >
+            {command}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MiniInfo({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-[1rem] border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
@@ -1703,7 +1968,7 @@ function MiniInfo({ icon, label, value }: { icon: React.ReactNode; label: string
         <span className="[&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>
         <span className="text-[9px] font-black uppercase tracking-[0.22em]">{label}</span>
       </div>
-      <div className="mt-2 truncate text-sm font-black text-slate-950 dark:text-white">{value}</div>
+      <div className="mt-2 break-words text-sm font-black leading-5 text-slate-950 dark:text-white">{value}</div>
     </div>
   );
 }
