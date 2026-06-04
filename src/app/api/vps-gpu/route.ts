@@ -129,6 +129,10 @@ function sanitizeInstanceStatusMessage(value: unknown, fallback = '') {
     return '';
   }
 
+  if (/template\s+not\s+found/i.test(text)) {
+    return '';
+  }
+
   if (isProviderImagePullRetry(text)) {
     return 'Nguồn GPU đang kẹt kéo Docker image nên web desktop chưa chạy. Hãy xóa VPS này rồi tạo lại bằng Ubuntu XFCE noVNC hoặc chọn host network cao hơn.';
   }
@@ -1160,6 +1164,37 @@ function normalizeVastEnv(value: unknown) {
   return env;
 }
 
+function quoteDockerFlagValue(value: string) {
+  if (!/[^\w@%+=:,./-]/.test(value)) {
+    return value;
+  }
+
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function buildTemplateEnvFlags(env: Record<string, string>) {
+  return Object.entries(env)
+    .map(([key, value]) => {
+      const normalizedKey = key.replace(/\s+/g, ' ').trim();
+      const normalizedValue = String(value || '').trim();
+      if (!normalizedKey) {
+        return '';
+      }
+
+      if (/^-p\s+\d+:\d+(?:\/tcp)?$/i.test(normalizedKey)) {
+        return normalizedKey.replace(/\/tcp$/i, '');
+      }
+
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(normalizedKey) || !normalizedValue) {
+        return '';
+      }
+
+      return `-e ${normalizedKey}=${quoteDockerFlagValue(normalizedValue)}`;
+    })
+    .filter(Boolean)
+    .join(' ');
+}
+
 function ensureVastAppPortMappings(image: string, env: Record<string, string>) {
   const nextEnv = { ...env };
   const profile = getRemoteProfileForImage(image);
@@ -1189,6 +1224,91 @@ function ensureVastAppPortMappings(image: string, env: Record<string, string>) {
   }
 
   return nextEnv;
+}
+
+function buildVastTemplatePayload(params: {
+  image: string;
+  runtime: string;
+  env: Record<string, string>;
+  onstart: string;
+  argsStr: string;
+  storageGb: number;
+}) {
+  const profile = getRemoteProfileForImage(params.image);
+  const templateRuntime = params.runtime.startsWith('jupyter')
+    ? 'jupyter'
+    : isSshRuntime(params.runtime)
+      ? 'ssh'
+      : 'args';
+  const payload: Record<string, unknown> = {
+    name: `TTMMO ${profile.name} ${params.image}`.slice(0, 120),
+    image: params.image,
+    env: buildTemplateEnvFlags(params.env),
+    runtype: templateRuntime,
+    ssh_direct: true,
+    use_ssh: true,
+    use_jupyter_lab: templateRuntime === 'jupyter',
+    recommended_disk_space: params.storageGb,
+  };
+
+  if (templateRuntime !== 'args' && params.onstart) {
+    payload.onstart = params.onstart;
+  }
+
+  if (templateRuntime === 'args' && params.argsStr) {
+    payload.args = params.argsStr;
+  }
+
+  return payload;
+}
+
+function extractTemplateHashId(payload: unknown) {
+  const record = asRecord(payload);
+  const template = asRecord(record.template);
+  return normalizeString(
+    template.hash_id ||
+      template.hashId ||
+      template.template_hash_id ||
+      record.hash_id ||
+      record.hashId ||
+      record.template_hash_id
+  );
+}
+
+async function createVastTemplateHash(templatePayload: Record<string, unknown>) {
+  const response = await vastRequest('/template/', {
+    method: 'POST',
+    body: JSON.stringify(templatePayload),
+  });
+  return extractTemplateHashId(response);
+}
+
+function buildTemplatePayloadFromRaw(rawPayload: unknown) {
+  const payload = asRecord(rawPayload);
+  const attributes = asRecord(asRecord(payload.data).attributes || payload.attributes || payload);
+  const resources = asRecord(attributes.resources);
+  const rawImage = normalizeString(attributes.image);
+  const dockerImage = rawImage.includes('/') || rawImage.includes(':') ? rawImage : getVastDefaultImage();
+  const requestedStorageGb = normalizePositiveInt(asRecord(resources).storage_gb || attributes.disk, 100);
+  let onstart = normalizeString(attributes.onstart, 'nvidia-smi');
+  let runtime = normalizeRuntime(attributes.runtype);
+  let argsStr = normalizeString(attributes.args_str || attributes.args);
+  const remoteProfile = getRemoteProfileForImage(dockerImage);
+
+  if (['linuxserver-web', 'selkies', 'novnc'].includes(remoteProfile.name) && isSshRuntime(runtime)) {
+    runtime = 'args';
+    argsStr = '';
+  }
+
+  const env = ensureVastAppPortMappings(dockerImage, normalizeVastEnv(attributes.env));
+  return buildVastTemplatePayload({
+    image: dockerImage,
+    runtime,
+    env,
+    onstart,
+    argsStr,
+    storageGb: requestedStorageGb,
+  });
 }
 
 function normalizePublicSshKey(value: unknown) {
@@ -1326,6 +1446,14 @@ function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer |
   return {
     offerId,
     payload: vastPayload,
+    templatePayload: buildVastTemplatePayload({
+      image: dockerImage,
+      runtime,
+      env,
+      onstart,
+      argsStr,
+      storageGb,
+    }),
     userSshKey,
     shouldAttachSshKey: isSshRuntime(runtime),
   };
@@ -1481,6 +1609,28 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const action = normalizePath(String(body?.action || 'create-instance'));
 
+    if (action === 'test-template') {
+      const templatePayload = buildTemplatePayloadFromRaw(body?.payload);
+      const templateHashId = await createVastTemplateHash(templatePayload);
+      if (!templateHashId) {
+        return json({
+          success: false,
+          message: 'Không tạo được template hash cho image này.',
+          data: {
+            templatePayload,
+          },
+        }, { status: 502 });
+      }
+
+      return json({
+        success: true,
+        data: {
+          templateHashId,
+          templatePayload,
+        },
+      });
+    }
+
     if (action === 'create-instance') {
       const initialPayload = buildCreateInstancePayload(body?.payload);
       const liveOffer = await findLiveOfferById(initialPayload.offerId);
@@ -1492,7 +1642,17 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const { offerId, payload, userSshKey, shouldAttachSshKey } = buildCreateInstancePayload(body?.payload, liveOffer);
+      const { offerId, payload, templatePayload, userSshKey, shouldAttachSshKey } = buildCreateInstancePayload(body?.payload, liveOffer);
+      const existingTemplateHashId = normalizeString(asRecord(payload).template_hash_id);
+      const templateHashId = existingTemplateHashId || await createVastTemplateHash(templatePayload);
+      if (!templateHashId) {
+        return json({
+          success: false,
+          message: 'Không tạo được template Vast cho image này. Hãy thử lại hoặc chọn preset khác để tránh lỗi Template not found.',
+        }, { status: 502 });
+      }
+      payload.template_hash_id = templateHashId;
+
       const pricingSettings = await getVpsGpuPricingSettings();
       const pricedHostnode = applyVpsGpuPricing([mapOfferToHostnode(liveOffer)], pricingSettings)[0];
       const pricing = asRecord(pricedHostnode.pricing);
