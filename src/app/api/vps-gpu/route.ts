@@ -10,7 +10,7 @@ import {
 import { getLegacySettingsMap } from '@/lib/legacy-settings';
 import { db } from '@/lib/db';
 import {
-  assertGameWalletCanPay,
+  assertMainWalletCanPay,
   chargeFirstHourAndSaveVpsGpu,
   deleteOwnedVpsGpuInstance,
   extractCreatedProviderInstanceId,
@@ -40,6 +40,7 @@ type WebDesktopEndpoint = {
   internalPort: number;
   publicPort: number;
   host: string;
+  protocol: 'http' | 'https';
   url: string;
   label: string;
   source: WebDesktopEndpointSource;
@@ -632,6 +633,14 @@ function formatRemoteEndpointLabel(profileName: string, internalPort: number, pu
   return base;
 }
 
+function getWebDesktopProtocol(profileName: string, internalPort: number): 'http' | 'https' {
+  if (profileName === 'linuxserver-web' && internalPort === 3001) {
+    return 'https';
+  }
+
+  return 'http';
+}
+
 function buildWebDesktopEndpoint(
   profileName: string,
   host: string,
@@ -643,11 +652,14 @@ function buildWebDesktopEndpoint(
     return null;
   }
 
+  const protocol = getWebDesktopProtocol(profileName, internalPort);
+
   return {
     internalPort,
     publicPort,
     host,
-    url: `http://${host}:${publicPort}`,
+    protocol,
+    url: `${protocol}://${host}:${publicPort}`,
     label: formatRemoteEndpointLabel(profileName, internalPort, publicPort, source),
     source,
   };
@@ -783,6 +795,10 @@ function getInstanceSshPort(instance: VastInstance) {
   );
 }
 
+function isSshRuntime(runtime: string) {
+  return runtime.startsWith('ssh');
+}
+
 function getInstancePortRange(instance: VastInstance) {
   const start = normalizePositiveInt(instance.direct_port_start, 0);
   const end = normalizePositiveInt(instance.direct_port_end, 0);
@@ -859,6 +875,7 @@ function mapInstances(instances: VastInstance[]) {
     const isRunning = actualStatus === 'running' && !hasRuntimeError;
     const isProvisioning = /creating|loading|starting|created|transferring|not running|installing|pending|queued|initializing|dockerfile/i.test(runtimeState);
     const isStopped = /stopped|exited|deleted|destroyed|paused|frozen|offline|unknown|unloaded/i.test(runtimeState);
+    const hasConnectionTarget = Boolean((sshHost && sshPort) || primaryWebDesktopUrl);
     const ready = Boolean(
       isRunning &&
       curState !== 'unloaded' &&
@@ -866,8 +883,7 @@ function mapInstances(instances: VastInstance[]) {
       intendedStatus !== 'frozen' &&
       !isProvisioning &&
       !isStopped &&
-      sshHost &&
-      sshPort
+      hasConnectionTarget
     );
     const gpuRamMb = normalizeNumber(instance.gpu_ram || instance.gpu_totalram, 0);
     const cpuRamMb = normalizeNumber(instance.cpu_ram || instance.mem_limit, 0);
@@ -1078,6 +1094,7 @@ async function findLiveOfferById(offerId: string) {
 function normalizeRuntime(value: unknown) {
   const runtime = normalizeString(value, 'ssh').toLowerCase();
   if (runtime === 'jupyter') return 'jupyter_direct';
+  if (runtime === 'entrypoint') return 'args';
   if (runtime === 'args') return 'args';
   if (['ssh_direct', 'ssh_proxy', 'jupyter_direct', 'jupyter_proxy'].includes(runtime)) return runtime;
   return 'ssh_direct';
@@ -1130,6 +1147,14 @@ function ensureVastAppPortMappings(image: string, env: Record<string, string>) {
   const remotePorts = [...profile.webPorts, ...profile.extraPorts];
   nextEnv._TTMMO_REMOTE_PROFILE = profile.name;
   nextEnv._TTMMO_REMOTE_PORTS = profile.webPorts.join(',');
+
+  if (profile.name === 'linuxserver-web') {
+    nextEnv.OPEN_BUTTON_PORT = nextEnv.OPEN_BUTTON_PORT || '3001';
+  } else if (profile.name === 'selkies') {
+    nextEnv.OPEN_BUTTON_PORT = nextEnv.OPEN_BUTTON_PORT || '8080';
+  } else if (profile.name === 'novnc') {
+    nextEnv.OPEN_BUTTON_PORT = nextEnv.OPEN_BUTTON_PORT || '6901';
+  }
 
   for (const port of remotePorts) {
     if (!hasPortMapping(port)) {
@@ -1219,21 +1244,29 @@ function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer |
   const name = normalizeString(attributes.name || attributes.label, 'trungtammmo-gpu-ai');
   const rawImage = normalizeString(attributes.image);
   const dockerImage = rawImage.includes('/') || rawImage.includes(':') ? rawImage : getVastDefaultImage();
+  const remoteProfile = getRemoteProfileForImage(dockerImage);
   const requestedStorageGb = normalizePositiveInt(asRecord(resources).storage_gb || attributes.disk, 100);
   const liveOfferDiskGb = liveOffer ? normalizePositiveInt(liveOffer.disk_space, requestedStorageGb) : requestedStorageGb;
   const storageGb = Math.max(20, Math.min(requestedStorageGb, liveOfferDiskGb || requestedStorageGb));
-  const onstart = normalizeString(attributes.onstart, 'nvidia-smi');
-  const runtime = normalizeRuntime(attributes.runtype);
+  let onstart = normalizeString(attributes.onstart, 'nvidia-smi');
+  let runtime = normalizeRuntime(attributes.runtype);
+  let argsStr = normalizeString(attributes.args_str || attributes.args);
+
+  if (['linuxserver-web', 'selkies', 'novnc'].includes(remoteProfile.name) && isSshRuntime(runtime)) {
+    runtime = 'args';
+    argsStr = '';
+  }
+
   const env = ensureVastAppPortMappings(dockerImage, normalizeVastEnv(attributes.env));
-  const userSshKey = assertPublicSshKey(
-    attributes.ssh_public_key || attributes.public_ssh_key || attributes.ssh_key || payload.ssh_public_key || payload.ssh_key
-  );
+  const rawUserSshKey = attributes.ssh_public_key || attributes.public_ssh_key || attributes.ssh_key || payload.ssh_public_key || payload.ssh_key;
+  const userSshKey = isSshRuntime(runtime)
+    ? assertPublicSshKey(rawUserSshKey)
+    : (rawUserSshKey ? assertPublicSshKey(rawUserSshKey) : '');
 
   const vastPayload: Record<string, unknown> = {
     image: dockerImage,
     disk: storageGb,
     label: name,
-    onstart,
     runtype: runtime,
     target_state: normalizeString(attributes.target_state, 'running'),
     python_utf8: normalizeBoolean(attributes.python_utf8, true),
@@ -1242,13 +1275,24 @@ function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer |
     env,
   };
 
+  if (runtime !== 'args' && onstart) {
+    vastPayload.onstart = onstart;
+  }
+
   if (runtime.startsWith('jupyter')) {
     vastPayload.use_jupyter_lab = normalizeBoolean(attributes.use_jupyter_lab, true);
+  }
+
+  if (runtime === 'args' && argsStr) {
+    vastPayload.args_str = argsStr;
   }
 
   const optionalFields = ['price', 'template_hash_id', 'args', 'args_str', 'vm', 'force', 'user', 'image_login', 'volume_info'] as const;
   for (const field of optionalFields) {
     if (attributes[field] !== undefined && attributes[field] !== '') {
+      if (field === 'args' || field === 'args_str') {
+        continue;
+      }
       vastPayload[field] = attributes[field];
     }
   }
@@ -1257,6 +1301,7 @@ function buildCreateInstancePayload(rawPayload: unknown, liveOffer?: VastOffer |
     offerId,
     payload: vastPayload,
     userSshKey,
+    shouldAttachSshKey: isSshRuntime(runtime),
   };
 }
 
@@ -1416,7 +1461,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const { offerId, payload, userSshKey } = buildCreateInstancePayload(body?.payload, liveOffer);
+      const { offerId, payload, userSshKey, shouldAttachSshKey } = buildCreateInstancePayload(body?.payload, liveOffer);
       const pricingSettings = await getVpsGpuPricingSettings();
       const pricedHostnode = applyVpsGpuPricing([mapOfferToHostnode(liveOffer)], pricingSettings)[0];
       const pricing = asRecord(pricedHostnode.pricing);
@@ -1424,7 +1469,7 @@ export async function POST(req: NextRequest) {
       const costHourlyVnd = normalizePositiveNumber(pricing.cost_hourly_vnd, 0);
       const costHourlyUsd = normalizePositiveNumber(pricing.cost_hourly_usd, getOfferCostSource(liveOffer).value);
 
-      await assertGameWalletCanPay(userId, saleHourlyVnd);
+      await assertMainWalletCanPay(userId, saleHourlyVnd);
 
       let response: unknown;
       try {
@@ -1449,11 +1494,13 @@ export async function POST(req: NextRequest) {
         throw new Error('Nguồn GPU đã nhận lệnh nhưng chưa trả instance ID. Hãy kiểm tra lại danh sách VPS GPU sau vài giây.');
       }
 
-      try {
-        await attachSshKeyToInstance(providerInstanceId, userSshKey);
-      } catch (error) {
-        await vastRequest(`/instances/${encodeURIComponent(providerInstanceId)}/`, { method: 'DELETE' }).catch(() => undefined);
-        throw error;
+      if (shouldAttachSshKey && userSshKey) {
+        try {
+          await attachSshKeyToInstance(providerInstanceId, userSshKey);
+        } catch (error) {
+          await vastRequest(`/instances/${encodeURIComponent(providerInstanceId)}/`, { method: 'DELETE' }).catch(() => undefined);
+          throw error;
+        }
       }
 
       try {

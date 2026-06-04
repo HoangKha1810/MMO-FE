@@ -118,8 +118,8 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       title: 'Auto MXH products',
       description: 'Thêm/sửa dịch vụ con/tab hiển thị trong từng mục cha Facebook, Instagram...',
       columns: ['id', 'category_id', 'name', 'badge', 'description', 'api_provider_id', 'api_service_id', 'price', 'cost', 'variant_count', 'status', 'created_at'],
-      editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
-      createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
+      editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status', 'is_deleted'],
+      createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status'],
       statusOptions: ['active', 'inactive'],
     },
     {

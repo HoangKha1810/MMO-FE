@@ -155,20 +155,6 @@ function normalizeVariant(row: AutoMxhVariantRow): AutoMxhVariant {
 }
 
 export function parseProductInputs(product: Pick<AutoMxhProduct, 'custom_inputs' | 'input_label' | 'input_placeholder' | 'buyer_label' | 'buyer_placeholder'>) {
-  try {
-    const parsed = product.custom_inputs ? JSON.parse(product.custom_inputs) : [];
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed
-        .map((input) => ({
-          label: String(input?.label || '').trim(),
-          placeholder: String(input?.placeholder || '').trim(),
-        }))
-        .filter((input) => input.label);
-    }
-  } catch {
-    // Fallback below mirrors PHP.
-  }
-
   const inputs: Array<{ label: string; placeholder: string }> = [];
   if (product.input_label) {
     inputs.push({
@@ -183,7 +169,25 @@ export function parseProductInputs(product: Pick<AutoMxhProduct, 'custom_inputs'
     });
   }
 
-  return inputs;
+  if (inputs.length > 0) {
+    return inputs;
+  }
+
+  try {
+    const parsed = product.custom_inputs ? JSON.parse(product.custom_inputs) : [];
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed
+        .map((input) => ({
+          label: String(input?.label || '').trim(),
+          placeholder: String(input?.placeholder || '').trim(),
+        }))
+        .filter((input) => input.label);
+    }
+  } catch {
+    // Fallback below mirrors PHP.
+  }
+
+  return [];
 }
 
 async function autoMxhProductBadgeColumnExists() {

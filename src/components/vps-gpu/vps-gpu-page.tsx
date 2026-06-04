@@ -143,6 +143,7 @@ interface WebDesktopLink {
   internalPort?: number;
   publicPort?: number;
   host?: string;
+  protocol?: 'http' | 'https';
   url: string;
   label?: string;
   source?: 'direct' | 'mapped' | 'legacy';
@@ -245,8 +246,8 @@ const networkOptions: Array<{
   description: string;
   recommended?: boolean;
 }> = [
-  { value: 'port-forwarding', title: 'SSH trực tiếp', description: 'Dùng key đã lưu trong tài khoản GPU', recommended: true },
-  { value: 'dedicated-ip', title: 'Public IP', description: 'Ưu tiên máy có IP tĩnh khi gói hỗ trợ' },
+  { value: 'port-forwarding', title: 'Port public', description: 'Map remote web/app theo IP & Port Info', recommended: true },
+  { value: 'dedicated-ip', title: 'Public IP riêng', description: 'Ưu tiên máy có IP tĩnh khi gói hỗ trợ' },
 ];
 
 const runtimeOptions: Array<{
@@ -254,9 +255,9 @@ const runtimeOptions: Array<{
   title: string;
   description: string;
 }> = [
-  { value: 'ssh', title: 'SSH', description: 'Runtime chuẩn cho VPS GPU' },
+  { value: 'args', title: 'Entrypoint / Web GUI', description: 'Giữ entrypoint Docker để remote web tự chạy' },
+  { value: 'ssh', title: 'SSH', description: 'Runtime terminal, dùng khi image không cần entrypoint gốc' },
   { value: 'jupyter', title: 'Jupyter Lab', description: 'Mở notebook trên container' },
-  { value: 'args', title: 'Lệnh riêng', description: 'Chạy command hoặc args tùy chỉnh' },
 ];
 
 const ramSteps = [8, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 512];
@@ -270,6 +271,7 @@ interface VpsGpuImagePreset {
   hint: string;
   runtime: VastRuntime;
   onstart: string;
+  args?: string;
   envFlags?: string;
   recommended?: boolean;
 }
@@ -282,8 +284,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     category: 'Game / Render / Desktop',
     remote: 'WebRTC/HTML5 port 8080',
     hint: 'Desktop GPU public ổn định nhất để thao tác GUI, game nhẹ, AI web UI và render qua trình duyệt.',
-    runtime: 'ssh',
-    onstart: 'nvidia-smi',
+    runtime: 'args',
+    onstart: '',
     envFlags: [
       'TZ=Asia/Ho_Chi_Minh',
       'DISPLAY_SIZEW=1920',
@@ -309,8 +311,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     category: 'Game / OpenGL / Render',
     remote: 'WebRTC/HTML5 port 8080',
     hint: 'Desktop NVIDIA có OpenGL/GLX, Vulkan và Wine/Proton, hợp test app/game/render có giao diện.',
-    runtime: 'ssh',
-    onstart: 'nvidia-smi',
+    runtime: 'args',
+    onstart: '',
     envFlags: [
       'TZ=Asia/Ho_Chi_Minh',
       'DISPLAY_SIZEW=1920',
@@ -335,8 +337,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     category: 'Render Blender',
     remote: 'Blender GUI port 3000/3001',
     hint: 'Có sẵn Blender giao diện web. Dùng tốt để mở file/preview; nếu cần CUDA render nặng nên chọn Desktop GPU EGL rồi cài Blender.',
-    runtime: 'ssh',
-    onstart: 'nvidia-smi',
+    runtime: 'args',
+    onstart: '',
     envFlags: [
       'PUID=1000',
       'PGID=1000',
@@ -354,8 +356,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     category: 'Desktop GUI',
     remote: 'Webtop port 3000/3001',
     hint: 'Desktop Ubuntu dễ dùng để cài tool GUI, trình duyệt, trình quản lý file và thao tác thủ công.',
-    runtime: 'ssh',
-    onstart: 'nvidia-smi',
+    runtime: 'args',
+    onstart: '',
     envFlags: 'PUID=1000\nPGID=1000\nTZ=Asia/Ho_Chi_Minh\nCUSTOM_USER=ttmmo\nPASSWORD=trungtammmo\n_TTMMO_REMOTE_PROFILE=linuxserver-web\n_TTMMO_REMOTE_PORTS=3001,3000',
   },
   {
@@ -365,8 +367,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     category: 'Game / Tool / Browser',
     remote: 'noVNC port 6901, VNC port 5901',
     hint: 'Desktop nhẹ, ít phụ thuộc, phù hợp thao tác web/tool và cài phần mềm nhỏ.',
-    runtime: 'ssh',
-    onstart: 'nvidia-smi',
+    runtime: 'args',
+    onstart: '',
     envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo\n_TTMMO_REMOTE_PROFILE=novnc\n_TTMMO_REMOTE_PORTS=6901,6080',
   },
   {
@@ -376,8 +378,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     category: 'AI / ML',
     remote: 'WebRTC/HTML5 port 8080',
     hint: 'Desktop GPU để cài Conda, PyTorch, web UI AI hoặc notebook theo nhu cầu sau khi máy lên.',
-    runtime: 'ssh',
-    onstart: 'nvidia-smi',
+    runtime: 'args',
+    onstart: '',
     envFlags: [
       'TZ=Asia/Ho_Chi_Minh',
       'DISPLAY_SIZEW=1920',
@@ -402,8 +404,8 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     category: 'Render Blender fallback',
     remote: 'noVNC port 6901, VNC port 5901',
     hint: 'Image Blender/XFCE public nhẹ để fallback khi LinuxServer Blender không phù hợp máy đang chọn.',
-    runtime: 'ssh',
-    onstart: 'nvidia-smi',
+    runtime: 'args',
+    onstart: '',
     envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo\n_TTMMO_REMOTE_PROFILE=novnc\n_TTMMO_REMOTE_PORTS=6901,6080',
   },
 ];
@@ -783,7 +785,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
   const [deploymentMethod, setDeploymentMethod] = useState<DeploymentMethod>('hostnode');
   const [networkMode, setNetworkMode] = useState<NetworkMode>('port-forwarding');
-  const [runtime, setRuntime] = useState<VastRuntime>('ssh');
+  const [runtime, setRuntime] = useState<VastRuntime>(DEFAULT_VPS_GPU_IMAGE_PRESET.runtime);
   const [instanceName, setInstanceName] = useState('trungtammmo-gpu-ai');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedHostnodeId, setSelectedHostnodeId] = useState('');
@@ -798,7 +800,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
   const [envFlags, setEnvFlags] = useState(DEFAULT_VPS_GPU_IMAGE_PRESET.envFlags || '');
   const [onStartCommand, setOnStartCommand] = useState(DEFAULT_VPS_GPU_IMAGE_PRESET.onstart);
   const [cancelUnavailable, setCancelUnavailable] = useState(true);
-  const [argsString, setArgsString] = useState('');
+  const [argsString, setArgsString] = useState(DEFAULT_VPS_GPU_IMAGE_PRESET.args || '');
   const [sshPublicKey, setSshPublicKey] = useState('');
   const [revealedPasswordId, setRevealedPasswordId] = useState<string | null>(null);
 
@@ -1007,6 +1009,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     setDockerImage(preset.image);
     setRuntime(preset.runtime);
     setOnStartCommand(preset.onstart);
+    setArgsString(preset.args || '');
     setEnvFlags(preset.envFlags || '');
   }
 
@@ -1027,7 +1030,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     }
 
     const normalizedSshPublicKey = normalizePublicSshKeyInput(sshPublicKey);
-    const sshKeyError = validatePublicSshKeyInput(normalizedSshPublicKey);
+    const sshKeyError = runtime === 'ssh'
+      ? validatePublicSshKeyInput(normalizedSshPublicKey)
+      : normalizedSshPublicKey
+        ? validatePublicSshKeyInput(normalizedSshPublicKey)
+        : '';
     if (sshKeyError) {
       throw new Error(sshKeyError);
     }
@@ -1035,7 +1042,6 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
     const attributes: Record<string, unknown> = {
       name,
       type: 'virtualmachine',
-      ssh_public_key: normalizedSshPublicKey,
       image: dockerImage.trim() || DEFAULT_VPS_GPU_IMAGE_PRESET.image,
       runtype: runtime,
       target_state: targetState,
@@ -1056,6 +1062,10 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
         },
       },
     };
+
+    if (normalizedSshPublicKey) {
+      attributes.ssh_public_key = normalizedSshPublicKey;
+    }
 
     if (deploymentMethod === 'location') {
       const locationId = selectedLocation?.id || selectedLocationId;
@@ -1302,7 +1312,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 className="mt-1 h-4 w-4 shrink-0 rounded border-amber-300 text-brand-blue focus:ring-brand-blue"
               />
               <span>
-                Tôi đồng ý điều khoản thuê VPS GPU: giá tính theo giờ và trừ từ ví chính, phải dán đúng SSH public key, dữ liệu có thể mất khi VPS bị xóa hoặc gói GPU lỗi,
+                Tôi đồng ý điều khoản thuê VPS GPU: giá tính theo giờ và trừ từ ví chính{runtime === 'ssh' ? ', phải dán đúng SSH public key' : ''}, dữ liệu có thể mất khi VPS bị xóa hoặc gói GPU lỗi,
                 và hệ thống được quyền tự xóa VPS nếu ví chính không đủ tiền gia hạn.
               </span>
             </label>
@@ -1687,15 +1697,26 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               </select>
             </Field>
 
-            <Field label="Lệnh khởi động">
-              <Input value={onStartCommand} onChange={(event) => setOnStartCommand(event.target.value)} placeholder="nvidia-smi" />
-            </Field>
+            {runtime === 'args' ? (
+              <MetricCard
+                label="Entrypoint Docker"
+                value="Giữ nguyên"
+                hint="Image tự bật web desktop/app theo entrypoint gốc"
+                tone="emerald"
+                icon={<Play className="h-4 w-4" />}
+                className="p-4"
+              />
+            ) : (
+              <Field label="Lệnh khởi động">
+                <Input value={onStartCommand} onChange={(event) => setOnStartCommand(event.target.value)} placeholder="nvidia-smi" />
+              </Field>
+            )}
 
             {networkMode === 'port-forwarding' ? (
               <MetricCard
-                label="SSH trực tiếp"
-                value="Enabled"
-                hint="Nguồn GPU tự cấp port SSH sau khi instance sẵn sàng"
+                label="Map port"
+                value="Public"
+                hint="Mở bằng public mapped port, không mở trực tiếp 3000/3001"
                 tone="blue"
                 icon={<Network className="h-4 w-4" />}
                 className="p-4"
@@ -1725,7 +1746,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 <Input
                   value={argsString}
                   onChange={(event) => setArgsString(event.target.value)}
-                  placeholder="Command args nếu dùng runtime custom"
+                  placeholder="Để trống để image tự dùng CMD mặc định"
                 />
               </Field>
             )}

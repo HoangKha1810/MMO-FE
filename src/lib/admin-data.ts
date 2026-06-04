@@ -131,8 +131,8 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     searchFields: ['name', 'description', 'badge', 'status', 'type'],
     statusField: 'status',
     rawOrder: 'updated_at DESC, id DESC',
-    createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status'],
-    updateFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'custom_inputs', 'status', 'is_deleted'],
+    createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status'],
+    updateFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status', 'is_deleted'],
   },
   'automxh-orders': {
     table: 'automxh_orders',

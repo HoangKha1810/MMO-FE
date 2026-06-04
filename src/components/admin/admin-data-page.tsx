@@ -338,7 +338,6 @@ const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
     input_placeholder: 'Placeholder ô nhập chính',
     buyer_label: 'Nhãn ô liên hệ',
     buyer_placeholder: 'Placeholder ô liên hệ',
-    custom_inputs: 'Cấu hình nhiều ô nhập',
   },
   'automxh-variants': {
     product_id: 'Dịch vụ cha',
@@ -466,7 +465,7 @@ function isLongTextField(field: string) {
 
 function resourceFieldRows(resource: string, field: string) {
   if (resource === 'automxh-variants' && field === 'description') return 6;
-  if (resource === 'automxh-products' && ['description', 'custom_inputs'].includes(field)) return 5;
+  if (resource === 'automxh-products' && field === 'description') return 5;
   return 4;
 }
 
@@ -790,7 +789,6 @@ function sortEditorEntries(resource: string, entries: Array<[string, unknown]>) 
       'input_placeholder',
       'buyer_label',
       'buyer_placeholder',
-      'custom_inputs',
       'status',
       'api_provider_id',
       'api_service_id',
@@ -902,24 +900,6 @@ function parseAssetEntries(value: unknown) {
   return url ? [{ url, name: '' }] : [];
 }
 
-function parseCustomInputs(value: unknown) {
-  const raw = String(value || '').trim();
-  if (!raw) return [] as Array<{ label: string; placeholder?: string }>;
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item) => ({
-        label: String(item?.label || '').trim(),
-        placeholder: String(item?.placeholder || '').trim(),
-      }))
-      .filter((item) => item.label);
-  } catch {
-    return [];
-  }
-}
-
 function parseCustomValueEntries(value: unknown) {
   const raw = String(value || '').trim();
   if (!raw) return [] as string[];
@@ -954,22 +934,12 @@ function renderTimelineValue(value: Record<string, unknown>) {
 }
 
 function extractOrderInputRows(row: Record<string, unknown>) {
-  const definitions = parseCustomInputs(row.custom_inputs);
   const values = parseCustomValueEntries(row.custom_value_display);
   const fallbackValues = [String(row.link || '').trim(), String(row.buyer_info_display || '').trim()].filter(Boolean);
 
-  if (definitions.length > 0) {
-    return definitions
-      .map((definition, index) => ({
-        label: definition.label,
-        value: values[index] || fallbackValues[index] || '',
-      }))
-      .filter((item) => item.value);
-  }
-
   return [
-    { label: String(row.input_label || 'Liên kết / ID').trim(), value: fallbackValues[0] || '' },
-    { label: String(row.buyer_label || 'Thông tin liên hệ').trim(), value: fallbackValues[1] || '' },
+    { label: String(row.input_label || 'Liên kết / ID').trim(), value: fallbackValues[0] || values[0] || '' },
+    { label: String(row.buyer_label || 'Thông tin liên hệ').trim(), value: fallbackValues[1] || values[1] || '' },
   ].filter((item) => item.value);
 }
 
@@ -3095,10 +3065,6 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       {section.resource === 'automxh-variants' && field === 'description' ? (
                         <p className="rounded-[10px] border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs font-bold leading-5 text-amber-700 dark:text-amber-200">
                           Nội dung này hiển thị trong khung note màu vàng khi user chọn gói dịch vụ.
-                        </p>
-                      ) : section.resource === 'automxh-products' && field === 'custom_inputs' ? (
-                        <p className="rounded-[10px] border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:text-sky-200">
-                          Có thể để trống và dùng 2 cặp nhãn/placeholder bên dưới, hoặc nhập JSON dạng {`[{"label":"Link","placeholder":"Nhập link"}]`}.
                         </p>
                       ) : null}
                     </>
