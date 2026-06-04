@@ -33,7 +33,8 @@ function normalizeApiBaseUrl(rawValue: string | undefined) {
 const API_BASE_URL = normalizeApiBaseUrl(
   process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL
 );
-const SESSION_KEY = "vncloud-vps-session";
+const SESSION_KEY = "vncloud-vps-independent-session";
+const LEGACY_SESSION_KEYS = ["vncloud-vps-session"];
 export const DEPOSIT_URL = "https://trungtammmo.vn/deposit";
 export const API_ACTIVITY_EVENT = "vncloud-vps-api-activity";
 export const PURCHASE_MAINTENANCE_MESSAGE =
@@ -60,6 +61,18 @@ function emitApiActivity() {
       },
     }),
   );
+}
+
+function purgeLegacyIntegratedSessions() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  for (const key of LEGACY_SESSION_KEYS) {
+    if (key !== SESSION_KEY) {
+      window.localStorage.removeItem(key);
+    }
+  }
 }
 
 export function getPendingApiRequestCount() {
@@ -323,6 +336,8 @@ export function getStoredSession() {
     return null;
   }
 
+  purgeLegacyIntegratedSessions();
+
   const raw = window.localStorage.getItem(SESSION_KEY);
 
   if (raw === cachedSessionRaw) {
@@ -350,6 +365,8 @@ export function saveSession(session: Session) {
     return;
   }
 
+  purgeLegacyIntegratedSessions();
+
   const raw = JSON.stringify(session);
 
   if (raw === cachedSessionRaw) {
@@ -366,6 +383,8 @@ export function clearSession() {
   if (typeof window === "undefined") {
     return;
   }
+
+  purgeLegacyIntegratedSessions();
 
   cachedSessionRaw = null;
   cachedSessionValue = null;
@@ -415,29 +434,6 @@ export async function register(body: {
     method: "POST",
     body,
   });
-}
-
-export async function loginWithMainSiteSession() {
-  const response = await fetch("/api/integrations/vps/session", {
-    method: "GET",
-    cache: "no-store",
-    credentials: "same-origin",
-    headers: {
-      Accept: "application/json",
-    },
-  });
-  const payload = await response.json().catch(() => null) as
-    | (Session & { success?: boolean; message?: string })
-    | null;
-
-  if (!response.ok || !payload?.success || !payload.token || !payload.user) {
-    throw new Error(payload?.message || "Không thể đồng bộ phiên VPS từ tài khoản web.");
-  }
-
-  return {
-    token: payload.token,
-    user: payload.user,
-  } satisfies Session;
 }
 
 export async function getMe(token: string) {

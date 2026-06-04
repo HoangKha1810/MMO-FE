@@ -12,7 +12,6 @@ import {
 import {
   getPortalSnapshot,
   getStoredSession,
-  loginWithMainSiteSession,
   saveSession,
   subscribeSession,
 } from "@vps/lib/api";
@@ -55,7 +54,6 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState("");
 
   const pendingRefreshRef = useRef<Promise<void> | null>(null);
-  const pendingMainSiteSessionRef = useRef<Promise<void> | null>(null);
 
   const fetchData = useCallback(
     async (currentSession: Session) => {
@@ -133,43 +131,6 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [sessionFromStore, fetchData]);
-
-  useEffect(() => {
-    if (sessionFromStore || pendingMainSiteSessionRef.current) {
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    const promise = (async () => {
-      try {
-        const session = await loginWithMainSiteSession();
-        if (cancelled) {
-          return;
-        }
-        saveSession(session);
-        setUser(session.user);
-        setMessage("");
-      } catch {
-        if (!cancelled) {
-          setUser(null);
-          setOrders(null);
-        }
-      } finally {
-        pendingMainSiteSessionRef.current = null;
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    pendingMainSiteSessionRef.current = promise;
-
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionFromStore]);
 
   const value: PortalContextValue = {
     session: sessionFromStore,
