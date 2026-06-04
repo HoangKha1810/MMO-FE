@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { buildPublicAssetUrl } from '@/lib/public-asset-url';
 import { cn, formatCurrency, toNumber } from '@/lib/utils';
 
@@ -86,31 +87,36 @@ type SupportTab = 'chat' | 'orders' | 'all-orders';
 
 const SUPPORT_LABEL = 'Đội Support TikTok';
 
+function getDatabaseDateParts(value: string) {
+  const serialized = serializeDatabaseDateTime(value);
+  const match = serialized.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  return match
+    ? {
+        year: match[1],
+        month: match[2],
+        day: match[3],
+        hour: match[4],
+        minute: match[5],
+      }
+    : null;
+}
+
 function formatShortTime(value: string) {
-  if (!value) {
+  const parts = getDatabaseDateParts(value);
+  if (!parts) {
     return '';
   }
 
-  return new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+  return `${parts.hour}:${parts.minute} ${parts.day}/${parts.month}`;
 }
 
 function formatFullTime(value: string) {
-  if (!value) {
+  const parts = getDatabaseDateParts(value);
+  if (!parts) {
     return '-';
   }
 
-  return new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+  return `${parts.hour}:${parts.minute} ${parts.day}/${parts.month}/${parts.year}`;
 }
 
 function buildInitials(value: string) {
@@ -536,6 +542,11 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       setMessages((current) => [...current, payload.message as SupportMessage]);
       setDraft('');
       setAttachment(null);
+      const conversationUserId = meta.isSupport ? activeUserId : user?.id;
+      if (conversationUserId) {
+        void loadMessages(conversationUserId, true);
+        void loadOrders(conversationUserId, true);
+      }
       if (meta.isSupport) {
         void loadConversations(false, true);
       }

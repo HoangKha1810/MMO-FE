@@ -82,6 +82,32 @@ export function serializeAbsoluteDateTime(value: unknown) {
   return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
+export function getVietnamDateTimeParts(value = new Date()) {
+  return partsFromAbsoluteDate(value);
+}
+
+export function getVietnamDatabaseDateTime(value = new Date()) {
+  return formatDateParts(partsFromAbsoluteDate(value));
+}
+
+export function addDaysToDatabaseDateTime(value: string, days: number) {
+  const match = value.match(databaseDatePattern);
+  if (!match) {
+    return value;
+  }
+
+  const [, year, month, day, hour = '00', minute = '00', second = '00'] = match;
+  const utcMs = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour) - 7,
+    Number(minute),
+    Number(second)
+  );
+  return getVietnamDatabaseDateTime(new Date(utcMs + days * 24 * 60 * 60 * 1000));
+}
+
 export function formatDatabaseDateTime(value: unknown) {
   const serialized = serializeDatabaseDateTime(value);
   const match = serialized.match(databaseDatePattern);

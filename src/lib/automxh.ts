@@ -159,13 +159,13 @@ export function parseProductInputs(product: Pick<AutoMxhProduct, 'custom_inputs'
   if (product.input_label) {
     inputs.push({
       label: product.input_label,
-      placeholder: product.input_placeholder || '',
+      placeholder: product.input_placeholder || product.input_label,
     });
   }
   if (product.buyer_label) {
     inputs.push({
       label: product.buyer_label,
-      placeholder: product.buyer_placeholder || '',
+      placeholder: product.buyer_placeholder || product.buyer_label,
     });
   }
 

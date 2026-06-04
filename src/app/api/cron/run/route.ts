@@ -12,6 +12,7 @@ import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { applySmmProviderStatusToOrder, refundCanceledSmmOrder } from '@/lib/smm-refund';
 import { toNumber } from '@/lib/utils';
 import { runVpsGpuHourlyBilling } from '@/lib/vps-gpu-billing';
+import { getVietnamDatabaseDateTime } from '@/lib/date-time';
 
 type CronSummary = Record<string, unknown>;
 
@@ -249,13 +250,18 @@ async function runFindJobMaintenance() {
 
 async function runSupportTikTokMaintenance() {
   if (!(await tableExists('tiktok_support_orders'))) return { expired_orders: 0 };
-  const expired = await db.$executeRawUnsafe(`
-    UPDATE tiktok_support_orders
-    SET status = 'expired', updated_at = NOW()
-    WHERE status IN ('pending', 'active', 'processing')
-      AND ngay_het_han IS NOT NULL
-      AND ngay_het_han < NOW()
-  `).catch(() => 0);
+  const nowText = getVietnamDatabaseDateTime();
+  const expired = await db.$executeRawUnsafe(
+    `
+      UPDATE tiktok_support_orders
+      SET status = 'expired', updated_at = ?
+      WHERE status IN ('pending', 'active', 'processing')
+        AND ngay_het_han IS NOT NULL
+        AND ngay_het_han < ?
+    `,
+    nowText,
+    nowText
+  ).catch(() => 0);
   return { expired_orders: Number(expired || 0) };
 }
 

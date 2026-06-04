@@ -1,6 +1,8 @@
 const DEFAULT_VAST_API_BASE_URL = 'https://console.vast.ai/api/v0';
 const DEFAULT_VAST_API_TIMEOUT_MS = 10000;
-const DEFAULT_VAST_IMAGE = 'ghcr.io/selkies-project/nvidia-egl-desktop:latest';
+const DEFAULT_VAST_IMAGE = 'accetto/ubuntu-vnc-xfce-g3:latest';
+export const DEFAULT_VAST_MIN_INET_DOWN_MBPS = 300;
+export const DEFAULT_VAST_MIN_INET_UP_MBPS = 80;
 
 export class VastApiError extends Error {
   status: number;
@@ -108,6 +110,8 @@ export function buildVastOfferSearch(params: {
   minDiskGb?: string | number | null;
   minReliability?: string | number | null;
   maxHourlyUsd?: string | number | null;
+  minInetDownMbps?: string | number | null;
+  minInetUpMbps?: string | number | null;
   limit?: string | number | null;
   type?: 'ondemand' | 'bid';
 }) {
@@ -147,6 +151,16 @@ export function buildVastOfferSearch(params: {
   const minReliability = normalizePositiveNumber(params.minReliability, 0.98);
   if (minReliability > 0) {
     payload.reliability = { gte: minReliability };
+  }
+
+  const minInetDownMbps = normalizePositiveNumber(params.minInetDownMbps, DEFAULT_VAST_MIN_INET_DOWN_MBPS);
+  if (minInetDownMbps > 0) {
+    payload.inet_down = { gte: minInetDownMbps };
+  }
+
+  const minInetUpMbps = normalizePositiveNumber(params.minInetUpMbps, DEFAULT_VAST_MIN_INET_UP_MBPS);
+  if (minInetUpMbps > 0) {
+    payload.inet_up = { gte: minInetUpMbps };
   }
 
   return payload;

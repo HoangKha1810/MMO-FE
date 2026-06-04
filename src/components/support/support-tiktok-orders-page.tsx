@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { formatCurrency, toNumber } from '@/lib/utils';
 
 interface TikTokOrder {
@@ -42,6 +43,12 @@ interface TikTokMenu {
   name?: string;
   slug?: string;
   display_order?: number | string;
+}
+
+function formatOrderDate(value: string | undefined) {
+  const serialized = serializeDatabaseDateTime(value);
+  const match = serialized.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : 'chưa có';
 }
 
 export function SupportTiktokOrdersPage() {
@@ -415,7 +422,7 @@ export function SupportTiktokOrdersPage() {
                     </div>
                     <h3 className="mt-3 text-lg font-black uppercase text-slate-950 dark:text-white">{order.service_name || order.service_key}</h3>
                     <p className="mt-1 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
-                      TikTok: <span className="font-black text-slate-800 dark:text-white">{order.tiktok_id}</span> · Region: {regionOptions.find((region) => region.slug === order.region)?.label || order.region} · Hết hạn: {order.ngay_het_han ? new Date(order.ngay_het_han).toLocaleDateString('vi-VN') : 'chưa có'}
+                      TikTok: <span className="font-black text-slate-800 dark:text-white">{order.tiktok_id}</span> · Region: {regionOptions.find((region) => region.slug === order.region)?.label || order.region} · Hết hạn: {formatOrderDate(order.ngay_het_han)}
                     </p>
                   </div>
                   <div className="font-mono text-xl font-black text-emerald-500">{formatCurrency(toNumber(order.price, 0))}</div>

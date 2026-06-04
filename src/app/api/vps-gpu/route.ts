@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   buildVastOfferSearch,
+  DEFAULT_VAST_MIN_INET_DOWN_MBPS,
+  DEFAULT_VAST_MIN_INET_UP_MBPS,
   getVastDefaultImage,
   isVastConfigured,
   VastApiError,
@@ -117,10 +119,18 @@ function isProviderRuntimeError(text: string) {
   return /error response from daemon|failed to create task|oci runtime|cdi devices|unresolvable cdi|failed to create shim task|failed to inject|container.*failed|pull access denied|manifest unknown/i.test(text);
 }
 
+function isProviderImagePullRetry(text: string) {
+  return /retrying in \d+\s*second|image.*retry|retry.*image|pull.*image|docker.*pull|toomanyrequests|timeout.*(registry|pull|image)|ghcr/i.test(text);
+}
+
 function sanitizeInstanceStatusMessage(value: unknown, fallback = '') {
   const text = normalizeString(value, fallback);
   if (!text) {
     return '';
+  }
+
+  if (isProviderImagePullRetry(text)) {
+    return 'Nguồn GPU đang kẹt kéo Docker image nên web desktop chưa chạy. Hãy xóa VPS này rồi tạo lại bằng Ubuntu XFCE noVNC hoặc chọn host network cao hơn.';
   }
 
   if (isProviderRuntimeError(text)) {
@@ -757,7 +767,12 @@ function normalizeCredential(value: unknown) {
   return text && text !== '[object Object]' ? text : '';
 }
 
+function getInstanceEnv(instance: VastInstance) {
+  return asRecord(instance.env || instance.environment || instance.env_vars || instance.envVars);
+}
+
 function getInstancePassword(instance: VastInstance) {
+  const env = getInstanceEnv(instance);
   return (
     normalizeCredential(instance.password) ||
     normalizeCredential(instance.root_password) ||
@@ -766,17 +781,26 @@ function getInstancePassword(instance: VastInstance) {
     normalizeCredential(instance.rdp_password) ||
     normalizeCredential(instance.image_password) ||
     normalizeCredential(instance.passwd) ||
-    normalizeCredential(instance.login_password)
+    normalizeCredential(instance.login_password) ||
+    normalizeCredential(env.VNC_PW) ||
+    normalizeCredential(env.PASSWORD) ||
+    normalizeCredential(env.PASSWD) ||
+    normalizeCredential(env.SELKIES_BASIC_AUTH_PASSWORD)
   );
 }
 
 function getInstanceUsername(instance: VastInstance, rdpPort: number) {
+  const env = getInstanceEnv(instance);
   return normalizeString(
     instance.username ||
       instance.user ||
       instance.ssh_user ||
       instance.rdp_username ||
-      instance.login_user,
+      instance.login_user ||
+      env.SELKIES_BASIC_AUTH_USER ||
+      env.CUSTOM_USER ||
+      env.USER ||
+      env.USERNAME,
     rdpPort ? 'Administrator' : 'root'
   );
 }
@@ -1064,6 +1088,8 @@ async function getOfferOverview(req: NextRequest) {
     minGpuRamMb: req.nextUrl.searchParams.get('minGpuRamMb'),
     minDiskGb: req.nextUrl.searchParams.get('minDiskGb'),
     maxHourlyUsd: req.nextUrl.searchParams.get('maxHourlyUsd'),
+    minInetDownMbps: req.nextUrl.searchParams.get('minInetDownMbps') || DEFAULT_VAST_MIN_INET_DOWN_MBPS,
+    minInetUpMbps: req.nextUrl.searchParams.get('minInetUpMbps') || DEFAULT_VAST_MIN_INET_UP_MBPS,
     limit: req.nextUrl.searchParams.get('limit') || 60,
   });
   return vastRequest('/bundles/', {
@@ -1322,7 +1348,12 @@ export async function GET(req: NextRequest) {
       const [offers, instances, sshKeys, user] = await Promise.all([
         safeVastRequest('/bundles/', {
           method: 'POST',
-          body: JSON.stringify(buildVastOfferSearch({ minGpus: 1, limit: 60 })),
+          body: JSON.stringify(buildVastOfferSearch({
+            minGpus: 1,
+            minInetDownMbps: DEFAULT_VAST_MIN_INET_DOWN_MBPS,
+            minInetUpMbps: DEFAULT_VAST_MIN_INET_UP_MBPS,
+            limit: 60,
+          })),
         }),
         safeVastRequest('/instances/', undefined, { version: 'v1' }),
         safeVastRequest('/ssh/'),

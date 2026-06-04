@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
+import { addDaysToDatabaseDateTime, getVietnamDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { normalizeLegacyRow, normalizeLegacyRows, tableExists, type LegacyRow } from '@/lib/legacy-modules';
 import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
 import { getSupportTiktokContext } from '@/lib/support-tiktok';
@@ -14,6 +15,8 @@ interface LegacyOrderRow extends Record<string, unknown> {
   service_name: string | null;
   price: number | string | null;
   status: string | null;
+  ngay_gia_han?: Date | string | null;
+  ngay_het_han?: Date | string | null;
 }
 
 const DEFAULT_TIKTOK_SUPPORT_MENUS = [
@@ -288,6 +291,21 @@ function readBodyValue(body: FormData | Record<string, unknown> | null, key: str
   return String(body?.[key] || '').trim();
 }
 
+function normalizeSupportOrderDateTime(value: unknown) {
+  return String(serializeDatabaseDateTime(value) || '').trim();
+}
+
+function nextSupportOrderExpiry(currentExpiry: unknown, nowText = getVietnamDatabaseDateTime()) {
+  const currentText = normalizeSupportOrderDateTime(currentExpiry);
+  const baseText = currentText && currentText >= nowText ? currentText : nowText;
+  return addDaysToDatabaseDateTime(baseText, 30);
+}
+
+function ensureSupportOrderExpiry(currentExpiry: unknown, nowText = getVietnamDatabaseDateTime()) {
+  const currentText = normalizeSupportOrderDateTime(currentExpiry);
+  return currentText && currentText >= nowText ? currentText : addDaysToDatabaseDateTime(nowText, 30);
+}
+
 function supportTikTokError(error: unknown, fallback = 'Không xử lý được đơn Support TikTok') {
   const message = error instanceof Error ? error.message : fallback;
   const status = /số dư|không tìm thấy|thiếu|không hợp lệ/i.test(message) ? 400 : 500;
@@ -516,29 +534,34 @@ export async function POST(req: NextRequest) {
       }
 
       if (nextStatus === 'completed' || nextStatus === 'active') {
+        const nowText = getVietnamDatabaseDateTime();
+        const renewalText = normalizeSupportOrderDateTime(order.ngay_gia_han) || nowText;
+        const expiresText = ensureSupportOrderExpiry(order.ngay_het_han, nowText);
         await tx.$executeRawUnsafe(
           `
             UPDATE tiktok_support_orders
             SET status = ?,
-                ngay_gia_han = COALESCE(ngay_gia_han, NOW()),
-                ngay_het_han = CASE
-                  WHEN ngay_het_han IS NULL OR ngay_het_han < NOW() THEN DATE_ADD(NOW(), INTERVAL 30 DAY)
-                  ELSE ngay_het_han
-                END,
-                updated_at = NOW()
+                ngay_gia_han = ?,
+                ngay_het_han = ?,
+                updated_at = ?
             WHERE id = ?
           `,
           dbStatus,
+          renewalText,
+          expiresText,
+          nowText,
           orderId
         );
       } else {
+        const nowText = getVietnamDatabaseDateTime();
         await tx.$executeRawUnsafe(
           `
             UPDATE tiktok_support_orders
-            SET status = ?, updated_at = NOW()
+            SET status = ?, updated_at = ?
             WHERE id = ?
           `,
           dbStatus,
+          nowText,
           orderId
         );
       }
@@ -617,16 +640,21 @@ export async function POST(req: NextRequest) {
           content: `Gia hạn Support TikTok #${orderId}`,
         },
       }).catch(() => undefined);
+      const nowText = getVietnamDatabaseDateTime();
+      const nextExpiryText = nextSupportOrderExpiry(order.ngay_het_han, nowText);
       await tx.$executeRawUnsafe(
         `
           UPDATE tiktok_support_orders
           SET status = ?,
-              ngay_gia_han = NOW(),
-              ngay_het_han = DATE_ADD(GREATEST(COALESCE(ngay_het_han, NOW()), NOW()), INTERVAL 30 DAY),
-              updated_at = NOW()
+              ngay_gia_han = ?,
+              ngay_het_han = ?,
+              updated_at = ?
           WHERE id = ?
         `,
         renewedStatus,
+        nowText,
+        nextExpiryText,
+        nowText,
         orderId
       );
       return { order_id: orderId, balance_after: nextBalance };
@@ -688,11 +716,13 @@ export async function POST(req: NextRequest) {
         content: `Tạo đơn Support TikTok ${service.service_key || serviceKey}`,
       },
     }).catch(() => undefined);
+    const nowText = getVietnamDatabaseDateTime();
+    const expiresText = addDaysToDatabaseDateTime(nowText, 30);
     await tx.$executeRawUnsafe(
       `
         INSERT INTO tiktok_support_orders
           (user_id, region, service_key, service_name, tiktok_id, buyer_name, buyer_contact, price, status, ngay_gia_han, ngay_het_han, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW())
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       auth.userId!,
       region,
@@ -702,7 +732,11 @@ export async function POST(req: NextRequest) {
       buyerName,
       buyerContact,
       totalPrice,
-      initialOrderStatus
+      initialOrderStatus,
+      nowText,
+      expiresText,
+      nowText,
+      nowText
     );
     const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>('SELECT * FROM tiktok_support_orders WHERE id = LAST_INSERT_ID() LIMIT 1');
     return {

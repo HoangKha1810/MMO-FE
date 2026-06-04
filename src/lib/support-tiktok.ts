@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
+import { getVietnamDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { buildLegacyAssetUrl, getLegacySetting } from '@/lib/legacy-settings';
 import { getLegacyEnv } from '@/lib/legacy-env';
 
@@ -55,8 +56,7 @@ function mapMessage(row: SupportMessageRow, supportUsername: string) {
     message: String(row.message || ''),
     image_url: row.image_url || '',
     image_urls: parseImageUrls(row.image_urls),
-    created_at:
-      row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at || ''),
+    created_at: serializeDatabaseDateTime(row.created_at) || getVietnamDatabaseDateTime(),
   };
 }
 
@@ -136,6 +136,7 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
     };
   }
 
+  const nowText = getVietnamDatabaseDateTime();
   const [latestRows, eligibleRows] = await Promise.all([
     db.$queryRawUnsafe<SupportOrderAccessRow[]>(
       `
@@ -153,18 +154,19 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
         FROM tiktok_support_orders
         WHERE user_id = ?
           AND LOWER(COALESCE(status, '')) IN ('active', 'completed', 'processing', 'success')
-          AND (ngay_het_han IS NULL OR ngay_het_han >= NOW())
+          AND (ngay_het_han IS NULL OR ngay_het_han >= ?)
         ORDER BY updated_at DESC, id DESC
         LIMIT 1
       `,
-      userId
+      userId,
+      nowText
     ).catch(() => []),
   ]);
 
   const latestOrder = latestRows[0] || null;
   const latestStatus = String(latestOrder?.status || '').trim().toLowerCase();
-  const expiresAt = latestOrder?.ngay_het_han ? new Date(latestOrder.ngay_het_han) : null;
-  const notExpired = !expiresAt || expiresAt.getTime() >= Date.now();
+  const latestExpiresAt = latestOrder?.ngay_het_han ? serializeDatabaseDateTime(latestOrder.ngay_het_han) : '';
+  const notExpired = !latestExpiresAt || latestExpiresAt >= nowText;
   const hasUnlockedChat = eligibleRows.length > 0;
 
   let chatBlockedReason = '';
@@ -187,7 +189,7 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
     chatBlockedReason,
     latestOrderId: latestOrder ? Number(latestOrder.id) : null,
     latestOrderStatus: latestOrder?.status ? String(latestOrder.status) : null,
-    latestOrderExpiresAt: toIsoDate(latestOrder?.ngay_het_han),
+    latestOrderExpiresAt: latestExpiresAt || toIsoDate(latestOrder?.ngay_het_han),
   };
 }
 
@@ -308,16 +310,18 @@ export async function createSupportConversationMessage(input: {
     null;
 
   const created = await db.$transaction(async (tx) => {
+    const createdAt = getVietnamDatabaseDateTime();
     await tx.$executeRawUnsafe(
       `
         INSERT INTO support_tiktok_messages (user_id, sender_type, message, image_url, image_urls, created_at)
-        VALUES (?, ?, ?, ?, ?, NOW())
+        VALUES (?, ?, ?, ?, ?, ?)
       `,
       input.conversationUserId,
       input.senderType,
       input.message,
       primaryImage,
-      imageUrls.length > 0 ? JSON.stringify(imageUrls) : null
+      imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
+      createdAt
     );
 
     const rows = await tx.$queryRawUnsafe<SupportMessageRow[]>(
@@ -367,8 +371,7 @@ export async function getSupportConversations() {
     username: String(row.username || `USER #${row.user_id}`),
     avatar: buildLegacyAssetUrl(row.avatar),
     last_message: String(row.last_message || ''),
-    last_at:
-      row.last_at instanceof Date ? row.last_at.toISOString() : String(row.last_at || ''),
+    last_at: serializeDatabaseDateTime(row.last_at) || getVietnamDatabaseDateTime(),
     last_sender_type: String(row.last_sender_type || ''),
   }));
 }

@@ -239,6 +239,8 @@ const DEFAULT_VPS_GPU_PRICING: VpsGpuPricingSettings = {
   priceMultiplier: 1.67,
   hourlyFeeVnd: 0,
 };
+const MIN_VPS_GPU_NETWORK_DOWN_MBPS = 300;
+const MIN_VPS_GPU_NETWORK_UP_MBPS = 80;
 
 const networkOptions: Array<{
   value: NetworkMode;
@@ -278,12 +280,24 @@ interface VpsGpuImagePreset {
 
 const vpsGpuImagePresets: VpsGpuImagePreset[] = [
   {
+    id: 'xfce-novnc',
+    image: 'accetto/ubuntu-vnc-xfce-g3:latest',
+    label: 'Ubuntu XFCE noVNC',
+    category: 'Web desktop ổn định',
+    remote: 'noVNC port 6901, VNC port 5901',
+    hint: 'Desktop nhẹ, ít phụ thuộc, phù hợp thao tác web/tool. Đây là preset nên dùng trước để tránh kẹt pull image nặng.',
+    runtime: 'args',
+    onstart: '',
+    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo\n_TTMMO_REMOTE_PROFILE=novnc\n_TTMMO_REMOTE_PORTS=6901,6080',
+    recommended: true,
+  },
+  {
     id: 'gpu-desktop-selkies',
     image: 'ghcr.io/selkies-project/nvidia-egl-desktop:latest',
-    label: 'Desktop GPU WebRTC EGL',
+    label: 'Desktop GPU KasmVNC EGL',
     category: 'Game / Render / Desktop',
-    remote: 'WebRTC/HTML5 port 8080',
-    hint: 'Desktop GPU public ổn định nhất để thao tác GUI, game nhẹ, AI web UI và render qua trình duyệt.',
+    remote: 'KasmVNC web port 8080',
+    hint: 'Desktop GPU public qua KasmVNC ổn định hơn WebRTC trên Vast port-forward. Dùng khi cần render/OpenGL qua GPU.',
     runtime: 'args',
     onstart: '',
     envFlags: [
@@ -292,25 +306,30 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'DISPLAY_SIZEH=1080',
       'DISPLAY_REFRESH=60',
       'DISPLAY_DPI=96',
+      'DISPLAY_CDEPTH=24',
       'SIZEW=1920',
       'SIZEH=1080',
       'REFRESH=60',
       'PASSWD=trungtammmo',
       'PASSWORD=trungtammmo',
+      'KASMVNC_ENABLE=true',
+      'KASMVNC_THREADS=0',
+      'SELKIES_ENABLE_BASIC_AUTH=true',
+      'SELKIES_ENABLE_RESIZE=true',
+      'SELKIES_BASIC_AUTH_USER=ubuntu',
       'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
       'SELKIES_ENCODER=nvh264enc',
       '_TTMMO_REMOTE_PROFILE=selkies',
       '_TTMMO_REMOTE_PORTS=8080',
     ].join('\n'),
-    recommended: true,
   },
   {
     id: 'gpu-desktop-glx',
     image: 'ghcr.io/selkies-project/nvidia-glx-desktop:latest',
-    label: 'Desktop GPU WebRTC GLX',
+    label: 'Desktop GPU KasmVNC GLX',
     category: 'Game / OpenGL / Render',
-    remote: 'WebRTC/HTML5 port 8080',
-    hint: 'Desktop NVIDIA có OpenGL/GLX, Vulkan và Wine/Proton, hợp test app/game/render có giao diện.',
+    remote: 'KasmVNC web port 8080',
+    hint: 'Desktop NVIDIA có OpenGL/GLX, Vulkan và Wine/Proton, dùng KasmVNC để tránh kẹt WebRTC trên port-forward.',
     runtime: 'args',
     onstart: '',
     envFlags: [
@@ -319,11 +338,17 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'DISPLAY_SIZEH=1080',
       'DISPLAY_REFRESH=60',
       'DISPLAY_DPI=96',
+      'DISPLAY_CDEPTH=24',
       'SIZEW=1920',
       'SIZEH=1080',
       'REFRESH=60',
       'PASSWD=trungtammmo',
       'PASSWORD=trungtammmo',
+      'KASMVNC_ENABLE=true',
+      'KASMVNC_THREADS=0',
+      'SELKIES_ENABLE_BASIC_AUTH=true',
+      'SELKIES_ENABLE_RESIZE=true',
+      'SELKIES_BASIC_AUTH_USER=ubuntu',
       'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
       'SELKIES_ENCODER=nvh264enc',
       '_TTMMO_REMOTE_PROFILE=selkies',
@@ -361,22 +386,11 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     envFlags: 'PUID=1000\nPGID=1000\nTZ=Asia/Ho_Chi_Minh\nCUSTOM_USER=ttmmo\nPASSWORD=trungtammmo\n_TTMMO_REMOTE_PROFILE=linuxserver-web\n_TTMMO_REMOTE_PORTS=3001,3000',
   },
   {
-    id: 'xfce-novnc',
-    image: 'accetto/ubuntu-vnc-xfce-g3:latest',
-    label: 'Ubuntu XFCE noVNC',
-    category: 'Game / Tool / Browser',
-    remote: 'noVNC port 6901, VNC port 5901',
-    hint: 'Desktop nhẹ, ít phụ thuộc, phù hợp thao tác web/tool và cài phần mềm nhỏ.',
-    runtime: 'args',
-    onstart: '',
-    envFlags: 'TZ=Asia/Ho_Chi_Minh\nVNC_PW=trungtammmo\n_TTMMO_REMOTE_PROFILE=novnc\n_TTMMO_REMOTE_PORTS=6901,6080',
-  },
-  {
     id: 'ai-ml-desktop',
     image: 'ghcr.io/selkies-project/nvidia-egl-desktop:latest',
     label: 'AI/ML Desktop GPU',
     category: 'AI / ML',
-    remote: 'WebRTC/HTML5 port 8080',
+    remote: 'KasmVNC web port 8080',
     hint: 'Desktop GPU để cài Conda, PyTorch, web UI AI hoặc notebook theo nhu cầu sau khi máy lên.',
     runtime: 'args',
     onstart: '',
@@ -386,11 +400,17 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'DISPLAY_SIZEH=1080',
       'DISPLAY_REFRESH=60',
       'DISPLAY_DPI=96',
+      'DISPLAY_CDEPTH=24',
       'SIZEW=1920',
       'SIZEH=1080',
       'REFRESH=60',
       'PASSWD=trungtammmo',
       'PASSWORD=trungtammmo',
+      'KASMVNC_ENABLE=true',
+      'KASMVNC_THREADS=0',
+      'SELKIES_ENABLE_BASIC_AUTH=true',
+      'SELKIES_ENABLE_RESIZE=true',
+      'SELKIES_BASIC_AUTH_USER=ubuntu',
       'SELKIES_BASIC_AUTH_PASSWORD=trungtammmo',
       'SELKIES_ENCODER=nvh264enc',
       '_TTMMO_REMOTE_PROFILE=selkies',
@@ -437,6 +457,31 @@ function hasOwnField(record: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(record, key);
 }
 
+function normalizeMbps(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function getHostnodeNetworkDownMbps(hostnode: VastHostnode) {
+  const offer = asRecord(hostnode.vast);
+  return normalizeMbps(
+    offer.inet_down ||
+      offer.net_down ||
+      offer.network_down_mbps ||
+      Number(hostnode.location?.network_speed_gbps || 0) * 1000
+  );
+}
+
+function getHostnodeNetworkUpMbps(hostnode: VastHostnode) {
+  const offer = asRecord(hostnode.vast);
+  return normalizeMbps(
+    offer.inet_up ||
+      offer.net_up ||
+      offer.network_up_mbps ||
+      Number(hostnode.location?.network_speed_upload_gbps || 0) * 1000
+  );
+}
+
 function isVerifiedHostnode(hostnode: VastHostnode) {
   const offer = asRecord(hostnode.vast);
   const verificationText = String(
@@ -469,12 +514,24 @@ function isVerifiedHostnode(hostnode: VastHostnode) {
   return true;
 }
 
+function hasEnoughNetworkForWebDesktop(hostnode: VastHostnode) {
+  const downMbps = getHostnodeNetworkDownMbps(hostnode);
+  const upMbps = getHostnodeNetworkUpMbps(hostnode);
+  if (downMbps > 0 && downMbps < MIN_VPS_GPU_NETWORK_DOWN_MBPS) return false;
+  if (upMbps > 0 && upMbps < MIN_VPS_GPU_NETWORK_UP_MBPS) return false;
+  return true;
+}
+
+function isUsableHostnode(hostnode: VastHostnode) {
+  return isVerifiedHostnode(hostnode) && hasEnoughNetworkForWebDesktop(hostnode);
+}
+
 function extractLocations(payload: unknown): VastLocation[] {
   return toArray<VastLocation>(asRecord(asRecord(payload).data).locations);
 }
 
 function extractHostnodes(payload: unknown): VastHostnode[] {
-  return toArray<VastHostnode>(asRecord(asRecord(payload).data).hostnodes).filter(isVerifiedHostnode);
+  return toArray<VastHostnode>(asRecord(asRecord(payload).data).hostnodes).filter(isUsableHostnode);
 }
 
 function extractInstances(payload: unknown): VastInstance[] {
@@ -733,6 +790,10 @@ function normalizeUiErrorMessage(message: string) {
     return 'Nguồn GPU đang bận hoặc chưa tạo được VPS lúc này. Hãy làm mới gói rồi thử lại.';
   }
 
+  if (/retrying in \d+\s*second|image.*retry|pull.*image|docker.*pull|manifest|ghcr/i.test(message)) {
+    return 'Nguồn GPU đang kẹt kéo Docker image nên web desktop chưa chạy. Hãy xóa VPS này rồi tạo lại bằng Ubuntu XFCE noVNC hoặc chọn host network cao hơn.';
+  }
+
   return message
     .replace(/API nguồn GPU\s+\/[^\s]+/gi, 'Nguồn GPU')
     .replace(/GPU API\s+\/[^\s]+/gi, 'Nguồn GPU')
@@ -885,7 +946,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       if (!payload.success) {
         throw new Error(payload.message || 'Không thể tìm gói GPU');
       }
-      const nextHostnodes = toArray<VastHostnode>(asRecord(payload.data).hostnodes).filter(isVerifiedHostnode);
+      const nextHostnodes = toArray<VastHostnode>(asRecord(payload.data).hostnodes).filter(isUsableHostnode);
       const nextPricingSettings = asRecord(payload.data).pricingSettings as Partial<VpsGpuPricingSettings>;
       setPricingSettings({
         usdToVnd: Number(nextPricingSettings.usdToVnd) || DEFAULT_VPS_GPU_PRICING.usdToVnd,
