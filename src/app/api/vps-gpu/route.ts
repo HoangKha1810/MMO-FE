@@ -35,6 +35,16 @@ const noStoreHeaders = {
 type VastOffer = Record<string, unknown>;
 type VastInstance = Record<string, unknown>;
 type VastSshKey = Record<string, unknown>;
+type WebDesktopEndpointSource = 'direct' | 'mapped' | 'legacy';
+type WebDesktopEndpoint = {
+  internalPort: number;
+  publicPort: number;
+  host: string;
+  url: string;
+  label: string;
+  source: WebDesktopEndpointSource;
+  primary?: boolean;
+};
 type PricedHostnode = ReturnType<typeof mapOfferToHostnode> & {
   pricing?: Record<string, unknown>;
 };
@@ -553,7 +563,7 @@ function getRemoteProfileForImage(image: string) {
   if (normalizedImage.includes('linuxserver/webtop') || normalizedImage.includes('linuxserver/blender')) {
     return {
       name: 'linuxserver-web',
-      webPorts: [3000, 3001],
+      webPorts: [3001, 3000],
       extraPorts: [],
     };
   }
@@ -566,7 +576,7 @@ function getRemoteProfileForImage(image: string) {
   }
   return {
     name: 'generic',
-    webPorts: [8080, 3000, 3001, 6901, 6080],
+    webPorts: [8080, 3001, 3000, 6901, 6080],
     extraPorts: [5901, 5900],
   };
 }
@@ -580,89 +590,151 @@ function parseRemotePortsFromEnv(instance: VastInstance) {
     .filter(Boolean);
 }
 
-function getInstanceWebDesktopPort(instance: VastInstance) {
+function sortRemotePortsForProfile(profileName: string, ports: number[]) {
+  const uniquePorts = Array.from(new Set(ports.map((port) => normalizePositiveInt(port, 0)).filter(Boolean)));
+  if (profileName === 'linuxserver-web') {
+    const preferred = [3001, 3000];
+    return [
+      ...preferred.filter((port) => uniquePorts.includes(port)),
+      ...uniquePorts.filter((port) => !preferred.includes(port)),
+    ];
+  }
+
+  return uniquePorts;
+}
+
+function getMappedPublicPort(instance: VastInstance, internalPort: number) {
+  return normalizePositiveInt(
+    getInstancePortFromMap(instance, `${internalPort}/tcp`) ||
+      getInstancePortFromMap(instance, String(internalPort)),
+    0
+  );
+}
+
+function formatRemoteEndpointLabel(profileName: string, internalPort: number, publicPort: number, source: WebDesktopEndpointSource) {
+  let base = internalPort ? `Port ${internalPort}` : 'Remote';
+  if (profileName === 'selkies' && internalPort === 8080) {
+    base = 'WebRTC 8080';
+  } else if (profileName === 'linuxserver-web' && internalPort === 3001) {
+    base = 'GUI 3001';
+  } else if (profileName === 'linuxserver-web' && internalPort === 3000) {
+    base = 'App 3000';
+  } else if (profileName === 'novnc' && internalPort === 6901) {
+    base = 'noVNC 6901';
+  } else if (profileName === 'novnc' && internalPort === 6080) {
+    base = 'Web 6080';
+  }
+
+  if (source === 'mapped' && internalPort && publicPort && internalPort !== publicPort) {
+    return `${base} -> ${publicPort}`;
+  }
+
+  return base;
+}
+
+function buildWebDesktopEndpoint(
+  profileName: string,
+  host: string,
+  internalPort: number,
+  publicPort: number,
+  source: WebDesktopEndpointSource
+): WebDesktopEndpoint | null {
+  if (!host || !publicPort) {
+    return null;
+  }
+
+  return {
+    internalPort,
+    publicPort,
+    host,
+    url: `http://${host}:${publicPort}`,
+    label: formatRemoteEndpointLabel(profileName, internalPort, publicPort, source),
+    source,
+  };
+}
+
+function getInstanceWebDesktopEndpoints(instance: VastInstance, webDesktopHost: string) {
   const image = normalizeString(instance.image || instance.image_uuid || instance.template_name || instance.docker_image).toLowerCase();
   const configuredPorts = parseRemotePortsFromEnv(instance);
-  const configuredPublicPorts = configuredPorts.flatMap((port) => [
-    getInstancePortFromMap(instance, `${port}/tcp`),
-    getInstancePortFromMap(instance, String(port)),
-  ]);
-  if (configuredPublicPorts.some(Boolean)) {
-    for (const port of configuredPublicPorts) {
-      const normalized = normalizePositiveInt(port, 0);
-      if (normalized) return normalized;
-    }
-  }
-
   const profile = getRemoteProfileForImage(image);
-  const profilePorts = profile.webPorts.flatMap((port) => [
-    getInstancePortFromMap(instance, `${port}/tcp`),
-    getInstancePortFromMap(instance, String(port)),
-  ]);
-  if (profilePorts.some(Boolean)) {
-    for (const port of profilePorts) {
-      const normalized = normalizePositiveInt(port, 0);
-      if (normalized) return normalized;
+  const publicIp = normalizeString(instance.public_ipaddr);
+  const orderedRemotePorts = sortRemotePortsForProfile(
+    profile.name,
+    configuredPorts.length ? configuredPorts : profile.webPorts
+  );
+  const preferDirectPublicPorts = Boolean(
+    publicIp &&
+      (
+        configuredPorts.length ||
+        profile.name !== 'generic' ||
+        normalizeBoolean(instance.static_ip, false)
+      )
+  );
+  const endpoints: WebDesktopEndpoint[] = [];
+
+  for (const internalPort of orderedRemotePorts) {
+    const mappedPublicPort = getMappedPublicPort(instance, internalPort);
+    const mappedEndpoint = buildWebDesktopEndpoint(profile.name, webDesktopHost, internalPort, mappedPublicPort, 'mapped');
+    if (mappedEndpoint) {
+      endpoints.push(mappedEndpoint);
     }
   }
 
-  const selkiesPorts = [
-    getInstancePortFromMap(instance, '8080/tcp'),
-    getInstancePortFromMap(instance, '8080'),
+  const legacyPublicPorts = [
     instance.web_port,
     instance.webPort,
     instance.desktop_port,
     instance.desktopPort,
-  ];
-  const linuxServerWebtopPorts = [
-    getInstancePortFromMap(instance, '3000/tcp'),
-    getInstancePortFromMap(instance, '3000'),
-    getInstancePortFromMap(instance, '3001/tcp'),
-    getInstancePortFromMap(instance, '3001'),
-    instance.web_port,
-    instance.webPort,
-  ];
-  const noVncPorts = [
-    getInstancePortFromMap(instance, '6901/tcp'),
-    getInstancePortFromMap(instance, '6901'),
-    getInstancePortFromMap(instance, '6080/tcp'),
-    getInstancePortFromMap(instance, '6080'),
     instance.vnc_port,
     instance.vncPort,
-  ];
-  const genericPorts = [
-    instance.web_port,
-    instance.webPort,
-    instance.desktop_port,
-    instance.desktopPort,
     getInstancePortFromMap(instance, '8080/tcp'),
     getInstancePortFromMap(instance, '8080'),
+    getInstancePortFromMap(instance, '3001/tcp'),
+    getInstancePortFromMap(instance, '3001'),
+    getInstancePortFromMap(instance, '3000/tcp'),
+    getInstancePortFromMap(instance, '3000'),
     getInstancePortFromMap(instance, '6901/tcp'),
     getInstancePortFromMap(instance, '6901'),
     getInstancePortFromMap(instance, '6080/tcp'),
     getInstancePortFromMap(instance, '6080'),
-    getInstancePortFromMap(instance, '3000/tcp'),
-    getInstancePortFromMap(instance, '3000'),
-    getInstancePortFromMap(instance, '3001/tcp'),
-    getInstancePortFromMap(instance, '3001'),
   ];
-  const candidatePorts =
-    image.includes('selkies-project/nvidia-egl-desktop') || image.includes('selkies-project/nvidia-glx-desktop')
-      ? [...selkiesPorts, ...noVncPorts, ...linuxServerWebtopPorts, ...genericPorts]
-      : image.includes('linuxserver/webtop') || image.includes('linuxserver/blender')
-        ? [...linuxServerWebtopPorts, ...noVncPorts, ...selkiesPorts, ...genericPorts]
-        : image.includes('vnc') || image.includes('novnc')
-          ? [...noVncPorts, ...selkiesPorts, ...linuxServerWebtopPorts, ...genericPorts]
-          : genericPorts;
 
-  for (const port of candidatePorts) {
-    const normalized = normalizePositiveInt(port, 0);
-    if (normalized) {
-      return normalized;
+  for (const publicPort of legacyPublicPorts) {
+    const normalizedPublicPort = normalizePositiveInt(publicPort, 0);
+    const legacyEndpoint = buildWebDesktopEndpoint(profile.name, webDesktopHost, 0, normalizedPublicPort, 'legacy');
+    if (legacyEndpoint) {
+      endpoints.push(legacyEndpoint);
     }
   }
 
-  return 0;
+  if (!endpoints.length) {
+    for (const internalPort of orderedRemotePorts) {
+      if (preferDirectPublicPorts) {
+        const directEndpoint = buildWebDesktopEndpoint(profile.name, publicIp, internalPort, internalPort, 'direct');
+        if (directEndpoint) {
+          endpoints.push(directEndpoint);
+        }
+      }
+    }
+  }
+
+  const seenUrls = new Set<string>();
+  return endpoints
+    .filter((endpoint) => {
+      if (seenUrls.has(endpoint.url)) {
+        return false;
+      }
+      seenUrls.add(endpoint.url);
+      return true;
+    })
+    .map((endpoint, index) => ({
+      ...endpoint,
+      primary: index === 0,
+    }));
+}
+
+function getInstanceWebDesktopPort(instance: VastInstance, webDesktopHost: string) {
+  return getInstanceWebDesktopEndpoints(instance, webDesktopHost)[0]?.publicPort || 0;
 }
 
 function normalizeCredential(value: unknown) {
@@ -765,9 +837,11 @@ function mapInstances(instances: VastInstance[]) {
     const sshHost = normalizeString(instance.ssh_host || publicIp || instance.hostname);
     const sshPort = getInstanceSshPort(instance);
     const rdpPort = getInstanceRdpPort(instance);
-    const webDesktopPort = getInstanceWebDesktopPort(instance);
     const rdpHost = publicIp || sshHost;
     const webDesktopHost = publicIp || sshHost;
+    const webDesktopUrls = getInstanceWebDesktopEndpoints(instance, webDesktopHost);
+    const primaryWebDesktopUrl = webDesktopUrls[0];
+    const webDesktopPort = primaryWebDesktopUrl?.publicPort || 0;
     const password = getInstancePassword(instance);
     const username = getInstanceUsername(instance, rdpPort);
     const portRange = getInstancePortRange(instance);
@@ -841,7 +915,9 @@ function mapInstances(instances: VastInstance[]) {
         rdpAddress: rdpHost && rdpPort ? `${rdpHost}:${rdpPort}` : '',
         rdpCommand: rdpHost && rdpPort ? `mstsc /v:${rdpHost}:${rdpPort}` : '',
         webDesktopPort,
-        webDesktopUrl: webDesktopHost && webDesktopPort ? `http://${webDesktopHost}:${webDesktopPort}` : '',
+        webDesktopInternalPort: primaryWebDesktopUrl?.internalPort || 0,
+        webDesktopUrl: primaryWebDesktopUrl?.url || '',
+        webDesktopUrls,
         publicIp,
         localIps,
         portRange,

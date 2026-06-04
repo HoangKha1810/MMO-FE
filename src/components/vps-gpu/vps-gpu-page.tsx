@@ -139,6 +139,16 @@ interface VastHostnode {
   vast?: VastOfferMeta;
 }
 
+interface WebDesktopLink {
+  internalPort?: number;
+  publicPort?: number;
+  host?: string;
+  url: string;
+  label?: string;
+  source?: 'direct' | 'mapped' | 'legacy';
+  primary?: boolean;
+}
+
 interface VastInstance {
   id?: string;
   name?: string;
@@ -170,8 +180,10 @@ interface VastInstance {
     rdpPort?: number;
     rdpAddress?: string;
     rdpCommand?: string;
+    webDesktopInternalPort?: number;
     webDesktopPort?: number;
     webDesktopUrl?: string;
+    webDesktopUrls?: WebDesktopLink[];
     publicIp?: string;
     localIps?: string[];
     portRange?: string;
@@ -332,7 +344,7 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
       'AUTO_GPU=true',
       'PIXELFLUX_WAYLAND=true',
       '_TTMMO_REMOTE_PROFILE=linuxserver-web',
-      '_TTMMO_REMOTE_PORTS=3000,3001',
+      '_TTMMO_REMOTE_PORTS=3001,3000',
     ].join('\n'),
   },
   {
@@ -344,7 +356,7 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
     hint: 'Desktop Ubuntu dễ dùng để cài tool GUI, trình duyệt, trình quản lý file và thao tác thủ công.',
     runtime: 'ssh',
     onstart: 'nvidia-smi',
-    envFlags: 'PUID=1000\nPGID=1000\nTZ=Asia/Ho_Chi_Minh\nCUSTOM_USER=ttmmo\nPASSWORD=trungtammmo\n_TTMMO_REMOTE_PROFILE=linuxserver-web\n_TTMMO_REMOTE_PORTS=3000,3001',
+    envFlags: 'PUID=1000\nPGID=1000\nTZ=Asia/Ho_Chi_Minh\nCUSTOM_USER=ttmmo\nPASSWORD=trungtammmo\n_TTMMO_REMOTE_PROFILE=linuxserver-web\n_TTMMO_REMOTE_PORTS=3001,3000',
   },
   {
     id: 'xfce-novnc',
@@ -1767,6 +1779,20 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               const specs = instance.specs || {};
               const connection = instance.connection || {};
               const billing = instance.billing || null;
+              const webDesktopLinks: WebDesktopLink[] = connection.webDesktopUrls?.length
+                ? connection.webDesktopUrls
+                : connection.webDesktopUrl
+                  ? [{
+                      internalPort: connection.webDesktopInternalPort,
+                      publicPort: connection.webDesktopPort,
+                      url: connection.webDesktopUrl,
+                      label: connection.webDesktopInternalPort
+                        ? `Port ${connection.webDesktopInternalPort}`
+                        : 'Remote',
+                      primary: true,
+                    }]
+                  : [];
+              const primaryWebDesktopLink = webDesktopLinks[0];
               return (
                 <Card key={id || getInstanceName(instance)} className="overflow-hidden">
                   <CardHeader>
@@ -1866,19 +1892,19 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       </div>
                     ) : null}
 
-                    {connection.webDesktopUrl ? (
+                    {primaryWebDesktopLink ? (
                       <div className="rounded-[1rem] border border-cyan-400/25 bg-cyan-500/10 p-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex items-center gap-2 text-sm font-black text-cyan-700 dark:text-cyan-200">
                             <Monitor className="h-4 w-4" />
-                            Web desktop / app port đã mở
+                            Web desktop / app port đã map public
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
-                              onClick={() => window.open(connection.webDesktopUrl, '_blank', 'noopener,noreferrer')}
+                              onClick={() => window.open(primaryWebDesktopLink.url, '_blank', 'noopener,noreferrer')}
                             >
                               Mở remote
                             </Button>
@@ -1886,7 +1912,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                               type="button"
                               size="sm"
                               variant="outline"
-                              onClick={() => void copyText(connection.webDesktopUrl, 'Đã sao chép link remote')}
+                              onClick={() => void copyText(primaryWebDesktopLink.url, 'Đã sao chép link remote')}
                             >
                               <Clipboard className="mr-2 h-4 w-4" />
                               Copy link
@@ -1894,8 +1920,24 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                           </div>
                         </div>
                         <div className="mt-3 overflow-x-auto rounded-[0.9rem] border border-cyan-300/20 bg-slate-950/90 px-3 py-2 font-mono text-xs font-bold text-cyan-100">
-                          {connection.webDesktopUrl}
+                          {primaryWebDesktopLink.url}
                         </div>
+                        {webDesktopLinks.length > 1 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {webDesktopLinks.map((link, linkIndex) => (
+                              <Button
+                                key={`${link.url}-${linkIndex}`}
+                                type="button"
+                                size="sm"
+                                variant={linkIndex === 0 ? 'default' : 'outline'}
+                                className="h-8 rounded-full px-3 text-[0.68rem]"
+                                onClick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
+                              >
+                                {link.label || `Port ${link.internalPort || link.publicPort || linkIndex + 1}`}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
 
@@ -1944,7 +1986,13 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       <MiniInfo icon={<Network />} label="Public IP" value={connection.publicIp || connection.host || 'Đang cập nhật'} />
                       <MiniInfo icon={<Terminal />} label="SSH Port" value={connection.port ? String(connection.port) : 'Đang cập nhật'} />
                       <MiniInfo icon={<Monitor />} label="RDP Port" value={connection.rdpPort ? String(connection.rdpPort) : 'N/A'} />
-                      <MiniInfo icon={<Monitor />} label="Remote Web" value={connection.webDesktopPort ? String(connection.webDesktopPort) : 'N/A'} />
+                      <MiniInfo
+                        icon={<Monitor />}
+                        label="Remote Web"
+                        value={primaryWebDesktopLink
+                          ? `${primaryWebDesktopLink.publicPort || connection.webDesktopPort}${primaryWebDesktopLink.internalPort ? ` (${primaryWebDesktopLink.internalPort})` : ''}`
+                          : 'N/A'}
+                      />
                       <MiniInfo icon={<Server />} label="Port Range" value={connection.portRange || 'N/A'} />
                       <MiniInfo icon={<MapPin />} label="Khu vực" value={instance.attributes?.region || instance.ipAddress || 'N/A'} />
                       <MiniInfo icon={<ShieldCheck />} label="IP Type" value={connection.ipAddressType || 'N/A'} />
