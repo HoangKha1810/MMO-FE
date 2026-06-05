@@ -153,9 +153,10 @@ interface MetricCardProps {
   tone?: AccentTone;
   icon?: React.ReactNode;
   className?: string;
+  valueClassName?: string;
 }
 
-export function MetricCard({ label, value, hint, tone = 'slate', icon, className }: MetricCardProps) {
+export function MetricCard({ label, value, hint, tone = 'slate', icon, className, valueClassName }: MetricCardProps) {
   return (
     <Card className={cn('min-w-0 rounded-[1rem] p-4 sm:p-5 md:p-6', className)}>
       <div className="flex items-start justify-between gap-4">
@@ -163,7 +164,12 @@ export function MetricCard({ label, value, hint, tone = 'slate', icon, className
           <div className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500 sm:text-[10px] sm:tracking-[0.28em]">
             {label}
           </div>
-          <div className="w-full font-mono tabular-nums whitespace-nowrap text-[min(1.75rem,5vw)] font-black leading-[1.08] tracking-[-0.05em] text-slate-950 dark:text-white">
+          <div
+            className={cn(
+              'w-full whitespace-nowrap font-mono text-[min(1.75rem,5vw)] font-black leading-[1.08] tracking-normal tabular-nums text-slate-950 dark:text-white',
+              valueClassName
+            )}
+          >
             {value}
           </div>
           {hint ? (

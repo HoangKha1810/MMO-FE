@@ -50,7 +50,6 @@ import type { AdminSessionUser } from '@/lib/admin-auth';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/layout/notification-bell';
-import { BrandForestWordmark } from '@/components/ui/brand-forest-wordmark';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -309,25 +308,34 @@ export function AdminShell({
         )}
       >
         <div className="flex h-full flex-col overflow-hidden">
-          <div className="flex h-20 items-center justify-between border-b border-slate-200/80 px-6 dark:border-white/5">
-            <div className="min-w-0 flex items-center gap-3">
+          <div className="relative z-10 flex h-24 items-center justify-between border-b border-slate-200/80 px-4 dark:border-white/5">
+            <Link
+              href="/admin/dashboard"
+              className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl px-2 py-2"
+              aria-label="Về trang admin"
+            >
               {branding.siteLogo ? (
-                <img src={branding.siteLogo} alt={branding.siteName} className="h-16 w-auto object-contain" />
+                <img
+                  src={branding.siteLogo}
+                  alt={branding.siteName}
+                  className="block max-h-16 w-auto max-w-full object-contain"
+                />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-blue to-blue-400 text-lg font-black text-white">
-                  {initials(branding.siteName)}
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-blue to-blue-400 text-lg font-black text-white">
+                    {initials(branding.siteName)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                      Administration
+                    </div>
+                    <div className="mt-1 truncate text-sm font-black uppercase tracking-[0.12em] text-slate-900 dark:text-white">
+                      {String(branding.siteName || 'TRUNGTAMMMO').replace(/\.vn$/i, '')}
+                    </div>
+                  </div>
                 </div>
               )}
-              <div className="min-w-0">
-                <div className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
-                  Administration
-                </div>
-                <BrandForestWordmark
-                  text={String(branding.siteName || 'TRUNGTAMMMO').replace(/\.vn$/i, '')}
-                  className="mt-1 text-[0.72rem] text-slate-900 dark:text-white"
-                />
-              </div>
-            </div>
+            </Link>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}

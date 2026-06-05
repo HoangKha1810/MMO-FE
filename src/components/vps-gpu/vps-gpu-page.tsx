@@ -431,6 +431,10 @@ const vpsGpuImagePresets: VpsGpuImagePreset[] = [
 ];
 
 const DEFAULT_VPS_GPU_IMAGE_PRESET = vpsGpuImagePresets[0];
+const vpsGpuSummaryMetricClass =
+  "min-w-0 p-4 [&>div]:gap-3 [&_span]:rounded-xl [&_span]:h-10 [&_span]:w-10";
+const vpsGpuSummaryValueClass =
+  "whitespace-normal break-words text-[clamp(1.05rem,2.2vw,1.5rem)] leading-[1.16]";
 
 function getVpsGpuImagePreset(presetId: string) {
   return vpsGpuImagePresets.find((preset) => preset.id === presetId) || DEFAULT_VPS_GPU_IMAGE_PRESET;
@@ -1727,7 +1731,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 hint={selectedImagePreset.recommended ? 'Preset khuyến nghị' : 'Preset public đã kiểm tra'}
                 tone="blue"
                 icon={<Sparkles className="h-4 w-4" />}
-                className="min-w-0 p-4 [&_*]:min-w-0 [&_[class*='text-3xl']]:break-words [&_[class*='text-3xl']]:text-2xl [&_[class*='text-3xl']]:leading-tight"
+                className={vpsGpuSummaryMetricClass}
+                valueClassName={vpsGpuSummaryValueClass}
               />
               <MetricCard
                 label="Remote desktop"
@@ -1735,7 +1740,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 hint="Khi VPS ready, xem port trong card VPS"
                 tone="emerald"
                 icon={<Monitor className="h-4 w-4" />}
-                className="min-w-0 p-4 [&_*]:min-w-0 [&_[class*='text-3xl']]:break-words [&_[class*='text-3xl']]:text-2xl [&_[class*='text-3xl']]:leading-tight"
+                className={vpsGpuSummaryMetricClass}
+                valueClassName={vpsGpuSummaryValueClass}
               />
               <MetricCard
                 label="Nguồn image"
@@ -1743,7 +1749,8 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 hint="Không dùng image cần đăng nhập Docker"
                 tone="violet"
                 icon={<ShieldCheck className="h-4 w-4" />}
-                className="min-w-0 p-4 [&_*]:min-w-0 [&_[class*='text-3xl']]:break-words [&_[class*='text-3xl']]:text-2xl [&_[class*='text-3xl']]:leading-tight"
+                className={vpsGpuSummaryMetricClass}
+                valueClassName={vpsGpuSummaryValueClass}
               />
             </div>
 
@@ -2316,12 +2323,12 @@ function GuideCard({ title, steps, commands }: { title: string; steps: string[];
 
 function MiniInfo({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-[1rem] border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
-        <span className="[&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>
-        <span className="text-[9px] font-black uppercase tracking-[0.22em]">{label}</span>
+    <div className="min-w-0 rounded-[1rem] border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="flex min-w-0 items-center gap-2 text-slate-400 dark:text-slate-500">
+        <span className="shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>
+        <span className="min-w-0 break-words text-[9px] font-black uppercase tracking-[0.22em]">{label}</span>
       </div>
-      <div className="mt-2 break-words text-sm font-black leading-5 text-slate-950 dark:text-white">{value}</div>
+      <div className="mt-2 min-w-0 break-words text-sm font-black leading-5 text-slate-950 [overflow-wrap:anywhere] dark:text-white">{value}</div>
     </div>
   );
 }

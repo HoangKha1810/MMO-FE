@@ -21,6 +21,7 @@ interface ServiceStatusItem {
   status: string;
   enabled: boolean;
   resourceContactAdminMode?: boolean;
+  disableLienQuanAutoCheck?: boolean;
 }
 
 interface ServiceStatusResponse {
@@ -112,6 +113,32 @@ export function AdminServiceStatusPanel() {
     }
   }
 
+  async function toggleAutoCheckLock(item: ServiceStatusItem) {
+    setSavingKey(`${item.key}:auto-check-lock`);
+    try {
+      const response = await fetch('/api/admin/service-statuses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceKey: item.key,
+          action: 'toggle-auto-check-lock',
+          enabled: !item.disableLienQuanAutoCheck,
+        }),
+      });
+      const payload: ServiceStatusResponse = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không thể cập nhật trạng thái khóa Auto Check');
+      }
+      setItems(payload.items || []);
+      setStats(payload.stats);
+      toast.success(payload.message || 'Đã cập nhật trạng thái khóa Auto Check');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái khóa Auto Check');
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
   const activeCount = useMemo(() => stats?.active ?? items.filter((item) => item.enabled).length, [items, stats]);
   const maintenanceCount = useMemo(
     () => stats?.maintenance ?? items.filter((item) => !item.enabled).length,
@@ -150,7 +177,9 @@ export function AdminServiceStatusPanel() {
         ) : items.map((item) => {
           const saving = savingKey === item.key;
           const isResources = item.key === '3';
+          const isRandomGameAccounts = item.key === 'random_game_accounts';
           const resourceContactSaving = savingKey === `${item.key}:resource-contact`;
+          const autoCheckLockSaving = savingKey === `${item.key}:auto-check-lock`;
           return (
             <article
               key={item.key}
@@ -173,6 +202,11 @@ export function AdminServiceStatusPanel() {
                     {isResources && item.resourceContactAdminMode ? (
                       <Badge variant="warning" className="rounded-full px-3 py-1.5">
                         Liên hệ Zalo
+                      </Badge>
+                    ) : null}
+                    {isRandomGameAccounts && item.disableLienQuanAutoCheck ? (
+                      <Badge variant="danger" className="rounded-full px-3 py-1.5">
+                        Khóa Auto Check Skin
                       </Badge>
                     ) : null}
                   </div>
@@ -207,6 +241,19 @@ export function AdminServiceStatusPanel() {
                     >
                       {item.resourceContactAdminMode ? <PowerOff className="mr-2 h-4 w-4" /> : <Power className="mr-2 h-4 w-4" />}
                       {item.resourceContactAdminMode ? 'Tắt Zalo admin' : 'Bật Zalo admin'}
+                    </Button>
+                  ) : null}
+                  {isRandomGameAccounts ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={item.disableLienQuanAutoCheck ? 'secondary' : 'destructive'}
+                      loading={autoCheckLockSaving}
+                      loadingText={item.disableLienQuanAutoCheck ? 'Đang mở...' : 'Đang khóa...'}
+                      onClick={() => void toggleAutoCheckLock(item)}
+                    >
+                      {item.disableLienQuanAutoCheck ? <Power className="mr-2 h-4 w-4" /> : <PowerOff className="mr-2 h-4 w-4" />}
+                      {item.disableLienQuanAutoCheck ? 'Mở Auto Check' : 'Khóa Auto Check'}
                     </Button>
                   ) : null}
                   <Button

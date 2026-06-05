@@ -23,6 +23,7 @@ async function buildServiceStatusPayload() {
   const controls = getLegacyHomeServiceControls();
   const settings = await getLegacySettingsMap(true);
   const resourcesContactAdminMode = isResourcesContactAdminMode(settings);
+  const disableLienQuanAutoCheck = getLegacySetting(settings, 'disable_lien_quan_auto_check', 'false') === 'true';
 
   const items = controls.map((control) => {
     const status = getLegacySetting(settings, control.statusKey, 'active');
@@ -40,6 +41,7 @@ async function buildServiceStatusPayload() {
       status,
       enabled: status !== 'maintenance',
       resourceContactAdminMode: control.key === '3' ? resourcesContactAdminMode : undefined,
+      disableLienQuanAutoCheck: control.key === 'random_game_accounts' ? disableLienQuanAutoCheck : undefined,
     };
   });
 
@@ -51,6 +53,7 @@ async function buildServiceStatusPayload() {
       maintenance: items.filter((item) => !item.enabled).length,
     },
     resourcesContactAdminMode,
+    disableLienQuanAutoCheck,
   };
 }
 
@@ -83,15 +86,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'resource-contact-mode' && control.key !== '3') {
-      throw new Error('Chế độ liên hệ Zalo chỉ áp dụng cho Tài nguyên MMO');
+      throw new Error('Hành động chỉ áp dụng cho Tài nguyên MMO');
+    }
+
+    if (action === 'toggle-auto-check-lock' && control.key !== 'random_game_accounts') {
+      throw new Error('Hành động chỉ áp dụng cho Random tài khoản game');
     }
 
     const settingKey = action === 'resource-contact-mode'
       ? RESOURCES_CONTACT_ADMIN_MODE_KEY
+      : action === 'toggle-auto-check-lock'
+      ? 'disable_lien_quan_auto_check'
       : control.statusKey;
+
     const nextValue = action === 'resource-contact-mode'
       ? (enabled ? 'on' : 'off')
+      : action === 'toggle-auto-check-lock'
+      ? (enabled ? 'true' : 'false')
       : (enabled ? 'active' : 'maintenance');
+
     const updatedAt = new Date();
     const existing = await db.settings.count({
       where: { setting_key: settingKey },
@@ -121,6 +134,8 @@ export async function POST(req: NextRequest) {
       adminId: auth.user!.id,
       action: action === 'resource-contact-mode'
         ? (enabled ? 'enable resource contact admin mode' : 'disable resource contact admin mode')
+        : action === 'toggle-auto-check-lock'
+        ? (enabled ? 'lock auto check skin' : 'unlock auto check skin')
         : (enabled ? 'enable service' : 'disable service'),
       target: `${serviceKey}:${settingKey}:${nextValue}`,
       req,
@@ -129,6 +144,8 @@ export async function POST(req: NextRequest) {
     const payload = await buildServiceStatusPayload();
     const message = action === 'resource-contact-mode'
       ? (enabled ? 'Đã bật chế độ tài nguyên liên hệ Zalo' : 'Đã tắt chế độ tài nguyên liên hệ Zalo')
+      : action === 'toggle-auto-check-lock'
+      ? (enabled ? 'Đã khóa Auto Check Skin Liên Quân' : 'Đã mở khóa Auto Check Skin Liên Quân')
       : (enabled ? 'Đã bật dịch vụ' : 'Đã tắt dịch vụ');
     return NextResponse.json(
       {
