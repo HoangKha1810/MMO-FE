@@ -3,6 +3,7 @@ import { Boxes, Gamepad2, Package, Search, ShoppingCart, Shuffle, Sparkles, Stor
 import { AppShell } from '@/components/layout/app-shell';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { LienQuanFilterTool } from '@/components/resources/lien-quan-filter-tool';
 import { listResourceFilterLabels, listResources, type ResourceCollection } from '@/lib/legacy-modules';
 import { rewriteGameAccountPriceMentions } from '@/lib/game-account-pricing';
 import { getGameAccountThumbnailUrl } from '@/lib/game-account-media';
@@ -111,6 +112,8 @@ export async function ResourceCollectionPage({ collection, search = '', category
             </>
           }
         />
+
+        {collection === 'random-game-accounts' ? <LienQuanFilterTool /> : null}
 
         <SectionPanel>
           <SectionHeader

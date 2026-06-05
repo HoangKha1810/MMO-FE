@@ -1,0 +1,149 @@
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  buildLienQuanExportText,
+  filterLienQuanAccounts,
+  LIEN_QUAN_FILTER_FEE,
+  LIEN_QUAN_FILTER_PREVIEW_LIMIT,
+  parseLienQuanAccountText,
+  summarizeLienQuanRows,
+  type LienQuanAccountFilters,
+} from '@/lib/lien-quan-account-filter';
+import { db } from '@/lib/db';
+import { toNumber } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
+
+function formatVnd(value: number) {
+  return `${new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.ceil(value)))}đ`;
+}
+
+async function getUserId() {
+  const cookieStore = await cookies();
+  return Number(cookieStore.get('user_id')?.value || 0);
+}
+
+function normalizeFilters(value: unknown): LienQuanAccountFilters {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const input = value as Record<string, unknown>;
+  return {
+    search: String(input.search || '').slice(0, 120),
+    vipMin: Number(input.vipMin || 0),
+    vipMax: Number(input.vipMax || 0),
+    skinMin: Number(input.skinMin || 0),
+    skinMax: Number(input.skinMax || 0),
+    ssMin: Number(input.ssMin || 0),
+    statuses: Array.isArray(input.statuses)
+      ? input.statuses.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 8)
+      : [],
+    requireCccd: Boolean(input.requireCccd),
+    requireVerifiedEmail: Boolean(input.requireVerifiedEmail),
+    requireRareSkin: Boolean(input.requireRareSkin),
+  };
+}
+
+export async function POST(req: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json().catch(() => null) as
+      | { text?: unknown; filters?: unknown }
+      | null;
+    const text = String(body?.text || '').trim();
+
+    if (!text) {
+      return NextResponse.json(
+        { success: false, message: 'Vui lòng upload file .txt hoặc dán nội dung acc cần lọc.' },
+        { status: 400 },
+      );
+    }
+
+    if (text.length > 2_000_000) {
+      return NextResponse.json(
+        { success: false, message: 'File quá lớn. Vui lòng chia nhỏ dưới 2MB mỗi lần lọc.' },
+        { status: 400 },
+      );
+    }
+
+    const allRows = parseLienQuanAccountText(text);
+    if (allRows.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Không đọc được acc Liên Quân từ nội dung đã gửi.' },
+        { status: 400 },
+      );
+    }
+
+    const filters = normalizeFilters(body?.filters);
+    const filteredRows = filterLienQuanAccounts(allRows, filters);
+    const exportText = buildLienQuanExportText(filteredRows);
+    const summaries = {
+      input: summarizeLienQuanRows(allRows),
+      filtered: summarizeLienQuanRows(filteredRows),
+    };
+
+    const billing = await db.$transaction(async (tx) => {
+      const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { game_balance: true },
+      });
+
+      if (!user) {
+        throw new Error('Không tìm thấy người dùng.');
+      }
+
+      const currentBalance = toNumber(user.game_balance, 0);
+      const nextBalance = currentBalance - LIEN_QUAN_FILTER_FEE;
+      if (nextBalance < 0) {
+        throw new Error(
+          `Ví game không đủ. Vui lòng nạp thêm ${formatVnd(Math.abs(nextBalance))} để dùng bộ lọc acc Liên Quân.`,
+        );
+      }
+
+      await tx.users.update({
+        where: { id: userId },
+        data: { game_balance: nextBalance, last_activity: new Date() },
+      });
+
+      await tx.transactions.create({
+        data: {
+          user_id: userId,
+          amount: LIEN_QUAN_FILTER_FEE,
+          balance_after: nextBalance,
+          wallet_type: 'game',
+          type: 'order',
+          status: 'success',
+          content: `Lọc acc Liên Quân tự động: ${allRows.length} dòng, còn ${filteredRows.length} dòng`,
+        },
+      }).catch(() => undefined);
+
+      return {
+        fee: LIEN_QUAN_FILTER_FEE,
+        game_balance: nextBalance,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Đã lọc ${filteredRows.length}/${allRows.length} acc Liên Quân và trừ ${formatVnd(LIEN_QUAN_FILTER_FEE)} ví game.`,
+      fee: billing.fee,
+      game_balance: billing.game_balance,
+      total: allRows.length,
+      filtered: filteredRows.length,
+      summaries,
+      rows: filteredRows.slice(0, LIEN_QUAN_FILTER_PREVIEW_LIMIT),
+      previewLimit: LIEN_QUAN_FILTER_PREVIEW_LIMIT,
+      exportText,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Không thể lọc acc Liên Quân.' },
+      { status: 400 },
+    );
+  }
+}
