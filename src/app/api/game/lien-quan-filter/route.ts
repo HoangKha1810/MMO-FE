@@ -1,10 +1,12 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import {
   buildLienQuanExportText,
   filterLienQuanAccounts,
   LIEN_QUAN_FILTER_FEE,
   LIEN_QUAN_FILTER_PREVIEW_LIMIT,
+  maskLienQuanSensitiveRow,
   parseLienQuanAccountText,
   summarizeLienQuanRows,
   type LienQuanAccountFilters,
@@ -53,9 +55,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => null) as
-      | { text?: unknown; filters?: unknown }
+      | { action?: unknown; text?: unknown; filters?: unknown; password?: unknown }
       | null;
     const text = String(body?.text || '').trim();
+    const action = String(body?.action || 'filter');
 
     if (!text) {
       return NextResponse.json(
@@ -81,11 +84,52 @@ export async function POST(req: NextRequest) {
 
     const filters = normalizeFilters(body?.filters);
     const filteredRows = filterLienQuanAccounts(allRows, filters);
-    const exportText = buildLienQuanExportText(filteredRows);
     const summaries = {
       input: summarizeLienQuanRows(allRows),
       filtered: summarizeLienQuanRows(filteredRows),
     };
+
+    if (action === 'unlock') {
+      const password = String(body?.password || '');
+      if (!password) {
+        return NextResponse.json(
+          { success: false, message: 'Vui lòng nhập mật khẩu tài khoản để xem full acc.' },
+          { status: 400 },
+        );
+      }
+
+      const user = await db.users.findUnique({
+        where: { id: userId },
+        select: { password: true, status: true },
+      });
+
+      if (!user || user.status !== 'active') {
+        return NextResponse.json(
+          { success: false, message: 'Tài khoản không hợp lệ hoặc đã bị khóa.' },
+          { status: 403 },
+        );
+      }
+
+      const passwordOk = await bcrypt.compare(password, user.password);
+      if (!passwordOk) {
+        return NextResponse.json(
+          { success: false, message: 'Mật khẩu không đúng.' },
+          { status: 401 },
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Đã mở khóa full acc trong phiên hiện tại.',
+        total: allRows.length,
+        filtered: filteredRows.length,
+        summaries,
+        rows: filteredRows.slice(0, LIEN_QUAN_FILTER_PREVIEW_LIMIT),
+        previewLimit: LIEN_QUAN_FILTER_PREVIEW_LIMIT,
+        exportText: buildLienQuanExportText(filteredRows),
+        unlocked: true,
+      });
+    }
 
     const billing = await db.$transaction(async (tx) => {
       const user = await tx.users.findUnique({
@@ -136,9 +180,10 @@ export async function POST(req: NextRequest) {
       total: allRows.length,
       filtered: filteredRows.length,
       summaries,
-      rows: filteredRows.slice(0, LIEN_QUAN_FILTER_PREVIEW_LIMIT),
+      rows: filteredRows.slice(0, LIEN_QUAN_FILTER_PREVIEW_LIMIT).map(maskLienQuanSensitiveRow),
       previewLimit: LIEN_QUAN_FILTER_PREVIEW_LIMIT,
-      exportText,
+      exportText: '',
+      unlocked: false,
     });
   } catch (error) {
     return NextResponse.json(

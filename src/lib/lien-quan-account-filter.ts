@@ -1,5 +1,16 @@
 export const LIEN_QUAN_FILTER_FEE = 3000;
 export const LIEN_QUAN_FILTER_PREVIEW_LIMIT = 500;
+export const LIEN_QUAN_SKIN_GROUPS = [
+  'SS',
+  'SSS',
+  'ANIME',
+  'SKIN HIẾM',
+  'MYSTIC',
+  'S-DREAMER',
+  'AOV',
+  'VALENTINE',
+  'SSM',
+] as const;
 
 export type LienQuanAccountRow = Record<string, string | number> & {
   username: string;
@@ -20,18 +31,7 @@ export type LienQuanAccountFilters = {
   requireRareSkin?: boolean;
 };
 
-const listFieldKeys = new Set([
-  'SS',
-  'SSS',
-  'ANIME',
-  'AOV',
-  'OTHER',
-  'SKIN HIẾM',
-  'MYSTIC',
-  'S-DREAMER',
-  'VALENTINE',
-  'SSM',
-]);
+const listFieldKeys = new Set([...LIEN_QUAN_SKIN_GROUPS, 'OTHER']);
 
 const exportFieldOrder = [
   'UID',
@@ -210,6 +210,18 @@ function hasRareSkin(row: LienQuanAccountRow) {
   });
 }
 
+export function maskLienQuanSensitiveRow(row: LienQuanAccountRow) {
+  const { raw_line: _rawLine, ...safeRow } = row;
+  return {
+    ...safeRow,
+    password: row.password ? '••••••' : '',
+  };
+}
+
+function sumListCount(rows: LienQuanAccountRow[], key: string) {
+  return rows.reduce((total, row) => total + parseNumber(row[`${key}_COUNT`], 0), 0);
+}
+
 export function filterLienQuanAccounts(
   rows: LienQuanAccountRow[],
   filters: LienQuanAccountFilters = {},
@@ -296,11 +308,23 @@ function buildLienQuanExportLine(row: LienQuanAccountRow) {
 }
 
 export function summarizeLienQuanRows(rows: LienQuanAccountRow[]) {
+  const skinGroups = Object.fromEntries(
+    LIEN_QUAN_SKIN_GROUPS.map((key) => [key, sumListCount(rows, key)]),
+  );
+
   return {
     total: rows.length,
     full: rows.filter((row) => statusMatches(row['TÌNH TRẠNG'], ['ACC FULL'])).length,
     withCccd: rows.filter((row) => /YES/i.test(String(row.CCCD || ''))).length,
     verifiedEmail: rows.filter((row) => hasVerifiedEmail(row.EMAIL)).length,
     rareSkin: rows.filter(hasRareSkin).length,
+    skinGroups,
+    ssSkins: sumListCount(rows, 'SS'),
+    sssSkins: sumListCount(rows, 'SSS'),
+    animeSkins: sumListCount(rows, 'ANIME'),
+    rareSkinItems:
+      sumListCount(rows, 'SKIN HIẾM') +
+      sumListCount(rows, 'MYSTIC') +
+      sumListCount(rows, 'S-DREAMER'),
   };
 }

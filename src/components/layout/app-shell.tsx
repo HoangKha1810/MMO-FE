@@ -413,7 +413,7 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
-  const { balance: liveBalance, gameBalance: liveGameBalance, pulse, soundTick } = useWalletBalance();
+  const { balance: liveBalance, gameBalance: liveGameBalance, pulse, pulseScope, soundTick } = useWalletBalance();
   const currentUser = useSessionUser(user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -1007,13 +1007,17 @@ export function AppShell({
                     <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Số dư khả dụng</div>
                     <div className={cn(
                       'mt-1 font-mono tabular-nums whitespace-nowrap text-[clamp(0.95rem,3.8vw,1.125rem)] font-black leading-none text-brand-blue transition-all duration-500',
-                      pulse === 'down' && 'scale-[1.04] text-rose-500',
-                      pulse === 'up' && 'scale-[1.04] text-emerald-500'
+                      pulseScope === 'balance' && pulse === 'down' && 'scale-[1.04] text-rose-500',
+                      pulseScope === 'balance' && pulse === 'up' && 'scale-[1.04] text-emerald-500'
                     )}>
                       {formatCurrency((liveBalance ?? currentUser.data.balance))} đ
                     </div>
                     <div className="mt-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Ví game</div>
-                    <div className="mt-1 font-mono tabular-nums whitespace-nowrap text-sm font-black leading-none text-emerald-500 transition-all duration-500">
+                    <div className={cn(
+                      'mt-1 font-mono tabular-nums whitespace-nowrap text-sm font-black leading-none text-emerald-500 transition-all duration-500',
+                      pulseScope === 'gameBalance' && pulse === 'down' && 'scale-[1.04] text-rose-500',
+                      pulseScope === 'gameBalance' && pulse === 'up' && 'scale-[1.04] text-emerald-500'
+                    )}>
                       {formatCurrency((liveGameBalance ?? currentUser.data.game_balance) || 0)} đ
                     </div>
                   </div>
@@ -1120,8 +1124,8 @@ export function AppShell({
                   </span>
                   <span className={cn(
                     'mt-0.5 whitespace-nowrap font-mono tabular-nums text-[clamp(0.95rem,2.4vw,1rem)] font-black leading-none text-slate-900 transition-all duration-500 dark:text-white',
-                    pulse === 'down' && 'scale-[1.06] text-rose-500',
-                    pulse === 'up' && 'scale-[1.06] text-emerald-500'
+                    pulseScope === 'balance' && pulse === 'down' && 'scale-[1.06] text-rose-500',
+                    pulseScope === 'balance' && pulse === 'up' && 'scale-[1.06] text-emerald-500'
                   )}>
                     {formatCurrency((liveBalance ?? currentUser.data?.balance) || 0)}
                     <span className="ml-0.5 text-xs font-bold text-slate-400 dark:text-white/35">đ</span>
@@ -1131,7 +1135,11 @@ export function AppShell({
                   <span className="text-[8px] font-bold uppercase leading-none tracking-[0.16em] text-slate-400 dark:text-white/35">
                     Ví game
                   </span>
-                  <span className="mt-0.5 whitespace-nowrap font-mono tabular-nums text-[0.9rem] font-black leading-none text-emerald-500 transition-all duration-500">
+                  <span className={cn(
+                    'mt-0.5 whitespace-nowrap font-mono tabular-nums text-[0.9rem] font-black leading-none text-emerald-500 transition-all duration-500',
+                    pulseScope === 'gameBalance' && pulse === 'down' && 'scale-[1.06] text-rose-500',
+                    pulseScope === 'gameBalance' && pulse === 'up' && 'scale-[1.06] text-emerald-500'
+                  )}>
                     {formatCurrency((liveGameBalance ?? currentUser.data?.game_balance) || 0)}
                     <span className="ml-0.5 text-xs font-bold text-slate-400 dark:text-white/35">đ</span>
                   </span>
@@ -1227,15 +1235,19 @@ export function AppShell({
                           Số dư:{' '}
                           <span className={cn(
                             'whitespace-nowrap font-mono tabular-nums font-black text-brand-blue transition-all duration-500',
-                            pulse === 'down' && 'text-rose-500',
-                            pulse === 'up' && 'text-emerald-500'
+                            pulseScope === 'balance' && pulse === 'down' && 'text-rose-500',
+                            pulseScope === 'balance' && pulse === 'up' && 'text-emerald-500'
                           )}>
                             {formatCurrency((liveBalance ?? currentUser.data.balance))}đ
                           </span>
                         </div>
                         <div className="mt-1 text-[10px] font-bold text-slate-500">
                           Ví game:{' '}
-                          <span className="whitespace-nowrap font-mono tabular-nums font-black text-emerald-500 transition-all duration-500">
+                          <span className={cn(
+                            'whitespace-nowrap font-mono tabular-nums font-black text-emerald-500 transition-all duration-500',
+                            pulseScope === 'gameBalance' && pulse === 'down' && 'text-rose-500',
+                            pulseScope === 'gameBalance' && pulse === 'up' && 'text-emerald-500'
+                          )}>
                             {formatCurrency((liveGameBalance ?? currentUser.data.game_balance) || 0)}đ
                           </span>
                         </div>
