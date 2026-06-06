@@ -147,7 +147,7 @@ export default function ApiDocsPage() {
         <PageHero
           eyebrow="SMM API"
           title="Tài liệu tích hợp nguồn SMM"
-          description="Bản tài liệu rút gọn cho đội kỹ thuật và vận hành, bám theo spec nguồn Submeta Vip đang dùng trong hệ thống."
+          description="Bản tài liệu rút gọn cho đội kỹ thuật và vận hành, bám theo spec nguồn SMM đang dùng trong hệ thống."
           stats={[
             { label: 'Base URL', value: apiBase.replace(/^https?:\/\//, ''), hint: 'API_DOMAIN / NEXT_PUBLIC_BASE_URL', tone: 'blue' },
             { label: 'Method', value: 'POST', hint: 'application/x-www-form-urlencoded', tone: 'emerald' },
