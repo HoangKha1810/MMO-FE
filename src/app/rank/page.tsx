@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import { Crown, Medal, ShieldCheck, Sparkles, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { safeRows } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 
@@ -23,34 +22,9 @@ export default async function RankPage() {
     LIMIT 80
   `);
 
-  const totalBalance = rows.reduce((sum, row) => sum + toNumber(row.balance, 0), 0);
-  const blueTick = rows.filter((row) => Number(row.is_blue_tick || 0) === 1).length;
-
   return (
     <main className="mmo-board mmo-board-page">
       <div className="mx-auto max-w-6xl space-y-6">
-        <PageHero
-          eyebrow="Rank Center"
-          title="Cấp bậc thành viên và quyền lợi trên TRUNGTAMMMO"
-          description="Theo dõi bảng xếp hạng cộng đồng, mốc cấp bậc và những quyền lợi nổi bật dành cho thành viên hoạt động tích cực trên nền tảng."
-          stats={[
-            { label: 'Thành viên', value: String(rows.length), hint: 'Top active users', tone: 'blue' },
-            { label: 'Tổng số dư', value: formatCurrency(totalBalance), hint: 'Tính trên danh sách đang hiển thị', tone: 'emerald' },
-            { label: 'Blue tick', value: String(blueTick), hint: 'Tài khoản đã xác minh', tone: 'violet' },
-            { label: 'Tier', value: String(tiers.length), hint: 'Mốc rank hệ thống', tone: 'amber' },
-          ]}
-          actions={
-            <>
-              <Link href="/user/home" className="btn-kinetic rounded-full bg-brand-blue px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white">
-                Vào workspace
-              </Link>
-              <Link href="/api" className="surface-chip rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 dark:text-slate-200">
-                Tài liệu API
-              </Link>
-            </>
-          }
-        />
-
         <SectionPanel className="space-y-5">
           <SectionHeader eyebrow="Rank Rules" title="Mốc cấp bậc" description="Mỗi cấp bậc phản ánh mức độ hoạt động và mở ra các quyền lợi hỗ trợ, ưu tiên hoặc hiển thị nổi bật khác nhau." />
           <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-4">

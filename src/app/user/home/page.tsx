@@ -27,6 +27,14 @@ interface DepositStatsRow {
   monthly_deposit: number | string | bigint | null;
 }
 
+function normalizeHomeServiceTitle(service: ReturnType<typeof getHomeServiceGrid>[number]) {
+  if (service.href === '/user/automxh' || service.key === '2') {
+    return 'AUTO MẠNG XÃ HỘI';
+  }
+
+  return service.title;
+}
+
 async function getUser(userId: number) {
   try {
     const user = await db.users.findUnique({
@@ -126,6 +134,7 @@ export default async function HomePage() {
 
   const services = getHomeServiceGrid(settings).map((service, index) => ({
     ...service,
+    title: normalizeHomeServiceTitle(service),
     index: index + 1,
   }));
   const sidebarServices = getSidebarServiceCatalog(settings);
@@ -163,7 +172,7 @@ export default async function HomePage() {
                   Trung tâm dịch vụ MMO
                 </h1>
                 <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-600 dark:text-white/58">
-                  Chọn nhanh SMM, Auto MXH, tài nguyên MMO, proxy, VPS GPU AI, game account và các module hỗ trợ trong một màn hình tập trung.
+                  Chọn nhanh SMM, Auto Mạng Xã Hội, tài nguyên MMO, proxy, VPS GPU AI, game account và các module hỗ trợ trong một màn hình tập trung.
                 </p>
               </div>
 

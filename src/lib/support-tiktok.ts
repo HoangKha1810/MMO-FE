@@ -116,6 +116,75 @@ async function tableExists(tableName: string) {
   return rows.length > 0;
 }
 
+async function getTableColumns(tableName: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `
+      SELECT COLUMN_NAME AS column_name
+      FROM information_schema.columns
+      WHERE table_schema = DATABASE()
+        AND table_name = ?
+    `,
+    tableName
+  ).catch(() => []);
+
+  return new Set(rows.map((row) => String(row.column_name)));
+}
+
+async function getTableIndexes(tableName: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ index_name: string }>>(
+    `
+      SELECT INDEX_NAME AS index_name
+      FROM information_schema.statistics
+      WHERE table_schema = DATABASE()
+        AND table_name = ?
+    `,
+    tableName
+  ).catch(() => []);
+
+  return new Set(rows.map((row) => String(row.index_name)));
+}
+
+export async function ensureSupportTikTokChatTable() {
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS support_tiktok_messages (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT NOT NULL,
+      sender_type VARCHAR(20) NOT NULL DEFAULT 'user',
+      message TEXT NULL,
+      image_url LONGTEXT NULL,
+      image_urls LONGTEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_support_tiktok_messages_user_id (user_id, id),
+      KEY idx_support_tiktok_messages_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  const columns = await getTableColumns('support_tiktok_messages');
+  const columnStatements = [
+    !columns.has('sender_type') ? "ADD COLUMN sender_type VARCHAR(20) NOT NULL DEFAULT 'user' AFTER user_id" : '',
+    !columns.has('message') ? 'ADD COLUMN message TEXT NULL AFTER sender_type' : '',
+    !columns.has('image_url') ? 'ADD COLUMN image_url LONGTEXT NULL AFTER message' : '',
+    !columns.has('image_urls') ? 'ADD COLUMN image_urls LONGTEXT NULL AFTER image_url' : '',
+    !columns.has('created_at') ? 'ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER image_urls' : '',
+  ].filter(Boolean);
+
+  for (const statement of columnStatements) {
+    await db.$executeRawUnsafe(`ALTER TABLE support_tiktok_messages ${statement}`).catch(() => undefined);
+  }
+
+  await db.$executeRawUnsafe('ALTER TABLE support_tiktok_messages MODIFY COLUMN image_url LONGTEXT NULL').catch(() => undefined);
+  await db.$executeRawUnsafe("ALTER TABLE support_tiktok_messages MODIFY COLUMN sender_type VARCHAR(20) NOT NULL DEFAULT 'user'").catch(() => undefined);
+
+  const indexes = await getTableIndexes('support_tiktok_messages');
+  if (!indexes.has('idx_support_tiktok_messages_user_id')) {
+    await db.$executeRawUnsafe('CREATE INDEX idx_support_tiktok_messages_user_id ON support_tiktok_messages (user_id, id)').catch(() => undefined);
+  }
+  if (!indexes.has('idx_support_tiktok_messages_created_at')) {
+    await db.$executeRawUnsafe('CREATE INDEX idx_support_tiktok_messages_created_at ON support_tiktok_messages (created_at)').catch(() => undefined);
+  }
+}
+
 function toIsoDate(value: Date | string | null | undefined) {
   if (!value) {
     return null;
@@ -194,6 +263,10 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
 }
 
 export async function getSupportTiktokContext(userId: number, clientIp?: string) {
+  await ensureSupportTikTokChatTable().catch((error) => {
+    console.error('[support-tiktok/chat-bootstrap]', error);
+  });
+
   const [user, settingsResult, hasOrderTable, hasRegionServiceTable, hasMenuTable, hasChatTable] = await Promise.all([
     db.users.findUnique({
       where: { id: userId },
