@@ -16,10 +16,12 @@ import {
   chargeFirstHourAndSaveVpsGpu,
   deleteOwnedVpsGpuInstance,
   extractCreatedProviderInstanceId,
+  hasDueVpsGpuBillingRows,
   listOwnedVpsGpuBillings,
   markVpsGpuEnded,
   markVpsGpuProviderStatus,
   requireOwnedVpsGpuBilling,
+  runVpsGpuHourlyBilling,
   toPublicBilling,
   type VpsGpuBillingRow,
 } from '@/lib/vps-gpu-billing';
@@ -61,9 +63,12 @@ interface VpsGpuPricingSettings {
 const VPS_GPU_OFFER_COSTS_TABLE = 'vps_gpu_offer_costs';
 const PROVIDER_MISSING_GRACE_MS = 2 * 60 * 1000;
 const DEFAULT_VPS_GPU_USD_TO_VND = 26000;
-const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1;
-const MIN_VPS_GPU_PRICE_MULTIPLIER = 1;
-const MAX_VPS_GPU_PRICE_MULTIPLIER = 1;
+const VPS_GPU_PROFIT_MARKUP = 0.67;
+const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1 + VPS_GPU_PROFIT_MARKUP;
+const MIN_VPS_GPU_PRICE_MULTIPLIER = DEFAULT_VPS_GPU_PRICE_MULTIPLIER;
+const MAX_VPS_GPU_PRICE_MULTIPLIER = DEFAULT_VPS_GPU_PRICE_MULTIPLIER;
+const DEFAULT_VPS_GPU_HOURLY_FEE_VND = 0;
+let activeVpsGpuBillingSweep: Promise<void> | null = null;
 
 async function requireUser() {
   const cookieStore = await cookies();
@@ -105,6 +110,29 @@ function normalizeString(value: unknown, fallback = '') {
 function normalizeStatusValue(value: unknown) {
   const text = normalizeString(value).toLowerCase();
   return text === 'null' ? '' : text;
+}
+
+async function runVpsGpuBillingSweepIfDue(options: { force?: boolean } = {}) {
+  const now = Date.now();
+  if (!options.force) {
+    const hasDueRows = await hasDueVpsGpuBillingRows(now);
+    if (!hasDueRows) {
+      return;
+    }
+  }
+
+  if (activeVpsGpuBillingSweep) {
+    await activeVpsGpuBillingSweep;
+    return;
+  }
+
+  activeVpsGpuBillingSweep = runVpsGpuHourlyBilling()
+    .then(() => undefined)
+    .finally(() => {
+      activeVpsGpuBillingSweep = null;
+    });
+
+  await activeVpsGpuBillingSweep;
 }
 
 function hasOwnField(record: Record<string, unknown>, key: string) {
@@ -228,7 +256,7 @@ async function getVpsGpuPricingSettings(): Promise<VpsGpuPricingSettings> {
   return {
     usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, DEFAULT_VPS_GPU_USD_TO_VND),
     priceMultiplier: normalizeVpsGpuPriceMultiplier(settings.vps_gpu_price_multiplier),
-    hourlyFeeVnd: normalizePositiveNumber(settings.vps_gpu_hourly_fee_vnd, 0),
+    hourlyFeeVnd: DEFAULT_VPS_GPU_HOURLY_FEE_VND,
   };
 }
 
@@ -363,7 +391,7 @@ async function ensureVpsGpuOfferCostsTable() {
       cost_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       sale_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       profit_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
-      price_multiplier DECIMAL(8,4) NOT NULL DEFAULT 1,
+      price_multiplier DECIMAL(8,4) NOT NULL DEFAULT 1.67,
       hourly_fee_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       usd_to_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       raw_offer LONGTEXT NULL,
@@ -1538,6 +1566,10 @@ export async function GET(req: NextRequest) {
   const resource = normalizePath(req.nextUrl.searchParams.get('resource') || 'overview');
 
   try {
+    if (resource === 'overview' || resource === 'instances' || resource.startsWith('instances/')) {
+      await runVpsGpuBillingSweepIfDue();
+    }
+
     if (resource === 'overview') {
       const [offers, instances, sshKeys, user] = await Promise.all([
         safeVastRequest('/bundles/', {
@@ -1787,6 +1819,7 @@ export async function POST(req: NextRequest) {
 
     const instanceAction = getAllowedInstanceAction(action);
     if (instanceAction) {
+      await runVpsGpuBillingSweepIfDue();
       await requireOwnedVpsGpuBilling(userId, instanceAction.id);
       const desiredState = instanceAction.action === 'start' ? 'running' : 'stopped';
       const payload = await vastRequest(`/instances/${encodeURIComponent(instanceAction.id)}/`, {
@@ -1835,6 +1868,7 @@ export async function PUT(req: NextRequest) {
       return json({ success: false, message: 'Thiếu instanceId' }, { status: 400 });
     }
 
+    await runVpsGpuBillingSweepIfDue();
     await requireOwnedVpsGpuBilling(userId, instanceId);
 
     const payload = await vastRequest(`/instances/${encodeURIComponent(instanceId)}/`, {
@@ -1865,6 +1899,7 @@ export async function DELETE(req: NextRequest) {
       return json({ success: false, message: 'Thiếu instanceId' }, { status: 400 });
     }
 
+    await runVpsGpuBillingSweepIfDue();
     const payload = await deleteOwnedVpsGpuInstance(userId, instanceId);
     return json({ success: true, data: payload });
   } catch (error) {

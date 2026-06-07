@@ -249,7 +249,7 @@ interface VpsGpuPricingSettings {
 
 const DEFAULT_VPS_GPU_PRICING: VpsGpuPricingSettings = {
   usdToVnd: 26000,
-  priceMultiplier: 1,
+  priceMultiplier: 1.67,
   hourlyFeeVnd: 0,
 };
 const MIN_VPS_GPU_NETWORK_DOWN_MBPS = 300;
@@ -645,10 +645,13 @@ function computeSaleHourlyFromUsd(costUsd: number, settings: VpsGpuPricingSettin
   }
 
   const usdToVnd = Number.isFinite(settings.usdToVnd) && settings.usdToVnd > 0 ? settings.usdToVnd : DEFAULT_VPS_GPU_PRICING.usdToVnd;
-  const multiplier = Number.isFinite(settings.priceMultiplier) && settings.priceMultiplier > 0
-    ? settings.priceMultiplier
-    : DEFAULT_VPS_GPU_PRICING.priceMultiplier;
-  const hourlyFeeVnd = Number.isFinite(settings.hourlyFeeVnd) && settings.hourlyFeeVnd > 0 ? settings.hourlyFeeVnd : 0;
+  const multiplier = Math.max(
+    DEFAULT_VPS_GPU_PRICING.priceMultiplier,
+    Number.isFinite(settings.priceMultiplier) && settings.priceMultiplier > 0
+      ? settings.priceMultiplier
+      : DEFAULT_VPS_GPU_PRICING.priceMultiplier
+  );
+  const hourlyFeeVnd = 0;
   return Math.ceil((costUsd * usdToVnd * multiplier + hourlyFeeVnd) / 1000) * 1000;
 }
 
@@ -903,8 +906,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       const nextPricingSettings = asRecord(payload.data).pricingSettings as Partial<VpsGpuPricingSettings>;
       setPricingSettings({
         usdToVnd: Number(nextPricingSettings.usdToVnd) || DEFAULT_VPS_GPU_PRICING.usdToVnd,
-        priceMultiplier: Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier,
-        hourlyFeeVnd: Number(nextPricingSettings.hourlyFeeVnd) || DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
+        priceMultiplier: Math.max(
+          DEFAULT_VPS_GPU_PRICING.priceMultiplier,
+          Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier
+        ),
+        hourlyFeeVnd: DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
       });
       setDockerImage((current) => current || DEFAULT_VPS_GPU_IMAGE_PRESET.image);
       setLoadError(payload.message ? String(payload.message) : null);
@@ -967,8 +973,11 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
       const nextPricingSettings = asRecord(payload.data).pricingSettings as Partial<VpsGpuPricingSettings>;
       setPricingSettings({
         usdToVnd: Number(nextPricingSettings.usdToVnd) || DEFAULT_VPS_GPU_PRICING.usdToVnd,
-        priceMultiplier: Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier,
-        hourlyFeeVnd: Number(nextPricingSettings.hourlyFeeVnd) || DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
+        priceMultiplier: Math.max(
+          DEFAULT_VPS_GPU_PRICING.priceMultiplier,
+          Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier
+        ),
+        hourlyFeeVnd: DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
       });
       setHostnodes(nextHostnodes);
       const nextHostnodeId = nextHostnodes[0]?.id || '';
@@ -1596,7 +1605,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       <span className="ml-1 text-sm font-black text-slate-500 dark:text-slate-400">/ giờ</span>
                     </div>
                     <div className="mt-2 text-[10px] font-bold leading-5 text-slate-500 dark:text-slate-400">
-                      Đã gồm GPU + disk. Internet sẽ trừ thêm theo usage thực tế của nguồn.
+                      Đã gồm GPU + disk với hệ số 67%. Internet usage cũng tính cùng hệ số khi phát sinh.
                     </div>
                   </div>
 

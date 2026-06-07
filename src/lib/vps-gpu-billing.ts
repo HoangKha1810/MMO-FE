@@ -11,7 +11,8 @@ const ACTIVE_STATUSES = ['active', 'creating', 'running', 'deletion_pending'];
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const LOW_BALANCE_WARNING_MS = 15 * 60 * 1000;
 const DEFAULT_VPS_GPU_USD_TO_VND = 26000;
-const DEFAULT_VPS_GPU_INTERNET_MULTIPLIER = 1;
+const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1.67;
+const DEFAULT_VPS_GPU_INTERNET_MULTIPLIER = 1.67;
 
 export interface VpsGpuBillingRow extends Record<string, unknown> {
   id: number;
@@ -158,6 +159,22 @@ function insufficientMainWalletMessage(missingAmount: number) {
   return `Ví chính không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để thuê VPS GPU.`;
 }
 
+function roundPriceVnd(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(value / 1000) * 1000;
+}
+
+function saleHourlyVndFromCost(costHourlyVnd: number) {
+  return roundPriceVnd(Math.max(0, costHourlyVnd) * DEFAULT_VPS_GPU_PRICE_MULTIPLIER);
+}
+
+function normalizeSaleHourlyVnd(saleHourlyVnd: number, costHourlyVnd = 0) {
+  return Math.max(0, Math.ceil(saleHourlyVnd), saleHourlyVndFromCost(costHourlyVnd));
+}
+
 function normalizePositiveNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -167,7 +184,7 @@ async function getBillingPricingSettings(): Promise<BillingPricingSettings> {
   const settings = await getLegacySettingsMap(true);
   return {
     usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, DEFAULT_VPS_GPU_USD_TO_VND),
-    internetMultiplier: normalizePositiveNumber(settings.vps_gpu_internet_multiplier, DEFAULT_VPS_GPU_INTERNET_MULTIPLIER),
+    internetMultiplier: DEFAULT_VPS_GPU_INTERNET_MULTIPLIER,
   };
 }
 
@@ -462,7 +479,7 @@ export const assertGameWalletCanPay = assertMainWalletCanPay;
 export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
   await ensureVpsGpuInstancesTable();
 
-  const saleHourlyVnd = Math.max(0, Math.ceil(input.saleHourlyVnd));
+  const saleHourlyVnd = normalizeSaleHourlyVnd(input.saleHourlyVnd, input.costHourlyVnd);
   if (saleHourlyVnd <= 0) {
     throw new Error('Giá thuê VPS GPU chưa hợp lệ. Hãy chọn lại gói GPU.');
   }
@@ -564,7 +581,7 @@ export function normalizeBillingRow(row: Record<string, unknown>): VpsGpuBilling
     provider_status: normalized.provider_status ? String(normalized.provider_status) : null,
     cost_hourly_usd: toNumber(normalized.cost_hourly_usd, 0),
     cost_hourly_vnd: toNumber(normalized.cost_hourly_vnd, 0),
-    sale_hourly_vnd: toNumber(normalized.sale_hourly_vnd, 0),
+    sale_hourly_vnd: normalizeSaleHourlyVnd(toNumber(normalized.sale_hourly_vnd, 0), toNumber(normalized.cost_hourly_vnd, 0)),
     total_charged_vnd: toNumber(normalized.total_charged_vnd, 0),
     internet_charged_usd: toNumber(normalized.internet_charged_usd, 0),
     internet_charged_vnd: toNumber(normalized.internet_charged_vnd, 0),
@@ -589,7 +606,7 @@ export function toPublicBilling(row: VpsGpuBillingRow | null): BillingSnapshot |
   return {
     id: row.id,
     providerInstanceId: row.provider_instance_id,
-    saleHourlyVnd: Math.max(0, Math.ceil(row.sale_hourly_vnd)),
+    saleHourlyVnd: normalizeSaleHourlyVnd(row.sale_hourly_vnd, row.cost_hourly_vnd),
     totalChargedVnd: Math.max(0, Math.ceil(row.total_charged_vnd)),
     internetChargedVnd: Math.max(0, Math.ceil(row.internet_charged_vnd)),
     nextChargeAt: dateIsoFromTimestampMs(row.next_charge_at_ms),
@@ -642,6 +659,27 @@ export async function requireOwnedVpsGpuBilling(userId: number, providerInstance
     throw new Error('Bạn không có quyền thao tác VPS GPU này hoặc instance đã kết thúc.');
   }
   return row;
+}
+
+export async function hasDueVpsGpuBillingRows(nowMs = Date.now()) {
+  await ensureVpsGpuInstancesTable();
+
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    `
+      SELECT id
+      FROM \`${VPS_GPU_INSTANCES_TABLE}\`
+      WHERE status IN (${activeStatusListSql()})
+        AND (
+          next_charge_at_ms <= ?
+          OR (next_charge_at_ms IS NULL AND next_charge_at <= ?)
+        )
+      LIMIT 1
+    `,
+    nowMs,
+    new Date(nowMs)
+  );
+
+  return rows.length > 0;
 }
 
 export async function markVpsGpuProviderStatus(providerInstanceId: string, providerStatus: string) {
@@ -839,7 +877,7 @@ async function chargeDueBillingRow(rowId: number, internetUsage?: InternetUsageS
       return { charged: 0, chargedHours: 0, chargedInternet: 0, deleteNeeded: false, providerInstanceId: row.provider_instance_id };
     }
 
-    const saleHourlyVnd = Math.max(0, Math.ceil(row.sale_hourly_vnd));
+    const saleHourlyVnd = normalizeSaleHourlyVnd(row.sale_hourly_vnd, row.cost_hourly_vnd);
     if (saleHourlyVnd <= 0) {
       await tx.$executeRawUnsafe(
         `
@@ -873,7 +911,7 @@ async function chargeDueBillingRow(rowId: number, internetUsage?: InternetUsageS
     const internetChargedVnd = internetDeltaVnd;
     const internetChargedUsd = internetDeltaUsd;
     const balanceAfterInternet = currentBalance - internetChargedVnd;
-    const chargeableHours = Math.min(hoursDue, Math.floor(balanceAfterInternet / saleHourlyVnd));
+    const chargeableHours = Math.max(0, Math.min(hoursDue, Math.floor(balanceAfterInternet / saleHourlyVnd)));
     const hourlyChargedAmount = chargeableHours * saleHourlyVnd;
     const chargedAmount = internetChargedVnd + hourlyChargedAmount;
     const nextBalance = currentBalance - chargedAmount;
@@ -1033,7 +1071,7 @@ async function reserveLowBalanceWarning(rowId: number) {
       return null;
     }
 
-    const saleHourlyVnd = Math.max(0, Math.ceil(row.sale_hourly_vnd));
+    const saleHourlyVnd = normalizeSaleHourlyVnd(row.sale_hourly_vnd, row.cost_hourly_vnd);
     if (saleHourlyVnd <= 0) {
       return null;
     }
