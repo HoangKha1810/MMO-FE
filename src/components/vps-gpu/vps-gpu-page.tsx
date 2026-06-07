@@ -60,6 +60,12 @@ interface VastGpu {
     per_vcpu_hr?: number;
     per_gb_ram_hr?: number;
     per_gb_storage_hr?: number;
+    gpu_hourly_usd?: number;
+    storage_hourly_usd?: number;
+    fixed_subtotal_hourly_usd?: number;
+    internet_up_cost_per_tb_usd?: number;
+    internet_down_cost_per_tb_usd?: number;
+    cost_source?: string;
     total_hourly?: number;
     cost_hourly_usd?: number;
     cost_hourly_vnd?: number;
@@ -118,6 +124,12 @@ interface VastHostnode {
     per_vcpu_hr?: number;
     per_gb_ram_hr?: number;
     per_gb_storage_hr?: number;
+    gpu_hourly_usd?: number;
+    storage_hourly_usd?: number;
+    fixed_subtotal_hourly_usd?: number;
+    internet_up_cost_per_tb_usd?: number;
+    internet_down_cost_per_tb_usd?: number;
+    cost_source?: string;
     total_hourly?: number;
     cost_hourly_usd?: number;
     cost_hourly_vnd?: number;
@@ -212,6 +224,7 @@ interface VastInstance {
   billing?: {
     saleHourlyVnd?: number;
     totalChargedVnd?: number;
+    internetChargedVnd?: number;
     nextChargeAt?: string | null;
     nextChargeAtMs?: number | null;
     lowBalanceWarningForAt?: string | null;
@@ -236,7 +249,7 @@ interface VpsGpuPricingSettings {
 
 const DEFAULT_VPS_GPU_PRICING: VpsGpuPricingSettings = {
   usdToVnd: 26000,
-  priceMultiplier: 1.67,
+  priceMultiplier: 1,
   hourlyFeeVnd: 0,
 };
 const MIN_VPS_GPU_NETWORK_DOWN_MBPS = 300;
@@ -1582,6 +1595,9 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       {formatMoneyVnd(salePrice)}
                       <span className="ml-1 text-sm font-black text-slate-500 dark:text-slate-400">/ giờ</span>
                     </div>
+                    <div className="mt-2 text-[10px] font-bold leading-5 text-slate-500 dark:text-slate-400">
+                      Đã gồm GPU + disk. Internet sẽ trừ thêm theo usage thực tế của nguồn.
+                    </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 dark:text-slate-300">
@@ -2110,6 +2126,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       <MiniInfo icon={<Server />} label="Machine ID" value={specs.machineId || 'N/A'} />
                       <MiniInfo icon={<Server />} label="Host ID" value={specs.hostId || 'N/A'} />
                       <MiniInfo icon={<Database />} label="Tổng chi phí" value={formatMoneyVnd(billing?.totalChargedVnd)} />
+                      <MiniInfo icon={<Network />} label="Internet usage đã trừ" value={formatMoneyVnd(billing?.internetChargedVnd)} />
                       <MiniInfo icon={<RefreshCw />} label="Gia hạn lúc (VN)" value={formatDateTime(billing?.nextChargeAtMs ?? billing?.nextChargeAt)} />
                     </div>
 

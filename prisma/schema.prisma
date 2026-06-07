@@ -374,6 +374,9 @@ model automxh_orders {
   amount          Float
   buyer_info      String?   @db.Text
   status          String    @default("pending") @db.VarChar(20)
+  is_refunded     Boolean?  @default(false)
+  refund_amount   Decimal?  @default(0.0000) @db.Decimal(15, 4)
+  reason          String?   @db.Text
   created_at      DateTime  @default(now()) @db.DateTime(0)
   updated_at      DateTime  @updatedAt @db.DateTime(0)
 

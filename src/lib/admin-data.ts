@@ -140,7 +140,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     searchFields: ['api_order_id', 'link', 'buyer_info', 'status'],
     statusField: 'status',
     rawOrder: 'updated_at DESC, id DESC',
-    updateFields: ['status', 'price', 'cost_price', 'buyer_info', 'api_order_id', 'api_response', 'api_status_log', 'perfection_content', 'perfection_image', 'avatar_path', 'additional_files', 'confirm_1', 'confirm_2', 'is_exported'],
+    updateFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'price', 'cost_price', 'buyer_info', 'api_order_id', 'api_response', 'api_status_log', 'perfection_content', 'perfection_image', 'avatar_path', 'additional_files', 'confirm_1', 'confirm_2', 'is_exported'],
   },
   'automxh-variants': {
     table: 'automxh_variants',
@@ -769,6 +769,84 @@ function normalizeAutoMxhVariantPatch(input: Record<string, unknown>) {
   if ('status' in output) output.status = normalizeActiveInactiveStatus(output.status, 'active');
 
   return output;
+}
+
+function isAutoMxhCanceledStatus(status: string) {
+  return ['canceled', 'cancelled'].includes(status);
+}
+
+function isAutoMxhRefundedStatus(status: string) {
+  return ['refund', 'refunded'].includes(status);
+}
+
+let ensuredAutoMxhRefundColumns = false;
+
+async function ensureAutoMxhRefundColumns() {
+  const table = 'automxh_orders';
+  const columns = await getRawTableColumns(table);
+  if (ensuredAutoMxhRefundColumns) {
+    return columns;
+  }
+
+  if (!columns.has('is_refunded')) {
+    await db.$executeRawUnsafe(
+      'ALTER TABLE `automxh_orders` ADD COLUMN `is_refunded` TINYINT(1) NOT NULL DEFAULT 0 AFTER `status`'
+    ).then(() => {
+      columns.add('is_refunded');
+    }).catch(() => undefined);
+  }
+
+  if (!columns.has('refund_amount')) {
+    const afterColumn = columns.has('is_refunded') ? 'is_refunded' : 'status';
+    await db.$executeRawUnsafe(
+      `ALTER TABLE \`automxh_orders\` ADD COLUMN \`refund_amount\` DECIMAL(15, 4) NOT NULL DEFAULT 0.0000 AFTER \`${afterColumn}\``
+    ).then(() => {
+      columns.add('refund_amount');
+    }).catch(() => undefined);
+  }
+
+  if (!columns.has('reason')) {
+    const afterColumn = columns.has('refund_amount') ? 'refund_amount' : 'status';
+    await db.$executeRawUnsafe(
+      `ALTER TABLE \`automxh_orders\` ADD COLUMN \`reason\` TEXT NULL AFTER \`${afterColumn}\``
+    ).then(() => {
+      columns.add('reason');
+    }).catch(() => undefined);
+  }
+
+  if (!columns.has('is_refunded') || !columns.has('refund_amount') || !columns.has('reason')) {
+    rawTableColumnCache.delete(table);
+    const refreshedColumns = await getRawTableColumns(table);
+    ensuredAutoMxhRefundColumns =
+      refreshedColumns.has('is_refunded') && refreshedColumns.has('refund_amount') && refreshedColumns.has('reason');
+    return refreshedColumns;
+  }
+
+  ensuredAutoMxhRefundColumns = true;
+  return columns;
+}
+
+function buildAutoMxhOrderPatch(columns: Set<string>, patch: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(patch).filter(([field]) => columns.has(field)));
+}
+
+async function updateAutoMxhOrderPatch(
+  tx: Prisma.TransactionClient,
+  id: number,
+  columns: Set<string>,
+  patch: Record<string, unknown>
+) {
+  const filteredPatch = buildAutoMxhOrderPatch(columns, patch);
+  const fields = Object.keys(filteredPatch);
+  if (fields.length === 0) {
+    return;
+  }
+
+  await tx.$executeRawUnsafe(
+    `UPDATE \`automxh_orders\` SET ${fields.map((field) => `\`${field}\` = ?`).join(', ')} WHERE id = ?`,
+    ...fields.map((field) => filteredPatch[field]),
+    id
+  );
 }
 
 function normalizeFindJobStatus(value: unknown, fallback: 'open' | 'filled' | 'closed' = 'open') {
@@ -1978,9 +2056,10 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   if (resource === 'smm-orders' && typeof data.status === 'string') {
     const requestedStatus = String(data.status || '').trim().toLowerCase();
-    if (['canceled', 'cancelled', 'refunded', 'refund'].includes(requestedStatus)) {
+    if (['refunded', 'refund'].includes(requestedStatus)) {
       return cancelAndRefundSmmOrder(id, adminId, req, data);
     }
+    data.status = normalizeSmmStatus(data.status);
   }
 
   if (resource === 'automxh-orders' && typeof data.status === 'string') {
@@ -2024,9 +2103,10 @@ async function cancelAndRefundSmmOrder(
 
     const alreadyRefunded =
       Boolean(order.is_refunded) ||
+      toNumber(order.refund_amount, 0) > 0 ||
       ['refund', 'refunded'].includes(String(order.status || '').trim().toLowerCase());
 
-    const normalizedStatus = normalizeSmmStatus(String(patch.status || 'Canceled').trim() || 'Canceled');
+    const normalizedStatus = normalizeSmmStatus(String(patch.status || 'Refunded').trim() || 'Refunded');
     const reason = typeof patch.reason === 'string' ? patch.reason.trim() : '';
 
     if (alreadyRefunded) {
@@ -2040,37 +2120,60 @@ async function cancelAndRefundSmmOrder(
       return updatedOrder;
     }
 
-    const user = await tx.users.findUnique({
-      where: { id: order.user_id },
-      select: { balance: true },
-    });
-
-    if (!user) {
-      throw new Error('Không tìm thấy user của đơn SMM');
-    }
-
     const settings = await getLegacySettingsMap();
     const vatPercent = getVatPercent(settings);
     const subtotal = toNumber(order.price, 0);
     const refundAmount = Math.round(subtotal + (subtotal * vatPercent) / 100);
-    const nextBalance = toNumber(user.balance, 0) + refundAmount;
 
-    await tx.users.update({
-      where: { id: order.user_id },
-      data: {
-        balance: nextBalance,
-        last_activity: new Date(),
+    if (refundAmount <= 0) {
+      const updatedOrder = await tx.smm_orders.update({
+        where: { id },
+        data: {
+          status: normalizedStatus,
+          reason: reason || order.reason || `Refunded by admin #${adminId}`,
+        },
+      });
+      return updatedOrder;
+    }
+
+    const locked = await tx.smm_orders.updateMany({
+      where: {
+        id,
+        OR: [{ is_refunded: false }, { is_refunded: null }],
+        AND: [
+          {
+            OR: [
+              { refund_amount: null },
+              { refund_amount: { lte: 0 } },
+            ],
+          },
+        ],
       },
-    });
-
-    const updatedOrder = await tx.smm_orders.update({
-      where: { id },
       data: {
         status: normalizedStatus,
-        reason: reason || `Canceled & refunded by admin #${adminId}`,
+        reason: reason || `Refunded by admin #${adminId}`,
         is_refunded: true,
         refund_amount: refundAmount,
       },
+    });
+
+    if (locked.count === 0) {
+      const updatedOrder = await tx.smm_orders.findUnique({ where: { id } });
+      return updatedOrder || order;
+    }
+
+    const updatedUser = await tx.users.update({
+      where: { id: order.user_id },
+      data: {
+        balance: { increment: refundAmount },
+        last_activity: new Date(),
+      },
+      select: { balance: true },
+    });
+    const nextBalance = toNumber(updatedUser.balance, 0);
+
+    const updatedOrder = await tx.smm_orders.findUnique({
+      where: { id },
     });
 
     await tx.transactions.create({
@@ -2080,7 +2183,7 @@ async function cancelAndRefundSmmOrder(
         balance_after: nextBalance,
         type: 'refund',
         status: 'success',
-        content: `Hoàn tiền đơn SMM #${id} do admin ${normalizedStatus === 'Refunded' ? 'hoàn tiền' : 'hủy'}`,
+        content: `Hoàn tiền đơn SMM #${id} do admin chọn Hoàn tiền`,
       },
     }).catch(() => undefined);
 
@@ -2092,7 +2195,7 @@ async function cancelAndRefundSmmOrder(
       },
     }).catch(() => undefined);
 
-    return updatedOrder;
+    return updatedOrder || order;
   });
 
   await logAdminAction({ adminId, action: 'cancel refund smm order', target: `#${id}`, req });
@@ -2105,9 +2208,11 @@ async function cancelAndRefundAutoMxhOrder(
   req: NextRequest,
   patch: Record<string, unknown>
 ) {
+  const orderColumns = await ensureAutoMxhRefundColumns();
+
   const result = await db.$transaction(async (tx) => {
     const rows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
-      'SELECT * FROM `automxh_orders` WHERE id = ? LIMIT 1',
+      'SELECT * FROM `automxh_orders` WHERE id = ? LIMIT 1 FOR UPDATE',
       id
     );
     const order = rows[0];
@@ -2117,7 +2222,8 @@ async function cancelAndRefundAutoMxhOrder(
 
     const currentStatus = String(order.status || '').trim().toLowerCase();
     const alreadyRefunded =
-      currentStatus === 'refunded' ||
+      isAutoMxhCanceledStatus(currentStatus) ||
+      isAutoMxhRefundedStatus(currentStatus) ||
       Boolean(toNumber(order.is_refunded, 0)) ||
       toNumber(order.refund_amount, 0) > 0;
 
@@ -2125,11 +2231,11 @@ async function cancelAndRefundAutoMxhOrder(
     const reason = typeof patch.reason === 'string' ? patch.reason.trim() : '';
 
     if (alreadyRefunded) {
-      await tx.$executeRawUnsafe(
-        'UPDATE `automxh_orders` SET `status` = ?, `updated_at` = NOW() WHERE id = ?',
-        normalizedStatus,
-        id
-      );
+      await updateAutoMxhOrderPatch(tx, id, orderColumns, {
+        status: normalizedStatus,
+        updated_at: new Date(),
+        ...(reason ? { reason } : {}),
+      });
       const updatedRows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
         'SELECT * FROM `automxh_orders` WHERE id = ? LIMIT 1',
         id
@@ -2151,34 +2257,23 @@ async function cancelAndRefundAutoMxhOrder(
       throw new Error('Không tìm thấy user của đơn Auto MXH');
     }
 
-    const nextBalance = toNumber(user.balance, 0) + refundAmount;
-    await tx.users.update({
-      where: { id: Number(order.user_id || 0) },
-      data: {
-        balance: nextBalance,
-        last_activity: new Date(),
-      },
-    });
-
-    const orderColumns = await getRawTableColumns('automxh_orders');
-    const nextPatch: Record<string, unknown> = {
+    await updateAutoMxhOrderPatch(tx, id, orderColumns, {
       status: normalizedStatus,
       updated_at: new Date(),
       refund_amount: refundAmount,
       is_refunded: 1,
       reason: reason || `Canceled & refunded by admin #${adminId}`,
-    };
-    const filteredPatch = Object.fromEntries(
-      Object.entries(nextPatch).filter(([field]) => orderColumns.has(field))
-    );
-    const fields = Object.keys(filteredPatch);
-    if (fields.length > 0) {
-      await tx.$executeRawUnsafe(
-        `UPDATE \`automxh_orders\` SET ${fields.map((field) => `\`${field}\` = ?`).join(', ')} WHERE id = ?`,
-        ...fields.map((field) => filteredPatch[field]),
-        id
-      );
-    }
+    });
+
+    const updatedUser = await tx.users.update({
+      where: { id: Number(order.user_id || 0) },
+      data: {
+        balance: { increment: refundAmount },
+        last_activity: new Date(),
+      },
+      select: { balance: true },
+    });
+    const nextBalance = toNumber(updatedUser.balance, 0);
 
     await tx.transactions.create({
       data: {

@@ -13,7 +13,7 @@ export const vpsGpuAdminSections: AdminSectionConfig[] = [
   {
     resource: 'settings',
     title: 'VPS GPU AI pricing',
-    description: 'Chỉnh giá bán VPS GPU. Search key vps_gpu để lọc nhanh 3 cấu hình: tỷ giá USD, hệ số lời và phí cộng thêm mỗi giờ.',
+    description: 'Chỉnh giá bán VPS GPU. Search key vps_gpu để lọc nhanh tỷ giá USD, hệ số giá, phí cộng thêm mỗi giờ và hệ số internet.',
     columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
     editableFields: ['setting_value'],
     createFields: ['setting_key', 'setting_value'],
@@ -21,7 +21,7 @@ export const vpsGpuAdminSections: AdminSectionConfig[] = [
       {
         resource: 'vps-gpu-offer-costs',
         title: 'VPS GPU provider costs',
-        description: 'Snapshot giá vốn lấy trực tiếp từ nguồn GPU. So sánh cost USD/VNĐ, giá bán và lời dự kiến theo từng offer.',
+        description: 'Snapshot giá vốn lấy trực tiếp từ nguồn GPU. So sánh cost USD/VNĐ, giá bán và chênh lệch theo từng offer.',
         columns: ['id', 'offer_id', 'gpu_name', 'gpu_count', 'gpu_ram_gb', 'location', 'cost_source', 'cost_hourly_usd', 'cost_hourly_vnd', 'sale_hourly_vnd', 'profit_hourly_vnd', 'price_multiplier', 'last_seen_at'],
       },
 ];
@@ -126,9 +126,9 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'automxh-orders',
       title: 'Auto MXH orders',
       description: 'Quản lý order, trạng thái, số lượng và perfection/basic status.',
-      columns: ['id', 'user_id', 'product_id', 'variant_id', 'api_provider_id', 'api_order_id', 'price', 'status', 'created_at'],
-      editableFields: ['status', 'price', 'cost_price', 'buyer_info', 'api_order_id', 'api_response', 'api_status_log', 'perfection_content', 'perfection_image', 'avatar_path', 'additional_files', 'confirm_1', 'confirm_2', 'is_exported'],
-      statusOptions: ['pending', 'processing', 'completed', 'canceled'],
+      columns: ['id', 'user_id', 'product_id', 'variant_id', 'api_provider_id', 'api_order_id', 'price', 'status', 'is_refunded', 'refund_amount', 'created_at'],
+      editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'price', 'cost_price', 'buyer_info', 'api_order_id', 'api_response', 'api_status_log', 'perfection_content', 'perfection_image', 'avatar_path', 'additional_files', 'confirm_1', 'confirm_2', 'is_exported'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
     },
     {
       resource: 'automxh-variants',
@@ -552,8 +552,8 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'automxh-orders',
       title: 'Auto MXH orders',
       description: 'Đơn Auto MXH.',
-      columns: ['id', 'user_id', 'title', 'quantity', 'amount', 'status', 'created_at'],
-      editableFields: ['status', 'amount', 'quantity', 'buyer_info'],
+      columns: ['id', 'user_id', 'title', 'quantity', 'amount', 'status', 'is_refunded', 'refund_amount', 'created_at'],
+      editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'amount', 'quantity', 'buyer_info'],
       statusOptions: ['pending', 'processing', 'completed', 'failed', 'refunded'],
     },
     {

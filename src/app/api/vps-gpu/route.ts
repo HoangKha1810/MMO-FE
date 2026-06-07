@@ -61,9 +61,9 @@ interface VpsGpuPricingSettings {
 const VPS_GPU_OFFER_COSTS_TABLE = 'vps_gpu_offer_costs';
 const PROVIDER_MISSING_GRACE_MS = 2 * 60 * 1000;
 const DEFAULT_VPS_GPU_USD_TO_VND = 26000;
-const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1.67;
-const MIN_VPS_GPU_PRICE_MULTIPLIER = 1.6;
-const MAX_VPS_GPU_PRICE_MULTIPLIER = 1.7;
+const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1;
+const MIN_VPS_GPU_PRICE_MULTIPLIER = 1;
+const MAX_VPS_GPU_PRICE_MULTIPLIER = 1;
 
 async function requireUser() {
   const cookieStore = await cookies();
@@ -240,13 +240,82 @@ function roundPriceVnd(value: number) {
   return Math.ceil(value / 1000) * 1000;
 }
 
+function firstPositiveNumber(candidates: Array<readonly [string, unknown]>) {
+  for (const [key, value] of candidates) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return { key, value: parsed };
+    }
+  }
+
+  return { key: 'unknown', value: 0 };
+}
+
+function getVastPricingBreakdown(source: Record<string, unknown>) {
+  const search = asRecord(source.search);
+  const instance = asRecord(source.instance);
+  const gpuHourly = firstPositiveNumber([
+    ['search.gpuCostPerHour', search.gpuCostPerHour],
+    ['instance.gpuCostPerHour', instance.gpuCostPerHour],
+    ['gpu_cost_per_hour', source.gpu_cost_per_hour],
+    ['gpuCostPerHour', source.gpuCostPerHour],
+    ['dph_base', source.dph_base],
+    ['dph', source.dph],
+    ['min_bid', source.min_bid],
+  ]);
+  const storageHourly = firstPositiveNumber([
+    ['search.diskHour', search.diskHour],
+    ['instance.diskHour', instance.diskHour],
+    ['diskHour', source.diskHour],
+    ['disk_hour', source.disk_hour],
+    ['storage_total_cost', source.storage_total_cost],
+    ['storageTotalCost', source.storageTotalCost],
+    ['storage_hourly', source.storage_hourly],
+    ['storage_cost_per_hour', source.storage_cost_per_hour],
+  ]);
+  const totalHourly = firstPositiveNumber([
+    ['search.totalHour', search.totalHour],
+    ['instance.totalHour', instance.totalHour],
+    ['totalHour', source.totalHour],
+    ['dph_total', source.dph_total],
+    ['dph_total_adj', source.dph_total_adj],
+    ['total_hourly', source.total_hourly],
+  ]);
+  const fixedSubtotal = gpuHourly.value > 0 && storageHourly.value > 0
+    ? gpuHourly.value + storageHourly.value
+    : 0;
+  const costHourlyUsd = Math.max(totalHourly.value, fixedSubtotal, gpuHourly.value);
+  const internetUpCostPerTb = firstPositiveNumber([
+    ['internet_up_cost_per_tb', source.internet_up_cost_per_tb],
+    ['inet_up_cost_per_tb', source.inet_up_cost_per_tb],
+  ]);
+  const internetDownCostPerTb = firstPositiveNumber([
+    ['internet_down_cost_per_tb', source.internet_down_cost_per_tb],
+    ['inet_down_cost_per_tb', source.inet_down_cost_per_tb],
+  ]);
+
+  return {
+    costSource: totalHourly.value > 0
+      ? totalHourly.key
+      : fixedSubtotal > 0
+        ? `${gpuHourly.key}+${storageHourly.key}`
+        : gpuHourly.key,
+    gpuHourlyUsd: gpuHourly.value,
+    storageHourlyUsd: storageHourly.value,
+    fixedSubtotalHourlyUsd: fixedSubtotal,
+    totalHourlyUsd: costHourlyUsd,
+    internetUpCostPerTbUsd: internetUpCostPerTb.value,
+    internetDownCostPerTbUsd: internetDownCostPerTb.value,
+  };
+}
+
 function applyVpsGpuPricing<T extends { pricing?: Record<string, unknown> }>(
   hostnodes: T[],
   settings: VpsGpuPricingSettings
 ) {
   return hostnodes.map((hostnode) => {
     const pricing = asRecord(hostnode.pricing);
-    const costHourlyUsd = normalizePositiveNumber(pricing.total_hourly, 0);
+    const costHourlyUsd = normalizePositiveNumber(pricing.cost_hourly_usd, normalizePositiveNumber(pricing.total_hourly, 0));
     const costHourlyVnd = Math.round(costHourlyUsd * settings.usdToVnd);
     const saleHourlyVnd = roundPriceVnd(costHourlyVnd * settings.priceMultiplier + settings.hourlyFeeVnd);
 
@@ -259,6 +328,7 @@ function applyVpsGpuPricing<T extends { pricing?: Record<string, unknown> }>(
         cost_hourly_vnd: costHourlyVnd,
         sale_hourly_vnd: saleHourlyVnd,
         profit_hourly_vnd: Math.max(0, saleHourlyVnd - costHourlyVnd),
+        profit_markup: Math.max(0, settings.priceMultiplier - 1),
         price_multiplier: settings.priceMultiplier,
         hourly_fee_vnd: settings.hourlyFeeVnd,
         usd_to_vnd: settings.usdToVnd,
@@ -268,21 +338,8 @@ function applyVpsGpuPricing<T extends { pricing?: Record<string, unknown> }>(
 }
 
 function getOfferCostSource(offer: VastOffer) {
-  const candidates = [
-    ['dph_total', offer.dph_total],
-    ['dph_base', offer.dph_base],
-    ['dph', offer.dph],
-    ['min_bid', offer.min_bid],
-  ] as const;
-
-  for (const [key, value] of candidates) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return { key, value: parsed };
-    }
-  }
-
-  return { key: 'unknown', value: 0 };
+  const breakdown = getVastPricingBreakdown(offer);
+  return { key: breakdown.costSource, value: breakdown.totalHourlyUsd };
 }
 
 function getOfferId(offer: VastOffer) {
@@ -441,7 +498,8 @@ function extractSshKeys(payload: unknown): VastSshKey[] {
 function mapOfferGpu(offer: VastOffer) {
   const gpuName = normalizeString(offer.gpu_name || offer.gpu_name_full || offer.gpu_display_name, 'GPU');
   const gpuRamMb = normalizePositiveInt(offer.gpu_ram, 0);
-  const priceHourly = Number(offer.dph_total || offer.dph_base || offer.dph || 0);
+  const breakdown = getVastPricingBreakdown(offer);
+  const priceHourly = breakdown.gpuHourlyUsd || breakdown.totalHourlyUsd;
 
   return {
     v0Name: gpuName,
@@ -486,7 +544,8 @@ function mapOfferToHostnode(offer: VastOffer) {
   const id = getOfferId(offer);
   const location = parseGeolocation(offer.geolocation || offer.location || offer.country);
   const gpu = mapOfferGpu(offer);
-  const priceHourly = Number(offer.dph_total || offer.dph_base || offer.dph || 0);
+  const breakdown = getVastPricingBreakdown(offer);
+  const priceHourly = breakdown.totalHourlyUsd;
   const reliability = Number(offer.reliability || 0);
 
   return {
@@ -505,6 +564,13 @@ function mapOfferToHostnode(offer: VastOffer) {
       per_vcpu_hr: 0,
       per_gb_ram_hr: 0,
       per_gb_storage_hr: 0,
+      gpu_hourly_usd: breakdown.gpuHourlyUsd,
+      storage_hourly_usd: breakdown.storageHourlyUsd,
+      fixed_subtotal_hourly_usd: breakdown.fixedSubtotalHourlyUsd,
+      internet_up_cost_per_tb_usd: breakdown.internetUpCostPerTbUsd,
+      internet_down_cost_per_tb_usd: breakdown.internetDownCostPerTbUsd,
+      cost_source: breakdown.costSource,
+      cost_hourly_usd: Number.isFinite(priceHourly) ? priceHourly : 0,
       total_hourly: Number.isFinite(priceHourly) ? priceHourly : 0,
     },
     location: {

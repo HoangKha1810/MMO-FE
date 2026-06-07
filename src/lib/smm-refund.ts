@@ -41,19 +41,6 @@ export async function applySmmProviderStatusToOrder(
   const startCount = optionalProviderNumber(payload.start_count ?? payload.start ?? payload.startCount);
   const remains = optionalProviderNumber(payload.remains ?? payload.remain ?? payload.remaining);
   const reason = String(payload.error || payload.reason || '').trim();
-  let refunded = false;
-  let refundAmount = 0;
-
-  if (shouldFullRefundSmmStatus(triggerStatus)) {
-    const refundResult = await refundCanceledSmmOrder(orderId, {
-      nextStatus,
-      triggerStatus,
-      reason,
-      source: options.source || 'smm_provider_sync',
-    });
-    refunded = refundResult.refunded;
-    refundAmount = refundResult.amount;
-  }
 
   await db.$executeRawUnsafe(
     `
@@ -78,8 +65,8 @@ export async function applySmmProviderStatusToOrder(
     status: nextStatus,
     start_count: startCount,
     remains,
-    refunded,
-    refund_amount: refundAmount,
+    refunded: false,
+    refund_amount: 0,
   };
 }
 

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { sendSystemEmail } from '@/lib/admin-alert-email';
+import { getLegacySettingsMap } from '@/lib/legacy-settings';
 import { toNumber } from '@/lib/utils';
 import { VastApiError, vastRequest } from '@/lib/vast-ai';
 
@@ -9,6 +10,8 @@ const VPS_GPU_INSTANCES_TABLE = 'vps_gpu_instances';
 const ACTIVE_STATUSES = ['active', 'creating', 'running', 'deletion_pending'];
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const LOW_BALANCE_WARNING_MS = 15 * 60 * 1000;
+const DEFAULT_VPS_GPU_USD_TO_VND = 26000;
+const DEFAULT_VPS_GPU_INTERNET_MULTIPLIER = 1;
 
 export interface VpsGpuBillingRow extends Record<string, unknown> {
   id: number;
@@ -22,6 +25,10 @@ export interface VpsGpuBillingRow extends Record<string, unknown> {
   cost_hourly_vnd: number;
   sale_hourly_vnd: number;
   total_charged_vnd: number;
+  internet_charged_usd: number;
+  internet_charged_vnd: number;
+  last_usage_sync_at: Date | null;
+  last_usage_sync_at_ms: number | null;
   started_at: Date | null;
   started_at_ms: number | null;
   next_charge_at: Date | null;
@@ -50,11 +57,23 @@ interface BillingSnapshot {
   providerInstanceId: string;
   saleHourlyVnd: number;
   totalChargedVnd: number;
+  internetChargedVnd: number;
   nextChargeAt: string | null;
   nextChargeAtMs: number | null;
   lowBalanceWarningForAt: string | null;
   lowBalanceWarningForAtMs: number | null;
   status: string;
+}
+
+interface BillingPricingSettings {
+  usdToVnd: number;
+  internetMultiplier: number;
+}
+
+interface InternetUsageSnapshot {
+  cumulativeUsd: number;
+  usdToVnd: number;
+  multiplier: number;
 }
 
 function normalizeValue(value: unknown) {
@@ -139,6 +158,19 @@ function insufficientMainWalletMessage(missingAmount: number) {
   return `Ví chính không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để thuê VPS GPU.`;
 }
 
+function normalizePositiveNumber(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+async function getBillingPricingSettings(): Promise<BillingPricingSettings> {
+  const settings = await getLegacySettingsMap(true);
+  return {
+    usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, DEFAULT_VPS_GPU_USD_TO_VND),
+    internetMultiplier: normalizePositiveNumber(settings.vps_gpu_internet_multiplier, DEFAULT_VPS_GPU_INTERNET_MULTIPLIER),
+  };
+}
+
 function activeStatusListSql() {
   return ACTIVE_STATUSES.map((status) => `'${status}'`).join(', ');
 }
@@ -149,6 +181,61 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function toArray(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value) ? value as Record<string, unknown>[] : [];
+}
+
+function numericAmount(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function chargeTimeSeconds(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
+}
+
+function chargeMatchesInstance(charge: Record<string, unknown>, providerInstanceId: string) {
+  const id = String(providerInstanceId || '').trim();
+  if (!id) return false;
+
+  const metadata = asRecord(charge.metadata);
+  const candidates = [
+    charge.source,
+    charge.instance_id,
+    charge.instanceId,
+    metadata.instance_id,
+    metadata.instanceId,
+    metadata.contract_id,
+    metadata.contractId,
+  ].map((value) => String(value ?? '').trim()).filter(Boolean);
+
+  if (candidates.some((value) => value === id || value === `instance-${id}`)) {
+    return true;
+  }
+
+  return new RegExp(`(?:instance[-\\s#:]*)?${id}\\b`, 'i').test(String(charge.description || ''));
+}
+
+function isInternetChargeItem(item: Record<string, unknown>) {
+  const text = [
+    item.type,
+    item.source,
+    item.description,
+  ].map((value) => String(value ?? '').toLowerCase()).join(' ');
+
+  if (!/(internet|bandwidth|upload|download|egress|ingress|traffic|inet)/i.test(text)) {
+    return false;
+  }
+
+  return !/\b(gpu|storage|disk|compute|rental|rent)\b/i.test(text);
+}
+
+function sumInternetChargeItems(items: Record<string, unknown>[]): number {
+  return items.reduce((sum, item) => {
+    const childItems = toArray(item.items);
+    const childAmount = childItems.length ? sumInternetChargeItems(childItems) : 0;
+    const ownAmount = isInternetChargeItem(item) ? Math.max(0, numericAmount(item.amount)) : 0;
+    return sum + ownAmount + childAmount;
+  }, 0);
 }
 
 function getProviderInstanceId(instance: Record<string, unknown>) {
@@ -174,6 +261,74 @@ async function listProviderInstanceIds() {
   }
 }
 
+async function fetchProviderInternetChargeTotalUsd(row: VpsGpuBillingRow) {
+  const startedAtMs = row.started_at_ms || row.started_at?.getTime() || Date.now() - ONE_HOUR_MS;
+  const startSecond = Math.max(0, Math.floor(startedAtMs / 1000) - 86400);
+  const endSecond = Math.floor((Date.now() + 5 * 60 * 1000) / 1000);
+  const selectFilters = {
+    day: { gte: startSecond, lte: endSecond },
+    type: { in: ['instance'] },
+  };
+  let afterToken = '';
+  let totalUsd = 0;
+
+  for (let page = 0; page < 5; page += 1) {
+    const params = new URLSearchParams({
+      select_filters: JSON.stringify(selectFilters),
+      format: 'tree',
+      latest_first: 'false',
+      limit: '500',
+    });
+    if (afterToken) {
+      params.set('after_token', afterToken);
+    }
+
+    const payload = await vastRequest<unknown>(`/charges/?${params.toString()}`);
+    const data = asRecord(payload);
+    const results = toArray(data.results || data.data || payload);
+    for (const charge of results) {
+      if (!chargeMatchesInstance(charge, row.provider_instance_id)) continue;
+      const chargeStart = chargeTimeSeconds(charge.start);
+      const chargeEnd = chargeTimeSeconds(charge.end);
+      if (chargeEnd && chargeEnd < startSecond) continue;
+      if (chargeStart && chargeStart > endSecond) continue;
+      totalUsd += sumInternetChargeItems(toArray(charge.items));
+    }
+
+    afterToken = String(data.next_token || '').trim();
+    if (!afterToken) break;
+  }
+
+  return totalUsd;
+}
+
+async function getInternetUsageSnapshot(rowId: number): Promise<InternetUsageSnapshot | null> {
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    `
+      SELECT *
+      FROM \`${VPS_GPU_INSTANCES_TABLE}\`
+      WHERE id = ?
+      LIMIT 1
+    `,
+    rowId
+  );
+  const row = rows[0] ? normalizeBillingRow(rows[0]) : null;
+  if (!row || !ACTIVE_STATUSES.includes(row.status) || row.status === 'deletion_pending') {
+    return null;
+  }
+
+  const [settings, cumulativeUsd] = await Promise.all([
+    getBillingPricingSettings(),
+    fetchProviderInternetChargeTotalUsd(row),
+  ]);
+
+  return {
+    cumulativeUsd: Math.max(0, cumulativeUsd),
+    usdToVnd: settings.usdToVnd,
+    multiplier: settings.internetMultiplier,
+  };
+}
+
 export async function ensureVpsGpuInstancesTable() {
   await db.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS \`${VPS_GPU_INSTANCES_TABLE}\` (
@@ -188,6 +343,10 @@ export async function ensureVpsGpuInstancesTable() {
       cost_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       sale_hourly_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
       total_charged_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
+      internet_charged_usd DECIMAL(14,6) NOT NULL DEFAULT 0,
+      internet_charged_vnd DECIMAL(15,2) NOT NULL DEFAULT 0,
+      last_usage_sync_at DATETIME NULL,
+      last_usage_sync_at_ms BIGINT NULL,
       started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       started_at_ms BIGINT NULL,
       next_charge_at DATETIME NOT NULL,
@@ -217,6 +376,26 @@ export async function ensureVpsGpuInstancesTable() {
   await db.$executeRawUnsafe(`
     ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
       ADD COLUMN IF NOT EXISTS started_at_ms BIGINT NULL AFTER started_at
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS internet_charged_usd DECIMAL(14,6) NOT NULL DEFAULT 0 AFTER total_charged_vnd
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS internet_charged_vnd DECIMAL(15,2) NOT NULL DEFAULT 0 AFTER internet_charged_usd
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS last_usage_sync_at DATETIME NULL AFTER internet_charged_vnd
+  `).catch(() => 0);
+
+  await db.$executeRawUnsafe(`
+    ALTER TABLE \`${VPS_GPU_INSTANCES_TABLE}\`
+      ADD COLUMN IF NOT EXISTS last_usage_sync_at_ms BIGINT NULL AFTER last_usage_sync_at
   `).catch(() => 0);
 
   await db.$executeRawUnsafe(`
@@ -370,6 +549,7 @@ export function normalizeBillingRow(row: Record<string, unknown>): VpsGpuBilling
   const startedAt = toDate(normalized.started_at);
   const nextChargeAt = toDate(normalized.next_charge_at);
   const lastChargedAt = toDate(normalized.last_charged_at);
+  const lastUsageSyncAt = toDate(normalized.last_usage_sync_at);
   const lowBalanceWarningForAt = toDate(normalized.low_balance_warning_for_at);
   const endedAt = toDate(normalized.ended_at);
 
@@ -386,6 +566,10 @@ export function normalizeBillingRow(row: Record<string, unknown>): VpsGpuBilling
     cost_hourly_vnd: toNumber(normalized.cost_hourly_vnd, 0),
     sale_hourly_vnd: toNumber(normalized.sale_hourly_vnd, 0),
     total_charged_vnd: toNumber(normalized.total_charged_vnd, 0),
+    internet_charged_usd: toNumber(normalized.internet_charged_usd, 0),
+    internet_charged_vnd: toNumber(normalized.internet_charged_vnd, 0),
+    last_usage_sync_at: lastUsageSyncAt,
+    last_usage_sync_at_ms: timestampMsFromDateFallback(normalized.last_usage_sync_at_ms, lastUsageSyncAt),
     started_at: startedAt,
     started_at_ms: timestampMsFromDateFallback(normalized.started_at_ms, startedAt),
     next_charge_at: nextChargeAt,
@@ -407,6 +591,7 @@ export function toPublicBilling(row: VpsGpuBillingRow | null): BillingSnapshot |
     providerInstanceId: row.provider_instance_id,
     saleHourlyVnd: Math.max(0, Math.ceil(row.sale_hourly_vnd)),
     totalChargedVnd: Math.max(0, Math.ceil(row.total_charged_vnd)),
+    internetChargedVnd: Math.max(0, Math.ceil(row.internet_charged_vnd)),
     nextChargeAt: dateIsoFromTimestampMs(row.next_charge_at_ms),
     nextChargeAtMs: row.next_charge_at_ms,
     lowBalanceWarningForAt: dateIsoFromTimestampMs(row.low_balance_warning_for_at_ms),
@@ -515,7 +700,17 @@ async function deleteProviderInstance(providerInstanceId: string) {
 }
 
 export async function deleteOwnedVpsGpuInstance(userId: number, providerInstanceId: string, reason = 'user_deleted') {
-  await requireOwnedVpsGpuBilling(userId, providerInstanceId);
+  const billing = await requireOwnedVpsGpuBilling(userId, providerInstanceId);
+  let internetUsage: InternetUsageSnapshot | null = null;
+  try {
+    internetUsage = await getInternetUsageSnapshot(billing.id);
+  } catch {
+    internetUsage = null;
+  }
+  if (internetUsage) {
+    await chargeInternetUsageForBillingRow(billing.id, internetUsage);
+  }
+
   const result = await deleteProviderInstance(providerInstanceId);
   if (!result.ok) {
     throw new Error(result.error || 'Không thể xóa VPS GPU từ nguồn GPU');
@@ -525,7 +720,14 @@ export async function deleteOwnedVpsGpuInstance(userId: number, providerInstance
   return result;
 }
 
-async function chargeDueBillingRow(rowId: number) {
+async function chargeInternetUsageForBillingRow(
+  rowId: number,
+  internetUsage?: InternetUsageSnapshot | null
+) {
+  if (!internetUsage) {
+    return { charged: 0, chargedInternet: 0, deleteNeeded: false, providerInstanceId: '' };
+  }
+
   return db.$transaction(async (tx) => {
     const rows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
       `
@@ -539,16 +741,102 @@ async function chargeDueBillingRow(rowId: number) {
     );
     const row = rows[0] ? normalizeBillingRow(rows[0]) : null;
     if (!row || !ACTIVE_STATUSES.includes(row.status)) {
-      return { charged: 0, chargedHours: 0, deleteNeeded: false, providerInstanceId: '' };
+      return { charged: 0, chargedInternet: 0, deleteNeeded: false, providerInstanceId: '' };
+    }
+
+    const internetPreviouslyChargedUsd = Math.max(0, row.internet_charged_usd);
+    const internetDeltaUsd = Math.max(0, internetUsage.cumulativeUsd - internetPreviouslyChargedUsd);
+    const internetVndPerUsd = Math.max(0, internetUsage.usdToVnd * internetUsage.multiplier);
+    const internetDeltaVnd = internetDeltaUsd > 0 && internetVndPerUsd > 0
+      ? Math.ceil(internetDeltaUsd * internetVndPerUsd)
+      : 0;
+    if (internetDeltaVnd <= 0) {
+      return { charged: 0, chargedInternet: 0, deleteNeeded: false, providerInstanceId: row.provider_instance_id };
+    }
+
+    const user = await tx.users.findUnique({
+      where: { id: row.user_id },
+      select: { balance: true },
+    });
+    const currentBalance = toNumber(user?.balance, 0);
+    const internetChargedVnd = internetDeltaVnd;
+    const internetChargedUsd = internetDeltaUsd;
+    const nextBalance = currentBalance - internetChargedVnd;
+    const chargedAt = new Date();
+
+    await tx.users.update({
+      where: { id: row.user_id },
+      data: { balance: nextBalance, last_activity: chargedAt },
+    });
+
+    await tx.transactions.create({
+      data: {
+        user_id: row.user_id,
+        amount: internetChargedVnd,
+        balance_after: nextBalance,
+        wallet_type: 'main',
+        type: 'order',
+        status: 'success',
+        content: `Phí internet VPS GPU #${row.provider_instance_id}: ${formatVnd(internetChargedVnd)} bằng ví chính`,
+      },
+    }).catch(() => undefined);
+
+    await tx.$executeRawUnsafe(
+      `
+        UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
+        SET total_charged_vnd = total_charged_vnd + ?,
+            internet_charged_usd = internet_charged_usd + ?,
+            internet_charged_vnd = internet_charged_vnd + ?,
+            last_usage_sync_at = ?,
+            last_usage_sync_at_ms = ?,
+            last_charged_at = ?,
+            last_charged_at_ms = ?,
+            updated_at = NOW()
+        WHERE id = ?
+      `,
+      internetChargedVnd,
+      internetChargedUsd,
+      internetChargedVnd,
+      chargedAt,
+      chargedAt.getTime(),
+      chargedAt,
+      chargedAt.getTime(),
+      row.id
+    );
+
+    return {
+      charged: internetChargedVnd,
+      chargedInternet: internetChargedVnd,
+      deleteNeeded: false,
+      providerInstanceId: row.provider_instance_id,
+    };
+  }, { maxWait: 10000, timeout: 15000 });
+}
+
+async function chargeDueBillingRow(rowId: number, internetUsage?: InternetUsageSnapshot | null) {
+  return db.$transaction(async (tx) => {
+    const rows = await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(
+      `
+        SELECT *
+        FROM \`${VPS_GPU_INSTANCES_TABLE}\`
+        WHERE id = ?
+        LIMIT 1
+        FOR UPDATE
+      `,
+      rowId
+    );
+    const row = rows[0] ? normalizeBillingRow(rows[0]) : null;
+    if (!row || !ACTIVE_STATUSES.includes(row.status)) {
+      return { charged: 0, chargedHours: 0, chargedInternet: 0, deleteNeeded: false, providerInstanceId: '' };
     }
 
     if (row.status === 'deletion_pending') {
-      return { charged: 0, chargedHours: 0, deleteNeeded: true, providerInstanceId: row.provider_instance_id };
+      return { charged: 0, chargedHours: 0, chargedInternet: 0, deleteNeeded: true, providerInstanceId: row.provider_instance_id };
     }
 
     const nextChargeAtMs = row.next_charge_at_ms;
     if (!nextChargeAtMs || nextChargeAtMs > Date.now()) {
-      return { charged: 0, chargedHours: 0, deleteNeeded: false, providerInstanceId: row.provider_instance_id };
+      return { charged: 0, chargedHours: 0, chargedInternet: 0, deleteNeeded: false, providerInstanceId: row.provider_instance_id };
     }
 
     const saleHourlyVnd = Math.max(0, Math.ceil(row.sale_hourly_vnd));
@@ -563,7 +851,7 @@ async function chargeDueBillingRow(rowId: number) {
         `,
         row.id
       );
-      return { charged: 0, chargedHours: 0, deleteNeeded: true, providerInstanceId: row.provider_instance_id };
+      return { charged: 0, chargedHours: 0, chargedInternet: 0, deleteNeeded: true, providerInstanceId: row.provider_instance_id };
     }
 
     const hoursDue = Math.min(168, Math.max(1, Math.floor((Date.now() - nextChargeAtMs) / ONE_HOUR_MS) + 1));
@@ -572,8 +860,22 @@ async function chargeDueBillingRow(rowId: number) {
       select: { balance: true },
     });
     const currentBalance = toNumber(user?.balance, 0);
-    const chargeableHours = Math.min(hoursDue, Math.floor(currentBalance / saleHourlyVnd));
-    const chargedAmount = chargeableHours * saleHourlyVnd;
+    const internetPreviouslyChargedUsd = Math.max(0, row.internet_charged_usd);
+    const internetDeltaUsd = internetUsage
+      ? Math.max(0, internetUsage.cumulativeUsd - internetPreviouslyChargedUsd)
+      : 0;
+    const internetVndPerUsd = internetUsage
+      ? Math.max(0, internetUsage.usdToVnd * internetUsage.multiplier)
+      : 0;
+    const internetDeltaVnd = internetDeltaUsd > 0 && internetVndPerUsd > 0
+      ? Math.ceil(internetDeltaUsd * internetVndPerUsd)
+      : 0;
+    const internetChargedVnd = internetDeltaVnd;
+    const internetChargedUsd = internetDeltaUsd;
+    const balanceAfterInternet = currentBalance - internetChargedVnd;
+    const chargeableHours = Math.min(hoursDue, Math.floor(balanceAfterInternet / saleHourlyVnd));
+    const hourlyChargedAmount = chargeableHours * saleHourlyVnd;
+    const chargedAmount = internetChargedVnd + hourlyChargedAmount;
     const nextBalance = currentBalance - chargedAmount;
 
     if (chargeableHours > 0) {
@@ -594,7 +896,7 @@ async function chargeDueBillingRow(rowId: number) {
           wallet_type: 'main',
           type: 'order',
           status: 'success',
-          content: `Thuê VPS GPU #${row.provider_instance_id}: ${chargeableHours} giờ tiếp theo bằng ví chính`,
+          content: `Thuê VPS GPU #${row.provider_instance_id}: ${chargeableHours} giờ tiếp theo${internetChargedVnd > 0 ? ` + phí internet ${formatVnd(internetChargedVnd)}` : ''} bằng ví chính`,
         },
       }).catch(() => undefined);
 
@@ -602,6 +904,10 @@ async function chargeDueBillingRow(rowId: number) {
         `
           UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
           SET total_charged_vnd = total_charged_vnd + ?,
+              internet_charged_usd = internet_charged_usd + ?,
+              internet_charged_vnd = internet_charged_vnd + ?,
+              last_usage_sync_at = CASE WHEN ? > 0 THEN ? ELSE last_usage_sync_at END,
+              last_usage_sync_at_ms = CASE WHEN ? > 0 THEN ? ELSE last_usage_sync_at_ms END,
               last_charged_at = ?,
               last_charged_at_ms = ?,
               next_charge_at = ?,
@@ -612,10 +918,58 @@ async function chargeDueBillingRow(rowId: number) {
           WHERE id = ?
         `,
         chargedAmount,
+        internetChargedUsd,
+        internetChargedVnd,
+        internetChargedUsd,
+        chargedAt,
+        internetChargedUsd,
+        chargedAt.getTime(),
         chargedAt,
         chargedAt.getTime(),
         nextChargeAtAfterCharge,
         nextChargeAtAfterChargeMs,
+        row.id
+      );
+    } else if (internetChargedVnd > 0) {
+      const chargedAt = new Date();
+
+      await tx.users.update({
+        where: { id: row.user_id },
+        data: { balance: nextBalance, last_activity: chargedAt },
+      });
+
+      await tx.transactions.create({
+        data: {
+          user_id: row.user_id,
+          amount: chargedAmount,
+          balance_after: nextBalance,
+          wallet_type: 'main',
+          type: 'order',
+          status: 'success',
+          content: `Phí internet VPS GPU #${row.provider_instance_id}: ${formatVnd(internetChargedVnd)} bằng ví chính`,
+        },
+      }).catch(() => undefined);
+
+      await tx.$executeRawUnsafe(
+        `
+          UPDATE \`${VPS_GPU_INSTANCES_TABLE}\`
+          SET total_charged_vnd = total_charged_vnd + ?,
+              internet_charged_usd = internet_charged_usd + ?,
+              internet_charged_vnd = internet_charged_vnd + ?,
+              last_usage_sync_at = ?,
+              last_usage_sync_at_ms = ?,
+              last_charged_at = ?,
+              last_charged_at_ms = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        `,
+        chargedAmount,
+        internetChargedUsd,
+        internetChargedVnd,
+        chargedAt,
+        chargedAt.getTime(),
+        chargedAt,
+        chargedAt.getTime(),
         row.id
       );
     }
@@ -637,6 +991,7 @@ async function chargeDueBillingRow(rowId: number) {
     return {
       charged: chargedAmount,
       chargedHours: chargeableHours,
+      chargedInternet: internetChargedVnd,
       deleteNeeded,
       providerInstanceId: row.provider_instance_id,
     };
@@ -825,6 +1180,7 @@ export async function runVpsGpuHourlyBilling() {
 
   let charged = 0;
   let chargedHours = 0;
+  let chargedInternet = 0;
   let deleted = 0;
   let deletionPending = 0;
   let warningsSent = 0;
@@ -857,9 +1213,17 @@ export async function runVpsGpuHourlyBilling() {
         continue;
       }
 
-      const result = await chargeDueBillingRow(rowId);
+      let internetUsage: InternetUsageSnapshot | null = null;
+      try {
+        internetUsage = await getInternetUsageSnapshot(rowId);
+      } catch (error) {
+        errors.push(`${providerInstanceId}: ${error instanceof Error ? error.message : 'Không tải được internet usage VPS GPU'}`);
+      }
+
+      const result = await chargeDueBillingRow(rowId, internetUsage);
       charged += result.charged;
       chargedHours += result.chargedHours;
+      chargedInternet += result.chargedInternet;
 
       if (result.deleteNeeded && result.providerInstanceId) {
         const deleteResult = await deleteProviderInstance(result.providerInstanceId);
@@ -880,6 +1244,7 @@ export async function runVpsGpuHourlyBilling() {
     scanned: rows.length,
     charged,
     charged_hours: chargedHours,
+    charged_internet: chargedInternet,
     deleted,
     deletion_pending: deletionPending,
     warnings_sent: warningsSent,

@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS `vps_gpu_instances` (
   `cost_hourly_vnd` DECIMAL(15,2) NOT NULL DEFAULT 0,
   `sale_hourly_vnd` DECIMAL(15,2) NOT NULL DEFAULT 0,
   `total_charged_vnd` DECIMAL(15,2) NOT NULL DEFAULT 0,
+  `internet_charged_usd` DECIMAL(14,6) NOT NULL DEFAULT 0,
+  `internet_charged_vnd` DECIMAL(15,2) NOT NULL DEFAULT 0,
+  `last_usage_sync_at` DATETIME NULL,
+  `last_usage_sync_at_ms` BIGINT NULL,
   `started_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `started_at_ms` BIGINT NULL,
   `next_charge_at` DATETIME NOT NULL,
@@ -32,6 +36,12 @@ CREATE TABLE IF NOT EXISTS `vps_gpu_instances` (
 
 ALTER TABLE `vps_gpu_instances`
   ADD COLUMN IF NOT EXISTS `low_balance_warning_for_at` DATETIME NULL AFTER `last_charged_at`;
+
+ALTER TABLE `vps_gpu_instances`
+  ADD COLUMN IF NOT EXISTS `internet_charged_usd` DECIMAL(14,6) NOT NULL DEFAULT 0 AFTER `total_charged_vnd`,
+  ADD COLUMN IF NOT EXISTS `internet_charged_vnd` DECIMAL(15,2) NOT NULL DEFAULT 0 AFTER `internet_charged_usd`,
+  ADD COLUMN IF NOT EXISTS `last_usage_sync_at` DATETIME NULL AFTER `internet_charged_vnd`,
+  ADD COLUMN IF NOT EXISTS `last_usage_sync_at_ms` BIGINT NULL AFTER `last_usage_sync_at`;
 
 ALTER TABLE `vps_gpu_instances`
   ADD COLUMN IF NOT EXISTS `started_at_ms` BIGINT NULL AFTER `started_at`,

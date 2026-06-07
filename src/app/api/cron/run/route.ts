@@ -9,7 +9,7 @@ import {
 import { runDailyAdminAnomalyDigest, runDailyAdminAnomalyDigestWithOptions } from '@/lib/admin-anomaly-digest';
 import { runDdosGuard } from '@/lib/admin-ddos-guard';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
-import { applySmmProviderStatusToOrder, refundCanceledSmmOrder } from '@/lib/smm-refund';
+import { applySmmProviderStatusToOrder } from '@/lib/smm-refund';
 import { toNumber } from '@/lib/utils';
 import { runVpsGpuHourlyBilling } from '@/lib/vps-gpu-billing';
 import { getVietnamDatabaseDateTime } from '@/lib/date-time';
@@ -59,16 +59,6 @@ function extractOrderStatus(payload: Record<string, unknown>, orderId: string) {
 async function runSmmOrderSync() {
   if (!(await tableExists('smm_orders'))) return { scanned: 0, updated: 0, errors: [] };
 
-  const refundRepairRows = await safeRows<SmmOrderRow>(`
-    SELECT id, provider_id, api_order_id, status
-    FROM smm_orders
-    WHERE LOWER(status) IN ('canceled', 'cancelled', 'failed', 'fail', 'error', 'refunded', 'refund')
-      AND COALESCE(is_refunded, 0) = 0
-      AND COALESCE(refund_amount, 0) <= 0
-    ORDER BY updated_at DESC, id DESC
-    LIMIT 120
-  `);
-
   const rows = await safeRows<SmmOrderRow>(`
     SELECT id, provider_id, api_order_id, status
     FROM smm_orders
@@ -88,19 +78,6 @@ async function runSmmOrderSync() {
   let updated = 0;
   let refunded = 0;
   const errors: string[] = [];
-
-  for (const order of refundRepairRows) {
-    try {
-      const refundResult = await refundCanceledSmmOrder(order.id, {
-        nextStatus: order.status || 'Canceled',
-        triggerStatus: order.status || 'Canceled',
-        source: 'cron_smm_refund_repair',
-      });
-      if (refundResult.refunded) refunded += 1;
-    } catch (error) {
-      errors.push(`refund_repair_${order.id}: ${error instanceof Error ? error.message : 'refund failed'}`);
-    }
-  }
 
   for (const [providerId, providerOrders] of groups.entries()) {
     const orderIds = providerOrders.map((row) => String(row.api_order_id || '').trim()).filter(Boolean);
@@ -126,7 +103,7 @@ async function runSmmOrderSync() {
     }
   }
 
-  return { scanned: rows.length, repaired: refundRepairRows.length, updated, refunded, errors };
+  return { scanned: rows.length, updated, refunded, errors };
 }
 
 async function runSmmServiceSync() {
