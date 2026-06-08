@@ -245,12 +245,14 @@ interface VpsGpuPricingSettings {
   usdToVnd: number;
   priceMultiplier: number;
   hourlyFeeVnd: number;
+  internetReserveVnd: number;
 }
 
 const DEFAULT_VPS_GPU_PRICING: VpsGpuPricingSettings = {
   usdToVnd: 26000,
   priceMultiplier: 1.67,
   hourlyFeeVnd: 0,
+  internetReserveVnd: 50000,
 };
 const MIN_VPS_GPU_NETWORK_DOWN_MBPS = 300;
 const MIN_VPS_GPU_NETWORK_UP_MBPS = 80;
@@ -911,6 +913,10 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier
         ),
         hourlyFeeVnd: DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
+        internetReserveVnd: Math.max(
+          DEFAULT_VPS_GPU_PRICING.internetReserveVnd,
+          Number(nextPricingSettings.internetReserveVnd) || DEFAULT_VPS_GPU_PRICING.internetReserveVnd
+        ),
       });
       setDockerImage((current) => current || DEFAULT_VPS_GPU_IMAGE_PRESET.image);
       setLoadError(payload.message ? String(payload.message) : null);
@@ -978,6 +984,10 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
           Number(nextPricingSettings.priceMultiplier) || DEFAULT_VPS_GPU_PRICING.priceMultiplier
         ),
         hourlyFeeVnd: DEFAULT_VPS_GPU_PRICING.hourlyFeeVnd,
+        internetReserveVnd: Math.max(
+          DEFAULT_VPS_GPU_PRICING.internetReserveVnd,
+          Number(nextPricingSettings.internetReserveVnd) || DEFAULT_VPS_GPU_PRICING.internetReserveVnd
+        ),
       });
       setHostnodes(nextHostnodes);
       const nextHostnodeId = nextHostnodes[0]?.id || '';
@@ -1231,6 +1241,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
 
     return computeSaleHourlyFromUsd(estimatedHourly, pricingSettings);
   }, [estimatedHourly, pricingSettings, selectedHostnode]);
+  const requiredBalanceToCreate = estimatedSaleHourly + pricingSettings.internetReserveVnd;
 
   const normalizedSshPublicKey = useMemo(() => normalizePublicSshKeyInput(sshPublicKey), [sshPublicKey]);
   const sshPublicKeyError = useMemo(
@@ -1377,7 +1388,9 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                 <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
                   Instance <span className="font-black text-white">{instanceName.trim()}</span> sẽ trừ{' '}
                   <span className="font-mono font-black text-emerald-300">{formatMoneyVnd(estimatedSaleHourly)}</span> từ ví chính cho giờ đầu tiên.
-                  Sau đó hệ thống gia hạn theo giờ và tự dừng VPS khi ví chính không đủ tiền duy trì.
+                  Ví chính cần có tối thiểu <span className="font-mono font-black text-cyan-200">{formatMoneyVnd(requiredBalanceToCreate)}</span> để giữ đệm internet usage{' '}
+                  <span className="font-mono font-black text-cyan-200">{formatMoneyVnd(pricingSettings.internetReserveVnd)}</span>.
+                  Sau đó hệ thống gia hạn theo giờ và tự dừng VPS khi ví chính không đủ tiền duy trì hoặc không còn đủ đệm internet.
                 </p>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => setCreateDialogOpen(false)} disabled={submitting}>
@@ -1400,7 +1413,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
               />
               <span>
                 Tôi đồng ý điều khoản thuê VPS GPU: giá tính theo giờ và trừ từ ví chính{runtime === 'ssh' ? ', phải dán đúng SSH public key' : ''}, dữ liệu có thể mất khi VPS bị xóa hoặc gói GPU lỗi,
-                và hệ thống được quyền tự xóa VPS nếu ví chính không đủ tiền gia hạn.
+                và hệ thống được quyền tự xóa VPS nếu ví chính không đủ tiền gia hạn hoặc không đủ đệm internet usage.
               </span>
             </label>
 
@@ -1605,7 +1618,7 @@ export function VpsGpuPage({ initialUser: _initialUser }: VpsGpuPageProps) {
                       <span className="ml-1 text-sm font-black text-slate-500 dark:text-slate-400">/ giờ</span>
                     </div>
                     <div className="mt-2 text-[10px] font-bold leading-5 text-slate-500 dark:text-slate-400">
-                      Đã gồm GPU + disk với hệ số 67%. Internet usage cũng tính cùng hệ số khi phát sinh.
+                      Giá đã gồm GPU + disk. Cần giữ đệm internet usage {formatMoneyVnd(pricingSettings.internetReserveVnd)} trong ví chính.
                     </div>
                   </div>
 

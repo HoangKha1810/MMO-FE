@@ -58,6 +58,7 @@ interface VpsGpuPricingSettings {
   usdToVnd: number;
   priceMultiplier: number;
   hourlyFeeVnd: number;
+  internetReserveVnd: number;
 }
 
 const VPS_GPU_OFFER_COSTS_TABLE = 'vps_gpu_offer_costs';
@@ -68,6 +69,7 @@ const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1 + VPS_GPU_PROFIT_MARKUP;
 const MIN_VPS_GPU_PRICE_MULTIPLIER = DEFAULT_VPS_GPU_PRICE_MULTIPLIER;
 const MAX_VPS_GPU_PRICE_MULTIPLIER = DEFAULT_VPS_GPU_PRICE_MULTIPLIER;
 const DEFAULT_VPS_GPU_HOURLY_FEE_VND = 0;
+const DEFAULT_VPS_GPU_INTERNET_RESERVE_VND = 50000;
 let activeVpsGpuBillingSweep: Promise<void> | null = null;
 
 async function requireUser() {
@@ -209,6 +211,13 @@ function normalizeVpsGpuPriceMultiplier(value: unknown) {
   return Math.min(MAX_VPS_GPU_PRICE_MULTIPLIER, Math.max(MIN_VPS_GPU_PRICE_MULTIPLIER, parsed));
 }
 
+function normalizeVpsGpuInternetReserveVnd(value: unknown) {
+  return Math.max(
+    DEFAULT_VPS_GPU_INTERNET_RESERVE_VND,
+    roundPriceVnd(normalizePositiveNumber(value, DEFAULT_VPS_GPU_INTERNET_RESERVE_VND))
+  );
+}
+
 function normalizeNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -257,6 +266,7 @@ async function getVpsGpuPricingSettings(): Promise<VpsGpuPricingSettings> {
     usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, DEFAULT_VPS_GPU_USD_TO_VND),
     priceMultiplier: normalizeVpsGpuPriceMultiplier(settings.vps_gpu_price_multiplier),
     hourlyFeeVnd: DEFAULT_VPS_GPU_HOURLY_FEE_VND,
+    internetReserveVnd: normalizeVpsGpuInternetReserveVnd(settings.vps_gpu_internet_reserve_vnd),
   };
 }
 
@@ -359,6 +369,7 @@ function applyVpsGpuPricing<T extends { pricing?: Record<string, unknown> }>(
         profit_markup: Math.max(0, settings.priceMultiplier - 1),
         price_multiplier: settings.priceMultiplier,
         hourly_fee_vnd: settings.hourlyFeeVnd,
+        internet_reserve_vnd: settings.internetReserveVnd,
         usd_to_vnd: settings.usdToVnd,
       },
     };
@@ -1758,7 +1769,9 @@ export async function POST(req: NextRequest) {
       const costHourlyVnd = normalizePositiveNumber(pricing.cost_hourly_vnd, 0);
       const costHourlyUsd = normalizePositiveNumber(pricing.cost_hourly_usd, getOfferCostSource(liveOffer).value);
 
-      await assertMainWalletCanPay(userId, saleHourlyVnd);
+      await assertMainWalletCanPay(userId, saleHourlyVnd, {
+        internetReserveVnd: pricingSettings.internetReserveVnd,
+      });
 
       let response: unknown;
       try {

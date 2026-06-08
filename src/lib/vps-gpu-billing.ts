@@ -13,6 +13,7 @@ const LOW_BALANCE_WARNING_MS = 15 * 60 * 1000;
 const DEFAULT_VPS_GPU_USD_TO_VND = 26000;
 const DEFAULT_VPS_GPU_PRICE_MULTIPLIER = 1.67;
 const DEFAULT_VPS_GPU_INTERNET_MULTIPLIER = 1.67;
+const DEFAULT_VPS_GPU_INTERNET_RESERVE_VND = 50000;
 
 export interface VpsGpuBillingRow extends Record<string, unknown> {
   id: number;
@@ -69,6 +70,7 @@ interface BillingSnapshot {
 interface BillingPricingSettings {
   usdToVnd: number;
   internetMultiplier: number;
+  internetReserveVnd: number;
 }
 
 interface InternetUsageSnapshot {
@@ -159,6 +161,10 @@ function insufficientMainWalletMessage(missingAmount: number) {
   return `Ví chính không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để thuê VPS GPU.`;
 }
 
+function insufficientMainWalletWithInternetReserveMessage(missingAmount: number, internetReserveVnd: number) {
+  return `Ví chính không đủ. Cần giữ thêm ${formatVnd(internetReserveVnd)} làm đệm internet usage cho VPS GPU. Vui lòng nạp thêm ${formatVnd(missingAmount)}.`;
+}
+
 function roundPriceVnd(value: number) {
   if (!Number.isFinite(value) || value <= 0) {
     return 0;
@@ -175,6 +181,13 @@ function normalizeSaleHourlyVnd(saleHourlyVnd: number, costHourlyVnd = 0) {
   return Math.max(0, Math.ceil(saleHourlyVnd), saleHourlyVndFromCost(costHourlyVnd));
 }
 
+function normalizeInternetReserveVnd(value: unknown) {
+  return Math.max(
+    DEFAULT_VPS_GPU_INTERNET_RESERVE_VND,
+    roundPriceVnd(normalizePositiveNumber(value, DEFAULT_VPS_GPU_INTERNET_RESERVE_VND))
+  );
+}
+
 function normalizePositiveNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -185,6 +198,7 @@ async function getBillingPricingSettings(): Promise<BillingPricingSettings> {
   return {
     usdToVnd: normalizePositiveNumber(settings.vps_gpu_usd_to_vnd, DEFAULT_VPS_GPU_USD_TO_VND),
     internetMultiplier: DEFAULT_VPS_GPU_INTERNET_MULTIPLIER,
+    internetReserveVnd: normalizeInternetReserveVnd(settings.vps_gpu_internet_reserve_vnd),
   };
 }
 
@@ -452,11 +466,17 @@ export function extractCreatedProviderInstanceId(response: unknown) {
   ).trim();
 }
 
-export async function assertMainWalletCanPay(userId: number, amount: number) {
+export async function assertMainWalletCanPay(
+  userId: number,
+  amount: number,
+  options: { internetReserveVnd?: number } = {}
+) {
   const normalizedAmount = Math.max(0, Math.ceil(amount));
   if (normalizedAmount <= 0) {
     throw new Error('Giá thuê VPS GPU chưa hợp lệ. Hãy chọn lại gói GPU.');
   }
+  const internetReserveVnd = normalizeInternetReserveVnd(options.internetReserveVnd);
+  const requiredAmount = normalizedAmount + internetReserveVnd;
 
   const user = await db.users.findUnique({
     where: { id: userId },
@@ -467,8 +487,8 @@ export async function assertMainWalletCanPay(userId: number, amount: number) {
   }
 
   const currentBalance = toNumber(user.balance, 0);
-  if (currentBalance < normalizedAmount) {
-    throw new Error(insufficientMainWalletMessage(normalizedAmount - currentBalance));
+  if (currentBalance < requiredAmount) {
+    throw new Error(insufficientMainWalletWithInternetReserveMessage(requiredAmount - currentBalance, internetReserveVnd));
   }
 
   return currentBalance;
@@ -483,6 +503,8 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
   if (saleHourlyVnd <= 0) {
     throw new Error('Giá thuê VPS GPU chưa hợp lệ. Hãy chọn lại gói GPU.');
   }
+  const pricingSettings = await getBillingPricingSettings();
+  const internetReserveVnd = pricingSettings.internetReserveVnd;
 
   return db.$transaction(async (tx) => {
     const user = await tx.users.findUnique({
@@ -494,6 +516,11 @@ export async function chargeFirstHourAndSaveVpsGpu(input: CreateBillingInput) {
     }
 
     const currentBalance = toNumber(user.balance, 0);
+    const requiredBalance = saleHourlyVnd + internetReserveVnd;
+    if (currentBalance < requiredBalance) {
+      throw new Error(insufficientMainWalletWithInternetReserveMessage(requiredBalance - currentBalance, internetReserveVnd));
+    }
+
     const nextBalance = currentBalance - saleHourlyVnd;
     if (nextBalance < 0) {
       throw new Error(insufficientMainWalletMessage(Math.abs(nextBalance)));
@@ -911,7 +938,10 @@ async function chargeDueBillingRow(rowId: number, internetUsage?: InternetUsageS
     const internetChargedVnd = internetDeltaVnd;
     const internetChargedUsd = internetDeltaUsd;
     const balanceAfterInternet = currentBalance - internetChargedVnd;
-    const chargeableHours = Math.max(0, Math.min(hoursDue, Math.floor(balanceAfterInternet / saleHourlyVnd)));
+    const pricingSettings = await getBillingPricingSettings();
+    const internetReserveVnd = pricingSettings.internetReserveVnd;
+    const balanceAvailableForHourly = balanceAfterInternet - internetReserveVnd;
+    const chargeableHours = Math.max(0, Math.min(hoursDue, Math.floor(balanceAvailableForHourly / saleHourlyVnd)));
     const hourlyChargedAmount = chargeableHours * saleHourlyVnd;
     const chargedAmount = internetChargedVnd + hourlyChargedAmount;
     const nextBalance = currentBalance - chargedAmount;
@@ -1075,6 +1105,9 @@ async function reserveLowBalanceWarning(rowId: number) {
     if (saleHourlyVnd <= 0) {
       return null;
     }
+    const pricingSettings = await getBillingPricingSettings();
+    const internetReserveVnd = pricingSettings.internetReserveVnd;
+    const requiredBalance = saleHourlyVnd + internetReserveVnd;
 
     const user = await tx.users.findUnique({
       where: { id: row.user_id },
@@ -1085,7 +1118,7 @@ async function reserveLowBalanceWarning(rowId: number) {
     }
 
     const balance = toNumber(user.balance, 0);
-    if (balance >= saleHourlyVnd) {
+    if (balance >= requiredBalance) {
       return null;
     }
 
@@ -1111,8 +1144,9 @@ async function reserveLowBalanceWarning(rowId: number) {
       email: user.email,
       displayName: user.fullname || user.username || 'khách hàng',
       saleHourlyVnd,
+      internetReserveVnd,
       balance,
-      missingAmount: Math.max(0, saleHourlyVnd - balance),
+      missingAmount: Math.max(0, requiredBalance - balance),
       nextChargeAt,
     };
   }, { maxWait: 10000, timeout: 15000 });
@@ -1132,6 +1166,7 @@ async function sendLowBalanceWarning(rowId: number) {
     '',
     `VPS GPU ${notice.instanceName} (#${notice.providerInstanceId}) sẽ gia hạn lúc ${expiryText}.`,
     `Giá thuê giờ tiếp theo: ${formatVnd(notice.saleHourlyVnd)}.`,
+    `Đệm internet usage cần giữ lại: ${formatVnd(notice.internetReserveVnd)}.`,
     `Ví chính hiện tại: ${formatVnd(notice.balance)}.`,
     `Cần nạp thêm tối thiểu: ${formatVnd(notice.missingAmount)}.`,
     '',
@@ -1151,6 +1186,7 @@ async function sendLowBalanceWarning(rowId: number) {
           <p>VPS GPU <strong>${escapeHtml(notice.instanceName)}</strong> (#${escapeHtml(notice.providerInstanceId)}) sẽ gia hạn lúc <strong>${escapeHtml(expiryText)}</strong>.</p>
           <ul>
             <li>Giá thuê giờ tiếp theo: <strong>${escapeHtml(formatVnd(notice.saleHourlyVnd))}</strong></li>
+            <li>Đệm internet usage cần giữ lại: <strong>${escapeHtml(formatVnd(notice.internetReserveVnd))}</strong></li>
             <li>Ví chính hiện tại: <strong>${escapeHtml(formatVnd(notice.balance))}</strong></li>
             <li>Cần nạp thêm tối thiểu: <strong>${escapeHtml(formatVnd(notice.missingAmount))}</strong></li>
           </ul>
