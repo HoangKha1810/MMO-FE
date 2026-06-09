@@ -1148,17 +1148,8 @@ async function listLegacySmmOrders(config: ResourceConfig, params: URLSearchPara
   if (status) {
     const normalized = normalizeSmmStatus(status);
     const variants = getSmmStatusFilterVariants(normalized);
-    if (normalized === 'Refunded') {
-      conditions.push(`(
-        LOWER(COALESCE(so.status, '')) IN (${variants.map(() => '?').join(', ')})
-        OR COALESCE(so.is_refunded, 0) = 1
-        OR COALESCE(so.refund_amount, 0) > 0
-      )`);
-      values.push(...variants);
-    } else {
-      conditions.push(`LOWER(COALESCE(so.status, '')) IN (${variants.map(() => '?').join(', ')})`);
-      values.push(...variants);
-    }
+    conditions.push(`LOWER(COALESCE(so.status, '')) IN (${variants.map(() => '?').join(', ')})`);
+    values.push(...variants);
   }
 
   const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';

@@ -368,11 +368,11 @@ const STATUS_LABELS: Record<string, string> = {
   approved: 'Đã duyệt',
   selling: 'Đã duyệt',
   completed: 'Hoàn thành',
-  done: 'Đã hoàn',
+  done: 'Hoàn thành',
   partial: 'Một phần',
   canceled: 'Đã hủy',
   cancelled: 'Đã hủy',
-  refunded: 'Đã hoàn',
+  refunded: 'Hoàn tiền',
   hidden: 'Ẩn',
   deleted: 'Đã xóa',
   rejected: 'Từ chối',
@@ -1023,9 +1023,9 @@ function getQuickStatusOptions(resource: string) {
     return [
       { value: '', label: 'Tất cả' },
       { value: 'Processing', label: 'Đang chạy' },
-      { value: 'Completed', label: 'Hoàn Thành' },
-      { value: 'Refunded', label: 'Đã Hoàn' },
-      { value: 'Canceled', label: 'Đã Hủy' },
+      { value: 'Completed', label: 'Hoàn thành' },
+      { value: 'Refunded', label: 'Hoàn tiền' },
+      { value: 'Canceled', label: 'Đã hủy' },
     ];
   }
 
