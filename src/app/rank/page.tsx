@@ -1,8 +1,7 @@
-import { Crown, Medal, ShieldCheck, Sparkles, Trophy } from 'lucide-react';
+import { Crown, Medal, ShieldCheck, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { SectionHeader, SectionPanel } from '@/components/ui/page-layout';
-import { safeRows } from '@/lib/legacy-modules';
-import { formatCurrency, toNumber } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,15 +12,7 @@ const tiers = [
   { name: 'Diamond', min: 10000000, tone: 'success', benefit: 'Ưu tiên xử lý đơn lớn và support riêng' },
 ];
 
-export default async function RankPage() {
-  const rows = await safeRows(`
-    SELECT id, username, fullname, rank, balance, post_count, is_blue_tick, created_at, last_activity
-    FROM users
-    WHERE status = 'active'
-    ORDER BY balance DESC, post_count DESC, id DESC
-    LIMIT 80
-  `);
-
+export default function RankPage() {
   return (
     <main className="mmo-board mmo-board-page">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -40,44 +31,6 @@ export default async function RankPage() {
                 <div className="mt-2 text-xs font-bold leading-6 text-slate-500 dark:text-slate-400">{tier.benefit}</div>
               </div>
             ))}
-          </div>
-        </SectionPanel>
-
-        <SectionPanel className="space-y-5">
-          <SectionHeader eyebrow="Leaderboard" title="Bảng thành viên nổi bật" description="Danh sách nổi bật giúp bạn theo dõi những tài khoản đang có mức hoạt động và số dư cao trên hệ thống." />
-          <div className="overflow-hidden rounded-[1.7rem] border border-sky-400/20 bg-[#06162a]/78">
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left">
-              <thead className="border-b border-sky-400/15 text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                <tr>
-                  <th className="px-5 py-4">Rank</th>
-                  <th className="px-5 py-4">User</th>
-                  <th className="px-5 py-4">Cấp</th>
-                  <th className="px-5 py-4">Số dư</th>
-                  <th className="px-5 py-4">Bài viết</th>
-                  <th className="px-5 py-4">Hoạt động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                {rows.map((row, index) => (
-                  <tr key={String(row.id)} className="hover:bg-sky-500/10">
-                    <td className="px-5 py-4 font-mono text-lg font-black text-brand-blue">#{index + 1}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 font-black text-white">
-                        {String(row.fullname || row.username)}
-                        {Number(row.is_blue_tick || 0) === 1 ? <Sparkles className="h-4 w-4 text-brand-blue" /> : null}
-                      </div>
-                      <div className="mt-1 text-xs font-bold text-slate-400">@{String(row.username)}</div>
-                    </td>
-                    <td className="px-5 py-4"><Badge variant="muted" className="rounded-full px-3 py-1.5">{String(row.rank || 'Member')}</Badge></td>
-                    <td className="px-5 py-4 font-mono font-black text-emerald-500">{formatCurrency(toNumber(row.balance, 0))}</td>
-                    <td className="px-5 py-4 font-mono font-black text-slate-200">{String(row.post_count || 0)}</td>
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-400">{row.last_activity ? new Date(String(row.last_activity)).toLocaleString('vi-VN') : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
           </div>
         </SectionPanel>
       </div>

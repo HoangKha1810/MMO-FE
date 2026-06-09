@@ -554,7 +554,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       description: 'Đơn Auto MXH.',
       columns: ['id', 'user_id', 'title', 'quantity', 'amount', 'status', 'is_refunded', 'refund_amount', 'created_at'],
       editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'amount', 'quantity', 'buyer_info'],
-      statusOptions: ['pending', 'processing', 'completed', 'failed', 'refunded'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
     },
     {
       resource: 'card-orders',

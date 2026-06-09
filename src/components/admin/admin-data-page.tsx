@@ -87,6 +87,7 @@ const LEGACY_ORDER_STATUS_TABS = [
   { value: 'pending', label: 'Đang chờ' },
   { value: 'processing', label: 'Đang chạy' },
   { value: 'completed', label: 'Hoàn thành' },
+  { value: 'refunded', label: 'Hoàn tiền' },
   { value: 'canceled', label: 'Đã hủy' },
 ] as const;
 const LEGACY_EDITOR_TOOLBAR = [Bold, Italic, Underline, List, ListOrdered, Link2, ImageIcon] as const;
@@ -372,6 +373,7 @@ const STATUS_LABELS: Record<string, string> = {
   partial: 'Một phần',
   canceled: 'Đã hủy',
   cancelled: 'Đã hủy',
+  refund: 'Hoàn tiền',
   refunded: 'Hoàn tiền',
   hidden: 'Ẩn',
   deleted: 'Đã xóa',
@@ -975,6 +977,9 @@ function getLegacyOrderStatusClasses(status: unknown) {
   }
   if (normalized === 'canceled') {
     return 'border-rose-400/30 bg-rose-500/14 text-rose-200';
+  }
+  if (normalized === 'refunded' || normalized === 'refund') {
+    return 'border-amber-400/30 bg-amber-500/14 text-amber-100';
   }
   if (normalized === 'processing') {
     return 'border-cyan-400/30 bg-cyan-500/14 text-cyan-100';
@@ -2272,7 +2277,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
               </div>
             ) : null}
 
-            <div className="grid gap-3 md:grid-cols-5">
+            <div className="grid gap-3 md:grid-cols-6">
               {LEGACY_ORDER_STATUS_TABS.map((tab) => (
                 <button
                   key={tab.value || 'all'}

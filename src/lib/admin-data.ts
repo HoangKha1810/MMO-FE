@@ -771,18 +771,81 @@ function normalizeAutoMxhVariantPatch(input: Record<string, unknown>) {
   return output;
 }
 
-function isAutoMxhCanceledStatus(status: string) {
-  return ['canceled', 'cancelled'].includes(status);
-}
-
 function isAutoMxhRefundedStatus(status: string) {
   return ['refund', 'refunded'].includes(status);
+}
+
+function normalizeAutoMxhOrderStatus(value: unknown, fallback = 'pending') {
+  const normalized = String(value || '').trim().toLowerCase();
+
+  if (['pending', 'processing', 'completed', 'canceled', 'refunded'].includes(normalized)) {
+    return normalized;
+  }
+
+  if (normalized === 'cancelled') {
+    return 'canceled';
+  }
+
+  if (normalized === 'refund') {
+    return 'refunded';
+  }
+
+  return normalized || fallback;
+}
+
+function appendAutoMxhOrderStatusFilter(status: string, conditions: string[], values: unknown[]) {
+  const normalized = normalizeAutoMxhOrderStatus(status);
+
+  if (normalized === 'refunded') {
+    conditions.push(`(
+      LOWER(COALESCE(o.status, '')) IN ('refund', 'refunded')
+      OR COALESCE(o.is_refunded, 0) = 1
+      OR COALESCE(o.refund_amount, 0) > 0
+    )`);
+    return;
+  }
+
+  if (normalized === 'canceled') {
+    conditions.push(`(
+      LOWER(COALESCE(o.status, '')) IN ('canceled', 'cancelled')
+      AND COALESCE(o.is_refunded, 0) = 0
+      AND COALESCE(o.refund_amount, 0) <= 0
+    )`);
+    return;
+  }
+
+  conditions.push('LOWER(COALESCE(o.status, \'\')) = ?');
+  values.push(normalized);
+}
+
+async function ensureAutoMxhOrderStatusColumn() {
+  const columns = await getRawTableColumns('automxh_orders');
+  if (!columns.has('status')) {
+    return columns;
+  }
+
+  const types = await getRawColumnTypes('automxh_orders');
+  const statusType = types.get('status') || '';
+
+  if (!/varchar\(\d+\)/i.test(statusType) && !/enum\(/i.test(statusType)) {
+    return columns;
+  }
+
+  if (statusType.includes('enum(') && !statusType.includes('refunded')) {
+    await db.$executeRawUnsafe(
+      "ALTER TABLE `automxh_orders` MODIFY `status` VARCHAR(40) NOT NULL DEFAULT 'pending'"
+    ).catch(() => undefined);
+    rawTableColumnCache.delete('automxh_orders');
+  }
+
+  return getRawTableColumns('automxh_orders');
 }
 
 let ensuredAutoMxhRefundColumns = false;
 
 async function ensureAutoMxhRefundColumns() {
   const table = 'automxh_orders';
+  await ensureAutoMxhOrderStatusColumn();
   const columns = await getRawTableColumns(table);
   if (ensuredAutoMxhRefundColumns) {
     return columns;
@@ -1303,6 +1366,7 @@ async function listLegacySmmServices(config: ResourceConfig, params: URLSearchPa
 }
 
 async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  await ensureAutoMxhRefundColumns();
   const search = (params.get('search') || '').trim();
   const status = (params.get('status') || '').trim();
   const values: unknown[] = [];
@@ -1324,8 +1388,7 @@ async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearch
   }
 
   if (status && config.statusField) {
-    conditions.push('o.status = ?');
-    values.push(status);
+    appendAutoMxhOrderStatusFilter(status, conditions, values);
   }
 
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -2055,9 +2118,11 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   if (resource === 'automxh-orders' && typeof data.status === 'string') {
     const requestedStatus = String(data.status || '').trim().toLowerCase();
-    if (['canceled', 'cancelled', 'refunded', 'refund'].includes(requestedStatus)) {
-      return cancelAndRefundAutoMxhOrder(id, adminId, req, data);
+    if (['refunded', 'refund'].includes(requestedStatus)) {
+      return refundAutoMxhOrder(id, adminId, req, data);
     }
+    await ensureAutoMxhOrderStatusColumn();
+    data.status = normalizeAutoMxhOrderStatus(data.status);
   }
 
   let updated: unknown;
@@ -2193,7 +2258,7 @@ async function cancelAndRefundSmmOrder(
   return { success: true, data: normalizeValue(result) };
 }
 
-async function cancelAndRefundAutoMxhOrder(
+async function refundAutoMxhOrder(
   id: number,
   adminId: number,
   req: NextRequest,
@@ -2213,12 +2278,11 @@ async function cancelAndRefundAutoMxhOrder(
 
     const currentStatus = String(order.status || '').trim().toLowerCase();
     const alreadyRefunded =
-      isAutoMxhCanceledStatus(currentStatus) ||
       isAutoMxhRefundedStatus(currentStatus) ||
       Boolean(toNumber(order.is_refunded, 0)) ||
       toNumber(order.refund_amount, 0) > 0;
 
-    const normalizedStatus = String(patch.status || 'canceled').trim() || 'canceled';
+    const normalizedStatus = normalizeAutoMxhOrderStatus(patch.status || 'refunded', 'refunded');
     const reason = typeof patch.reason === 'string' ? patch.reason.trim() : '';
 
     if (alreadyRefunded) {
@@ -2253,7 +2317,7 @@ async function cancelAndRefundAutoMxhOrder(
       updated_at: new Date(),
       refund_amount: refundAmount,
       is_refunded: 1,
-      reason: reason || `Canceled & refunded by admin #${adminId}`,
+      reason: reason || `Refunded by admin #${adminId}`,
     });
 
     const updatedUser = await tx.users.update({
@@ -2273,7 +2337,7 @@ async function cancelAndRefundAutoMxhOrder(
         balance_after: nextBalance,
         type: 'refund',
         status: 'success',
-        content: `Hoàn tiền đơn Auto MXH #${id} do admin hủy`,
+        content: `Hoàn tiền đơn Auto MXH #${id} do admin chọn Hoàn tiền`,
       },
     }).catch(() => undefined);
 
@@ -2292,7 +2356,7 @@ async function cancelAndRefundAutoMxhOrder(
     return updatedRows[0] || order;
   });
 
-  await logAdminAction({ adminId, action: 'cancel refund automxh order', target: `#${id}`, req });
+  await logAdminAction({ adminId, action: 'refund automxh order', target: `#${id}`, req });
   return { success: true, data: normalizeValue(result) };
 }
 
