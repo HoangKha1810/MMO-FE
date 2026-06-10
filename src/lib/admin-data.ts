@@ -16,6 +16,7 @@ import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { clearSmmServicesCache } from '@/lib/smm-provider';
 import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
+import { ensureVibeCodeTables } from '@/lib/vibe-code';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -158,6 +159,23 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     statusField: 'status',
     rawOrder: 'updated_at DESC, id DESC',
     updateFields: ['contact', 'gmail', 'quantity', 'price', 'note', 'admin_note', 'status'],
+  },
+  'vibe-code-packages': {
+    table: 'vibe_code_packages',
+    title: 'Vibe Code packages',
+    searchFields: ['provider', 'package_key', 'title', 'description', 'status'],
+    statusField: 'status',
+    rawOrder: 'provider ASC, display_order ASC, id ASC',
+    createFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
+    updateFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
+  },
+  'vibe-code-orders': {
+    table: 'vibe_code_orders',
+    title: 'Vibe Code orders',
+    searchFields: ['order_code', 'provider', 'package_key', 'package_title', 'status', 'admin_note'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    updateFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
   },
   resources: {
     table: 'mmo_resources',
@@ -3364,6 +3382,10 @@ async function getActualRawTable(config: ResourceConfig) {
 
   if (config.table === 'meta_support_orders') {
     await ensureMetaSupportOrdersTable();
+  }
+
+  if (config.table === 'vibe_code_packages' || config.table === 'vibe_code_orders') {
+    await ensureVibeCodeTables();
   }
 
   return config.table!;

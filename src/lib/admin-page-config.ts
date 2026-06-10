@@ -150,6 +150,25 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       statusOptions: ['pending', 'processing', 'completed', 'canceled'],
     },
   ],
+  'vibe-code': [
+    {
+      resource: 'vibe-code-packages',
+      title: 'Bảng giá Vibe Code',
+      description: 'Chỉnh giá nguồn và giá bán Cursor AI/Codex API. Khách chỉ thấy giá bán, admin giữ giá nguồn để tính lời.',
+      columns: ['id', 'provider', 'package_key', 'title', 'unit_amount', 'unit_label', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status', 'updated_at'],
+      editableFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
+      createFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
+      statusOptions: ['active', 'inactive'],
+    },
+    {
+      resource: 'vibe-code-orders',
+      title: 'Đơn Vibe Code',
+      description: 'Đơn khách đã mua, mã đơn gửi admin và trạng thái xử lý/cấp gói.',
+      columns: ['id', 'order_code', 'user_id', 'provider', 'package_title', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'status', 'admin_note', 'created_at'],
+      editableFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+    },
+  ],
   'support-tiktok': [
     {
       resource: 'tiktok-orders',
