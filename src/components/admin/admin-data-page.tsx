@@ -224,6 +224,10 @@ const COLUMN_LABELS: Record<string, string> = {
   unit_label: 'Đơn vị',
   source_price_vnd: 'Giá nguồn',
   sale_price_vnd: 'Giá bán',
+  publication_key: 'Mã đầu báo',
+  publication_id: 'Đầu báo ID',
+  publication_name: 'Đầu báo',
+  docx_path: 'File DOCX',
   product_count: 'Số product',
   variant_count: 'Số variant',
   tiktok_id: 'TikTok ID',
@@ -2825,6 +2829,16 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                                 <Badge variant={pinned ? 'warning' : 'muted'} className="w-fit rounded-full px-3 py-1.5">
                                   {pinned ? 'Đang ghim' : 'Không'}
                                 </Badge>
+                              ) : column === 'docx_path' && row[column] ? (
+                                <a
+                                  href={String(row[column])}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-2 rounded-full border border-brand-blue/20 bg-brand-blue/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-brand-blue hover:text-blue-300"
+                                >
+                                  <Link2 className="h-3.5 w-3.5" />
+                                  Mở file
+                                </a>
                               ) : isStatusColumn(column) ? (
                                 <Badge variant={statusBadgeVariant(row[column])} className="w-fit rounded-full px-3 py-1.5">
                                   {formatCell(row[column], column)}

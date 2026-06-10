@@ -17,6 +17,7 @@ import { clearSmmServicesCache } from '@/lib/smm-provider';
 import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
 import { ensureVibeCodeTables } from '@/lib/vibe-code';
+import { ensurePressServiceTables } from '@/lib/press-service';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -176,6 +177,23 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     statusField: 'status',
     rawOrder: 'created_at DESC, id DESC',
     updateFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
+  },
+  'press-publications': {
+    table: 'press_publications',
+    title: 'Bảng giá báo chí',
+    searchFields: ['publication_key', 'name', 'url', 'note', 'status'],
+    statusField: 'status',
+    rawOrder: 'display_order ASC, id ASC',
+    createFields: ['publication_key', 'name', 'url', 'price_vnd', 'note', 'display_order', 'status'],
+    updateFields: ['publication_key', 'name', 'url', 'price_vnd', 'note', 'display_order', 'status'],
+  },
+  'press-orders': {
+    table: 'press_orders',
+    title: 'Đơn lên báo',
+    searchFields: ['order_code', 'publication_name', 'title', 'contact', 'status', 'admin_note'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    updateFields: ['status', 'admin_note', 'publication_name', 'title', 'contact', 'note', 'docx_path', 'price_vnd'],
   },
   resources: {
     table: 'mmo_resources',
@@ -3386,6 +3404,10 @@ async function getActualRawTable(config: ResourceConfig) {
 
   if (config.table === 'vibe_code_packages' || config.table === 'vibe_code_orders') {
     await ensureVibeCodeTables();
+  }
+
+  if (config.table === 'press_publications' || config.table === 'press_orders') {
+    await ensurePressServiceTables();
   }
 
   return config.table!;

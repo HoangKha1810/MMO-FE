@@ -326,6 +326,7 @@ function formatBreadcrumb(pathname: string) {
     'game-accounts': 'Tài khoản game',
     'random-game-accounts': 'Random tài khoản game',
     'vibe-code': 'Vibe Code',
+    press: 'Lên báo',
     'find-job': 'Find Job MMO',
     history: 'Lịch Sử',
     statistics: 'Thông Tin Tài Khoản',

@@ -169,6 +169,25 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
     },
   ],
+  press: [
+    {
+      resource: 'press-publications',
+      title: 'Bảng giá báo chí',
+      description: 'Thêm/sửa đầu báo, URL, giá bán và ghi chú hiển thị cho khách.',
+      columns: ['id', 'publication_key', 'name', 'url', 'price_vnd', 'note', 'display_order', 'status', 'updated_at'],
+      editableFields: ['publication_key', 'name', 'url', 'price_vnd', 'note', 'display_order', 'status'],
+      createFields: ['publication_key', 'name', 'url', 'price_vnd', 'note', 'display_order', 'status'],
+      statusOptions: ['active', 'inactive'],
+    },
+    {
+      resource: 'press-orders',
+      title: 'Đơn lên báo',
+      description: 'Đơn khách đã thanh toán, file DOCX upload và ghi chú xử lý của admin.',
+      columns: ['id', 'order_code', 'user_id', 'publication_name', 'title', 'contact', 'docx_path', 'price_vnd', 'status', 'admin_note', 'created_at'],
+      editableFields: ['status', 'admin_note', 'publication_name', 'title', 'contact', 'note', 'docx_path', 'price_vnd'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+    },
+  ],
   'support-tiktok': [
     {
       resource: 'tiktok-orders',
