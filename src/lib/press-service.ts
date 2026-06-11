@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { getUtcDatabaseDateTime } from '@/lib/date-time';
 import { toNumber } from '@/lib/utils';
 
 export type PressPublicationRow = {
@@ -239,26 +240,30 @@ export async function ensurePressServiceTables() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    const now = getUtcDatabaseDateTime();
     for (const item of DEFAULT_PRESS_PUBLICATIONS) {
       await db.$executeRawUnsafe(
         `
           INSERT INTO press_publications
-            (publication_key, name, url, price_vnd, note, display_order, status)
-          VALUES (?, ?, ?, ?, ?, ?, 'active')
+            (publication_key, name, url, price_vnd, note, display_order, status, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
           ON DUPLICATE KEY UPDATE
             name = VALUES(name),
             url = VALUES(url),
             price_vnd = IF(COALESCE(price_vnd, 0) <= 0, VALUES(price_vnd), price_vnd),
             note = IF(COALESCE(note, '') = '', VALUES(note), note),
             display_order = VALUES(display_order),
-            status = IF(COALESCE(status, '') = '', 'active', status)
+            status = IF(COALESCE(status, '') = '', 'active', status),
+            updated_at = VALUES(updated_at)
         `,
         item.key,
         item.name,
         item.url,
         item.price,
         item.note,
-        item.order
+        item.order,
+        now,
+        now
       );
     }
   })();
@@ -335,6 +340,7 @@ export async function createPressOrder(input: {
       throw new Error('Đầu báo này chưa có giá bán hợp lệ');
     }
 
+    const now = getUtcDatabaseDateTime();
     const updated = await tx.$executeRawUnsafe(
       `
         UPDATE users
@@ -359,8 +365,8 @@ export async function createPressOrder(input: {
     await tx.$executeRawUnsafe(
       `
         INSERT INTO press_orders
-          (order_code, user_id, publication_id, publication_name, title, contact, note, docx_path, price_vnd, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+          (order_code, user_id, publication_id, publication_name, title, contact, note, docx_path, price_vnd, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
       `,
       orderCode,
       input.userId,
@@ -370,7 +376,9 @@ export async function createPressOrder(input: {
       input.contact || null,
       input.note || null,
       input.docxPath,
-      price
+      price,
+      now,
+      now
     );
 
     await tx.transactions.create({

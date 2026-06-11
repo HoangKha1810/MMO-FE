@@ -90,6 +90,17 @@ export function getVietnamDatabaseDateTime(value = new Date()) {
   return formatDateParts(partsFromAbsoluteDate(value));
 }
 
+export function getUtcDatabaseDateTime(value = new Date()) {
+  return formatDateParts({
+    year: value.getUTCFullYear(),
+    month: value.getUTCMonth() + 1,
+    day: value.getUTCDate(),
+    hour: value.getUTCHours(),
+    minute: value.getUTCMinutes(),
+    second: value.getUTCSeconds(),
+  });
+}
+
 export function addDaysToDatabaseDateTime(value: string, days: number) {
   const match = value.match(databaseDatePattern);
   if (!match) {

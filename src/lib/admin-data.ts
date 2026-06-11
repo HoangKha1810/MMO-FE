@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
-import { getVietnamDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
+import { getUtcDatabaseDateTime, getVietnamDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
 import { isTrackableIp } from '@/lib/ip-security';
@@ -1060,6 +1060,14 @@ async function normalizeRawTablePayload(table: string, data: Record<string, unkn
 
   if (table === 'vibe_code_packages' || table === 'vibe_code_orders') {
     const now = getVietnamDatabaseDateTime();
+    if (columnTypes.has('updated_at')) {
+      output.updated_at = now;
+    }
+    return output;
+  }
+
+  if (table === 'press_publications' || table === 'press_orders') {
+    const now = getUtcDatabaseDateTime();
     if (columnTypes.has('updated_at')) {
       output.updated_at = now;
     }
@@ -3358,7 +3366,12 @@ async function insertRawTable(config: ResourceConfig, data: Record<string, unkno
   if (config.table === 'find_jobs') {
     await ensureFindJobPinColumn(table as 'find_job_jobs' | 'find_jobs');
   }
-  const filteredData = await normalizeRawTablePayload(table, await filterRawTableData(table, data));
+  const payload = { ...data };
+  const columnsInTable = await getRawTableColumns(table);
+  if ((table === 'press_publications' || table === 'press_orders') && columnsInTable.has('created_at') && payload.created_at === undefined) {
+    payload.created_at = getUtcDatabaseDateTime();
+  }
+  const filteredData = await normalizeRawTablePayload(table, await filterRawTableData(table, payload));
   const fields = Object.keys(filteredData);
   if (fields.length === 0) {
     throw new Error('Không có field hợp lệ với bảng hiện tại');
