@@ -2,12 +2,15 @@
 
 import { type ComponentType, useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   CheckCircle2,
   Clipboard,
   Copy,
   Loader2,
   PackageCheck,
+  ShieldCheck,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
@@ -51,68 +54,32 @@ type BrandIconProps = {
   className?: string;
 };
 
-function CursorBrandIcon({ className }: BrandIconProps) {
+function BrandLogoIcon({
+  className,
+  src,
+  alt,
+}: BrandIconProps & {
+  src: string;
+  alt: string;
+}) {
   return (
     <span
       className={cn(
-        'inline-flex items-center justify-center rounded-[1.05rem] bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 text-white shadow-[0_18px_42px_-22px_rgba(59,130,246,0.95)]',
+        'inline-flex items-center justify-center overflow-hidden rounded-[1.05rem] bg-white shadow-[0_18px_42px_-22px_rgba(15,23,42,0.9)] ring-1 ring-slate-200/80 dark:ring-white/15',
         className
       )}
     >
-      <svg viewBox="0 0 32 32" className="h-[58%] w-[58%]" fill="none" aria-hidden="true">
-        <path
-          d="M7.4 5.8 25.9 14.4l-8.2 3.3-3.3 8.1L7.4 5.8Z"
-          stroke="currentColor"
-          strokeWidth="2.45"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="m17.5 17.5 7 7"
-          stroke="currentColor"
-          strokeWidth="2.45"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <img src={src} alt={alt} className="h-full w-full object-cover" loading="lazy" />
     </span>
   );
 }
 
+function CursorBrandIcon({ className }: BrandIconProps) {
+  return <BrandLogoIcon className={className} src="/brand/cursor-ai-logo.png" alt="Cursor AI" />;
+}
+
 function CodexBrandIcon({ className }: BrandIconProps) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center justify-center rounded-[1.05rem] bg-gradient-to-br from-teal-400 via-cyan-500 to-sky-500 text-white shadow-[0_18px_42px_-22px_rgba(6,182,212,0.95)]',
-        className
-      )}
-    >
-      <svg viewBox="0 0 32 32" className="h-[56%] w-[56%]" fill="none" aria-hidden="true">
-        <rect
-          x="6"
-          y="6"
-          width="20"
-          height="20"
-          rx="2.8"
-          stroke="currentColor"
-          strokeWidth="2.35"
-        />
-        <path
-          d="m12 13 4.1 3L12 19"
-          stroke="currentColor"
-          strokeWidth="2.35"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M18.5 20H22"
-          stroke="currentColor"
-          strokeWidth="2.35"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
-  );
+  return <BrandLogoIcon className={className} src="/brand/codex-ai-logo.svg" alt="Codex AI" />;
 }
 
 const providerMeta: Record<VibeCodeProvider, {
@@ -197,6 +164,12 @@ function formatAmount(pack: VibeCodePackage) {
   return `${new Intl.NumberFormat('vi-VN').format(amount)} request`;
 }
 
+function packageDiscount(pack: VibeCodePackage, index: number) {
+  if (pack.provider === 'codex') return [10, 18, 24, 32, 40][index % 5];
+  if (pack.unit_label?.toLowerCase().includes('ngày')) return [9, 14, 25, 29][index % 4];
+  return [9, 25, 18, 16, 27][index % 5];
+}
+
 function formatDateTime(value?: string) {
   if (!value) return '-';
   const date = new Date(value);
@@ -219,6 +192,7 @@ export function VibeCodePage() {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [lastOrder, setLastOrder] = useState<VibeCodeOrder | null>(null);
+  const [confirmPackage, setConfirmPackage] = useState<VibeCodePackage | null>(null);
 
   const grouped = useMemo(() => ({
     cursor: packages.filter((item) => item.provider === 'cursor'),
@@ -286,7 +260,7 @@ export function VibeCodePage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ package_id: pack.id }),
+        body: JSON.stringify({ package_id: pack.id, confirm: true }),
       });
       const payload = await readJsonResponse<{
         success: boolean;
@@ -305,6 +279,7 @@ export function VibeCodePage() {
       } else {
         await loadOrders();
       }
+      setConfirmPackage(null);
       toast.success(payload.message || 'Đã tạo đơn Vibe Code');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không mua được gói Vibe Code');
@@ -335,7 +310,7 @@ export function VibeCodePage() {
                 packages={grouped[provider]}
                 loading={loading}
                 purchasingId={purchasingId}
-                onBuy={buyPackage}
+                onBuy={setConfirmPackage}
               />
             ))}
           </div>
@@ -413,6 +388,73 @@ export function VibeCodePage() {
             </section>
           </aside>
         </div>
+
+        {confirmPackage ? (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/75 px-4 py-6 backdrop-blur-sm">
+            <div className="w-full max-w-xl overflow-hidden rounded-[1.2rem] border border-white/15 bg-slate-950 shadow-[0_30px_90px_-35px_rgba(37,99,235,0.7)]">
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/25 bg-amber-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-amber-200">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Xác nhận thanh toán
+                  </div>
+                  <h3 className="mt-4 text-2xl font-black uppercase leading-tight text-white">
+                    Đồng ý mua gói này?
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-slate-300 transition hover:bg-white/[0.1] hover:text-white disabled:opacity-50"
+                  onClick={() => setConfirmPackage(null)}
+                  disabled={purchasingId === confirmPackage.id}
+                  aria-label="Đóng xác nhận"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-5 p-5">
+                <div className="rounded-[1rem] border border-brand-blue/25 bg-brand-blue/10 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Gói đang chọn</div>
+                      <div className="mt-2 break-words text-xl font-black text-white">{confirmPackage.title}</div>
+                      <div className="mt-1 text-sm font-bold text-cyan-200">{formatAmount(confirmPackage)}</div>
+                    </div>
+                    <div className="rounded-[0.9rem] border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-right">
+                      <div className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-300">Số tiền trừ</div>
+                      <div className="mt-1 whitespace-nowrap font-mono text-lg font-black text-emerald-300">
+                        {formatCurrency(confirmPackage.sale_price_vnd)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1rem] border border-amber-300/25 bg-amber-400/10 p-4 text-sm font-semibold leading-7 text-amber-50">
+                  Sau khi bấm đồng ý, hệ thống mới trừ tiền từ ví chính và tạo mã đơn. Vui lòng kiểm tra đúng gói, đúng giá trước khi thanh toán.
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setConfirmPackage(null)}
+                    disabled={purchasingId === confirmPackage.id}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    loading={purchasingId === confirmPackage.id}
+                    loadingText="Đang thanh toán"
+                    onClick={() => buyPackage(confirmPackage)}
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Đồng ý thanh toán
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </AppShell>
   );
@@ -429,7 +471,7 @@ function ProviderPricing({
   packages: VibeCodePackage[];
   loading: boolean;
   purchasingId: number | null;
-  onBuy: (pack: VibeCodePackage) => Promise<void>;
+  onBuy: (pack: VibeCodePackage) => void;
 }) {
   const meta = providerMeta[provider];
   const Icon = meta.icon;
@@ -446,51 +488,63 @@ function ProviderPricing({
       />
 
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
           {Array.from({ length: provider === 'cursor' ? 6 : 5 }).map((_, index) => (
-            <div key={index} className="h-44 animate-pulse rounded-[1rem] border border-white/10 bg-white/[0.04]" />
+            <div key={index} className="h-80 animate-pulse rounded-[1.35rem] border border-pink-200/40 bg-pink-50/60 dark:border-white/10 dark:bg-white/[0.04]" />
           ))}
         </div>
       ) : packages.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {packages.map((pack) => (
+        <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
+          {packages.map((pack, index) => (
             <article
               key={pack.id}
-              className="group relative min-w-0 overflow-hidden rounded-[1rem] border border-slate-200/70 bg-white/80 p-5 shadow-[0_20px_55px_-38px_rgba(15,23,42,0.24)] transition-all hover:-translate-y-0.5 hover:border-brand-blue/35 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_-45px_rgba(37,99,235,0.45)]"
+              className="group relative min-w-0 overflow-hidden rounded-[1.35rem] border border-pink-200/80 bg-gradient-to-b from-pink-50 via-white to-white p-5 text-slate-950 shadow-[0_24px_65px_-36px_rgba(236,72,153,0.45)] transition-all hover:-translate-y-1 hover:border-pink-300 hover:shadow-[0_30px_80px_-36px_rgba(236,72,153,0.6)]"
             >
-              <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', meta.accent)} />
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 space-y-3">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/5 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:bg-white/[0.04] dark:text-slate-400">
-                    <Sparkles className="h-3 w-3" />
-                    {provider === 'codex' ? 'API' : 'Cursor'}
-                  </div>
-                  <h3 className="break-words text-lg font-black uppercase leading-[1.18] text-slate-950 dark:text-white">
-                    {pack.title}
-                  </h3>
-                </div>
-                <Icon className="h-11 w-11 shrink-0" />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,114,182,0.18),transparent_34%),radial-gradient(circle_at_82%_8%,rgba(251,207,232,0.22),transparent_28%)]" />
+              <div className="absolute left-0 top-0 z-10 overflow-hidden rounded-br-[1rem] text-[11px] font-black">
+                <div className="bg-pink-500 px-3 py-1 text-white">Hot!</div>
+                <div className="bg-emerald-500 px-3 py-1 text-white">-{packageDiscount(pack, index)}%</div>
+              </div>
+              <div className="absolute right-4 top-4 z-10 rounded-full border border-pink-200/80 bg-white/80 px-3 py-1 text-[11px] font-bold text-pink-500 shadow-sm">
+                {meta.title}
               </div>
 
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-[0.85rem] border border-slate-200/70 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-slate-950/35">
-                  <div className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">Gói</div>
-                  <div className="mt-2 whitespace-nowrap font-mono text-lg font-black text-slate-950 dark:text-white">{formatAmount(pack)}</div>
+              <div className="relative pt-8 text-center">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[1.4rem] bg-white shadow-[0_22px_50px_-26px_rgba(15,23,42,0.9)] ring-1 ring-pink-100 dark:bg-white/95">
+                  <Icon className="h-20 w-20 rounded-[1.15rem]" />
                 </div>
-                <div className="rounded-[0.85rem] border border-emerald-500/20 bg-emerald-500/10 p-3">
-                  <div className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-500/90">Giá bán</div>
-                  <div className="mt-2 whitespace-nowrap font-mono text-lg font-black text-emerald-400">{formatCurrency(pack.sale_price_vnd)}</div>
+
+                <h3 className="mt-5 min-h-[3.1rem] text-balance text-lg font-black leading-tight text-slate-950">
+                  {pack.title}
+                </h3>
+                <div className="mt-1 text-sm font-black text-slate-700">{formatAmount(pack)}</div>
+                <div className="mt-4 font-mono text-2xl font-black text-slate-950">
+                  {formatCurrency(pack.sale_price_vnd)}
+                </div>
+
+                <div className="mt-5 space-y-2 rounded-[1rem] border border-pink-100/80 bg-white/70 p-4 text-left text-xs font-semibold text-slate-600 shadow-inner">
+                  {[
+                    'Tốc độ cao',
+                    provider === 'codex' ? 'Nhận mã Codex API' : 'Sử dụng AI model và Max',
+                    'Có giới hạn theo gói',
+                    'Admin hướng dẫn sau khi nhận mã đơn',
+                  ].map((feature) => (
+                    <div key={feature} className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pink-500" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <Button
-                className="mt-5 w-full"
+                className="relative mt-5 w-full rounded-[0.9rem] bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white shadow-[0_18px_38px_-22px_rgba(219,39,119,0.85)] hover:from-pink-500 hover:to-fuchsia-600"
                 loading={purchasingId === pack.id}
                 loadingText="Đang mua"
                 onClick={() => onBuy(pack)}
               >
-                <CheckCircle2 className="h-4 w-4" />
-                Mua gói
+                <Sparkles className="h-4 w-4" />
+                Xem sản phẩm
               </Button>
             </article>
           ))}

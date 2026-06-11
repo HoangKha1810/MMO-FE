@@ -342,10 +342,6 @@ export function PressPage() {
                       <div className="mt-2 font-mono text-2xl font-black text-emerald-400">{formatCurrency(item.price_vnd)}</div>
                     </div>
 
-                    <p className="mt-4 min-h-12 text-sm font-semibold leading-6 text-slate-500 dark:text-slate-400">
-                      {item.note || 'Admin sẽ kiểm tra chuyên mục, số chữ, ảnh và link theo đầu báo.'}
-                    </p>
-
                     <Button className="mt-5 w-full" onClick={() => setSelected(item)}>
                       <CheckCircle2 className="h-4 w-4" />
                       Đặt bài

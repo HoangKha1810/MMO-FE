@@ -44,6 +44,12 @@ export async function POST(req: Request) {
     if (!packageId) {
       return NextResponse.json({ success: false, message: 'Thiếu gói Vibe Code cần mua' }, { status: 400, headers: noStoreHeaders });
     }
+    if (body?.confirm !== true) {
+      return NextResponse.json(
+        { success: false, message: 'Vui lòng xác nhận đồng ý thanh toán trước khi mua gói Vibe Code' },
+        { status: 400, headers: noStoreHeaders }
+      );
+    }
 
     const result = await createVibeCodeOrder(userId, packageId);
     return NextResponse.json({

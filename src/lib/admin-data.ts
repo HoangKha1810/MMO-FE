@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
-import { serializeDatabaseDateTime } from '@/lib/date-time';
+import { getVietnamDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
 import { isTrackableIp } from '@/lib/ip-security';
@@ -1055,6 +1055,14 @@ async function normalizeRawTablePayload(table: string, data: Record<string, unkn
     if ('quantity' in output) output.quantity = Math.max(1, normalizeOptionalInteger(output.quantity, 1));
     if ('price' in output) output.price = normalizeOptionalNumber(output.price, 0);
     if ('status' in output) output.status = normalizeMetaSupportStatus(output.status);
+    return output;
+  }
+
+  if (table === 'vibe_code_packages' || table === 'vibe_code_orders') {
+    const now = getVietnamDatabaseDateTime();
+    if (columnTypes.has('updated_at')) {
+      output.updated_at = now;
+    }
     return output;
   }
 

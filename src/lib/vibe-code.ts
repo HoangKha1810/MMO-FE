@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { getVietnamDatabaseDateTime } from '@/lib/date-time';
 import { toNumber } from '@/lib/utils';
 
 export type VibeCodeProvider = 'cursor' | 'codex';
@@ -261,13 +262,15 @@ export async function createVibeCodeOrder(userId: number, packageId: number) {
       throw new Error('Gói Vibe Code chưa có giá bán hợp lệ');
     }
 
+    const createdAt = getVietnamDatabaseDateTime();
     const updated = await tx.$executeRawUnsafe(
       `
         UPDATE users
-        SET balance = balance - ?, last_activity = NOW()
+        SET balance = balance - ?, last_activity = ?
         WHERE id = ? AND balance >= ?
       `,
       price,
+      createdAt,
       userId,
       price
     );
@@ -285,8 +288,8 @@ export async function createVibeCodeOrder(userId: number, packageId: number) {
     await tx.$executeRawUnsafe(
       `
         INSERT INTO vibe_code_orders
-          (order_code, user_id, package_id, provider, package_key, package_title, unit_amount, source_price_vnd, sale_price_vnd, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+          (order_code, user_id, package_id, provider, package_key, package_title, unit_amount, source_price_vnd, sale_price_vnd, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
       `,
       orderCode,
       userId,
@@ -296,7 +299,9 @@ export async function createVibeCodeOrder(userId: number, packageId: number) {
       selectedPackage.title,
       selectedPackage.unit_amount,
       selectedPackage.source_price_vnd,
-      price
+      price,
+      createdAt,
+      createdAt
     );
 
     await tx.transactions.create({
