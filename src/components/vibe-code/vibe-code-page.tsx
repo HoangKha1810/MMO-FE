@@ -1,16 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { type ComponentType, useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
   Clipboard,
-  Code2,
   Copy,
   Loader2,
-  MousePointer2,
   PackageCheck,
   Sparkles,
-  TerminalSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
@@ -50,25 +47,93 @@ type VibeCodeOrder = {
   created_at?: string;
 };
 
+type BrandIconProps = {
+  className?: string;
+};
+
+function CursorBrandIcon({ className }: BrandIconProps) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center justify-center rounded-[1.05rem] bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 text-white shadow-[0_18px_42px_-22px_rgba(59,130,246,0.95)]',
+        className
+      )}
+    >
+      <svg viewBox="0 0 32 32" className="h-[58%] w-[58%]" fill="none" aria-hidden="true">
+        <path
+          d="M7.4 5.8 25.9 14.4l-8.2 3.3-3.3 8.1L7.4 5.8Z"
+          stroke="currentColor"
+          strokeWidth="2.45"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="m17.5 17.5 7 7"
+          stroke="currentColor"
+          strokeWidth="2.45"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
+function CodexBrandIcon({ className }: BrandIconProps) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center justify-center rounded-[1.05rem] bg-gradient-to-br from-teal-400 via-cyan-500 to-sky-500 text-white shadow-[0_18px_42px_-22px_rgba(6,182,212,0.95)]',
+        className
+      )}
+    >
+      <svg viewBox="0 0 32 32" className="h-[56%] w-[56%]" fill="none" aria-hidden="true">
+        <rect
+          x="6"
+          y="6"
+          width="20"
+          height="20"
+          rx="2.8"
+          stroke="currentColor"
+          strokeWidth="2.35"
+        />
+        <path
+          d="m12 13 4.1 3L12 19"
+          stroke="currentColor"
+          strokeWidth="2.35"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M18.5 20H22"
+          stroke="currentColor"
+          strokeWidth="2.35"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
 const providerMeta: Record<VibeCodeProvider, {
   title: string;
   eyebrow: string;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<BrandIconProps>;
   accent: string;
 }> = {
   cursor: {
     title: 'Cursor AI',
     eyebrow: 'Request và Pro',
     description: 'Gói request hoặc Pro theo ngày, nhận mã đơn để admin hướng dẫn kích hoạt đúng gói.',
-    icon: MousePointer2,
+    icon: CursorBrandIcon,
     accent: 'from-sky-500 via-blue-500 to-indigo-500',
   },
   codex: {
     title: 'Codex API',
     eyebrow: 'API credit',
     description: 'Gói Codex API theo mốc USD: 10$, 50$, 100$, 200$ và 400$.',
-    icon: TerminalSquare,
+    icon: CodexBrandIcon,
     accent: 'from-emerald-400 via-cyan-500 to-blue-500',
   },
 };
@@ -376,9 +441,7 @@ function ProviderPricing({
         title={meta.title}
         description={meta.description}
         actions={
-          <span className={cn('inline-flex h-11 w-11 items-center justify-center rounded-[0.9rem] bg-gradient-to-br text-white shadow-lg', meta.accent)}>
-            <Icon className="h-5 w-5" />
-          </span>
+          <Icon className="h-11 w-11" />
         }
       />
 
@@ -406,9 +469,7 @@ function ProviderPricing({
                     {pack.title}
                   </h3>
                 </div>
-                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] border border-brand-blue/20 bg-brand-blue/10 text-brand-blue">
-                  <Code2 className="h-5 w-5" />
-                </span>
+                <Icon className="h-11 w-11 shrink-0" />
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
@@ -435,7 +496,7 @@ function ProviderPricing({
           ))}
         </div>
       ) : (
-        <EmptyState title="Chưa có gói" description="Admin chưa bật gói cho mục này." icon={<Code2 className="h-5 w-5" />} />
+        <EmptyState title="Chưa có gói" description="Admin chưa bật gói cho mục này." icon={<Icon className="h-10 w-10" />} />
       )}
     </section>
   );
