@@ -65,7 +65,7 @@ function BrandLogoIcon({
   return (
     <span
       className={cn(
-        'inline-flex items-center justify-center overflow-hidden rounded-[1.05rem] bg-white shadow-[0_18px_42px_-22px_rgba(15,23,42,0.9)] ring-1 ring-slate-200/80 dark:ring-white/15',
+        'inline-flex items-center justify-center overflow-hidden rounded-[1.05rem] border border-white/10 bg-slate-950/70 shadow-[0_18px_42px_-22px_rgba(15,23,42,0.9)] ring-1 ring-cyan-200/10',
         className
       )}
     >
@@ -490,7 +490,10 @@ function ProviderPricing({
       {loading ? (
         <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
           {Array.from({ length: provider === 'cursor' ? 6 : 5 }).map((_, index) => (
-            <div key={index} className="h-80 animate-pulse rounded-[1.35rem] border border-pink-200/40 bg-pink-50/60 dark:border-white/10 dark:bg-white/[0.04]" />
+            <div
+              key={index}
+              className="h-80 animate-pulse rounded-[1.35rem] border border-brand-blue/15 bg-slate-950/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            />
           ))}
         </div>
       ) : packages.length > 0 ? (
@@ -498,31 +501,32 @@ function ProviderPricing({
           {packages.map((pack, index) => (
             <article
               key={pack.id}
-              className="group relative min-w-0 overflow-hidden rounded-[1.35rem] border border-pink-200/80 bg-gradient-to-b from-pink-50 via-white to-white p-5 text-slate-950 shadow-[0_24px_65px_-36px_rgba(236,72,153,0.45)] transition-all hover:-translate-y-1 hover:border-pink-300 hover:shadow-[0_30px_80px_-36px_rgba(236,72,153,0.6)]"
+              className="group relative min-w-0 overflow-hidden rounded-[1.35rem] border border-brand-blue/20 bg-[linear-gradient(145deg,rgba(8,22,46,0.98)_0%,rgba(9,34,63,0.94)_48%,rgba(6,53,63,0.86)_100%)] p-5 text-white shadow-[0_28px_78px_-42px_rgba(14,165,233,0.55)] transition-all hover:-translate-y-1 hover:border-cyan-300/35 hover:shadow-[0_34px_90px_-44px_rgba(20,184,166,0.58)]"
             >
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,114,182,0.18),transparent_34%),radial-gradient(circle_at_82%_8%,rgba(251,207,232,0.22),transparent_28%)]" />
-              <div className="absolute left-0 top-0 z-10 overflow-hidden rounded-br-[1rem] text-[11px] font-black">
-                <div className="bg-pink-500 px-3 py-1 text-white">Hot!</div>
-                <div className="bg-emerald-500 px-3 py-1 text-white">-{packageDiscount(pack, index)}%</div>
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(37,99,235,0.28),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(20,184,166,0.22),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),transparent_40%)]" />
+              <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/45 to-transparent" />
+              <div className="absolute left-0 top-0 z-10 overflow-hidden rounded-br-[1rem] border-b border-r border-white/10 text-[11px] font-black">
+                <div className="bg-amber-400/20 px-3 py-1 text-amber-100">Hot!</div>
+                <div className="bg-emerald-400/20 px-3 py-1 text-emerald-100">-{packageDiscount(pack, index)}%</div>
               </div>
-              <div className="absolute right-4 top-4 z-10 rounded-full border border-pink-200/80 bg-white/80 px-3 py-1 text-[11px] font-bold text-pink-500 shadow-sm">
+              <div className="absolute right-4 top-4 z-10 rounded-full border border-cyan-300/20 bg-slate-950/70 px-3 py-1 text-[11px] font-bold text-cyan-100 shadow-[0_14px_32px_-24px_rgba(34,211,238,0.85)] backdrop-blur">
                 {meta.title}
               </div>
 
               <div className="relative pt-8 text-center">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[1.4rem] bg-white shadow-[0_22px_50px_-26px_rgba(15,23,42,0.9)] ring-1 ring-pink-100 dark:bg-white/95">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[1.4rem] border border-white/10 bg-slate-950/65 p-2 shadow-[0_22px_54px_-28px_rgba(14,165,233,0.8)] ring-1 ring-cyan-200/10">
                   <Icon className="h-20 w-20 rounded-[1.15rem]" />
                 </div>
 
-                <h3 className="mt-5 min-h-[3.1rem] text-balance text-lg font-black leading-tight text-slate-950">
+                <h3 className="mt-5 min-h-[3.1rem] text-balance text-lg font-black leading-tight text-white">
                   {pack.title}
                 </h3>
-                <div className="mt-1 text-sm font-black text-slate-700">{formatAmount(pack)}</div>
-                <div className="mt-4 font-mono text-2xl font-black text-slate-950">
+                <div className="mt-1 text-sm font-black text-cyan-100">{formatAmount(pack)}</div>
+                <div className="mt-4 font-mono text-2xl font-black text-emerald-300">
                   {formatCurrency(pack.sale_price_vnd)}
                 </div>
 
-                <div className="mt-5 space-y-2 rounded-[1rem] border border-pink-100/80 bg-white/70 p-4 text-left text-xs font-semibold text-slate-600 shadow-inner">
+                <div className="mt-5 space-y-2 rounded-[1rem] border border-white/10 bg-slate-950/45 p-4 text-left text-xs font-semibold text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                   {[
                     'Tốc độ cao',
                     provider === 'codex' ? 'Nhận mã Codex API' : 'Sử dụng AI model và Max',
@@ -530,7 +534,7 @@ function ProviderPricing({
                     'Admin hướng dẫn sau khi nhận mã đơn',
                   ].map((feature) => (
                     <div key={feature} className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pink-500" />
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" />
                       <span>{feature}</span>
                     </div>
                   ))}
@@ -538,7 +542,7 @@ function ProviderPricing({
               </div>
 
               <Button
-                className="relative mt-5 w-full rounded-[0.9rem] bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white shadow-[0_18px_38px_-22px_rgba(219,39,119,0.85)] hover:from-pink-500 hover:to-fuchsia-600"
+                className="relative mt-5 w-full rounded-[0.9rem] bg-[linear-gradient(135deg,#2563eb_0%,#0ea5e9_52%,#14b8a6_100%)] text-white shadow-[0_18px_42px_-24px_rgba(14,165,233,0.9)] hover:shadow-[0_24px_52px_-26px_rgba(20,184,166,0.95)]"
                 loading={purchasingId === pack.id}
                 loadingText="Đang mua"
                 onClick={() => onBuy(pack)}
