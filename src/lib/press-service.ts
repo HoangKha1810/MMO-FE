@@ -149,7 +149,7 @@ const seededPress450kPublications: DefaultPressPublication[] = press450kSources.
   key,
   name,
   url,
-  price: 450_000,
+  price: 2_300_000,
   note: 'Báo 450k',
   order: 300 + index * 10,
 }));
@@ -158,7 +158,7 @@ const seededPress250kPublications: DefaultPressPublication[] = press250kSources.
   key,
   name,
   url,
-  price: 250_000,
+  price: 1_700_000,
   note: 'Báo 250k',
   order: 1000 + index * 10,
 }));
