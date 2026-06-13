@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Loader2, Zap } from 'lucide-react';
+import { ArrowRight, Flame, Loader2, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { slugify } from '@/lib/utils';
@@ -58,6 +58,20 @@ function normalizePlatformGroup(name: string) {
   return name || 'Khác';
 }
 
+function platformPriority(label: string) {
+  const normalized = String(label || '').toLowerCase();
+  if (normalized.includes('facebook')) return 10;
+  if (normalized.includes('tiktok')) return 20;
+  if (normalized.includes('instagram')) return 30;
+  if (normalized.includes('twitter')) return 40;
+  if (normalized.includes('youtube')) return 50;
+  return 100;
+}
+
+function isHotBadge(value?: string) {
+  return String(value || '').trim().toLowerCase().includes('hot');
+}
+
 export default function UserAutomxhPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
@@ -84,7 +98,11 @@ export default function UserAutomxhPage() {
       }
     }
 
-    return Array.from(groups.values());
+    return Array.from(groups.values()).sort((a, b) => {
+      const priorityDiff = platformPriority(a.groupLabel) - platformPriority(b.groupLabel);
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.groupLabel.localeCompare(b.groupLabel, 'vi');
+    });
   }, [sections]);
 
   useEffect(() => {
@@ -189,8 +207,13 @@ export default function UserAutomxhPage() {
                     {section.products.map((product: AutoMxhProduct) => (
                       <div key={product.id} className="service-card-wrapper h-full">
                         <div className="smm-service-card-3d group relative flex h-full flex-col overflow-hidden rounded-[1rem] border transition-all hover:border-brand-blue hover:shadow-xl">
-                          {product.badge ? (
-                            <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-orange-400/30 bg-orange-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-orange-300 shadow-[0_12px_30px_-18px_rgba(249,115,22,0.9)]">
+                          {isHotBadge(product.badge) ? (
+                            <div className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-rose-300/35 bg-gradient-to-r from-rose-500 to-orange-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white shadow-[0_14px_32px_-16px_rgba(251,113,133,0.9)]">
+                              <Flame className="h-3 w-3" />
+                              Hot
+                            </div>
+                          ) : product.badge ? (
+                            <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-cyan-300/30 bg-cyan-500/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-cyan-200 shadow-[0_12px_30px_-18px_rgba(34,211,238,0.8)]">
                               {product.badge}
                             </div>
                           ) : null}

@@ -807,6 +807,30 @@ function normalizeAutoMxhVariantPatch(input: Record<string, unknown>) {
   return output;
 }
 
+function normalizeAutoMxhCategoryPatch(input: Record<string, unknown>) {
+  const output = { ...input };
+
+  if ('sort_order' in output) output.sort_order = normalizeOptionalInteger(output.sort_order, 0);
+  if ('is_deleted' in output) output.is_deleted = normalizeOptionalBooleanNumber(output.is_deleted, 0);
+  if ('status' in output) output.status = normalizeActiveInactiveStatus(output.status, 'active');
+
+  return output;
+}
+
+function normalizeAutoMxhProductPatch(input: Record<string, unknown>) {
+  const output = { ...input };
+
+  if ('category_id' in output) output.category_id = normalizeOptionalInteger(output.category_id, 0);
+  if ('api_provider_id' in output) output.api_provider_id = normalizeOptionalInteger(output.api_provider_id, 0);
+  if ('api_service_id' in output) output.api_service_id = normalizeOptionalInteger(output.api_service_id, 0);
+  if ('price' in output) output.price = normalizeOptionalNumber(output.price, 0);
+  if ('cost' in output) output.cost = normalizeOptionalNumber(output.cost, 0);
+  if ('is_deleted' in output) output.is_deleted = normalizeOptionalBooleanNumber(output.is_deleted, 0);
+  if ('status' in output) output.status = normalizeActiveInactiveStatus(output.status, 'active');
+
+  return output;
+}
+
 function isAutoMxhRefundedStatus(status: string) {
   return ['refund', 'refunded'].includes(status);
 }
@@ -1037,6 +1061,14 @@ async function normalizeRawTablePayload(table: string, data: Record<string, unkn
     if (/^(?:decimal|double|float)/.test(type) && output[field] !== null && output[field] !== undefined) {
       output[field] = toNumber(output[field], 0);
     }
+  }
+
+  if (table === 'automxh_categories') {
+    return normalizeAutoMxhCategoryPatch(output);
+  }
+
+  if (table === 'automxh_products') {
+    return normalizeAutoMxhProductPatch(output);
   }
 
   if (table === 'automxh_variants') {

@@ -203,17 +203,15 @@ export function PressPage() {
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected) return;
-    if (!docxFile) {
-      toast.error('Anh cần upload file Word đã viết theo mẫu');
-      return;
-    }
 
     const formData = new FormData();
     formData.append('publication_id', String(selected.id));
     formData.append('title', title);
     formData.append('contact', contact);
     formData.append('note', note);
-    formData.append('docx_file', docxFile);
+    if (docxFile) {
+      formData.append('docx_file', docxFile);
+    }
 
     setSubmitting(true);
     try {
@@ -240,7 +238,7 @@ export function PressPage() {
         await loadOrders();
       }
 
-      toast.success(payload.message || 'Đã tạo đơn lên báo');
+      toast.success(payload.message || 'Đã thanh toán và tạo đơn lên báo');
       closeModal();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không tạo được đơn lên báo');
@@ -255,7 +253,7 @@ export function PressPage() {
         <PageHero
           eyebrow="Báo chí"
           title="Dịch vụ lên báo"
-          description="Chọn đầu báo, tải file mẫu DOCX, viết bài theo mẫu rồi upload lại để admin xử lý đăng bài."
+          description="Chọn đầu báo, thanh toán tạo đơn trước; anh có thể tải file mẫu DOCX để chuẩn bị nội dung và gửi bổ sung cho admin."
           stats={[
             { label: 'Đầu báo', value: `${publications.length}`, hint: 'Admin chỉnh giá được', tone: 'blue' },
             { label: 'Từ', value: cheapest > 0 ? formatCurrency(cheapest) : 'Đang cập nhật', hint: 'Theo bảng giá mới', tone: 'emerald' },
@@ -359,13 +357,13 @@ export function PressPage() {
               <SectionHeader eyebrow="Lưu ý" title="Quy trình gửi bài" />
               <div className="mt-5 space-y-3 text-sm font-semibold leading-6 text-slate-400">
                 <div className="rounded-[0.9rem] border border-white/10 bg-white/[0.03] p-3">
-                  Tải file mẫu DOCX, viết bài theo cấu trúc mẫu rồi upload file của anh trong popup đặt bài.
+                  Tải file mẫu DOCX để tham khảo cấu trúc bài. File upload là tùy chọn, không bắt buộc khi thanh toán.
                 </div>
                 <div className="rounded-[0.9rem] border border-white/10 bg-white/[0.03] p-3">
                   Giá chưa cố định tuyệt đối theo chuyên mục đặc biệt. Admin có thể liên hệ nếu đầu báo yêu cầu chỉnh thêm.
                 </div>
                 <div className="rounded-[0.9rem] border border-white/10 bg-white/[0.03] p-3">
-                  Hệ thống trừ ví chính ngay khi tạo đơn thành công và lưu file về trang admin.
+                  Hệ thống trừ ví chính ngay khi thanh toán thành công và lưu đơn về trang admin.
                 </div>
               </div>
             </section>
@@ -435,7 +433,7 @@ export function PressPage() {
                 <div>
                   <div className="text-sm font-black text-amber-200">Tải file mẫu trước khi viết bài</div>
                   <div className="mt-1 text-sm font-semibold leading-6 text-amber-100/80">
-                    Dùng file DOCX mẫu của hệ thống, viết nội dung của anh rồi upload file hoàn chỉnh bên dưới.
+                    Dùng file DOCX mẫu để chuẩn bị nội dung. Có thể thanh toán trước mà không cần upload file.
                   </div>
                 </div>
                 <Button asChild>
@@ -460,7 +458,7 @@ export function PressPage() {
               </div>
 
               <label className="space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">File DOCX đã viết</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">File DOCX đã viết (không bắt buộc)</span>
                 <Input
                   type="file"
                   accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -490,9 +488,9 @@ export function PressPage() {
                 <Button type="button" variant="outline" onClick={closeModal} disabled={submitting}>
                   Đóng
                 </Button>
-                <Button type="submit" loading={submitting} loadingText="Đang gửi đơn">
+                <Button type="submit" loading={submitting} loadingText="Đang thanh toán">
                   <Clock3 className="h-4 w-4" />
-                  Tạo đơn và trừ ví
+                  Thanh Toán
                 </Button>
               </div>
             </form>

@@ -104,11 +104,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Thiếu đầu báo cần đặt' }, { status: 400, headers: noStoreHeaders });
     }
 
-    if (!docxFile) {
-      return NextResponse.json({ success: false, message: 'Vui lòng tải lên file DOCX bài viết' }, { status: 400, headers: noStoreHeaders });
+    if (docxFile) {
+      savedDocxPath = await savePressDocument({ file: docxFile, userId });
     }
 
-    savedDocxPath = await savePressDocument({ file: docxFile, userId });
     const result = await createPressOrder({
       userId,
       publicationId,
@@ -120,7 +119,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Đã tạo đơn lên báo, admin sẽ kiểm tra file và xử lý',
+      message: 'Đã thanh toán và tạo đơn lên báo, admin sẽ liên hệ xử lý',
       data: result,
     }, { headers: noStoreHeaders });
   } catch (error) {

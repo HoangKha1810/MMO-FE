@@ -663,6 +663,13 @@ function normalizeAdminEditorPayload(resource: string, values: Record<string, un
     next.setting_value = String(next.setting_value ?? '');
   }
 
+  if (
+    (resource === 'automxh-categories' || resource === 'automxh-products' || resource === 'automxh-variants') &&
+    Object.prototype.hasOwnProperty.call(next, 'status')
+  ) {
+    next.status = normalizeActiveInactiveStatus(next.status, 'active');
+  }
+
   if (resource === 'automxh-variants') {
     const integerFallbacks: Record<string, number> = {
       product_id: 0,
@@ -689,10 +696,6 @@ function normalizeAdminEditorPayload(resource: string, values: Record<string, un
       if (Object.prototype.hasOwnProperty.call(next, field)) {
         next[field] = toNumber(next[field], fallback);
       }
-    }
-
-    if (Object.prototype.hasOwnProperty.call(next, 'status')) {
-      next.status = normalizeActiveInactiveStatus(next.status, 'active');
     }
   }
 
@@ -804,6 +807,7 @@ function sortEditorEntries(resource: string, entries: Array<[string, unknown]>) 
       'name',
       'slug',
       'description',
+      'badge',
       'price',
       'cost',
       'type',

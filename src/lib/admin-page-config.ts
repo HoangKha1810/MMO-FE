@@ -182,7 +182,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'press-orders',
       title: 'Đơn lên báo',
-      description: 'Đơn khách đã thanh toán, file DOCX upload và ghi chú xử lý của admin.',
+      description: 'Đơn khách đã thanh toán, file DOCX nếu có và ghi chú xử lý của admin.',
       columns: ['id', 'order_code', 'user_id', 'publication_name', 'title', 'contact', 'docx_path', 'price_vnd', 'status', 'admin_note', 'created_at'],
       editableFields: ['status', 'admin_note', 'publication_name', 'title', 'contact', 'note', 'docx_path', 'price_vnd'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],

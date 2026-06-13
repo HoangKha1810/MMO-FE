@@ -1405,6 +1405,38 @@
       0 18px 32px -26px rgba(2, 6, 23, 0.88);
   }
 
+  .service-tilt-card-static,
+  .service-tilt-card-static .service-tilt-stage {
+    perspective: none;
+    transform-style: flat;
+  }
+
+  .service-tilt-card-static:hover .service-tilt-stage {
+    box-shadow: none;
+  }
+
+  .dashboard-service-card.service-tilt-card-static:hover {
+    transform: none;
+    border-color: rgba(148, 163, 184, 0.1);
+    box-shadow: 0 28px 80px -58px rgba(15, 23, 42, 0.18);
+  }
+
+  .dark .dashboard-service-card.service-tilt-card-static:hover {
+    box-shadow: 0 28px 80px -58px rgba(2, 6, 23, 0.86);
+  }
+
+  .service-tilt-card-static .service-tilt-aura,
+  .service-tilt-card-static .service-tilt-icon-wrap,
+  .service-tilt-card-static .service-tilt-top-stack,
+  .service-tilt-card-static .service-tilt-content,
+  .service-tilt-card-static .service-tilt-footer {
+    transform: none;
+  }
+
+  .service-tilt-card-static:hover .service-tilt-aura {
+    opacity: 0.16;
+  }
+
   .service-tilt-aura {
     position: absolute;
     inset: -20%;
