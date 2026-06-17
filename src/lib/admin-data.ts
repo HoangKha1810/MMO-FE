@@ -141,7 +141,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     title: 'Auto MXH orders',
     searchFields: ['api_order_id', 'link', 'buyer_info', 'status'],
     statusField: 'status',
-    rawOrder: 'updated_at DESC, id DESC',
+    rawOrder: 'created_at DESC, id DESC',
     updateFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'price', 'cost_price', 'buyer_info', 'api_order_id', 'api_response', 'api_status_log', 'perfection_content', 'perfection_image', 'avatar_path', 'additional_files', 'confirm_1', 'confirm_2', 'is_exported'],
   },
   'automxh-variants': {
@@ -1498,7 +1498,7 @@ async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearch
           p.custom_inputs,
           v.name AS variant_name
         ${fromSql}
-        ORDER BY o.updated_at DESC, o.id DESC
+        ORDER BY o.created_at DESC, o.id DESC
         LIMIT ? OFFSET ?
       `,
       ...values,

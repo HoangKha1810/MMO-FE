@@ -728,6 +728,23 @@ function mergeIncomingRows(
   });
 }
 
+function dateSortScore(value: unknown) {
+  const serialized = serializeDatabaseDateTime(value);
+  const match = serialized.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return 0;
+
+  const [, year, month, day, hour, minute, second = '00'] = match;
+  return Number(`${year}${month}${day}${hour}${minute}${second}`);
+}
+
+function sortAutoMxhOrdersByCreatedDesc(rows: Array<Record<string, unknown>>) {
+  return [...rows].sort((left, right) => {
+    const dateDiff = dateSortScore(right.created_at) - dateSortScore(left.created_at);
+    if (dateDiff !== 0) return dateDiff;
+    return rowId(right) - rowId(left);
+  });
+}
+
 function keepSelectedRows(selected: number[], nextRows: Array<Record<string, unknown>>) {
   const nextIds = new Set(nextRows.map((row) => rowId(row)).filter(Boolean));
   return selected.filter((id) => nextIds.has(id));
@@ -1193,8 +1210,13 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       if (!payload.success) {
         throw new Error(payload.message || 'Không thể tải dữ liệu');
       }
-      const nextRows = payload.data || [];
-      setRows((current) => (options?.merge ? mergeIncomingRows(current, nextRows) : nextRows));
+      const nextRows = section.resource === 'automxh-orders'
+        ? sortAutoMxhOrdersByCreatedDesc(payload.data || [])
+        : payload.data || [];
+      setRows((current) => {
+        const mergedRows = options?.merge ? mergeIncomingRows(current, nextRows) : nextRows;
+        return section.resource === 'automxh-orders' ? sortAutoMxhOrdersByCreatedDesc(mergedRows) : mergedRows;
+      });
       setMeta(payload.meta || {});
       setPagination(payload.pagination);
       if (payload.pagination?.per_page) {
@@ -1324,7 +1346,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
       const updated = payload.data as Record<string, unknown> | undefined;
       if (updated) {
-        setRows((current) => current.map((row) => (rowId(row) === id ? { ...row, ...updated } : row)));
+        setRows((current) => {
+          const nextRows = current.map((row) => (rowId(row) === id ? { ...row, ...updated } : row));
+          return section.resource === 'automxh-orders' ? sortAutoMxhOrdersByCreatedDesc(nextRows) : nextRows;
+        });
       }
       toast.success(successMessage);
     } catch (error) {

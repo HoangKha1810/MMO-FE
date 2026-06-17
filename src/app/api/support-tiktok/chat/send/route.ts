@@ -47,6 +47,12 @@ export async function POST(req: NextRequest) {
     if (!context.chatModuleAvailable) {
       return NextResponse.json({ success: false, message: 'Thiếu bảng support_tiktok_messages' }, { status: 200 });
     }
+    if (context.isAdmin) {
+      return NextResponse.json(
+        { success: false, message: 'Admin không được chat Support TikTok. Hãy dùng tài khoản role support-tiktok.' },
+        { status: 403 }
+      );
+    }
     if (!context.isSupport && !context.canUseChat) {
       return NextResponse.json(
         { success: false, message: context.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.' },

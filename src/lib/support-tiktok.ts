@@ -30,6 +30,16 @@ interface SupportOrderAccessRow {
   ngay_het_han: Date | string | null;
 }
 
+export const SUPPORT_TIKTOK_ROLE = 'support_tiktok';
+
+export function normalizeSupportTikTokRole(role?: string | null) {
+  return String(role || '').trim().toLowerCase().replace(/-/g, '_');
+}
+
+export function isSupportTikTokStaffRole(role?: string | null) {
+  return normalizeSupportTikTokRole(role) === SUPPORT_TIKTOK_ROLE;
+}
+
 function parseImageUrls(value: string | null) {
   if (!value) {
     return [];
@@ -294,15 +304,15 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
 
   const settings = { ...getDefaultSupportSettings(), ...settingsResult };
   const role = String(user.role || 'member');
-  const supportUsername = getLegacyEnv(
+  const normalizedRole = normalizeSupportTikTokRole(role);
+  const configuredSupportUsername = getLegacyEnv(
     'SUPPORT_TIKTOK_SUPPORT_USERNAME',
     getLegacySetting(settings, 'support_tiktok_chat_username', 'nguyenhatsptik')
   );
   const adminIpAllowed = isIpAllowed(clientIp);
-  const supportUsernameAllowed =
-    user.username.toLowerCase() === supportUsername.toLowerCase();
-  const isSupport =
-    role === 'support_tiktok' || role === 'admin' || supportUsernameAllowed;
+  const isSupport = isSupportTikTokStaffRole(role);
+  const isAdmin = normalizedRole === 'admin';
+  const supportUsername = isSupport ? user.username : configuredSupportUsername;
   const maintenance = getLegacySetting(settings, 'service_chat_support_tiktok_status', 'active') === 'maintenance';
   const missingTables = [
     !hasChatTable ? 'support_tiktok_messages' : '',
@@ -318,6 +328,14 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
         latestOrderStatus: null,
         latestOrderExpiresAt: null,
       }
+    : isAdmin
+      ? {
+          hasUnlockedChat: false,
+          chatBlockedReason: 'Tài khoản admin không được chat Support TikTok. Hãy dùng tài khoản role support-tiktok.',
+          latestOrderId: null,
+          latestOrderStatus: null,
+          latestOrderExpiresAt: null,
+        }
     : await getSupportOrderAccess(user.id, hasOrderTable);
 
   return {
@@ -325,6 +343,7 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
     username: user.username,
     role,
     isSupport,
+    isAdmin,
     adminIpAllowed,
     canAccess: !maintenance || isSupport,
     maintenance,
@@ -341,7 +360,7 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
     supportUsername,
     chatModuleAvailable: hasChatTable,
     orderModuleAvailable: true,
-    canUseChat: isSupport ? hasChatTable : hasChatTable && orderAccess.hasUnlockedChat,
+    canUseChat: isSupport ? hasChatTable : !isAdmin && hasChatTable && orderAccess.hasUnlockedChat,
     chatBlockedReason: orderAccess.chatBlockedReason,
     latestOrderId: orderAccess.latestOrderId,
     latestOrderStatus: orderAccess.latestOrderStatus,

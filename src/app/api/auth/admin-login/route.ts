@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { getRequestIp, getIpBlock, buildBlockedIpPayload } from '@/lib/ip-security';
+import { isSupportTikTokStaffRole } from '@/lib/support-tiktok';
 
 function createSessionCookieOptions(maxAge: number) {
   return {
@@ -55,12 +56,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Sai tài khoản hoặc mật khẩu admin' }, { status: 401 });
   }
 
-  if (String(user.role) !== 'admin') {
-    return NextResponse.json({ success: false, message: 'Tài khoản không có quyền admin' }, { status: 403 });
+  const role = String(user.role || 'member');
+  const isAdmin = role === 'admin';
+  const isSupportTikTok = isSupportTikTokStaffRole(role);
+
+  if (!isAdmin && !isSupportTikTok) {
+    return NextResponse.json({ success: false, message: 'Tài khoản không có quyền admin/support TikTok' }, { status: 403 });
   }
 
   if (user.status !== 'active') {
-    return NextResponse.json({ success: false, message: 'Tài khoản admin không hoạt động' }, { status: 403 });
+    return NextResponse.json({ success: false, message: 'Tài khoản không hoạt động' }, { status: 403 });
   }
 
   await db.users.update({
@@ -68,14 +73,15 @@ export async function POST(req: NextRequest) {
     data: { last_ip: ip, last_login: new Date(), last_activity: new Date() },
   });
 
-  if (user.fa_enabled) {
+  if (isAdmin && user.fa_enabled) {
     const response = NextResponse.json({ success: true, require2fa: true });
     response.cookies.delete('user_id');
     response.cookies.set('2fa_pending', String(user.id), createSessionCookieOptions(60 * 10));
     return response;
   }
 
-  const response = NextResponse.json({ success: true, redirect: '/admin/dashboard' });
+  const redirect = isSupportTikTok ? '/user/support-tiktok' : '/admin/dashboard';
+  const response = NextResponse.json({ success: true, redirect });
   response.cookies.delete('2fa_pending');
   response.cookies.set('user_id', String(user.id), createSessionCookieOptions(60 * 60 * 12));
   return response;

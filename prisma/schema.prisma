@@ -234,7 +234,7 @@ model deposit_transactions {
   transaction_id  String?   @unique @map("transaction_id") @db.VarChar(100)
   bank            String?   @db.VarChar(50)
   content         String?   @db.Text
-  status          String    @default("pending") @db.VarChar(20)
+  status          String    @default("pending") @db.VarChar(40)
   payment_method  String?   @map("payment_method") @db.VarChar(50)
   note            String?   @db.Text
   processed_by    Int?      @map("processed_by")
@@ -373,7 +373,7 @@ model automxh_orders {
   quantity        Int       @default(1)
   amount          Float
   buyer_info      String?   @db.Text
-  status          String    @default("pending") @db.VarChar(20)
+  status          String    @default("pending") @db.VarChar(40)
   is_refunded     Boolean?  @default(false)
   refund_amount   Decimal?  @default(0.0000) @db.Decimal(15, 4)
   reason          String?   @db.Text
@@ -383,6 +383,8 @@ model automxh_orders {
   user users @relation(fields: [user_id], references: [id])
 
   @@index([user_id, status])
+  @@index([created_at, id], map: "idx_automxh_orders_created_id")
+  @@index([status, created_at, id], map: "idx_automxh_orders_status_created_id")
 }
 
 model automxh_categories {

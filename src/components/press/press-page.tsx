@@ -255,7 +255,7 @@ export function PressPage() {
           title="Dịch vụ lên báo"
           description="Chọn đầu báo, thanh toán tạo đơn trước; anh có thể tải file mẫu DOCX để chuẩn bị nội dung và gửi bổ sung cho admin."
           stats={[
-            { label: 'Đầu báo', value: `${publications.length}`, hint: 'Admin chỉnh giá được', tone: 'blue' },
+            { label: 'Đầu báo', value: `${publications.length}`, tone: 'blue' },
             { label: 'Từ', value: cheapest > 0 ? formatCurrency(cheapest) : 'Đang cập nhật', hint: 'Theo bảng giá mới', tone: 'emerald' },
             { label: 'File mẫu', value: 'DOCX', hint: 'Tải trong popup đặt bài', tone: 'violet' },
           ]}
