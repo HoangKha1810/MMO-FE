@@ -9,6 +9,7 @@ import {
   Clock3,
   Headphones,
   ImageIcon,
+  ListChecks,
   Loader2,
   MessageCircle,
   RefreshCw,
@@ -49,6 +50,11 @@ interface SupportMeta {
 interface SupportMessage {
   id: number;
   user_id: number;
+  order_id?: number | null;
+  support_category?: string;
+  order_tiktok_id?: string;
+  order_service_name?: string;
+  order_status?: string;
   sender_type: 'user' | 'support';
   sender_name: string;
   message: string;
@@ -61,6 +67,10 @@ interface SupportConversation {
   user_id: number;
   username: string;
   avatar: string | null;
+  order_id?: number | null;
+  tiktok_id?: string;
+  service_name?: string;
+  order_status?: string;
   last_message: string;
   last_at: string;
   last_sender_type: string;
@@ -86,6 +96,30 @@ interface SupportOrder {
 type SupportTab = 'chat' | 'orders' | 'all-orders';
 
 const SUPPORT_LABEL = 'Đội Support TikTok';
+const GENERAL_CHAT_KEY = 'general';
+const SUPPORT_TIKTOK_CATEGORIES = [
+  'Giao dịch',
+  'Đình chỉ truy cập LIVE',
+  'Đình chỉ tài khoản',
+  'Đình chỉ tham gia bảng xếp hạng',
+  'Đình chỉ chế độ đã kháng mới',
+  'Khác',
+];
+
+function toOrderChatKey(orderId?: number | string | null) {
+  const numeric = Number(orderId || 0);
+  return numeric > 0 ? String(numeric) : GENERAL_CHAT_KEY;
+}
+
+function parseOrderChatKey(value?: string | null) {
+  const normalized = String(value || '').trim();
+  if (!normalized || normalized === GENERAL_CHAT_KEY) {
+    return null;
+  }
+
+  const numeric = Number(normalized);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
 
 function getDatabaseDateParts(value: string) {
   const serialized = serializeDatabaseDateTime(value);
@@ -169,6 +203,17 @@ function getOrderStatusClass(status: string | null | undefined) {
   return 'bg-slate-500/10 text-slate-400 border-slate-500/15';
 }
 
+function isOrderChatOpen(order: SupportOrder) {
+  const normalized = String(order.status || '').trim().toLowerCase();
+  const expiresAt = order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '';
+  const nowText = serializeDatabaseDateTime(new Date().toISOString());
+
+  return (
+    ['active', 'completed', 'processing', 'success'].includes(normalized) &&
+    (!expiresAt || expiresAt >= nowText)
+  );
+}
+
 function OrderCard({
   order,
   supportMode,
@@ -179,7 +224,7 @@ function OrderCard({
 }: {
   order: SupportOrder;
   supportMode: boolean;
-  onOpenConversation?: (userId: number) => void;
+  onOpenConversation?: (userId: number, orderId?: number | null) => void;
   onMarkCompleted?: (orderId: number) => void;
   onMarkCanceled?: (orderId: number) => void;
   updating?: boolean;
@@ -239,7 +284,7 @@ function OrderCard({
       {supportMode ? (
         <div className="mt-4 flex flex-wrap gap-2">
           {order.user_id ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => onOpenConversation?.(Number(order.user_id))}>
+            <Button type="button" size="sm" variant="outline" onClick={() => onOpenConversation?.(Number(order.user_id), Number(order.id) || null)}>
               <MessageCircle className="mr-2 h-4 w-4" />
               Mở chat
             </Button>
@@ -269,6 +314,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   const [meta, setMeta] = useState<SupportMeta | null>(null);
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
   const [activeUserId, setActiveUserId] = useState<number | null>(null);
+  const [activeOrderKey, setActiveOrderKey] = useState<string>(GENERAL_CHAT_KEY);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [orders, setOrders] = useState<SupportOrder[]>([]);
   const [allOrders, setAllOrders] = useState<SupportOrder[]>([]);
@@ -276,6 +322,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   const [orderSearch, setOrderSearch] = useState('');
   const [tab, setTab] = useState<SupportTab>('chat');
   const [draft, setDraft] = useState('');
+  const [supportCategory, setSupportCategory] = useState(SUPPORT_TIKTOK_CATEGORIES[0]);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [loadingConversations, setLoadingConversations] = useState(false);
@@ -289,8 +336,30 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const activeConversation = useMemo(
-    () => conversations.find((conversation) => conversation.user_id === activeUserId) || null,
-    [activeUserId, conversations]
+    () =>
+      conversations.find(
+        (conversation) =>
+          conversation.user_id === activeUserId &&
+          toOrderChatKey(conversation.order_id) === activeOrderKey
+      ) || null,
+    [activeOrderKey, activeUserId, conversations]
+  );
+
+  const activeOrderId = useMemo(() => parseOrderChatKey(activeOrderKey), [activeOrderKey]);
+
+  const chatOrderOptions = useMemo(() => {
+    const sortedOrders = [...orders].sort((first, second) => {
+      const firstTime = serializeDatabaseDateTime(first.created_at || first.ngay_gia_han || '');
+      const secondTime = serializeDatabaseDateTime(second.created_at || second.ngay_gia_han || '');
+      return secondTime.localeCompare(firstTime) || Number(second.id || 0) - Number(first.id || 0);
+    });
+
+    return sortedOrders.filter((order) => meta?.isSupport || isOrderChatOpen(order));
+  }, [meta?.isSupport, orders]);
+
+  const activeChatOrder = useMemo(
+    () => chatOrderOptions.find((order) => Number(order.id) === Number(activeOrderId || 0)) || null,
+    [activeOrderId, chatOrderOptions]
   );
 
   const filteredConversations = useMemo(() => {
@@ -303,6 +372,8 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       return (
         conversation.username.toLowerCase().includes(keyword) ||
         String(conversation.user_id).includes(keyword) ||
+        String(conversation.tiktok_id || '').toLowerCase().includes(keyword) ||
+        String(conversation.service_name || '').toLowerCase().includes(keyword) ||
         conversation.last_message.toLowerCase().includes(keyword)
       );
     });
@@ -330,8 +401,18 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     ? (embedded ? '/admin/support-tiktok/orders' : '/user/support-tiktok/orders')
     : '/user/support-tiktok/orders';
   const chatTitle = meta?.isSupport
-    ? activeConversation?.username || 'Chưa chọn khách'
+    ? activeConversation
+      ? `${activeConversation.username}${activeConversation.tiktok_id ? ` · ${activeConversation.tiktok_id}` : ''}`
+      : 'Chưa chọn khách'
     : SUPPORT_LABEL;
+  const mustSelectTikTokOrder = Boolean(!meta?.isSupport && canUseChat && !activeOrderId);
+  const chatInputDisabled = Boolean(
+    !meta?.chatModuleAvailable ||
+      !canUseChat ||
+      sending ||
+      mustSelectTikTokOrder ||
+      (meta?.isSupport && !activeChatUserId)
+  );
 
   async function loadMeta() {
     setLoadingMeta(true);
@@ -376,6 +457,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
 
       if (selectFirst && nextConversations.length > 0) {
         setActiveUserId((current) => current || nextConversations[0].user_id);
+        setActiveOrderKey((current) => (current === GENERAL_CHAT_KEY ? toOrderChatKey(nextConversations[0].order_id) : current));
       }
     } catch (loadError) {
       if (!silent) {
@@ -388,7 +470,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     }
   }
 
-  async function loadMessages(targetUserId?: number | null, silent = false) {
+  async function loadMessages(targetUserId?: number | null, silent = false, orderKey = activeOrderKey) {
     if (!meta || !meta.chatModuleAvailable || (!meta.isSupport && !meta.canUseChat)) {
       setMessages([]);
       return;
@@ -409,6 +491,8 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       if (meta.isSupport) {
         params.set('user_id', String(conversationUserId));
       }
+      const orderId = parseOrderChatKey(orderKey);
+      params.set('order_id', orderId ? String(orderId) : '');
 
       const response = await fetch(`/api/support-tiktok/chat/messages?${params.toString()}`, {
         cache: 'no-store',
@@ -514,6 +598,10 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     if (!trimmed && !attachment) {
       return;
     }
+    if (!meta.isSupport && !activeOrderId) {
+      setError('Vui lòng chọn ID TikTok đã mua trước khi gửi chat.');
+      return;
+    }
 
     setSending(true);
     setError('');
@@ -522,8 +610,15 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     try {
       const formData = new FormData();
       formData.set('message', trimmed);
+      const orderId = parseOrderChatKey(activeOrderKey);
       if (meta.isSupport && activeUserId) {
         formData.set('user_id', String(activeUserId));
+      }
+      if (orderId) {
+        formData.set('order_id', String(orderId));
+      }
+      if (!meta.isSupport && supportCategory) {
+        formData.set('support_category', supportCategory);
       }
       if (attachment) {
         formData.set('attachment_file', attachment);
@@ -544,7 +639,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       setAttachment(null);
       const conversationUserId = meta.isSupport ? activeUserId : user?.id;
       if (conversationUserId) {
-        void loadMessages(conversationUserId, true);
+        void loadMessages(conversationUserId, true, activeOrderKey);
         void loadOrders(conversationUserId, true);
       }
       if (meta.isSupport) {
@@ -594,8 +689,9 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     }
   }
 
-  function selectConversation(userId: number, nextTab: SupportTab = 'chat') {
+  function selectConversation(userId: number, nextTab: SupportTab = 'chat', orderKey = GENERAL_CHAT_KEY) {
     setActiveUserId(userId);
+    setActiveOrderKey(orderKey);
     setTab(nextTab);
     setError('');
     setNotice('');
@@ -622,11 +718,19 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       void loadOrders(user?.id);
     }
     if (meta.chatModuleAvailable && meta.canUseChat) {
-      void loadMessages(user?.id);
+      void loadMessages(user?.id, false, activeOrderKey);
     } else {
       setMessages([]);
     }
-  }, [meta, user?.id]);
+  }, [activeOrderKey, meta, user?.id]);
+
+  useEffect(() => {
+    if (!meta || meta.isSupport || !meta.canUseChat || activeOrderKey !== GENERAL_CHAT_KEY || chatOrderOptions.length === 0) {
+      return;
+    }
+
+    setActiveOrderKey(toOrderChatKey(chatOrderOptions[0].id));
+  }, [activeOrderKey, chatOrderOptions, meta]);
 
   useEffect(() => {
     if (!meta?.isSupport || !activeUserId) {
@@ -634,12 +738,12 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     }
 
     if (meta.chatModuleAvailable) {
-      void loadMessages(activeUserId);
+      void loadMessages(activeUserId, false, activeOrderKey);
     }
     if (meta.orderModuleAvailable) {
       void loadOrders(activeUserId);
     }
-  }, [meta?.isSupport, meta?.chatModuleAvailable, meta?.orderModuleAvailable, activeUserId]);
+  }, [meta?.isSupport, meta?.chatModuleAvailable, meta?.orderModuleAvailable, activeOrderKey, activeUserId]);
 
   useEffect(() => {
     if (!meta || !meta.chatModuleAvailable || (!meta.isSupport && !meta.canUseChat)) {
@@ -650,16 +754,16 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       if (meta.isSupport) {
         void loadConversations(false, true);
         if (activeUserId) {
-          void loadMessages(activeUserId, true);
+          void loadMessages(activeUserId, true, activeOrderKey);
         }
         return;
       }
 
-      void loadMessages(user?.id, true);
+      void loadMessages(user?.id, true, activeOrderKey);
     }, 3000);
 
     return () => window.clearInterval(interval);
-  }, [activeUserId, meta, user?.id]);
+  }, [activeOrderKey, activeUserId, meta, user?.id]);
 
   useEffect(() => {
     if (!meta?.orderModuleAvailable) {
@@ -815,14 +919,14 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                   </div>
                 ) : (
                   filteredConversations.map((conversation) => {
-                    const active = activeUserId === conversation.user_id;
+                    const active = activeUserId === conversation.user_id && activeOrderKey === toOrderChatKey(conversation.order_id);
                     const unread = conversation.last_sender_type === 'user' && !active;
 
                     return (
                       <button
-                        key={conversation.user_id}
+                        key={`${conversation.user_id}:${toOrderChatKey(conversation.order_id)}`}
                         type="button"
-                        onClick={() => selectConversation(conversation.user_id)}
+                        onClick={() => selectConversation(conversation.user_id, 'chat', toOrderChatKey(conversation.order_id))}
                         className={cn(
                           'flex w-full items-center gap-3 rounded-[1.35rem] border px-4 py-3 text-left transition-all',
                           active
@@ -851,8 +955,10 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                           <div className="truncate text-xs font-bold text-slate-500 dark:text-slate-400">
                             {conversation.last_message || '(trống)'}
                           </div>
-                          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            ID {conversation.user_id}
+                          <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                            <span>User {conversation.user_id}</span>
+                            <span>·</span>
+                            <span>{conversation.tiktok_id || 'Chat chung'}</span>
                           </div>
                         </div>
                       </button>
@@ -931,6 +1037,92 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
 
               {tab === 'chat' ? (
                 <>
+                  {canUseChat ? (
+                    <div className="rounded-[1.45rem] border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                            {meta?.isSupport ? 'Thread đang xử lý' : 'Chọn tài khoản TikTok để chat'}
+                          </div>
+                          <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                            {meta?.isSupport
+                              ? activeChatOrder
+                                ? `${activeChatOrder.service_name || 'Đơn TikTok'} · ${activeChatOrder.tiktok_id || `#${activeChatOrder.id}`}`
+                                : 'Chat chung của user'
+                              : 'Mỗi ID TikTok đã mua sẽ có một luồng chat riêng để support xử lý đúng tài khoản.'}
+                          </div>
+                        </div>
+                        <Link
+                          href={ordersHref}
+                          className="surface-chip rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-200"
+                        >
+                          Quản lý đơn
+                        </Link>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                        {meta?.isSupport ? (
+                          <button
+                            type="button"
+                            onClick={() => setActiveOrderKey(GENERAL_CHAT_KEY)}
+                            className={cn(
+                              'shrink-0 rounded-2xl border px-4 py-2 text-left transition-all',
+                              activeOrderKey === GENERAL_CHAT_KEY
+                                ? 'border-brand-blue bg-brand-blue text-white'
+                                : 'surface-chip text-slate-600 dark:text-slate-200'
+                            )}
+                          >
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em]">Chat chung</div>
+                            <div className={cn('mt-1 text-xs font-bold', activeOrderKey === GENERAL_CHAT_KEY ? 'text-white/80' : 'text-slate-400')}>
+                              Không gắn đơn
+                            </div>
+                          </button>
+                        ) : null}
+                        {chatOrderOptions.map((order) => {
+                          const orderKey = toOrderChatKey(order.id);
+                          const active = orderKey === activeOrderKey;
+
+                          return (
+                            <button
+                              key={order.id}
+                              type="button"
+                              onClick={() => setActiveOrderKey(orderKey)}
+                              className={cn(
+                                'min-w-[220px] shrink-0 rounded-2xl border px-4 py-2 text-left transition-all',
+                                active
+                                  ? 'border-brand-blue bg-brand-blue text-white'
+                                  : 'surface-chip text-slate-600 dark:text-slate-200'
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="truncate text-[10px] font-black uppercase tracking-[0.2em]">
+                                  #{order.id} · {getOrderStatusLabel(order.status)}
+                                </span>
+                                <span className={cn('rounded-full px-2 py-0.5 text-[9px] font-black uppercase', active ? 'bg-white/15 text-white' : 'bg-brand-blue/10 text-brand-blue')}>
+                                  ID
+                                </span>
+                              </div>
+                              <div className="mt-1 truncate text-sm font-black">
+                                {order.tiktok_id || 'TikTok ID'}
+                              </div>
+                              <div className={cn('mt-0.5 truncate text-xs font-bold', active ? 'text-white/80' : 'text-slate-400')}>
+                                {order.service_name || order.service_key || 'Support TikTok'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {!meta?.isSupport && chatOrderOptions.length === 0 ? (
+                        <div className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-500">
+                          Chưa có đơn TikTok đang mở để gắn vào chat. Bạn vẫn có thể xem lịch sử chat chung hoặc mua/gia hạn gói.
+                        </div>
+                      ) : null}
+                      {mustSelectTikTokOrder ? (
+                        <div className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-500">
+                          Hãy chọn một ID TikTok đã mua để Support biết đúng tài khoản cần xử lý.
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div
                     ref={boxRef}
                     className="flex h-[560px] flex-col gap-3 overflow-y-auto rounded-[1.7rem] border border-slate-200 bg-slate-50 p-4 custom-scrollbar dark:border-white/10 dark:bg-[#0b1220]"
@@ -986,6 +1178,33 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                                     ? activeConversation?.username || `User #${message.user_id}`
                                     : user?.username || 'Bạn'}
                               </div>
+                              {message.order_id ? (
+                                <div
+                                  className={cn(
+                                    'inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]',
+                                    ownMessage
+                                      ? 'ml-auto border-brand-blue/20 bg-brand-blue/10 text-brand-blue'
+                                      : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
+                                  )}
+                                >
+                                  <span className="truncate">
+                                    {message.order_tiktok_id || `Đơn #${message.order_id}`}
+                                  </span>
+                                </div>
+                              ) : null}
+                              {message.support_category ? (
+                                <div
+                                  className={cn(
+                                    'inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]',
+                                    ownMessage
+                                      ? 'ml-auto border-cyan-400/20 bg-cyan-400/10 text-cyan-200'
+                                      : 'border-cyan-400/20 bg-cyan-400/10 text-cyan-500'
+                                  )}
+                                >
+                                  <ListChecks className="h-3.5 w-3.5" />
+                                  <span className="truncate">{message.support_category}</span>
+                                </div>
+                              ) : null}
                               <div
                                 className={cn(
                                   'rounded-[1.55rem] px-4 py-3 text-sm font-bold leading-relaxed',
@@ -1022,6 +1241,36 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                   </div>
 
                   <div className="space-y-3">
+                    {!meta?.isSupport && canUseChat ? (
+                      <div className="rounded-[1.35rem] border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                        <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                          <ListChecks className="h-4 w-4" />
+                          Danh mục cần hỗ trợ
+                        </div>
+                        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                          {SUPPORT_TIKTOK_CATEGORIES.map((category) => {
+                            const active = category === supportCategory;
+
+                            return (
+                              <button
+                                key={category}
+                                type="button"
+                                onClick={() => setSupportCategory(category)}
+                                disabled={chatInputDisabled}
+                                className={cn(
+                                  'shrink-0 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-all disabled:cursor-not-allowed disabled:opacity-50',
+                                  active
+                                    ? 'border-brand-blue bg-brand-blue text-white'
+                                    : 'surface-chip text-slate-500 dark:text-slate-200'
+                                )}
+                              >
+                                {category}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
                     <textarea
                       rows={3}
                       value={draft}
@@ -1037,11 +1286,13 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                           ? 'Phần chat đang chờ tạo bảng dữ liệu'
                           : !meta?.isSupport && !canUseChat
                             ? meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'
-                            : meta?.isSupport && !activeUserId
+                            : mustSelectTikTokOrder
+                              ? 'Chọn ID TikTok đã mua trước khi gửi chat.'
+                              : meta?.isSupport && !activeUserId
                               ? 'Chọn khách ở cột trái để phản hồi'
                               : 'Nhập tin nhắn...'
                       }
-                      disabled={!meta?.chatModuleAvailable || !canUseChat || sending || (meta?.isSupport && !activeChatUserId)}
+                      disabled={chatInputDisabled}
                       className="field-elevated min-h-[112px] w-full rounded-[1.6rem] px-4 py-3 text-sm font-bold text-slate-900 outline-none dark:text-white"
                     />
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1054,7 +1305,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                             accept="image/png,image/jpeg,image/webp,image/gif"
                             className="hidden"
                             onChange={(event) => setAttachment(event.target.files?.[0] || null)}
-                            disabled={!meta?.chatModuleAvailable || !canUseChat || sending || (meta?.isSupport && !activeChatUserId)}
+                            disabled={chatInputDisabled}
                           />
                         </label>
                         {attachment ? (
@@ -1074,7 +1325,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                         onClick={() => void sendMessage()}
                         loading={sending}
                         loadingText="Đang gửi..."
-                        disabled={!meta?.chatModuleAvailable || !canUseChat || (meta?.isSupport && !activeChatUserId)}
+                        disabled={chatInputDisabled}
                       >
                         <SendHorizonal className="mr-2 h-4 w-4" />
                         Gửi phản hồi
@@ -1121,7 +1372,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                             key={order.id}
                             order={order}
                             supportMode={Boolean(meta?.isSupport)}
-                            onOpenConversation={(conversationUserId) => selectConversation(conversationUserId, 'chat')}
+                            onOpenConversation={(conversationUserId, orderId) => selectConversation(conversationUserId, 'chat', toOrderChatKey(orderId))}
                             onMarkCompleted={(orderId) => void updateOrderStatus(orderId, 'completed')}
                             onMarkCanceled={(orderId) => void updateOrderStatus(orderId, 'canceled')}
                             updating={updatingOrderId === order.id}
@@ -1175,7 +1426,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                           key={order.id}
                           order={order}
                           supportMode
-                          onOpenConversation={(conversationUserId) => selectConversation(conversationUserId, 'chat')}
+                          onOpenConversation={(conversationUserId, orderId) => selectConversation(conversationUserId, 'chat', toOrderChatKey(orderId))}
                           onMarkCompleted={(orderId) => void updateOrderStatus(orderId, 'completed')}
                           onMarkCanceled={(orderId) => void updateOrderStatus(orderId, 'canceled')}
                           updating={updatingOrderId === order.id}

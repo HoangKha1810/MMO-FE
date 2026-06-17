@@ -48,17 +48,22 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const targetUserId = Number(searchParams.get('user_id') || 0);
   const afterId = Number(searchParams.get('after_id') || 0);
+  const orderIdParam = searchParams.get('order_id');
+  const hasOrderFilter = orderIdParam !== null;
+  const orderId = Number(orderIdParam || 0);
   const conversationUserId = context.isSupport && targetUserId > 0 ? targetUserId : userId;
 
   const messages = await getSupportConversationMessages(
     conversationUserId,
     context.supportUsername,
-    afterId > 0 ? afterId : 0
+    afterId > 0 ? afterId : 0,
+    hasOrderFilter ? (orderId > 0 ? orderId : null) : undefined
   );
 
   return NextResponse.json({
     success: true,
     conversation_user_id: conversationUserId,
+    order_id: hasOrderFilter ? (orderId > 0 ? orderId : null) : undefined,
     messages,
   });
 }

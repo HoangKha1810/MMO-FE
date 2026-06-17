@@ -4,6 +4,7 @@ import {
   createSupportConversationMessage,
   ensureSupportTikTokChatTable,
   getSupportTiktokContext,
+  validateSupportTikTokChatOrder,
 } from '@/lib/support-tiktok';
 import { saveUploadedFileAsDataUrl } from '@/lib/server-upload';
 
@@ -67,6 +68,8 @@ export async function POST(req: NextRequest) {
     const readValue = (key: string) => body instanceof FormData ? String(body.get(key) || '') : String(body?.[key] || '');
     const message = readValue('message').trim();
     const targetUserId = Number(readValue('user_id') || 0);
+    const orderId = Number(readValue('order_id') || 0);
+    const supportCategory = readValue('support_category').slice(0, 120);
     const imageUrls: string[] = [];
 
     if (body instanceof FormData) {
@@ -106,8 +109,24 @@ export async function POST(req: NextRequest) {
     }
 
     const conversationUserId = context.isSupport ? targetUserId : userId;
+    if (!context.isSupport && orderId <= 0) {
+      return NextResponse.json(
+        { success: false, message: 'Vui lòng chọn ID TikTok đã mua trước khi gửi chat.' },
+        { status: 400 }
+      );
+    }
+
+    const order = orderId > 0
+      ? await validateSupportTikTokChatOrder({
+          orderId,
+          conversationUserId,
+          isSupport: context.isSupport,
+        })
+      : null;
     const created = await createSupportConversationMessage({
       conversationUserId,
+      orderId: order?.id || null,
+      supportCategory: supportCategory || null,
       message: message || '[Ảnh đính kèm]',
       senderType: context.isSupport ? 'support' : 'user',
       supportUsername: context.supportUsername,

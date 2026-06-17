@@ -8,17 +8,26 @@ import { getLegacyEnv } from '@/lib/legacy-env';
 interface SupportMessageRow {
   id: number;
   user_id: number;
+  order_id?: number | null;
+  support_category?: string | null;
   sender_type: 'user' | 'support';
   message: string | null;
   image_url: string | null;
   image_urls: string | null;
   created_at: Date | string;
+  order_tiktok_id?: string | null;
+  order_service_name?: string | null;
+  order_status?: string | null;
 }
 
 interface ConversationRow {
   user_id: number;
   username: string | null;
   avatar: string | null;
+  order_id: number | null;
+  tiktok_id: string | null;
+  service_name: string | null;
+  order_status: string | null;
   last_message: string | null;
   last_at: Date | string | null;
   last_sender_type: 'user' | 'support' | null;
@@ -26,6 +35,9 @@ interface ConversationRow {
 
 interface SupportOrderAccessRow {
   id: number;
+  user_id?: number | null;
+  tiktok_id?: string | null;
+  service_name?: string | null;
   status: string | null;
   ngay_het_han: Date | string | null;
 }
@@ -61,6 +73,11 @@ function mapMessage(row: SupportMessageRow, supportUsername: string) {
   return {
     id: Number(row.id),
     user_id: Number(row.user_id),
+    order_id: row.order_id ? Number(row.order_id) : null,
+    support_category: row.support_category || '',
+    order_tiktok_id: row.order_tiktok_id || '',
+    order_service_name: row.order_service_name || '',
+    order_status: row.order_status || '',
     sender_type: row.sender_type,
     sender_name: row.sender_type === 'support' ? supportUsername : '',
     message: String(row.message || ''),
@@ -159,6 +176,8 @@ export async function ensureSupportTikTokChatTable() {
     CREATE TABLE IF NOT EXISTS support_tiktok_messages (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       user_id INT NOT NULL,
+      order_id BIGINT UNSIGNED NULL,
+      support_category VARCHAR(120) NULL,
       sender_type VARCHAR(20) NOT NULL DEFAULT 'user',
       message TEXT NULL,
       image_url LONGTEXT NULL,
@@ -166,6 +185,8 @@ export async function ensureSupportTikTokChatTable() {
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       KEY idx_support_tiktok_messages_user_id (user_id, id),
+      KEY idx_support_tiktok_messages_order_id (order_id),
+      KEY idx_support_tiktok_messages_user_order (user_id, order_id, id),
       KEY idx_support_tiktok_messages_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
@@ -173,6 +194,8 @@ export async function ensureSupportTikTokChatTable() {
   const columns = await getTableColumns('support_tiktok_messages');
   const columnStatements = [
     !columns.has('sender_type') ? "ADD COLUMN sender_type VARCHAR(20) NOT NULL DEFAULT 'user' AFTER user_id" : '',
+    !columns.has('order_id') ? 'ADD COLUMN order_id BIGINT UNSIGNED NULL AFTER user_id' : '',
+    !columns.has('support_category') ? 'ADD COLUMN support_category VARCHAR(120) NULL AFTER order_id' : '',
     !columns.has('message') ? 'ADD COLUMN message TEXT NULL AFTER sender_type' : '',
     !columns.has('image_url') ? 'ADD COLUMN image_url LONGTEXT NULL AFTER message' : '',
     !columns.has('image_urls') ? 'ADD COLUMN image_urls LONGTEXT NULL AFTER image_url' : '',
@@ -189,6 +212,12 @@ export async function ensureSupportTikTokChatTable() {
   const indexes = await getTableIndexes('support_tiktok_messages');
   if (!indexes.has('idx_support_tiktok_messages_user_id')) {
     await db.$executeRawUnsafe('CREATE INDEX idx_support_tiktok_messages_user_id ON support_tiktok_messages (user_id, id)').catch(() => undefined);
+  }
+  if (!indexes.has('idx_support_tiktok_messages_order_id')) {
+    await db.$executeRawUnsafe('CREATE INDEX idx_support_tiktok_messages_order_id ON support_tiktok_messages (order_id)').catch(() => undefined);
+  }
+  if (!indexes.has('idx_support_tiktok_messages_user_order')) {
+    await db.$executeRawUnsafe('CREATE INDEX idx_support_tiktok_messages_user_order ON support_tiktok_messages (user_id, order_id, id)').catch(() => undefined);
   }
   if (!indexes.has('idx_support_tiktok_messages_created_at')) {
     await db.$executeRawUnsafe('CREATE INDEX idx_support_tiktok_messages_created_at ON support_tiktok_messages (created_at)').catch(() => undefined);
@@ -372,25 +401,105 @@ export async function getSupportTiktokContext(userId: number, clientIp?: string)
 export async function getSupportConversationMessages(
   conversationUserId: number,
   supportUsername: string,
-  afterId = 0
+  afterId = 0,
+  orderId?: number | null
 ) {
+  const params: Array<number> = [conversationUserId];
+  const clauses = ['mm.user_id = ?'];
+
+  if (orderId !== undefined) {
+    if (orderId && orderId > 0) {
+      clauses.push('mm.order_id = ?');
+      params.push(orderId);
+    } else {
+      clauses.push('mm.order_id IS NULL');
+    }
+  }
+
+  if (afterId > 0) {
+    clauses.push('mm.id > ?');
+    params.push(afterId);
+  }
+
   const sql = `
-    SELECT id, user_id, sender_type, message, image_url, image_urls, created_at
-    FROM support_tiktok_messages
-    WHERE user_id = ?
-      ${afterId > 0 ? 'AND id > ?' : ''}
-    ORDER BY id ASC
+    SELECT
+      mm.id,
+      mm.user_id,
+      mm.order_id,
+      mm.support_category,
+      mm.sender_type,
+      mm.message,
+      mm.image_url,
+      mm.image_urls,
+      mm.created_at,
+      o.tiktok_id AS order_tiktok_id,
+      o.service_name AS order_service_name,
+      o.status AS order_status
+    FROM support_tiktok_messages mm
+    LEFT JOIN tiktok_support_orders o ON o.id = mm.order_id
+    WHERE ${clauses.join('\n      AND ')}
+    ORDER BY mm.id ASC
     LIMIT 100
   `;
 
-  const params = afterId > 0 ? [conversationUserId, afterId] : [conversationUserId];
   const rows = await db.$queryRawUnsafe<SupportMessageRow[]>(sql, ...params);
 
   return rows.map((row) => mapMessage(row, supportUsername));
 }
 
+export async function validateSupportTikTokChatOrder(input: {
+  orderId: number;
+  conversationUserId: number;
+  isSupport: boolean;
+}) {
+  if (!input.orderId || input.orderId <= 0) {
+    return null;
+  }
+
+  const rows = await db.$queryRawUnsafe<SupportOrderAccessRow[]>(
+    `
+      SELECT id, user_id, tiktok_id, service_name, status, ngay_het_han
+      FROM tiktok_support_orders
+      WHERE id = ?
+      LIMIT 1
+    `,
+    input.orderId
+  ).catch(() => []);
+  const order = rows[0] || null;
+
+  if (!order) {
+    throw new Error('Không tìm thấy đơn TikTok để chat');
+  }
+  if (Number(order.user_id || 0) !== Number(input.conversationUserId)) {
+    throw new Error('Đơn TikTok không thuộc khách đang chọn');
+  }
+
+  if (!input.isSupport) {
+    const nowText = getVietnamDatabaseDateTime();
+    const status = String(order.status || '').trim().toLowerCase();
+    const expiresAt = order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '';
+    const activeStatus = ['active', 'completed', 'processing', 'success'].includes(status);
+    const notExpired = !expiresAt || expiresAt >= nowText;
+
+    if (!activeStatus || !notExpired) {
+      throw new Error('Đơn TikTok này chưa mở hoặc đã hết hạn chat');
+    }
+  }
+
+  return {
+    id: Number(order.id),
+    user_id: Number(order.user_id || 0),
+    tiktok_id: String(order.tiktok_id || ''),
+    service_name: String(order.service_name || ''),
+    status: String(order.status || ''),
+    ngay_het_han: order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '',
+  };
+}
+
 export async function createSupportConversationMessage(input: {
   conversationUserId: number;
+  orderId?: number | null;
+  supportCategory?: string | null;
   message: string;
   senderType: 'user' | 'support';
   supportUsername: string;
@@ -405,10 +514,12 @@ export async function createSupportConversationMessage(input: {
     const createdAt = getVietnamDatabaseDateTime();
     await tx.$executeRawUnsafe(
       `
-        INSERT INTO support_tiktok_messages (user_id, sender_type, message, image_url, image_urls, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO support_tiktok_messages (user_id, order_id, support_category, sender_type, message, image_url, image_urls, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       input.conversationUserId,
+      input.orderId && input.orderId > 0 ? input.orderId : null,
+      input.supportCategory ? input.supportCategory.slice(0, 120) : null,
       input.senderType,
       input.message,
       primaryImage,
@@ -418,9 +529,22 @@ export async function createSupportConversationMessage(input: {
 
     const rows = await tx.$queryRawUnsafe<SupportMessageRow[]>(
       `
-        SELECT id, user_id, sender_type, message, image_url, image_urls, created_at
-        FROM support_tiktok_messages
-        WHERE id = LAST_INSERT_ID()
+        SELECT
+          mm.id,
+          mm.user_id,
+          mm.order_id,
+          mm.support_category,
+          mm.sender_type,
+          mm.message,
+          mm.image_url,
+          mm.image_urls,
+          mm.created_at,
+          o.tiktok_id AS order_tiktok_id,
+          o.service_name AS order_service_name,
+          o.status AS order_status
+        FROM support_tiktok_messages mm
+        LEFT JOIN tiktok_support_orders o ON o.id = mm.order_id
+        WHERE mm.id = LAST_INSERT_ID()
         LIMIT 1
       `
     );
@@ -441,19 +565,32 @@ export async function getSupportConversations() {
       u.id AS user_id,
       u.username,
       u.avatar,
+      m_last.order_id,
+      o.tiktok_id,
+      o.service_name,
+      o.status AS order_status,
       m_last.last_message,
       m_last.last_at,
       m_last.last_sender_type
     FROM (
-      SELECT mm.user_id, mm.message AS last_message, mm.created_at AS last_at, mm.sender_type AS last_sender_type
+      SELECT
+        mm.user_id,
+        mm.order_id,
+        mm.support_category,
+        mm.message AS last_message,
+        mm.created_at AS last_at,
+        mm.sender_type AS last_sender_type
       FROM support_tiktok_messages mm
       INNER JOIN (
-        SELECT user_id, MAX(id) AS last_id
+        SELECT user_id, COALESCE(order_id, 0) AS order_key, MAX(id) AS last_id
         FROM support_tiktok_messages
-        GROUP BY user_id
-      ) mx ON mx.user_id = mm.user_id AND mx.last_id = mm.id
+        GROUP BY user_id, COALESCE(order_id, 0)
+      ) mx ON mx.user_id = mm.user_id
+        AND mx.order_key = COALESCE(mm.order_id, 0)
+        AND mx.last_id = mm.id
     ) m_last
     INNER JOIN users u ON u.id = m_last.user_id
+    LEFT JOIN tiktok_support_orders o ON o.id = m_last.order_id
     ORDER BY m_last.last_at DESC, m_last.user_id DESC
     LIMIT 200
   `);
@@ -462,6 +599,10 @@ export async function getSupportConversations() {
     user_id: Number(row.user_id),
     username: String(row.username || `USER #${row.user_id}`),
     avatar: buildLegacyAssetUrl(row.avatar),
+    order_id: row.order_id ? Number(row.order_id) : null,
+    tiktok_id: String(row.tiktok_id || ''),
+    service_name: String(row.service_name || ''),
+    order_status: String(row.order_status || ''),
     last_message: String(row.last_message || ''),
     last_at: serializeDatabaseDateTime(row.last_at) || getVietnamDatabaseDateTime(),
     last_sender_type: String(row.last_sender_type || ''),

@@ -3,6 +3,8 @@ SET NAMES utf8mb4;
 CREATE TABLE IF NOT EXISTS `support_tiktok_messages` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` INT NOT NULL,
+  `order_id` BIGINT UNSIGNED NULL,
+  `support_category` VARCHAR(120) NULL,
   `sender_type` ENUM('user', 'support') NOT NULL DEFAULT 'user',
   `message` TEXT NULL,
   `image_url` VARCHAR(255) NULL,
@@ -10,6 +12,8 @@ CREATE TABLE IF NOT EXISTS `support_tiktok_messages` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_support_tiktok_messages_user_id` (`user_id`, `id`),
+  KEY `idx_support_tiktok_messages_order_id` (`order_id`),
+  KEY `idx_support_tiktok_messages_user_order` (`user_id`, `order_id`, `id`),
   KEY `idx_support_tiktok_messages_created_at` (`created_at`),
   CONSTRAINT `fk_support_tiktok_messages_user`
     FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
@@ -19,6 +23,18 @@ CREATE TABLE IF NOT EXISTS `support_tiktok_messages` (
 
 ALTER TABLE `support_tiktok_messages`
   MODIFY COLUMN `image_url` LONGTEXT NULL;
+
+ALTER TABLE `support_tiktok_messages`
+  ADD COLUMN IF NOT EXISTS `order_id` BIGINT UNSIGNED NULL AFTER `user_id`;
+
+ALTER TABLE `support_tiktok_messages`
+  ADD COLUMN IF NOT EXISTS `support_category` VARCHAR(120) NULL AFTER `order_id`;
+
+CREATE INDEX IF NOT EXISTS `idx_support_tiktok_messages_order_id`
+  ON `support_tiktok_messages` (`order_id`);
+
+CREATE INDEX IF NOT EXISTS `idx_support_tiktok_messages_user_order`
+  ON `support_tiktok_messages` (`user_id`, `order_id`, `id`);
 
 CREATE TABLE IF NOT EXISTS `tiktok_service_menus` (
   `id` INT NOT NULL AUTO_INCREMENT,
