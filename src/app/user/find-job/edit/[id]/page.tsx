@@ -44,7 +44,6 @@ export default async function EditFindJobPage({ params }: { params: Promise<{ id
                 category: String(job.category || 'general'),
                 price_min: Number(job.price_min || job.budget_min || 0) || '',
                 price_max: Number(job.price_max || job.budget_max || 0) || '',
-                deadline_days: Number(job.deadline_days || 0) || '',
               }}
               redirectTo={() => `/user/find-job/${jobId}`}
               fields={[
@@ -55,7 +54,6 @@ export default async function EditFindJobPage({ params }: { params: Promise<{ id
                 { name: 'description', label: 'Mô tả', type: 'textarea', required: true },
                 { name: 'price_min', label: 'Ngân sách thấp nhất', type: 'number' },
                 { name: 'price_max', label: 'Ngân sách cao nhất', type: 'number' },
-                { name: 'deadline_days', label: 'Deadline (ngày)', type: 'number' },
               ]}
             />
           </div>

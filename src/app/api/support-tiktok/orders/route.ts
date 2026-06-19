@@ -25,7 +25,12 @@ const DEFAULT_TIKTOK_SUPPORT_MENUS = [
   { name: 'SP TIK THAI LAN', slug: 'thai', displayOrder: 3 },
   { name: 'SP THUỴ SĨ', slug: 'td', displayOrder: 4 },
   { name: 'SP INDONESIA', slug: 'id', displayOrder: 5 },
+  { name: 'SP TIK NHẬT', slug: 'jp', displayOrder: 6 },
+  { name: 'SP FINLAND', slug: 'fi', displayOrder: 7 },
+  { name: 'SP US', slug: 'us', displayOrder: 8 },
 ];
+
+const SUPPORT_TIKTOK_MANUAL_RENEW_REGION_ALIASES = new Set(['jp', 'japan', 'nhat', 'nhật', 'ja']);
 
 const DEFAULT_TIKTOK_SUPPORT_SERVICES = [
   {
@@ -175,10 +180,106 @@ const DEFAULT_TIKTOK_SUPPORT_SERVICES = [
     price: 1380000,
     displayOrder: 4,
   },
+  {
+    regionSlug: 'jp',
+    name: 'Chat Support TikTok Nhật 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 360000,
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'jp',
+    name: 'Chat Support TikTok Nhật 10-20K FL',
+    serviceKey: '10-20',
+    price: 640000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'jp',
+    name: 'Chat Support TikTok Nhật 20-50K FL',
+    serviceKey: '20-50',
+    price: 1000000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'jp',
+    name: 'Chat Support TikTok Nhật 50k - 100k FL',
+    serviceKey: '50k-100k',
+    price: 1380000,
+    displayOrder: 4,
+  },
+  {
+    regionSlug: 'fi',
+    name: 'Chat Support TikTok Finland 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 360000,
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'fi',
+    name: 'Chat Support TikTok Finland 10-20K FL',
+    serviceKey: '10-20',
+    price: 640000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'fi',
+    name: 'Chat Support TikTok Finland 20-50K FL',
+    serviceKey: '20-50',
+    price: 1000000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'fi',
+    name: 'Chat Support TikTok Finland 50k - 100k FL',
+    serviceKey: '50k-100k',
+    price: 1380000,
+    displayOrder: 4,
+  },
+  {
+    regionSlug: 'us',
+    name: 'Chat Support TikTok US 0 - 10k FL',
+    serviceKey: '0-10k',
+    price: 360000,
+    displayOrder: 1,
+  },
+  {
+    regionSlug: 'us',
+    name: 'Chat Support TikTok US 10-20K FL',
+    serviceKey: '10-20',
+    price: 640000,
+    displayOrder: 2,
+  },
+  {
+    regionSlug: 'us',
+    name: 'Chat Support TikTok US 20-50K FL',
+    serviceKey: '20-50',
+    price: 1000000,
+    displayOrder: 3,
+  },
+  {
+    regionSlug: 'us',
+    name: 'Chat Support TikTok US 50k - 100k FL',
+    serviceKey: '50k-100k',
+    price: 1380000,
+    displayOrder: 4,
+  },
 ].map((service) => ({
   ...service,
   description: service.name,
 }));
+
+function normalizeRegionAlias(value: unknown) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function requiresManualRenewApproval(region: unknown) {
+  return SUPPORT_TIKTOK_MANUAL_RENEW_REGION_ALIASES.has(normalizeRegionAlias(region));
+}
 
 function defaultTikTokMenusForResponse() {
   return DEFAULT_TIKTOK_SUPPORT_MENUS.map((menu, index) => ({
@@ -536,7 +637,10 @@ export async function POST(req: NextRequest) {
       if (nextStatus === 'completed' || nextStatus === 'active') {
         const nowText = getVietnamDatabaseDateTime();
         const renewalText = normalizeSupportOrderDateTime(order.ngay_gia_han) || nowText;
-        const expiresText = ensureSupportOrderExpiry(order.ngay_het_han, nowText);
+        const currentStatus = String(order.status || '').trim().toLowerCase();
+        const expiresText = requiresManualRenewApproval(order.region) && currentStatus === 'pending'
+          ? nextSupportOrderExpiry(order.ngay_het_han, nowText)
+          : ensureSupportOrderExpiry(order.ngay_het_han, nowText);
         await tx.$executeRawUnsafe(
           `
             UPDATE tiktok_support_orders
@@ -589,6 +693,7 @@ export async function POST(req: NextRequest) {
     const orderId = Number(readBodyValue(body, 'order_id') || 0);
     if (!orderId) return NextResponse.json({ success: false, message: 'Thiếu order_id' }, { status: 400 });
     const renewedStatus = await resolveTikTokOrderStatus('completed');
+    const pendingRenewStatus = await resolveTikTokOrderStatus('pending');
 
     const result = await db.$transaction(async (tx) => {
       const rows = await tx.$queryRawUnsafe<LegacyOrderRow[]>(
@@ -603,6 +708,28 @@ export async function POST(req: NextRequest) {
       );
       const order = rows[0];
       if (!order) throw new Error('Không tìm thấy đơn TikTok');
+
+      if (!auth.context!.isSupport && requiresManualRenewApproval(order.region)) {
+        const nowText = getVietnamDatabaseDateTime();
+        await tx.$executeRawUnsafe(
+          `
+            UPDATE tiktok_support_orders
+            SET status = ?,
+                ngay_gia_han = ?,
+                updated_at = ?
+            WHERE id = ?
+          `,
+          pendingRenewStatus,
+          nowText,
+          nowText,
+          orderId
+        );
+
+        return {
+          order_id: orderId,
+          pending_approval: true,
+        };
+      }
 
       const settings = await getLegacySettingsMap();
       const vatPercent = getVatPercent(settings);
@@ -660,7 +787,15 @@ export async function POST(req: NextRequest) {
       return { order_id: orderId, balance_after: nextBalance };
     });
 
-    return NextResponse.json({ success: true, message: 'Đã gia hạn đơn TikTok', data: result });
+    const pendingApproval = 'pending_approval' in result && result.pending_approval === true;
+
+    return NextResponse.json({
+      success: true,
+      message: pendingApproval
+        ? 'Đã gửi yêu cầu gia hạn. Nhân viên hỗ trợ TikTok sẽ accept để gia hạn tiếp 1 tháng.'
+        : 'Đã gia hạn đơn TikTok',
+      data: result,
+    });
   }
 
   const region = readBodyValue(body, 'region');
@@ -671,6 +806,13 @@ export async function POST(req: NextRequest) {
 
   if (!region || !serviceKey || !tiktokId) {
     return NextResponse.json({ success: false, message: 'Thiếu region, service_key hoặc TikTok ID' }, { status: 400 });
+  }
+
+  if (!auth.context!.isSupport && requiresManualRenewApproval(region)) {
+    return NextResponse.json(
+      { success: false, message: 'Region Nhật chỉ gia hạn đơn đã có. Vui lòng liên hệ nhân viên hỗ trợ TikTok để tạo mới.' },
+      { status: 400 }
+    );
   }
 
   await ensureDefaultTikTokSupportServices();

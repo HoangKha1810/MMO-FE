@@ -349,7 +349,9 @@ const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
     slug: 'Slug đường dẫn',
     description: 'Mô tả dịch vụ con',
     input_label: 'Nhãn ô nhập chính',
+    input_placeholder: 'Gợi ý ô nhập chính',
     buyer_label: 'Nhãn ô liên hệ',
+    buyer_placeholder: 'Gợi ý ô liên hệ',
   },
   'automxh-variants': {
     product_id: 'Dịch vụ cha',
@@ -699,15 +701,6 @@ function normalizeAdminEditorPayload(resource: string, values: Record<string, un
     }
   }
 
-  if (resource === 'automxh-products') {
-    if (Object.prototype.hasOwnProperty.call(next, 'input_label')) {
-      next.input_placeholder = String(next.input_label || '').trim();
-    }
-    if (Object.prototype.hasOwnProperty.call(next, 'buyer_label')) {
-      next.buyer_placeholder = String(next.buyer_label || '').trim();
-    }
-  }
-
   return next;
 }
 
@@ -829,7 +822,9 @@ function sortEditorEntries(resource: string, entries: Array<[string, unknown]>) 
       'cost',
       'type',
       'input_label',
+      'input_placeholder',
       'buyer_label',
+      'buyer_placeholder',
       'status',
       'api_provider_id',
       'api_service_id',

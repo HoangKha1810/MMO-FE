@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
       category,
       priceMin: Number(body.price_min || 0) || undefined,
       priceMax: Number(body.price_max || 0) || undefined,
-      deadlineDays: Number(body.deadline_days || 0) || undefined,
     });
 
     return NextResponse.json({

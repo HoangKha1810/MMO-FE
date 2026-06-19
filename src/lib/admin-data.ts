@@ -18,6 +18,7 @@ import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
 import { ensureVibeCodeTables } from '@/lib/vibe-code';
 import { ensurePressServiceTables } from '@/lib/press-service';
+import { buildForumModerationText, containsForumGamblingContent } from '@/lib/forum';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -133,8 +134,8 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     searchFields: ['name', 'description', 'badge', 'status', 'type'],
     statusField: 'status',
     rawOrder: 'updated_at DESC, id DESC',
-    createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'buyer_label', 'status'],
-    updateFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'buyer_label', 'status', 'is_deleted'],
+    createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status'],
+    updateFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status', 'is_deleted'],
   },
   'automxh-orders': {
     table: 'automxh_orders',
@@ -328,8 +329,8 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     searchFields: ['title', 'description', 'status'],
     statusField: 'status',
     rawOrder: 'is_pinned DESC, updated_at DESC, id DESC',
-    createFields: ['user_id', 'posted_by', 'title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'deadline_days', 'status', 'approval_status', 'is_pinned'],
-    updateFields: ['title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'deadline_days', 'status', 'approval_status', 'is_pinned'],
+    createFields: ['user_id', 'posted_by', 'title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'approval_status', 'is_pinned'],
+    updateFields: ['title', 'slug', 'description', 'category', 'budget_min', 'price_min', 'budget_max', 'price_max', 'status', 'approval_status', 'is_pinned'],
   },
   'vps-gpu-offer-costs': {
     table: 'vps_gpu_offer_costs',
@@ -1234,6 +1235,10 @@ export async function listAdminResource(resource: string, params: URLSearchParam
     return listLegacyAutoMxhOrders(config, params, page, perPage, skip);
   }
 
+  if (resource === 'forum-threads') {
+    return listForumThreads(config, params, page, perPage, skip);
+  }
+
   if (config.table) {
     return listRawTable(config, params, page, perPage, skip);
   }
@@ -1451,6 +1456,8 @@ async function listLegacySmmServices(config: ResourceConfig, params: URLSearchPa
 
 async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
   await ensureAutoMxhRefundColumns();
+  const productColumns = await getRawTableColumns('automxh_products').catch(() => new Set<string>());
+  const productOptionalSelect = (column: string) => productColumns.has(column) ? `p.\`${column}\`` : "''";
   const search = (params.get('search') || '').trim();
   const status = (params.get('status') || '').trim();
   const values: unknown[] = [];
@@ -1493,9 +1500,9 @@ async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearch
           u.fullname,
           u.telegram_username,
           p.name AS product_name,
-          p.input_label,
-          p.buyer_label,
-          p.custom_inputs,
+          ${productOptionalSelect('input_label')} AS input_label,
+          ${productOptionalSelect('buyer_label')} AS buyer_label,
+          ${productOptionalSelect('custom_inputs')} AS custom_inputs,
           v.name AS variant_name
         ${fromSql}
         ORDER BY o.created_at DESC, o.id DESC
@@ -1527,6 +1534,82 @@ async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearch
     success: true,
     title: config.title,
     data: normalizeValue(hydratedRows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listForumThreads(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(`(
+      CAST(t.id AS CHAR) LIKE ?
+      OR CAST(t.user_id AS CHAR) LIKE ?
+      OR COALESCE(t.title, '') LIKE ?
+      OR COALESCE(t.slug, '') LIKE ?
+      OR COALESCE(t.status, '') LIKE ?
+      OR COALESCE(p.content, '') LIKE ?
+    )`);
+    values.push(like, like, like, like, like, like);
+  }
+
+  if (status) {
+    conditions.push('COALESCE(t.status, \'\') = ?');
+    values.push(status);
+  }
+
+  const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const fromSql = `
+    FROM forum_threads t
+    LEFT JOIN forum_posts p
+      ON p.id = (
+        SELECT fp.id
+        FROM forum_posts fp
+        WHERE fp.thread_id = t.id
+          AND fp.is_first_post = 1
+        ORDER BY fp.id ASC
+        LIMIT 1
+      )
+    ${whereSql}
+  `;
+
+  const [rows, countRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT
+          t.*,
+          p.content AS content
+        ${fromSql}
+        ORDER BY t.is_pinned DESC, t.updated_at DESC, t.id DESC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `SELECT COUNT(*) AS total ${fromSql}`,
+      ...values
+    ),
+  ]);
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(rows),
     pagination: {
       page,
       per_page: perPage,
@@ -2992,11 +3075,48 @@ async function notifyModerationUser(input: {
 
 async function moderateForumThread(id: number, approved: boolean, adminId: number, req: NextRequest) {
   const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-    'SELECT id, user_id, title, status FROM `forum_threads` WHERE id = ? LIMIT 1',
+    `
+      SELECT t.id, t.user_id, t.title, t.status, p.content
+      FROM forum_threads t
+      LEFT JOIN forum_posts p
+        ON p.id = (
+          SELECT fp.id
+          FROM forum_posts fp
+          WHERE fp.thread_id = t.id
+            AND fp.is_first_post = 1
+          ORDER BY fp.id ASC
+          LIMIT 1
+        )
+      WHERE t.id = ?
+      LIMIT 1
+    `,
     id
   );
   const thread = rows[0];
   if (!thread) throw new Error(`Không tìm thấy thread #${id}`);
+  if (approved && containsForumGamblingContent(buildForumModerationText({ title: thread.title, content: thread.content }))) {
+    await db.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'UPDATE forum_threads SET status = ?, is_deleted = 0, updated_at = NOW() WHERE id = ?',
+        'rejected',
+        id
+      );
+      await tx.$executeRawUnsafe(
+        'UPDATE forum_posts SET status = ?, is_deleted = 0, updated_at = NOW() WHERE thread_id = ? AND is_first_post = 1',
+        'rejected',
+        id
+      );
+    });
+    await notifyModerationUser({
+      userId: Number(thread.user_id || 0),
+      adminId,
+      type: 'forum_thread_rejected',
+      message: `Thread của bạn đã bị từ chối vì nội dung cờ bạc/cá cược: ${String(thread.title || `#${id}`)}`,
+      link: '/user/forum/my-threads',
+    });
+    await logAdminAction({ adminId, action: 'reject gambling forum thread', target: `#${id}`, req });
+    throw new Error(`Thread #${id} chứa nội dung cờ bạc/cá cược nên đã bị từ chối`);
+  }
 
   const firstPostRows = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>(
     'SELECT id FROM `forum_posts` WHERE thread_id = ? AND is_first_post = 1 ORDER BY id ASC LIMIT 1',
@@ -3053,7 +3173,7 @@ async function moderateForumThread(id: number, approved: boolean, adminId: numbe
 async function moderateForumPost(id: number, approved: boolean, adminId: number, req: NextRequest) {
   const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
     `
-      SELECT p.id, p.thread_id, p.user_id, p.is_first_post, p.status, t.title, t.user_id AS thread_owner_id
+      SELECT p.id, p.thread_id, p.user_id, p.is_first_post, p.content, p.status, t.title, t.user_id AS thread_owner_id
       FROM forum_posts p
       LEFT JOIN forum_threads t ON t.id = p.thread_id
       WHERE p.id = ?
@@ -3063,6 +3183,22 @@ async function moderateForumPost(id: number, approved: boolean, adminId: number,
   );
   const post = rows[0];
   if (!post) throw new Error(`Không tìm thấy post #${id}`);
+  if (approved && containsForumGamblingContent(buildForumModerationText({ title: post.title, content: post.content }))) {
+    await db.$executeRawUnsafe(
+      'UPDATE forum_posts SET status = ?, is_deleted = 0, updated_at = NOW() WHERE id = ?',
+      'rejected',
+      id
+    );
+    await notifyModerationUser({
+      userId: Number(post.user_id || 0),
+      adminId,
+      type: 'forum_post_rejected',
+      message: `Bài viết của bạn đã bị từ chối vì nội dung cờ bạc/cá cược trong thread: ${String(post.title || `#${post.thread_id || 0}`)}`,
+      link: '/user/forum/posts',
+    });
+    await logAdminAction({ adminId, action: 'reject gambling forum post', target: `#${id}`, req });
+    throw new Error(`Post #${id} chứa nội dung cờ bạc/cá cược nên đã bị từ chối`);
+  }
 
   const threadId = Number(post.thread_id || 0);
   const postUserId = Number(post.user_id || 0);
@@ -3442,6 +3578,27 @@ async function deleteRawTable(config: ResourceConfig, id: number) {
   const table = await getActualRawTable(config);
   if (config.table === 'find_jobs') {
     await ensureFindJobPinColumn(table as 'find_job_jobs' | 'find_jobs');
+  }
+  if (table === 'forum_threads') {
+    await db.$executeRawUnsafe(
+      'UPDATE `forum_threads` SET `status` = ?, `is_deleted` = 1, `updated_at` = NOW() WHERE id = ?',
+      'deleted',
+      id
+    );
+    await db.$executeRawUnsafe(
+      'UPDATE `forum_posts` SET `status` = ?, `is_deleted` = 1, `updated_at` = NOW() WHERE thread_id = ?',
+      'deleted',
+      id
+    ).catch(() => undefined);
+    return;
+  }
+  if (table === 'forum_posts') {
+    await db.$executeRawUnsafe(
+      'UPDATE `forum_posts` SET `status` = ?, `is_deleted` = 1, `updated_at` = NOW() WHERE id = ?',
+      'deleted',
+      id
+    );
+    return;
   }
   await db.$executeRawUnsafe(`DELETE FROM \`${table}\` WHERE id = ?`, id);
 }

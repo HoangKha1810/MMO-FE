@@ -190,21 +190,6 @@ export function parseProductInputs(product: Pick<AutoMxhProduct, 'custom_inputs'
   return [];
 }
 
-async function autoMxhProductBadgeColumnExists() {
-  const rows = await db.$queryRawUnsafe<Array<{ column_name: string }>>(
-    `
-      SELECT COLUMN_NAME AS column_name
-      FROM information_schema.columns
-      WHERE table_schema = DATABASE()
-        AND table_name = 'automxh_products'
-        AND column_name = 'badge'
-      LIMIT 1
-    `
-  ).catch(() => []);
-
-  return rows.length > 0;
-}
-
 async function autoMxhColumnExists(tableName: string, columnName: string) {
   const rows = await db.$queryRawUnsafe<Array<{ column_name: string }>>(
     `
@@ -222,19 +207,42 @@ async function autoMxhColumnExists(tableName: string, columnName: string) {
   return rows.length > 0;
 }
 
+async function getAutoMxhColumnSet(tableName: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `
+      SELECT COLUMN_NAME AS column_name
+      FROM information_schema.columns
+      WHERE table_schema = DATABASE()
+        AND table_name = ?
+    `,
+    tableName
+  ).catch(() => []);
+
+  return new Set(rows.map((row) => String(row.column_name || '').trim()).filter(Boolean));
+}
+
+function autoMxhColumnSelect(columns: Set<string>, column: string, fallback = "''") {
+  return columns.has(column) ? `p.\`${column}\`` : fallback;
+}
+
+function autoMxhAggregateColumnSelect(columns: Set<string>, column: string, fallback = "''") {
+  return columns.has(column) ? `MAX(p.\`${column}\`)` : fallback;
+}
+
 export async function listAutoMxhCatalog(): Promise<AutoMxhCatalogSection[]> {
-  const [categoriesRows, hasProductBadge] = await Promise.all([
+  const [categoriesRows, productColumns] = await Promise.all([
     db.$queryRaw<AutoMxhCategoryRow[]>`
       SELECT id, name, slug, icon, gif, status
       FROM automxh_categories
       WHERE status = 'active'
       ORDER BY name ASC
     `,
-    autoMxhProductBadgeColumnExists(),
+    getAutoMxhColumnSet('automxh_products'),
   ]);
+  const hasProductBadge = productColumns.has('badge');
   const productBadgeSelect = hasProductBadge ? 'p.badge' : "''";
   const productBadgeGroupBy = hasProductBadge ? ', p.badge' : '';
-  const productDeletedCondition = await autoMxhColumnExists('automxh_products', 'is_deleted')
+  const productDeletedCondition = productColumns.has('is_deleted')
     ? 'AND COALESCE(p.is_deleted, 0) = 0'
     : '';
   const variantDeletedCondition = await autoMxhColumnExists('automxh_variants', 'is_deleted')
@@ -248,6 +256,11 @@ export async function listAutoMxhCatalog(): Promise<AutoMxhCatalogSection[]> {
         p.name,
         p.description,
         ${productBadgeSelect} AS badge,
+        ${autoMxhAggregateColumnSelect(productColumns, 'custom_inputs')} AS custom_inputs,
+        ${autoMxhAggregateColumnSelect(productColumns, 'input_label')} AS input_label,
+        ${autoMxhAggregateColumnSelect(productColumns, 'input_placeholder')} AS input_placeholder,
+        ${autoMxhAggregateColumnSelect(productColumns, 'buyer_label')} AS buyer_label,
+        ${autoMxhAggregateColumnSelect(productColumns, 'buyer_placeholder')} AS buyer_placeholder,
         COALESCE(MIN(v.price), p.price, 0) AS min_price,
         COUNT(v.id) AS variant_count
       FROM automxh_products p
@@ -283,8 +296,9 @@ export async function getAutoMxhCategory(slug: string) {
 }
 
 export async function getAutoMxhProductsForCategory(categoryId: number): Promise<AutoMxhProductWithVariants[]> {
-  const hasProductBadge = await autoMxhProductBadgeColumnExists();
-  const productDeletedCondition = await autoMxhColumnExists('automxh_products', 'is_deleted')
+  const productColumns = await getAutoMxhColumnSet('automxh_products');
+  const hasProductBadge = productColumns.has('badge');
+  const productDeletedCondition = productColumns.has('is_deleted')
     ? 'AND COALESCE(is_deleted, 0) = 0'
     : '';
   const productRows = await db.$queryRawUnsafe<AutoMxhProductRow[]>(
@@ -294,12 +308,12 @@ export async function getAutoMxhProductsForCategory(categoryId: number): Promise
       category_id,
       name,
       description,
-      ${hasProductBadge ? 'badge' : "''"} AS badge,
-      custom_inputs,
-      input_label,
-      input_placeholder,
-      buyer_label,
-      buyer_placeholder,
+      ${hasProductBadge ? '`badge`' : "''"} AS badge,
+      ${productColumns.has('custom_inputs') ? '`custom_inputs`' : "''"} AS custom_inputs,
+      ${productColumns.has('input_label') ? '`input_label`' : "''"} AS input_label,
+      ${productColumns.has('input_placeholder') ? '`input_placeholder`' : "''"} AS input_placeholder,
+      ${productColumns.has('buyer_label') ? '`buyer_label`' : "''"} AS buyer_label,
+      ${productColumns.has('buyer_placeholder') ? '`buyer_placeholder`' : "''"} AS buyer_placeholder,
       COALESCE(price, 0) AS min_price,
       0 AS variant_count
     FROM automxh_products

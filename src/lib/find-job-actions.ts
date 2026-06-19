@@ -40,7 +40,7 @@ function normalizeNonNegativeNumber(value: unknown, fallback = 0) {
 }
 
 function buildExpiresAt(startAt: Date, deadlineDays: unknown) {
-  const days = normalizePositiveInteger(deadlineDays, 7);
+  const days = normalizePositiveInteger(deadlineDays, 30);
   return new Date(startAt.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
@@ -99,7 +99,7 @@ export async function createOrUpdateFindJob(userId: number, input: {
   const table = await resolveFindJobTable();
   await ensureFindJobPinColumn(table);
 
-  if (input.title.trim().length < 8 || input.description.trim().length < 20) {
+  if (input.title.trim().length < 5 || input.description.trim().length < 5) {
     throw new Error('Tiêu đề hoặc mô tả quá ngắn');
   }
 
@@ -124,7 +124,7 @@ export async function createOrUpdateFindJob(userId: number, input: {
       }
 
       const now = new Date();
-      const deadlineDays = normalizePositiveInteger(input.deadlineDays, 7);
+      const deadlineDays = normalizePositiveInteger(input.deadlineDays, 30);
       await updateFiltered('find_job_jobs', input.id, 'posted_by', userId, {
         title: input.title.trim(),
         description: input.description.trim(),
@@ -143,7 +143,7 @@ export async function createOrUpdateFindJob(userId: number, input: {
 
     const slug = `${slugify(input.title)}-${Date.now()}`;
     const now = new Date();
-    const deadlineDays = normalizePositiveInteger(input.deadlineDays, 7);
+    const deadlineDays = normalizePositiveInteger(input.deadlineDays, 30);
     const insertedId = await insertFiltered('find_job_jobs', {
       title: input.title.trim(),
       slug,

@@ -33,7 +33,6 @@ export default async function CreateFindJobPage() {
                 { name: 'description', label: 'Mô tả chi tiết', type: 'textarea', required: true },
                 { name: 'price_min', label: 'Giá tối thiểu', type: 'number' },
                 { name: 'price_max', label: 'Giá tối đa', type: 'number' },
-                { name: 'deadline_days', label: 'Deadline ngày', type: 'number' },
               ]}
             />
           </div>

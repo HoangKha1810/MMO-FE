@@ -69,10 +69,50 @@ export const ACTIVE_FORUM_STATUSES = ['active', 'approved', 'open', 'published']
 export const VISIBLE_FORUM_STATUSES = [...ACTIVE_FORUM_STATUSES, 'pending', 'rejected', 'hidden'] as const;
 const ACTIVE_FORUM_STATUS_SQL = "'active', 'approved', 'open', 'published'";
 const VISIBLE_FORUM_STATUS_SQL = "'active', 'approved', 'open', 'published', 'pending', 'rejected', 'hidden'";
+const FORUM_GAMBLING_PATTERNS = [
+  /\bcasino\b/i,
+  /\bbaccarat\b/i,
+  /\bbet(?:ting)?\b/i,
+  /\bc[ao]\s*bac\b/i,
+  /\bdanh\s*bac\b/i,
+  /\bca\s*cuoc\b/i,
+  /\bkeo\s*nh[aà]\s*cai\b/i,
+  /\btai\s*xiu\b/i,
+  /\bt[aà]i\s*x[iỉ]u\b/i,
+  /\bx[oó]c\s*d[iĩ]a\b/i,
+  /\bn[oô]\s*h[uũ]\b/i,
+  /\bslot\b/i,
+  /\bgame\s*b[aà]i\b/i,
+  /\ban\s*tien\b/i,
+  /\btien\s*cao\b/i,
+  /\bthe\s*cao\b/i,
+  /\bnh[aà]\s*c[aá]i\b/i,
+  /\bc[áa]\s*c[ưừ]ơc\b/i,
+  /\bcờ\s*bạc\b/i,
+];
+
+const FORUM_GAMBLING_SQL_FILTER = `
+  AND LOWER(CONCAT(COALESCE(t.title, ''), ' ', COALESCE(fp.content, ''))) NOT REGEXP
+    'casino|baccarat|betting|\\\\bbet\\\\b|c[ao] bac|cờ bạc|danh bac|đánh bạc|ca cuoc|cá cược|keo nha cai|kèo nhà cái|tai xiu|tài xỉu|xoc dia|xóc đĩa|no hu|nổ hũ|slot|game bai|game bài|an tien|ăn tiền|tien cao|tiền cào|the cao|thẻ cào|nha cai|nhà cái'
+`;
 
 export function isActiveForumStatus(status: unknown) {
   const normalized = String(status || 'active').trim().toLowerCase();
   return ACTIVE_FORUM_STATUSES.includes(normalized as typeof ACTIVE_FORUM_STATUSES[number]);
+}
+
+export function containsForumGamblingContent(value: unknown) {
+  const text = String(value || '')
+    .replace(/<[^>]+>/g, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  return FORUM_GAMBLING_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+export function buildForumModerationText(input: { title?: unknown; content?: unknown }) {
+  return `${String(input.title || '')}\n${String(input.content || '')}`;
 }
 
 function toCount(value: unknown) {
@@ -142,6 +182,7 @@ export async function getForumOverview() {
         ) reply_counts ON reply_counts.thread_id = t.id
         WHERE t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
+          ${FORUM_GAMBLING_SQL_FILTER}
         ORDER BY t.is_pinned DESC, t.updated_at DESC, t.created_at DESC
         LIMIT 30
       `),
@@ -298,6 +339,7 @@ export async function getForumCategoryDetails(categoryId: number) {
         WHERE f.category_id = ?
           AND t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
+          ${FORUM_GAMBLING_SQL_FILTER}
         ORDER BY t.is_pinned DESC, t.updated_at DESC, t.created_at DESC
         LIMIT 80
       `, categoryId),
@@ -351,6 +393,7 @@ export async function getForumFolderDetails(forumId: number) {
         WHERE t.forum_id = ?
           AND t.status IN (${ACTIVE_FORUM_STATUS_SQL})
           AND COALESCE(t.is_deleted, 0) = 0
+          ${FORUM_GAMBLING_SQL_FILTER}
         ORDER BY t.is_pinned DESC, t.updated_at DESC, t.created_at DESC
         LIMIT 80
       `, forumId),
@@ -389,6 +432,7 @@ export async function getForumThreadDetails(threadId: number, viewerId?: number,
       WHERE t.id = ?
         ${threadVisibilitySql}
         AND COALESCE(t.is_deleted, 0) = 0
+        ${isAdminViewer ? '' : FORUM_GAMBLING_SQL_FILTER}
       LIMIT 1
     `, threadId, ...threadVisibilityParams);
 

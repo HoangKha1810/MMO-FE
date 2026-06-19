@@ -118,8 +118,8 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       title: 'Auto MXH products',
       description: 'Thêm/sửa dịch vụ con/tab hiển thị trong từng mục cha Facebook, Instagram...',
       columns: ['id', 'category_id', 'name', 'badge', 'description', 'api_provider_id', 'api_service_id', 'price', 'cost', 'variant_count', 'status', 'created_at'],
-      editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'buyer_label', 'status', 'is_deleted'],
-      createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'buyer_label', 'status'],
+      editableFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status', 'is_deleted'],
+      createFields: ['category_id', 'api_provider_id', 'api_service_id', 'name', 'slug', 'badge', 'price', 'cost', 'type', 'description', 'input_label', 'input_placeholder', 'buyer_label', 'buyer_placeholder', 'status'],
       statusOptions: ['active', 'inactive'],
     },
     {
@@ -293,7 +293,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'forum-threads',
       title: 'Threads',
       description: 'Duyệt/ẩn/ghim/khóa thread forum. Bài ghim luôn được đẩy lên đầu trang Forum MMO.',
-      columns: ['id', 'forum_id', 'user_id', 'title', 'views', 'is_pinned', 'is_locked', 'status', 'is_deleted', 'updated_at', 'created_at'],
+      columns: ['id', 'forum_id', 'user_id', 'title', 'content', 'views', 'is_pinned', 'is_locked', 'status', 'is_deleted', 'updated_at', 'created_at'],
       editableFields: ['forum_id', 'user_id', 'title', 'slug', 'status', 'is_pinned', 'is_locked', 'is_deleted'],
       createFields: ['forum_id', 'user_id', 'title', 'slug', 'status', 'is_pinned', 'is_locked'],
       statusOptions: ['active', 'hidden', 'deleted', 'pending', 'rejected'],
@@ -304,6 +304,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
         { key: 'unpin', label: 'Bỏ ghim' },
         { key: 'bulk-approve', label: 'Duyệt hàng loạt', tone: 'success' },
         { key: 'bulk-reject', label: 'Từ chối hàng loạt', tone: 'danger' },
+        { key: 'bulk-delete', label: 'Xóa đã chọn', tone: 'danger' },
       ],
     },
     {
@@ -318,6 +319,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
         { key: 'reject', label: 'Từ chối', tone: 'danger' },
         { key: 'bulk-approve', label: 'Duyệt hàng loạt', tone: 'success' },
         { key: 'bulk-reject', label: 'Từ chối hàng loạt', tone: 'danger' },
+        { key: 'bulk-delete', label: 'Xóa đã chọn', tone: 'danger' },
       ],
     },
     {

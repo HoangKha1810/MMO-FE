@@ -51,6 +51,18 @@ function formatOrderDate(value: string | undefined) {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : 'chưa có';
 }
 
+function normalizeRegionAlias(value: unknown) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function isManualRenewRegion(value: unknown) {
+  return ['jp', 'japan', 'nhat', 'ja'].includes(normalizeRegionAlias(value));
+}
+
 export function SupportTiktokOrdersPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
@@ -108,7 +120,8 @@ export function SupportTiktokOrdersPage() {
   );
   const selectedPrice = toNumber(selectedService?.price, 0);
   const selectedPriceLabel = selectedService ? formatCurrency(selectedPrice) : services.length > 0 ? 'Chọn dịch vụ' : 'Chưa có đơn giá';
-  const canCreateOrder = Boolean(selectedService && selectedPrice > 0 && form.region && form.service_key && form.tiktok_id.trim());
+  const manualRenewRegion = isManualRenewRegion(form.region);
+  const canCreateOrder = Boolean(!manualRenewRegion && selectedService && selectedPrice > 0 && form.region && form.service_key && form.tiktok_id.trim());
   const selectedRegionLabel = regionOptions.find((region) => region.slug === form.region)?.label || form.region || 'Chưa chọn';
 
   async function loadOrders() {
@@ -167,6 +180,10 @@ export function SupportTiktokOrdersPage() {
 
   async function createOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (manualRenewRegion) {
+      setError('Region Nhật chỉ nhận gia hạn đơn đã có. Nhân viên hỗ trợ TikTok sẽ accept để cộng thêm 1 tháng.');
+      return;
+    }
     if (!selectedService || selectedPrice <= 0) {
       setError('Chọn dịch vụ có đơn giá hợp lệ trước khi tạo đơn.');
       return;
@@ -237,6 +254,11 @@ export function SupportTiktokOrdersPage() {
 
         <SectionPanel className="space-y-5">
           <SectionHeader eyebrow="Create" title="Tạo đơn mới" description="Chọn khu vực và gói dịch vụ phù hợp để hệ thống tính giá chính xác trước khi tạo đơn." />
+          {manualRenewRegion ? (
+            <div className="rounded-[1.4rem] border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-bold leading-6 text-amber-600 dark:text-amber-200">
+              Region Nhật không mở tạo đơn mới ở màn user. Khách chỉ bấm gia hạn đơn đã có; nhân viên hỗ trợ TikTok accept thì hệ thống mới gia hạn tiếp 1 tháng.
+            </div>
+          ) : null}
           <form onSubmit={createOrder} className="grid gap-3 lg:grid-cols-5">
             <select
               value={form.region}

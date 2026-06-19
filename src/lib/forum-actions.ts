@@ -2,7 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { cleanForumHtml, isActiveForumStatus } from '@/lib/forum';
+import { buildForumModerationText, cleanForumHtml, containsForumGamblingContent, isActiveForumStatus } from '@/lib/forum';
 
 interface ForumActionRow {
   [key: string]: unknown;
@@ -178,6 +178,9 @@ export async function createForumReply(userId: number, threadId: number, content
   const sanitizedContent = cleanForumHtml(content.trim());
   if (sanitizedContent.replace(/<[^>]+>/g, '').trim().length < 2) {
     throw new Error('Nội dung phản hồi quá ngắn');
+  }
+  if (containsForumGamblingContent(sanitizedContent)) {
+    throw new Error('Nội dung cờ bạc/cá cược không được đăng trong Forum MMO');
   }
 
   return db.$transaction(async (tx) => {
@@ -415,6 +418,9 @@ export async function createForumThreadWithPrefix(userId: number, input: {
   const content = cleanForumHtml(input.content.trim());
   if (title.length < 6 || content.replace(/<[^>]+>/g, '').trim().length < 10) {
     throw new Error('Tiêu đề hoặc nội dung quá ngắn');
+  }
+  if (containsForumGamblingContent(buildForumModerationText({ title, content }))) {
+    throw new Error('Nội dung cờ bạc/cá cược không được đăng trong Forum MMO');
   }
 
   const slug = `${slugify(title)}-${Date.now()}`;

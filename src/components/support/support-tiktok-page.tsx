@@ -95,7 +95,7 @@ interface SupportOrder {
 
 type SupportTab = 'chat' | 'orders' | 'all-orders';
 
-const SUPPORT_LABEL = 'Đội Support TikTok';
+const SUPPORT_LABEL = 'Nhân viên hỗ trợ TikTok';
 const GENERAL_CHAT_KEY = 'general';
 const SUPPORT_TIKTOK_CATEGORIES = [
   'Giao dịch',
@@ -803,7 +803,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
         description={
           meta?.isSupport
             ? 'Theo dõi hội thoại khách hàng, trả lời trực tiếp, xem đơn TikTok và xử lý trạng thái trong cùng một hộp điều phối.'
-            : 'Trao đổi trực tiếp với đội Support TikTok. Gửi TikTok ID, mã đơn hoặc ảnh lỗi để được xử lý nhanh.'
+            : 'Trao đổi trực tiếp với nhân viên hỗ trợ TikTok. Gửi TikTok ID, mã đơn hoặc ảnh lỗi để được xử lý nhanh.'
         }
         actions={
           <>
@@ -1142,7 +1142,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                               ? meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'
                               : meta?.isSupport
                                 ? 'Chọn một khách ở cột trái để trả lời theo đúng source inbox cũ.'
-                                : 'Gửi nội dung cần hỗ trợ, TikTok ID hoặc mã đơn để đội Support TikTok xử lý nhanh hơn.'}
+                                : 'Gửi nội dung cần hỗ trợ, TikTok ID hoặc mã đơn để nhân viên hỗ trợ TikTok xử lý nhanh hơn.'}
                         </p>
                         {!meta?.isSupport && !canUseChat ? (
                           <Link
