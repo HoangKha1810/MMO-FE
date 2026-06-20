@@ -2,7 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, MapPin, Plus, RefreshCw, Repeat2 } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { Loader2, MapPin, Plus, RefreshCw, Repeat2, ShieldCheck, X } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +64,11 @@ function isManualRenewRegion(value: unknown) {
   return ['jp', 'japan', 'nhat', 'ja'].includes(normalizeRegionAlias(value));
 }
 
+function isPendingStatus(value: unknown) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'pending' || normalized === 'processing';
+}
+
 export function SupportTiktokOrdersPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
@@ -73,6 +79,7 @@ export function SupportTiktokOrdersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
     region: '',
     service_key: '',
@@ -115,6 +122,18 @@ export function SupportTiktokOrdersPage() {
       .filter((region) => region.count > 0)
       .sort((left, right) => left.order - right.order || left.label.localeCompare(right.label));
   }, [menus, services]);
+  const createRegionOptions = useMemo(
+    () => regionOptions.filter((region) => !isManualRenewRegion(region.slug)),
+    [regionOptions]
+  );
+  const createServices = useMemo(
+    () => services.filter((service) => !isManualRenewRegion(service.region_slug)),
+    [services]
+  );
+  const createFilteredServices = useMemo(
+    () => createServices.filter((service) => !form.region || String(service.region_slug || '') === form.region),
+    [createServices, form.region]
+  );
   const selectedService = services.find(
     (service) => String(service.region_slug || '') === form.region && String(service.service_key || '') === form.service_key
   );
@@ -123,6 +142,7 @@ export function SupportTiktokOrdersPage() {
   const manualRenewRegion = isManualRenewRegion(form.region);
   const canCreateOrder = Boolean(!manualRenewRegion && selectedService && selectedPrice > 0 && form.region && form.service_key && form.tiktok_id.trim());
   const selectedRegionLabel = regionOptions.find((region) => region.slug === form.region)?.label || form.region || 'Chưa chọn';
+  const createSelectedRegionLabel = createRegionOptions.find((region) => region.slug === form.region)?.label || form.region || 'Chưa chọn';
 
   async function loadOrders() {
     setLoading(true);
@@ -143,8 +163,9 @@ export function SupportTiktokOrdersPage() {
     setMenus(nextMenus);
     setForm((current) => {
       const currentRegion = String(current.region || '');
-      const regionStillAvailable = nextServices.some((service: TikTokService) => String(service.region_slug || '') === currentRegion);
-      const nextRegion = regionStillAvailable ? currentRegion : String(nextServices[0]?.region_slug || '');
+      const nextCreateServices = nextServices.filter((service: TikTokService) => !isManualRenewRegion(service.region_slug));
+      const regionStillAvailable = nextCreateServices.some((service: TikTokService) => String(service.region_slug || '') === currentRegion);
+      const nextRegion = regionStillAvailable ? currentRegion : String(nextCreateServices[0]?.region_slug || '');
       const currentServiceStillAvailable = nextServices.some(
         (service: TikTokService) =>
           String(service.region_slug || '') === nextRegion && String(service.service_key || '') === current.service_key
@@ -166,19 +187,19 @@ export function SupportTiktokOrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (!form.region || filteredServices.length === 0) {
+    if (!form.region || createFilteredServices.length === 0) {
       return;
     }
 
-    const hasSelectedService = filteredServices.some((service) => String(service.service_key) === form.service_key);
+    const hasSelectedService = createFilteredServices.some((service) => String(service.service_key) === form.service_key);
     if (hasSelectedService) {
       return;
     }
 
-    setForm((current) => ({ ...current, service_key: String(filteredServices[0]?.service_key || '') }));
-  }, [filteredServices, form.region, form.service_key]);
+    setForm((current) => ({ ...current, service_key: String(createFilteredServices[0]?.service_key || '') }));
+  }, [createFilteredServices, form.region, form.service_key]);
 
-  async function createOrder(event: FormEvent<HTMLFormElement>) {
+  function requestCreateOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (manualRenewRegion) {
       setError('Region Nhật chỉ nhận gia hạn đơn đã có. Nhân viên hỗ trợ TikTok sẽ accept để cộng thêm 1 tháng.');
@@ -188,10 +209,15 @@ export function SupportTiktokOrdersPage() {
       setError('Chọn dịch vụ có đơn giá hợp lệ trước khi tạo đơn.');
       return;
     }
+    setError('');
+    setConfirmOpen(true);
+  }
 
+  async function createOrder() {
     setSubmitting(true);
     setError('');
     setMessage('');
+    setConfirmOpen(false);
     const response = await fetch('/api/support-tiktok/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -254,12 +280,10 @@ export function SupportTiktokOrdersPage() {
 
         <SectionPanel className="space-y-5">
           <SectionHeader eyebrow="Create" title="Tạo đơn mới" description="Chọn khu vực và gói dịch vụ phù hợp để hệ thống tính giá chính xác trước khi tạo đơn." />
-          {manualRenewRegion ? (
-            <div className="rounded-[1.4rem] border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-bold leading-6 text-amber-600 dark:text-amber-200">
-              Region Nhật không mở tạo đơn mới ở màn user. Khách chỉ bấm gia hạn đơn đã có; nhân viên hỗ trợ TikTok accept thì hệ thống mới gia hạn tiếp 1 tháng.
-            </div>
-          ) : null}
-          <form onSubmit={createOrder} className="grid gap-3 lg:grid-cols-5">
+          <div className="rounded-[1.4rem] border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-bold leading-6 text-amber-600 dark:text-amber-200">
+            Region Nhật không tạo đơn mới tại màn khách. Khi cần gia hạn đơn Nhật đã có, khách bấm Gia hạn trong danh sách đơn và nhân viên hỗ trợ TikTok duyệt để cộng thêm 1 tháng.
+          </div>
+          <form onSubmit={requestCreateOrder} className="grid gap-3 lg:grid-cols-5">
             <select
               value={form.region}
               onChange={(event) => setForm((current) => ({ ...current, region: event.target.value, service_key: '' }))}
@@ -267,17 +291,17 @@ export function SupportTiktokOrdersPage() {
               required
             >
               <option value="">Chọn region</option>
-              {regionOptions.map((region) => <option key={region.slug} value={region.slug}>{region.label}</option>)}
+              {createRegionOptions.map((region) => <option key={region.slug} value={region.slug}>{region.label}</option>)}
             </select>
             <select
               value={form.service_key}
               onChange={(event) => setForm((current) => ({ ...current, service_key: event.target.value }))}
               className="field-elevated h-12 rounded-[1rem] px-4 text-sm font-bold text-slate-900 dark:text-white lg:col-span-2"
-              disabled={filteredServices.length === 0}
+              disabled={createFilteredServices.length === 0}
               required
             >
-              <option value="">{filteredServices.length === 0 ? 'Region này chưa có đơn giá' : 'Chọn dịch vụ'}</option>
-              {filteredServices.map((service) => (
+              <option value="">{createFilteredServices.length === 0 ? 'Region này chưa có đơn giá' : 'Chọn dịch vụ'}</option>
+              {createFilteredServices.map((service) => (
                 <option key={String(service.id)} value={String(service.service_key)}>{service.name} - {formatCurrency(toNumber(service.price, 0))}</option>
               ))}
             </select>
@@ -322,19 +346,19 @@ export function SupportTiktokOrdersPage() {
               </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {regionOptions.length === 0 ? (
+              {createRegionOptions.length === 0 ? (
                 <div className="rounded-[1rem] border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-bold text-slate-400 dark:border-white/10">
                   Chưa có region đang bật.
                 </div>
               ) : (
-                regionOptions.map((region) => {
+                createRegionOptions.map((region) => {
                   const active = region.slug === form.region;
                   return (
                     <button
                       key={region.slug}
                       type="button"
                       onClick={() => {
-                        const firstService = services.find((service) => String(service.region_slug || '') === region.slug);
+                        const firstService = createServices.find((service) => String(service.region_slug || '') === region.slug);
                         setForm((current) => ({
                           ...current,
                           region: region.slug,
@@ -386,12 +410,12 @@ export function SupportTiktokOrdersPage() {
               </div>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {filteredServices.length === 0 ? (
+              {createFilteredServices.length === 0 ? (
                 <div className="rounded-[1rem] border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-bold text-slate-400 dark:border-white/10">
                   Region này chưa có gói đang bật.
                 </div>
               ) : (
-                filteredServices.map((service) => {
+                createFilteredServices.map((service) => {
                   const active = String(service.service_key) === form.service_key;
                   return (
                     <button
@@ -440,6 +464,9 @@ export function SupportTiktokOrdersPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="info">#{order.id}</Badge>
                       <Badge variant={String(order.status).toLowerCase() === 'active' ? 'success' : 'muted'}>{order.status || 'pending'}</Badge>
+                      {isManualRenewRegion(order.region) && isPendingStatus(order.status) ? (
+                        <Badge variant="warning">Chờ nhân viên duyệt gia hạn</Badge>
+                      ) : null}
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{order.region}</span>
                     </div>
                     <h3 className="mt-3 text-lg font-black uppercase text-slate-950 dark:text-white">{order.service_name || order.service_key}</h3>
@@ -450,13 +477,72 @@ export function SupportTiktokOrdersPage() {
                   <div className="font-mono text-xl font-black text-emerald-500">{formatCurrency(toNumber(order.price, 0))}</div>
                   <Button type="button" variant="outline" onClick={() => void renewOrder(order.id)}>
                     <Repeat2 className="mr-2 h-4 w-4" />
-                    Gia hạn
+                    {isManualRenewRegion(order.region) ? 'Gửi duyệt gia hạn' : 'Gia hạn'}
                   </Button>
                 </div>
               ))}
             </div>
           )}
         </SectionPanel>
+
+        <Dialog.Root open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-[120] bg-slate-950/80 backdrop-blur-md" />
+            <Dialog.Content className="fixed left-1/2 top-1/2 z-[121] w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-[1.6rem] border border-white/10 bg-white p-6 text-slate-950 shadow-2xl outline-none dark:bg-slate-950 dark:text-white">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-blue/10 text-brand-blue">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <Dialog.Title className="text-lg font-black uppercase tracking-tight">
+                      Xác nhận thanh toán
+                    </Dialog.Title>
+                    <Dialog.Description className="mt-1 text-sm font-semibold leading-6 text-slate-500 dark:text-slate-300">
+                      Kiểm tra thông tin trước khi tạo đơn. Hệ thống sẽ trừ tiền sau khi bạn xác nhận.
+                    </Dialog.Description>
+                  </div>
+                </div>
+                <Dialog.Close asChild>
+                  <button type="button" className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white">
+                    <X className="h-5 w-5" />
+                  </button>
+                </Dialog.Close>
+              </div>
+
+              <div className="mt-5 space-y-3 rounded-[1.2rem] border border-slate-200 bg-slate-50 p-4 text-sm font-bold dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500 dark:text-slate-400">Region</span>
+                  <span className="text-right">{createSelectedRegionLabel}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500 dark:text-slate-400">TikTok ID</span>
+                  <span className="text-right">{form.tiktok_id || '-'}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500 dark:text-slate-400">Gói</span>
+                  <span className="max-w-[260px] text-right">{selectedService?.name || '-'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-3 dark:border-white/10">
+                  <span className="text-slate-500 dark:text-slate-400">Thanh toán</span>
+                  <span className="font-mono text-xl font-black text-emerald-500">{formatCurrency(selectedPrice)}</span>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Dialog.Close asChild>
+                  <Button type="button" variant="outline" disabled={submitting}>
+                    Hủy
+                  </Button>
+                </Dialog.Close>
+                <Button type="button" onClick={() => void createOrder()} loading={submitting} loadingText="Đang tạo..." disabled={!canCreateOrder}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Xác nhận và thanh toán
+                </Button>
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       </div>
     </AppShell>
   );

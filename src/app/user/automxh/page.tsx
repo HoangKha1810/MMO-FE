@@ -206,14 +206,20 @@ export default function UserAutomxhPage() {
                   <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                     {section.products.map((product: AutoMxhProduct) => (
                       <div key={product.id} className="service-card-wrapper h-full">
-                        <div className="smm-service-card-3d group relative flex h-full flex-col overflow-hidden rounded-[1rem] border transition-all hover:border-brand-blue hover:shadow-xl">
+                        <div
+                          className={`smm-service-card-3d group relative flex h-full flex-col overflow-hidden rounded-[1rem] border transition-all hover:border-brand-blue hover:shadow-xl ${
+                            isHotBadge(product.badge)
+                              ? 'border-rose-400/55 bg-rose-500/[0.06] shadow-[0_0_0_1px_rgba(251,113,133,0.14),0_22px_55px_-38px_rgba(244,63,94,0.95)]'
+                              : ''
+                          }`}
+                        >
                           {isHotBadge(product.badge) ? (
-                            <div className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-rose-300/35 bg-gradient-to-r from-rose-500 to-orange-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white shadow-[0_14px_32px_-16px_rgba(251,113,133,0.9)]">
+                            <div className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-rose-200/75 bg-gradient-to-r from-rose-600 via-red-500 to-orange-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[0_14px_32px_-14px_rgba(251,113,133,0.95)] ring-2 ring-rose-400/20">
                               <Flame className="h-3 w-3" />
-                              Hot
+                              HOT
                             </div>
                           ) : product.badge ? (
-                            <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-cyan-300/30 bg-cyan-500/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-cyan-200 shadow-[0_12px_30px_-18px_rgba(34,211,238,0.8)]">
+                            <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-cyan-300/35 bg-cyan-500/14 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200 shadow-[0_12px_30px_-18px_rgba(34,211,238,0.8)]">
                               {product.badge}
                             </div>
                           ) : null}

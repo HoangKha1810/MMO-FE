@@ -203,6 +203,19 @@ function getOrderStatusClass(status: string | null | undefined) {
   return 'bg-slate-500/10 text-slate-400 border-slate-500/15';
 }
 
+function sortSupportConversations(conversations: SupportConversation[]) {
+  return [...conversations].sort((left, right) => {
+    const rightNeedsReply = right.last_sender_type === 'user' ? 1 : 0;
+    const leftNeedsReply = left.last_sender_type === 'user' ? 1 : 0;
+    const replyDiff = rightNeedsReply - leftNeedsReply;
+    if (replyDiff !== 0) return replyDiff;
+
+    const rightTime = serializeDatabaseDateTime(right.last_at || '');
+    const leftTime = serializeDatabaseDateTime(left.last_at || '');
+    return rightTime.localeCompare(leftTime) || Number(right.user_id || 0) - Number(left.user_id || 0);
+  });
+}
+
 function isOrderChatOpen(order: SupportOrder) {
   const normalized = String(order.status || '').trim().toLowerCase();
   const expiresAt = order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '';
@@ -452,7 +465,9 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
         throw new Error(payload.message || 'Không thể tải hội thoại');
       }
 
-      const nextConversations = Array.isArray(payload.conversations) ? (payload.conversations as SupportConversation[]) : [];
+      const nextConversations = sortSupportConversations(
+        Array.isArray(payload.conversations) ? (payload.conversations as SupportConversation[]) : []
+      );
       setConversations(nextConversations);
 
       if (selectFirst && nextConversations.length > 0) {
@@ -492,7 +507,9 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
         params.set('user_id', String(conversationUserId));
       }
       const orderId = parseOrderChatKey(orderKey);
-      params.set('order_id', orderId ? String(orderId) : '');
+      if (orderId) {
+        params.set('order_id', String(orderId));
+      }
 
       const response = await fetch(`/api/support-tiktok/chat/messages?${params.toString()}`, {
         cache: 'no-store',
@@ -725,14 +742,6 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   }, [activeOrderKey, meta, user?.id]);
 
   useEffect(() => {
-    if (!meta || meta.isSupport || !meta.canUseChat || activeOrderKey !== GENERAL_CHAT_KEY || chatOrderOptions.length === 0) {
-      return;
-    }
-
-    setActiveOrderKey(toOrderChatKey(chatOrderOptions[0].id));
-  }, [activeOrderKey, chatOrderOptions, meta]);
-
-  useEffect(() => {
     if (!meta?.isSupport || !activeUserId) {
       return;
     }
@@ -844,6 +853,35 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
         ]}
       />
 
+      {!meta?.isSupport ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/user/support-tiktok"
+            className="rounded-[1.35rem] border border-brand-blue/35 bg-brand-blue px-5 py-4 text-white shadow-[0_18px_45px_-28px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5"
+          >
+            <div className="flex items-center gap-3">
+              <MessageCircle className="h-5 w-5" />
+              <div>
+                <div className="text-sm font-black uppercase tracking-[0.16em]">Chat support</div>
+                <div className="mt-1 text-xs font-semibold text-white/75">Mở lịch sử và gửi tin nhắn hỗ trợ TikTok.</div>
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/user/support-tiktok/orders"
+            className="rounded-[1.35rem] border border-slate-200 bg-white px-5 py-4 text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-blue/30 dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
+          >
+            <div className="flex items-center gap-3">
+              <ShoppingCart className="h-5 w-5 text-brand-blue" />
+              <div>
+                <div className="text-sm font-black uppercase tracking-[0.16em]">Đơn TikTok</div>
+                <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Tạo đơn, xem đơn và gửi duyệt gia hạn.</div>
+              </div>
+            </div>
+          </Link>
+        </div>
+      ) : null}
+
       {error ? (
         <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-bold text-rose-500">
           {error}
@@ -920,7 +958,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                 ) : (
                   filteredConversations.map((conversation) => {
                     const active = activeUserId === conversation.user_id && activeOrderKey === toOrderChatKey(conversation.order_id);
-                    const unread = conversation.last_sender_type === 'user' && !active;
+                    const needsReply = conversation.last_sender_type === 'user';
 
                     return (
                       <button
@@ -931,7 +969,8 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                           'flex w-full items-center gap-3 rounded-[1.35rem] border px-4 py-3 text-left transition-all',
                           active
                             ? 'border-brand-blue/30 bg-brand-blue/10'
-                            : 'border-slate-200 bg-white hover:border-brand-blue/20 dark:border-white/10 dark:bg-white/[0.04]'
+                            : 'border-slate-200 bg-white hover:border-brand-blue/20 dark:border-white/10 dark:bg-white/[0.04]',
+                          needsReply && 'animate-pulse border-rose-400/70 bg-rose-500/12 shadow-[0_0_0_3px_rgba(244,63,94,0.12)]'
                         )}
                       >
                         <Avatar className="h-12 w-12 rounded-[1rem] border border-slate-200 dark:border-white/10">
@@ -946,7 +985,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                               {conversation.username}
                             </div>
                             <div className="flex items-center gap-2">
-                              {unread ? <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" /> : null}
+                              {needsReply ? <span className="h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.85)]" /> : null}
                               <div className="text-[10px] font-mono text-slate-400">
                                 {formatShortTime(conversation.last_at)}
                               </div>
@@ -956,6 +995,12 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                             {conversation.last_message || '(trống)'}
                           </div>
                           <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                            {needsReply ? (
+                              <>
+                                <span className="rounded-full bg-rose-500 px-2 py-0.5 text-white">Cần rep</span>
+                                <span>·</span>
+                              </>
+                            ) : null}
                             <span>User {conversation.user_id}</span>
                             <span>·</span>
                             <span>{conversation.tiktok_id || 'Chat chung'}</span>
