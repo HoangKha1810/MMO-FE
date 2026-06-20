@@ -179,7 +179,7 @@ const utilityLinks = [
 const quickActionLinks = [
   { href: '/rank', label: 'Bảo mật', icon: ShieldCheck },
   { href: '/two_factor_live', label: '2FA', icon: Shield },
-  { href: '/user/support-tiktok', label: 'Hỗ trợ', icon: Headset },
+  { href: '/user/support-tiktok', label: 'Chat Support Tiktok', icon: Headset },
   { href: '/api', label: 'API', icon: Cpu },
 ];
 

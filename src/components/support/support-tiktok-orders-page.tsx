@@ -280,9 +280,6 @@ export function SupportTiktokOrdersPage() {
 
         <SectionPanel className="space-y-5">
           <SectionHeader eyebrow="Create" title="Tạo đơn mới" description="Chọn khu vực và gói dịch vụ phù hợp để hệ thống tính giá chính xác trước khi tạo đơn." />
-          <div className="rounded-[1.4rem] border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-bold leading-6 text-amber-600 dark:text-amber-200">
-            Region Nhật không tạo đơn mới tại màn khách. Khi cần gia hạn đơn Nhật đã có, khách bấm Gia hạn trong danh sách đơn và nhân viên hỗ trợ TikTok duyệt để cộng thêm 1 tháng.
-          </div>
           <form onSubmit={requestCreateOrder} className="grid gap-3 lg:grid-cols-5">
             <select
               value={form.region}
@@ -315,9 +312,6 @@ export function SupportTiktokOrdersPage() {
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-300">
                     Đơn giá đang chọn
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-300">
-                    Giá này được trừ trực tiếp khi tạo đơn, admin có thể chỉnh trong bảng dịch vụ TikTok.
                   </div>
                 </div>
                 <span className="font-mono text-2xl font-black text-emerald-500">{selectedPriceLabel}</span>

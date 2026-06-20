@@ -422,24 +422,28 @@ export async function getSupportConversationMessages(
   }
 
   const sql = `
-    SELECT
-      mm.id,
-      mm.user_id,
-      mm.order_id,
-      mm.support_category,
-      mm.sender_type,
-      mm.message,
-      mm.image_url,
-      mm.image_urls,
-      mm.created_at,
-      o.tiktok_id AS order_tiktok_id,
-      o.service_name AS order_service_name,
-      o.status AS order_status
-    FROM support_tiktok_messages mm
-    LEFT JOIN tiktok_support_orders o ON o.id = mm.order_id
-    WHERE ${clauses.join('\n      AND ')}
-    ORDER BY mm.id ASC
-    LIMIT 100
+    SELECT *
+    FROM (
+      SELECT
+        mm.id,
+        mm.user_id,
+        mm.order_id,
+        mm.support_category,
+        mm.sender_type,
+        mm.message,
+        mm.image_url,
+        mm.image_urls,
+        mm.created_at,
+        o.tiktok_id AS order_tiktok_id,
+        o.service_name AS order_service_name,
+        o.status AS order_status
+      FROM support_tiktok_messages mm
+      LEFT JOIN tiktok_support_orders o ON o.id = mm.order_id
+      WHERE ${clauses.join('\n        AND ')}
+      ORDER BY mm.id DESC
+      LIMIT 100
+    ) recent_messages
+    ORDER BY id ASC
   `;
 
   const rows = await db.$queryRawUnsafe<SupportMessageRow[]>(sql, ...params);

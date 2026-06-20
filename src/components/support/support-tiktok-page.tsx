@@ -12,11 +12,14 @@ import {
   ListChecks,
   Loader2,
   MessageCircle,
+  Pencil,
+  Plus,
   RefreshCw,
+  Save,
   Search,
   SendHorizonal,
   ShieldCheck,
-  ShoppingCart,
+  Trash2,
   UserRound,
   X,
 } from 'lucide-react';
@@ -93,7 +96,28 @@ interface SupportOrder {
   created_at?: string;
 }
 
-type SupportTab = 'chat' | 'orders' | 'all-orders';
+interface SupportPricingService {
+  id: number;
+  region_slug: string;
+  name: string;
+  service_key: string;
+  price: number;
+  description: string;
+  display_order: number;
+  status: string;
+}
+
+type SupportPricingForm = {
+  region_slug: string;
+  name: string;
+  service_key: string;
+  price: string;
+  description: string;
+  display_order: string;
+  status: string;
+};
+
+type SupportTab = 'chat' | 'orders' | 'all-orders' | 'pricing';
 
 const SUPPORT_LABEL = 'Nhân viên hỗ trợ TikTok';
 const GENERAL_CHAT_KEY = 'general';
@@ -104,6 +128,27 @@ const SUPPORT_TIKTOK_CATEGORIES = [
   'Đình chỉ tham gia bảng xếp hạng',
   'Đình chỉ chế độ đã kháng mới',
   'Khác',
+];
+
+const EMPTY_PRICING_FORM: SupportPricingForm = {
+  region_slug: 'jp',
+  name: '',
+  service_key: '',
+  price: '',
+  description: '',
+  display_order: '',
+  status: 'active',
+};
+
+const SUPPORT_PRICING_REGIONS = [
+  { slug: 'jp', label: 'SP Tik Nhật' },
+  { slug: 'vn', label: 'SP Tik VN' },
+  { slug: 'uk', label: 'SP Tik UK' },
+  { slug: 'thai', label: 'SP Tik Thái Lan' },
+  { slug: 'td', label: 'SP Thụy Sĩ' },
+  { slug: 'id', label: 'SP Indonesia' },
+  { slug: 'fi', label: 'SP Finland' },
+  { slug: 'us', label: 'SP US' },
 ];
 
 function toOrderChatKey(orderId?: number | string | null) {
@@ -201,6 +246,11 @@ function getOrderStatusClass(status: string | null | undefined) {
     return 'bg-rose-500/10 text-rose-500 border-rose-500/15';
   }
   return 'bg-slate-500/10 text-slate-400 border-slate-500/15';
+}
+
+function getPricingRegionLabel(regionSlug: string) {
+  const normalized = String(regionSlug || '').trim().toLowerCase();
+  return SUPPORT_PRICING_REGIONS.find((region) => region.slug === normalized)?.label || normalized.toUpperCase();
 }
 
 function sortSupportConversations(conversations: SupportConversation[]) {
@@ -331,6 +381,9 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [orders, setOrders] = useState<SupportOrder[]>([]);
   const [allOrders, setAllOrders] = useState<SupportOrder[]>([]);
+  const [pricingServices, setPricingServices] = useState<SupportPricingService[]>([]);
+  const [pricingForm, setPricingForm] = useState<SupportPricingForm>(EMPTY_PRICING_FORM);
+  const [editingPricingId, setEditingPricingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [tab, setTab] = useState<SupportTab>('chat');
@@ -342,8 +395,10 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingAllOrders, setLoadingAllOrders] = useState(false);
+  const [loadingPricing, setLoadingPricing] = useState(false);
   const [sending, setSending] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [savingPricing, setSavingPricing] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -408,11 +463,28 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     });
   }, [allOrders, orderSearch]);
 
+  const pricingRegions = useMemo(() => {
+    const byRegion = new Map<string, SupportPricingService[]>();
+    pricingServices.forEach((service) => {
+      const region = String(service.region_slug || 'jp').trim() || 'jp';
+      byRegion.set(region, [...(byRegion.get(region) || []), service]);
+    });
+
+    return Array.from(byRegion.entries())
+      .sort(([left], [right]) => {
+        const leftWeight = left === 'jp' ? 0 : left === 'vn' ? 1 : 2;
+        const rightWeight = right === 'jp' ? 0 : right === 'vn' ? 1 : 2;
+        return leftWeight - rightWeight || left.localeCompare(right);
+      })
+      .map(([region, items]) => ({
+        region,
+        items: items.sort((left, right) => Number(left.display_order || 0) - Number(right.display_order || 0) || Number(left.id) - Number(right.id)),
+      }));
+  }, [pricingServices]);
+
   const canUseChat = Boolean(meta?.isSupport || meta?.canUseChat);
   const activeChatUserId = meta?.isSupport ? activeUserId : user?.id || null;
-  const ordersHref = meta?.isSupport
-    ? (embedded ? '/admin/support-tiktok/orders' : '/user/support-tiktok/orders')
-    : '/user/support-tiktok/orders';
+  const ordersHref = '/user/support-tiktok/orders';
   const chatTitle = meta?.isSupport
     ? activeConversation
       ? `${activeConversation.username}${activeConversation.tiktok_id ? ` · ${activeConversation.tiktok_id}` : ''}`
@@ -426,6 +498,22 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       mustSelectTikTokOrder ||
       (meta?.isSupport && !activeChatUserId)
   );
+
+  function openOrdersTab() {
+    if (meta?.isSupport) {
+      setTab('all-orders');
+      void loadAllOrders();
+      return;
+    }
+
+    setTab('orders');
+    void loadOrders(user?.id);
+  }
+
+  function openUserOrdersTab() {
+    setTab('orders');
+    void loadOrders(activeChatUserId);
+  }
 
   async function loadMeta() {
     setLoadingMeta(true);
@@ -606,6 +694,125 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     }
   }
 
+  async function loadPricing(silent = false) {
+    if (!meta?.isSupport) {
+      setPricingServices([]);
+      return;
+    }
+
+    if (!silent) {
+      setLoadingPricing(true);
+    }
+
+    try {
+      const response = await fetch('/api/support-tiktok/pricing', { cache: 'no-store' });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không tải được bảng giá Support TikTok');
+      }
+
+      setPricingServices(Array.isArray(payload.data) ? (payload.data as SupportPricingService[]) : []);
+    } catch (loadError) {
+      if (!silent) {
+        setError(loadError instanceof Error ? loadError.message : 'Không tải được bảng giá Support TikTok');
+      }
+    } finally {
+      if (!silent) {
+        setLoadingPricing(false);
+      }
+    }
+  }
+
+  function editPricingService(service: SupportPricingService) {
+    setEditingPricingId(service.id);
+    setPricingForm({
+      region_slug: service.region_slug || 'jp',
+      name: service.name || '',
+      service_key: service.service_key || '',
+      price: String(service.price || ''),
+      description: service.description || '',
+      display_order: String(service.display_order || ''),
+      status: service.status || 'active',
+    });
+    setTab('pricing');
+  }
+
+  function resetPricingForm() {
+    setEditingPricingId(null);
+    setPricingForm(EMPTY_PRICING_FORM);
+  }
+
+  function updatePricingField(field: keyof SupportPricingForm, value: string) {
+    setPricingForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function savePricingService() {
+    if (!pricingForm.name.trim()) {
+      setError('Nhập tên gói Support TikTok trước khi lưu.');
+      return;
+    }
+
+    setSavingPricing(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch('/api/support-tiktok/pricing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: editingPricingId ? 'update' : 'create',
+          id: editingPricingId || undefined,
+          ...pricingForm,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không lưu được bảng giá');
+      }
+
+      setNotice(payload.message || 'Đã lưu bảng giá Support TikTok');
+      resetPricingForm();
+      await loadPricing(true);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Không lưu được bảng giá');
+    } finally {
+      setSavingPricing(false);
+    }
+  }
+
+  async function deletePricingService(serviceId: number) {
+    const confirmed = window.confirm('Xóa gói Support TikTok này?');
+    if (!confirmed) return;
+
+    setSavingPricing(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch('/api/support-tiktok/pricing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: serviceId }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Không xóa được gói');
+      }
+
+      setNotice(payload.message || 'Đã xóa gói Support TikTok');
+      if (editingPricingId === serviceId) resetPricingForm();
+      await loadPricing(true);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Không xóa được gói');
+    } finally {
+      setSavingPricing(false);
+    }
+  }
+
   async function sendMessage() {
     if (!meta || !meta.chatModuleAvailable || (!meta.isSupport && !meta.canUseChat)) {
       return;
@@ -728,6 +935,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       if (meta.orderModuleAvailable) {
         void loadAllOrders();
       }
+      void loadPricing(true);
       return;
     }
 
@@ -816,9 +1024,13 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
         }
         actions={
           <>
-            <Link href={ordersHref} className="btn-kinetic rounded-full bg-brand-blue px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white">
+            <button
+              type="button"
+              onClick={openOrdersTab}
+              className="btn-kinetic rounded-full bg-brand-blue px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white"
+            >
               Đơn TikTok
-            </Link>
+            </button>
             <Button type="button" variant="outline" onClick={() => void loadMeta()} loading={loadingMeta} loadingText="Đang tải...">
               <RefreshCw className="mr-2 h-4 w-4" />
               Làm mới
@@ -852,35 +1064,6 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
           },
         ]}
       />
-
-      {!meta?.isSupport ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Link
-            href="/user/support-tiktok"
-            className="rounded-[1.35rem] border border-brand-blue/35 bg-brand-blue px-5 py-4 text-white shadow-[0_18px_45px_-28px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5"
-          >
-            <div className="flex items-center gap-3">
-              <MessageCircle className="h-5 w-5" />
-              <div>
-                <div className="text-sm font-black uppercase tracking-[0.16em]">Chat support</div>
-                <div className="mt-1 text-xs font-semibold text-white/75">Mở lịch sử và gửi tin nhắn hỗ trợ TikTok.</div>
-              </div>
-            </div>
-          </Link>
-          <Link
-            href="/user/support-tiktok/orders"
-            className="rounded-[1.35rem] border border-slate-200 bg-white px-5 py-4 text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-blue/30 dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
-          >
-            <div className="flex items-center gap-3">
-              <ShoppingCart className="h-5 w-5 text-brand-blue" />
-              <div>
-                <div className="text-sm font-black uppercase tracking-[0.16em]">Đơn TikTok</div>
-                <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Tạo đơn, xem đơn và gửi duyệt gia hạn.</div>
-              </div>
-            </div>
-          </Link>
-        </div>
-      ) : null}
 
       {error ? (
         <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-bold text-rose-500">
@@ -1077,6 +1260,23 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                       Tất cả đơn
                     </button>
                   ) : null}
+                  {meta?.isSupport ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTab('pricing');
+                        void loadPricing();
+                      }}
+                      className={cn(
+                        'rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all',
+                        tab === 'pricing'
+                          ? 'border-brand-blue bg-brand-blue text-white'
+                          : 'surface-chip text-slate-500 dark:text-slate-300'
+                      )}
+                    >
+                      Bảng giá
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -1097,12 +1297,13 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                               : 'Mỗi ID TikTok đã mua sẽ có một luồng chat riêng để support xử lý đúng tài khoản.'}
                           </div>
                         </div>
-                        <Link
-                          href={ordersHref}
+                        <button
+                          type="button"
+                          onClick={openUserOrdersTab}
                           className="surface-chip rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-200"
                         >
                           Quản lý đơn
-                        </Link>
+                        </button>
                       </div>
                       <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
                         {meta?.isSupport ? (
@@ -1194,7 +1395,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                             href={ordersHref}
                             className="btn-kinetic mt-5 inline-flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-white"
                           >
-                            Mua hoặc gia hạn gói
+                            Chat Support TikTok
                           </Link>
                         ) : null}
                       </div>
@@ -1479,6 +1680,215 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                       ))}
                     </div>
                   )}
+                </div>
+              ) : null}
+
+              {tab === 'pricing' && meta?.isSupport ? (
+                <div className="space-y-5">
+                  <SectionHeader
+                    eyebrow="Pricing"
+                    title="Bảng giá Support TikTok"
+                    description="Thêm gói mới, sửa giá từng gói follow và bật/tắt gói theo region cho màn đặt đơn của khách."
+                    actions={
+                      <Button type="button" size="sm" variant="outline" onClick={() => void loadPricing()} loading={loadingPricing} loadingText="Đang tải...">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh
+                      </Button>
+                    }
+                  />
+
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div className="rounded-[1.45rem] border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                            {editingPricingId ? `Sửa #${editingPricingId}` : 'Thêm gói mới'}
+                          </div>
+                          <div className="text-lg font-black uppercase text-slate-950 dark:text-white">
+                            Giá theo gói follow
+                          </div>
+                        </div>
+                        {editingPricingId ? (
+                          <Button type="button" size="sm" variant="outline" onClick={resetPricingForm}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Thêm mới
+                          </Button>
+                        ) : null}
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Region</span>
+                          <select
+                            value={pricingForm.region_slug}
+                            onChange={(event) => updatePricingField('region_slug', event.target.value)}
+                            className="field-elevated h-11 w-full rounded-[1.1rem] px-3 text-sm font-bold text-slate-900 outline-none dark:text-white"
+                          >
+                            {SUPPORT_PRICING_REGIONS.map((region) => (
+                              <option key={region.slug} value={region.slug}>
+                                {region.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Trạng thái</span>
+                          <select
+                            value={pricingForm.status}
+                            onChange={(event) => updatePricingField('status', event.target.value)}
+                            className="field-elevated h-11 w-full rounded-[1.1rem] px-3 text-sm font-bold text-slate-900 outline-none dark:text-white"
+                          >
+                            <option value="active">Đang bật</option>
+                            <option value="inactive">Tắt</option>
+                          </select>
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tên gói</span>
+                          <Input
+                            value={pricingForm.name}
+                            onChange={(event) => updatePricingField('name', event.target.value)}
+                            placeholder="Chat Support TikTok Nhật 0 - 10k FL"
+                          />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Service key</span>
+                          <Input
+                            value={pricingForm.service_key}
+                            onChange={(event) => updatePricingField('service_key', event.target.value)}
+                            placeholder="support-jp-0-10k"
+                          />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Giá bán</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={pricingForm.price}
+                            onChange={(event) => updatePricingField('price', event.target.value)}
+                            placeholder="180000"
+                          />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sắp xếp</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={pricingForm.display_order}
+                            onChange={(event) => updatePricingField('display_order', event.target.value)}
+                            placeholder="1"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="mt-3 block space-y-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Mô tả</span>
+                        <textarea
+                          rows={3}
+                          value={pricingForm.description}
+                          onChange={(event) => updatePricingField('description', event.target.value)}
+                          placeholder="Gói chat support TikTok 30 ngày theo follow."
+                          className="field-elevated min-h-[96px] w-full rounded-[1.25rem] px-4 py-3 text-sm font-bold text-slate-900 outline-none dark:text-white"
+                        />
+                      </label>
+
+                      <div className="mt-4 flex flex-wrap justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={resetPricingForm} disabled={savingPricing}>
+                          Hủy
+                        </Button>
+                        <Button type="button" onClick={() => void savePricingService()} loading={savingPricing} loadingText="Đang lưu...">
+                          <Save className="mr-2 h-4 w-4" />
+                          Lưu gói
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.45rem] border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Danh sách gói</div>
+                          <div className="text-lg font-black uppercase text-slate-950 dark:text-white">
+                            Giá đang cấu hình
+                          </div>
+                        </div>
+                        <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-500">
+                          {pricingServices.length} gói
+                        </div>
+                      </div>
+
+                      {loadingPricing ? (
+                        <div className="rounded-[1.25rem] border border-slate-200 px-4 py-10 text-center text-sm font-bold text-slate-500 dark:border-white/10 dark:text-slate-300">
+                          Đang tải bảng giá...
+                        </div>
+                      ) : pricingRegions.length === 0 ? (
+                        <div className="rounded-[1.25rem] border border-dashed border-slate-200 px-4 py-10 text-center text-sm font-bold text-slate-400 dark:border-white/10">
+                          Chưa có gói Support TikTok nào.
+                        </div>
+                      ) : (
+                        <div className="max-h-[620px] space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+                          {pricingRegions.map(({ region, items }) => (
+                            <div key={region} className="space-y-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
+                                  {getPricingRegionLabel(region)}
+                                </div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                                  {items.length} gói
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {items.map((service) => (
+                                  <div
+                                    key={service.id}
+                                    className={cn(
+                                      'rounded-[1.25rem] border p-3 transition-all',
+                                      editingPricingId === service.id
+                                        ? 'border-brand-blue/40 bg-brand-blue/10'
+                                        : 'border-slate-200 bg-slate-50/70 dark:border-white/10 dark:bg-[#0b1220]'
+                                    )}
+                                  >
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                      <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <div className="truncate text-sm font-black text-slate-950 dark:text-white">
+                                            {service.name}
+                                          </div>
+                                          <span className={cn('rounded-full px-2 py-0.5 text-[9px] font-black uppercase', service.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-400')}>
+                                            {service.status === 'active' ? 'Đang bật' : 'Tắt'}
+                                          </span>
+                                        </div>
+                                        <div className="mt-1 flex flex-wrap gap-2 text-[10px] font-bold text-slate-400">
+                                          <span>{service.service_key || 'no-key'}</span>
+                                          <span>Order {service.display_order || 0}</span>
+                                        </div>
+                                        {service.description ? (
+                                          <div className="mt-2 line-clamp-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                            {service.description}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                                        <div className="rounded-full bg-emerald-500/10 px-3 py-1.5 text-sm font-black text-emerald-500">
+                                          {formatCurrency(service.price)}
+                                        </div>
+                                        <Button type="button" size="sm" variant="outline" onClick={() => editPricingService(service)}>
+                                          <Pencil className="mr-2 h-4 w-4" />
+                                          Sửa
+                                        </Button>
+                                        <Button type="button" size="sm" variant="outline" onClick={() => void deletePricingService(service.id)} disabled={savingPricing}>
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Xóa
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </SectionPanel>
