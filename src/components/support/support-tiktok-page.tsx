@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -24,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { SupportTiktokOrdersPage } from '@/components/support/support-tiktok-orders-page';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -273,7 +273,7 @@ function isOrderChatOpen(order: SupportOrder) {
 
   return (
     ['active', 'completed', 'processing', 'success'].includes(normalized) &&
-    (!expiresAt || expiresAt >= nowText)
+    Boolean(expiresAt && expiresAt >= nowText)
   );
 }
 
@@ -484,7 +484,6 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
 
   const canUseChat = Boolean(meta?.isSupport || meta?.canUseChat);
   const activeChatUserId = meta?.isSupport ? activeUserId : user?.id || null;
-  const ordersHref = '/user/support-tiktok/orders';
   const chatTitle = meta?.isSupport
     ? activeConversation
       ? `${activeConversation.username}${activeConversation.tiktok_id ? ` · ${activeConversation.tiktok_id}` : ''}`
@@ -1391,12 +1390,13 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                                 : 'Gửi nội dung cần hỗ trợ, TikTok ID hoặc mã đơn để nhân viên hỗ trợ TikTok xử lý nhanh hơn.'}
                         </p>
                         {!meta?.isSupport && !canUseChat ? (
-                          <Link
-                            href={ordersHref}
+                          <button
+                            type="button"
+                            onClick={openOrdersTab}
                             className="btn-kinetic mt-5 inline-flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-white"
                           >
                             Chat Support TikTok
-                          </Link>
+                          </button>
                         ) : null}
                       </div>
                     ) : (
@@ -1584,11 +1584,26 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                 </>
               ) : null}
 
-              {tab === 'orders' ? (
+              {tab === 'orders' && !meta?.isSupport ? (
+                <SupportTiktokOrdersPage
+                  embedded
+                  onBackToChat={() => {
+                    setTab('chat');
+                    void loadMeta();
+                    void loadOrders(user?.id, true);
+                  }}
+                  onOrdersChanged={() => {
+                    void loadMeta();
+                    void loadOrders(user?.id, true);
+                  }}
+                />
+              ) : null}
+
+              {tab === 'orders' && meta?.isSupport ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-black uppercase tracking-[0.16em] text-slate-950 dark:text-white">
-                      {meta?.isSupport ? 'Đơn của khách đang chọn' : 'Đơn Support TikTok của bạn'}
+                      Đơn của khách đang chọn
                     </div>
                     <Button
                       type="button"
@@ -1602,7 +1617,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                       Refresh
                     </Button>
                   </div>
-                  {!meta?.isSupport || activeChatUserId ? (
+                  {activeChatUserId ? (
                     loadingOrders ? (
                       <div className="rounded-[1.4rem] border border-slate-200 px-4 py-10 text-center text-sm font-bold text-slate-500 dark:border-white/10 dark:text-slate-300">
                         Đang tải đơn TikTok...

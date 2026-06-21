@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
-import { formatCurrency, toNumber } from '@/lib/utils';
+import { cn, formatCurrency, toNumber } from '@/lib/utils';
 
 interface TikTokOrder {
   id: number;
@@ -46,6 +46,12 @@ interface TikTokMenu {
   display_order?: number | string;
 }
 
+interface SupportTiktokOrdersPageProps {
+  embedded?: boolean;
+  onBackToChat?: () => void;
+  onOrdersChanged?: () => void;
+}
+
 function formatOrderDate(value: string | undefined) {
   const serialized = serializeDatabaseDateTime(value);
   const match = serialized.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -69,7 +75,11 @@ function isPendingStatus(value: unknown) {
   return normalized === 'pending' || normalized === 'processing';
 }
 
-export function SupportTiktokOrdersPage() {
+export function SupportTiktokOrdersPage({
+  embedded = false,
+  onBackToChat,
+  onOrdersChanged,
+}: SupportTiktokOrdersPageProps = {}) {
   const currentUser = useSessionUser();
   const user = currentUser.data;
   const [orders, setOrders] = useState<TikTokOrder[]>([]);
@@ -232,6 +242,7 @@ export function SupportTiktokOrdersPage() {
     setMessage(payload.message || 'Đã tạo đơn TikTok');
     setForm((current) => ({ ...current, tiktok_id: '', buyer_name: '', buyer_contact: '' }));
     await loadOrders();
+    onOrdersChanged?.();
   }
 
   async function renewOrder(orderId: number) {
@@ -249,15 +260,16 @@ export function SupportTiktokOrdersPage() {
     }
     setMessage(payload.message || 'Đã gia hạn đơn TikTok');
     await loadOrders();
+    onOrdersChanged?.();
   }
 
-  return (
-    <AppShell user={user}>
-      <div className="space-y-6">
+  const content = (
+      <div className={cn('space-y-6', embedded && 'space-y-5')}>
         <PageHero
           eyebrow="Support TikTok"
           title="Đặt và gia hạn dịch vụ Support TikTok"
           description="Tạo đơn theo khu vực, chọn đúng gói dịch vụ, theo dõi thời hạn và gia hạn ngay trong cùng một module dành cho khách hàng TikTok."
+          className={embedded ? 'rounded-[1.25rem] p-4 sm:p-5 md:p-6' : undefined}
           stats={[
             { label: 'Đơn', value: String(orders.length), hint: 'Đang hiển thị', tone: 'blue' },
             { label: 'Dịch vụ', value: String(services.length), hint: 'Menu/region đang active', tone: 'emerald' },
@@ -266,7 +278,17 @@ export function SupportTiktokOrdersPage() {
           ]}
           actions={
             <>
-              <Link href="/user/support-tiktok" className="surface-chip rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 dark:text-slate-200">Chat support</Link>
+              {embedded && onBackToChat ? (
+                <button
+                  type="button"
+                  onClick={onBackToChat}
+                  className="surface-chip rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 dark:text-slate-200"
+                >
+                  Chat support
+                </button>
+              ) : (
+                <Link href="/user/support-tiktok" className="surface-chip rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 dark:text-slate-200">Chat support</Link>
+              )}
               <Button type="button" variant="outline" onClick={() => void loadOrders()} loading={loading} loadingText="Đang tải...">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
@@ -538,6 +560,11 @@ export function SupportTiktokOrdersPage() {
           </Dialog.Portal>
         </Dialog.Root>
       </div>
-    </AppShell>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <AppShell user={user}>{content}</AppShell>;
 }

@@ -262,7 +262,8 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
         FROM tiktok_support_orders
         WHERE user_id = ?
           AND LOWER(COALESCE(status, '')) IN ('active', 'completed', 'processing', 'success')
-          AND (ngay_het_han IS NULL OR ngay_het_han >= ?)
+          AND ngay_het_han IS NOT NULL
+          AND ngay_het_han >= ?
         ORDER BY updated_at DESC, id DESC
         LIMIT 1
       `,
@@ -274,13 +275,15 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
   const latestOrder = latestRows[0] || null;
   const latestStatus = String(latestOrder?.status || '').trim().toLowerCase();
   const latestExpiresAt = latestOrder?.ngay_het_han ? serializeDatabaseDateTime(latestOrder.ngay_het_han) : '';
-  const notExpired = !latestExpiresAt || latestExpiresAt >= nowText;
+  const notExpired = Boolean(latestExpiresAt && latestExpiresAt >= nowText);
   const hasUnlockedChat = eligibleRows.length > 0;
 
   let chatBlockedReason = '';
   if (!hasUnlockedChat) {
     if (!latestOrder) {
       chatBlockedReason = 'Mua hàng thành công rồi mới chat được.';
+    } else if (!latestExpiresAt) {
+      chatBlockedReason = 'Gói Support TikTok của bạn chưa có hạn dùng. Hãy gia hạn hoặc đợi nhân viên hỗ trợ TikTok duyệt.';
     } else if (!notExpired) {
       chatBlockedReason = 'Gói Support TikTok của bạn đã hết hạn. Hãy gia hạn hoặc mua lại để chat tiếp.';
     } else if (latestStatus === 'pending') {
@@ -483,7 +486,7 @@ export async function validateSupportTikTokChatOrder(input: {
     const status = String(order.status || '').trim().toLowerCase();
     const expiresAt = order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '';
     const activeStatus = ['active', 'completed', 'processing', 'success'].includes(status);
-    const notExpired = !expiresAt || expiresAt >= nowText;
+    const notExpired = Boolean(expiresAt && expiresAt >= nowText);
 
     if (!activeStatus || !notExpired) {
       throw new Error('Đơn TikTok này chưa mở hoặc đã hết hạn chat');
