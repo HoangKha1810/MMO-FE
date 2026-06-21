@@ -552,6 +552,8 @@ export async function GET(req: NextRequest) {
       : [];
     const services = dbServices.length > 0 ? dbServices : defaultTikTokServicesForResponse();
     const menus = dbMenus.length > 0 ? dbMenus : defaultTikTokMenusForResponse();
+    const settings = await getLegacySettingsMap();
+    const vatPercent = getVatPercent(settings);
 
     return NextResponse.json({
       success: true,
@@ -559,6 +561,7 @@ export async function GET(req: NextRequest) {
         orders: normalizeLegacyRows(orders as unknown as LegacyRow[]),
         services: normalizeLegacyRows(services as LegacyRow[]),
         menus: normalizeLegacyRows(menus as LegacyRow[]),
+        vat_percent: vatPercent,
         is_support: auth.context!.isSupport,
         order_table_available: hasOrders,
         warning: hasOrders ? '' : 'Bảng tiktok_support_orders chưa tồn tại, chỉ hiển thị bảng giá.',
@@ -573,6 +576,7 @@ export async function GET(req: NextRequest) {
         orders: [],
         services: defaultTikTokServicesForResponse(),
         menus: defaultTikTokMenusForResponse(),
+        vat_percent: getVatPercent({}),
         is_support: false,
         order_table_available: false,
         warning: error instanceof Error ? error.message : 'Không tải được đơn Support TikTok',

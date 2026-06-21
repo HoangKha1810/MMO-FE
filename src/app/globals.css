@@ -1779,6 +1779,27 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 16px 34px -24px rgba(2, 6, 23, 0.58);
   }
 
+  .support-tiktok-select {
+    color-scheme: light dark;
+  }
+
+  .support-tiktok-select option {
+    background: #ffffff;
+    color: #0f172a;
+  }
+
+  .dark .support-tiktok-select,
+  .dark .support-tiktok-select option,
+  .dark .support-tiktok-select optgroup {
+    background-color: #020817;
+    color: #e5f0ff;
+  }
+
+  .dark .support-tiktok-select option:checked {
+    background-color: #2563eb;
+    color: #ffffff;
+  }
+
   .btn-kinetic {
     position: relative;
     isolation: isolate;

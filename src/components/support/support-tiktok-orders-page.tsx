@@ -85,6 +85,7 @@ export function SupportTiktokOrdersPage({
   const [orders, setOrders] = useState<TikTokOrder[]>([]);
   const [services, setServices] = useState<TikTokService[]>([]);
   const [menus, setMenus] = useState<TikTokMenu[]>([]);
+  const [vatPercent, setVatPercent] = useState(8);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -148,6 +149,8 @@ export function SupportTiktokOrdersPage({
     (service) => String(service.region_slug || '') === form.region && String(service.service_key || '') === form.service_key
   );
   const selectedPrice = toNumber(selectedService?.price, 0);
+  const selectedVatAmount = Math.round((selectedPrice * vatPercent) / 100);
+  const selectedTotalPrice = selectedPrice + selectedVatAmount;
   const selectedPriceLabel = selectedService ? formatCurrency(selectedPrice) : services.length > 0 ? 'Chọn dịch vụ' : 'Chưa có đơn giá';
   const manualRenewRegion = isManualRenewRegion(form.region);
   const canCreateOrder = Boolean(!manualRenewRegion && selectedService && selectedPrice > 0 && form.region && form.service_key && form.tiktok_id.trim());
@@ -171,6 +174,7 @@ export function SupportTiktokOrdersPage({
     setOrders(Array.isArray(payload.data?.orders) ? payload.data.orders : []);
     setServices(nextServices);
     setMenus(nextMenus);
+    setVatPercent(Math.max(0, toNumber(payload.data?.vat_percent, 8)));
     setForm((current) => {
       const currentRegion = String(current.region || '');
       const nextCreateServices = nextServices.filter((service: TikTokService) => !isManualRenewRegion(service.region_slug));
@@ -306,7 +310,7 @@ export function SupportTiktokOrdersPage({
             <select
               value={form.region}
               onChange={(event) => setForm((current) => ({ ...current, region: event.target.value, service_key: '' }))}
-              className="field-elevated h-12 rounded-[1rem] px-4 text-sm font-bold text-slate-900 dark:text-white"
+              className="support-tiktok-select field-elevated h-12 rounded-[1rem] px-4 text-sm font-bold text-slate-900 dark:text-white"
               required
             >
               <option value="">Chọn region</option>
@@ -315,7 +319,7 @@ export function SupportTiktokOrdersPage({
             <select
               value={form.service_key}
               onChange={(event) => setForm((current) => ({ ...current, service_key: event.target.value }))}
-              className="field-elevated h-12 rounded-[1rem] px-4 text-sm font-bold text-slate-900 dark:text-white lg:col-span-2"
+              className="support-tiktok-select field-elevated h-12 rounded-[1rem] px-4 text-sm font-bold text-slate-900 dark:text-white lg:col-span-2"
               disabled={createFilteredServices.length === 0}
               required
             >
@@ -540,8 +544,16 @@ export function SupportTiktokOrdersPage({
                   <span className="max-w-[260px] text-right">{selectedService?.name || '-'}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-3 dark:border-white/10">
+                  <span className="text-slate-500 dark:text-slate-400">Đơn giá</span>
+                  <span className="font-mono text-base font-black text-slate-900 dark:text-white">{formatCurrency(selectedPrice)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-slate-500 dark:text-slate-400">Thuế ({vatPercent}%)</span>
+                  <span className="font-mono text-base font-black text-amber-500">{formatCurrency(selectedVatAmount)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-3 dark:border-white/10">
                   <span className="text-slate-500 dark:text-slate-400">Thanh toán</span>
-                  <span className="font-mono text-xl font-black text-emerald-500">{formatCurrency(selectedPrice)}</span>
+                  <span className="font-mono text-xl font-black text-emerald-500">{formatCurrency(selectedTotalPrice)}</span>
                 </div>
               </div>
 

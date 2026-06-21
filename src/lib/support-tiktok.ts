@@ -436,7 +436,7 @@ export async function getSupportConversationMessages(
         mm.message,
         mm.image_url,
         mm.image_urls,
-        mm.created_at,
+        DATE_FORMAT(mm.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
         o.tiktok_id AS order_tiktok_id,
         o.service_name AS order_service_name,
         o.status AS order_status
@@ -545,7 +545,7 @@ export async function createSupportConversationMessage(input: {
           mm.message,
           mm.image_url,
           mm.image_urls,
-          mm.created_at,
+          DATE_FORMAT(mm.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
           o.tiktok_id AS order_tiktok_id,
           o.service_name AS order_service_name,
           o.status AS order_status
@@ -585,7 +585,7 @@ export async function getSupportConversations() {
         mm.order_id,
         mm.support_category,
         mm.message AS last_message,
-        mm.created_at AS last_at,
+        DATE_FORMAT(mm.created_at, '%Y-%m-%d %H:%i:%s') AS last_at,
         mm.sender_type AS last_sender_type
       FROM support_tiktok_messages mm
       INNER JOIN (
