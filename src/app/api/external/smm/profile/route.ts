@@ -1,0 +1,22 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { authenticateSmmApiRequest, getExternalSmmProfile } from '@/lib/smm-external-api';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export async function GET(req: NextRequest) {
+  try {
+    const auth = await authenticateSmmApiRequest(req);
+    if (!auth.success || !auth.account) {
+      return NextResponse.json({ success: false, message: auth.message }, { status: auth.status });
+    }
+
+    const data = await getExternalSmmProfile(auth.account);
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Không thể lấy profile SMM' },
+      { status: 500 }
+    );
+  }
+}

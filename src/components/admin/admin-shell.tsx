@@ -34,6 +34,7 @@ import {
   Package,
   Percent,
   Search,
+  Server,
   Settings,
   ShieldAlert,
   ShoppingBag,
@@ -99,6 +100,7 @@ const adminNavSections: NavSection[] = [
     items: [
       { href: '/admin/smm/providers', label: 'Nguồn SMM', icon: Link2 },
       { href: '/admin/smm/services', label: 'Cấu Hình Dịch Vụ SMM', icon: Layers },
+      { href: '/admin/smm/docs', label: 'SMM API Docs', icon: FileText, accent: 'blue' },
       { href: '/admin/smm/orders', label: 'Đơn SMM', icon: ShoppingBag },
       { href: '/admin/pricing', label: 'Bảng giá', icon: Percent },
     ],
@@ -128,6 +130,7 @@ const adminNavSections: NavSection[] = [
     title: 'Dịch vụ Proxy',
     accent: 'blue',
     items: [
+      { href: '/admin/vps-proxy-monitor', label: 'Giám sát VPS + Proxy', icon: Server, accent: 'emerald' },
       { href: '/admin/proxy', label: 'Cấu hình Proxy Cloud', icon: Cloud },
       { href: '/admin/vps-gpu-costs', label: 'Giá vốn VPS GPU', icon: Cpu, accent: 'blue' },
     ],

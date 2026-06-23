@@ -1235,6 +1235,10 @@ export async function listAdminResource(resource: string, params: URLSearchParam
     return listLegacyAutoMxhOrders(config, params, page, perPage, skip);
   }
 
+  if (resource === 'vibe-code-orders') {
+    return listVibeCodeOrders(config, params, page, perPage, skip);
+  }
+
   if (resource === 'forum-threads') {
     return listForumThreads(config, params, page, perPage, skip);
   }
@@ -1534,6 +1538,81 @@ async function listLegacyAutoMxhOrders(config: ResourceConfig, params: URLSearch
     success: true,
     title: config.title,
     data: normalizeValue(hydratedRows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
+async function listVibeCodeOrders(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  await ensureVibeCodeTables();
+  const table = 'vibe_code_orders';
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(`(
+      CAST(o.id AS CHAR) LIKE ?
+      OR CAST(o.user_id AS CHAR) LIKE ?
+      OR COALESCE(o.order_code, '') LIKE ?
+      OR COALESCE(o.provider, '') LIKE ?
+      OR COALESCE(o.package_key, '') LIKE ?
+      OR COALESCE(o.package_title, '') LIKE ?
+      OR COALESCE(o.status, '') LIKE ?
+      OR COALESCE(o.admin_note, '') LIKE ?
+      OR COALESCE(u.username, '') LIKE ?
+      OR COALESCE(u.fullname, '') LIKE ?
+    )`);
+    values.push(like, like, like, like, like, like, like, like, like, like);
+  }
+
+  if (status && config.statusField) {
+    conditions.push(`o.\`${config.statusField}\` = ?`);
+    values.push(status);
+  }
+
+  const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const fromSql = `
+    FROM \`${table}\` o
+    LEFT JOIN users u ON u.id = o.user_id
+    ${whereSql}
+  `;
+
+  const [rows, countRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT
+          o.*,
+          COALESCE(NULLIF(u.username, ''), NULLIF(u.fullname, ''), CONCAT('User #', o.user_id)) AS username,
+          u.email AS user_email
+        ${fromSql}
+        ORDER BY o.created_at DESC, o.id DESC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `SELECT COUNT(*) AS total ${fromSql}`,
+      ...values
+    ),
+  ]);
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(rows),
     pagination: {
       page,
       per_page: perPage,

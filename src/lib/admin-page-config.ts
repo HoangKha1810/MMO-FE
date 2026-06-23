@@ -164,7 +164,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'vibe-code-orders',
       title: 'Đơn Vibe Code',
       description: 'Đơn khách đã mua, mã đơn gửi admin và trạng thái xử lý/cấp gói.',
-      columns: ['id', 'order_code', 'user_id', 'provider', 'package_title', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'status', 'admin_note', 'created_at'],
+      columns: ['id', 'order_code', 'username', 'provider', 'package_title', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'status', 'admin_note', 'created_at'],
       editableFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
     },

@@ -242,7 +242,7 @@ function buildStats(
   };
 }
 
-async function ensureProxyTables() {
+export async function ensureProxyTables() {
   if (proxyTablesPromise) {
     return proxyTablesPromise;
   }

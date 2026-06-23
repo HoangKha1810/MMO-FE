@@ -374,6 +374,10 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   const currentUser = useSessionUser();
   const user = currentUser.data;
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const chatPinnedToBottomRef = useRef(true);
+  const pendingScrollToBottomRef = useRef(true);
+  const lastChatThreadKeyRef = useRef('');
+  const lastMessageCountRef = useRef(0);
   const [meta, setMeta] = useState<SupportMeta | null>(null);
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
   const [activeUserId, setActiveUserId] = useState<number | null>(null);
@@ -484,6 +488,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
 
   const canUseChat = Boolean(meta?.isSupport || meta?.canUseChat);
   const activeChatUserId = meta?.isSupport ? activeUserId : user?.id || null;
+  const activeChatThreadKey = `${activeChatUserId || 'none'}:${activeOrderKey}`;
   const chatTitle = meta?.isSupport
     ? activeConversation
       ? `${activeConversation.username}${activeConversation.tiktok_id ? ` · ${activeConversation.tiktok_id}` : ''}`
@@ -512,6 +517,21 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   function openUserOrdersTab() {
     setTab('orders');
     void loadOrders(activeChatUserId);
+  }
+
+  function isChatNearBottom(element: HTMLDivElement) {
+    return element.scrollHeight - element.scrollTop - element.clientHeight < 96;
+  }
+
+  function markChatShouldScrollToBottom() {
+    pendingScrollToBottomRef.current = true;
+    chatPinnedToBottomRef.current = true;
+  }
+
+  function handleChatScroll() {
+    const element = boxRef.current;
+    if (!element) return;
+    chatPinnedToBottomRef.current = isChatNearBottom(element);
   }
 
   async function loadMeta() {
@@ -558,6 +578,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       setConversations(nextConversations);
 
       if (selectFirst && nextConversations.length > 0) {
+        markChatShouldScrollToBottom();
         setActiveUserId((current) => current || nextConversations[0].user_id);
         setActiveOrderKey((current) => (current === GENERAL_CHAT_KEY ? toOrderChatKey(nextConversations[0].order_id) : current));
       }
@@ -857,6 +878,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
         throw new Error(payload.message || 'Không thể gửi tin nhắn');
       }
 
+      markChatShouldScrollToBottom();
       setMessages((current) => [...current, payload.message as SupportMessage]);
       setDraft('');
       setAttachment(null);
@@ -913,6 +935,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   }
 
   function selectConversation(userId: number, nextTab: SupportTab = 'chat', orderKey = GENERAL_CHAT_KEY) {
+    markChatShouldScrollToBottom();
     setActiveUserId(userId);
     setActiveOrderKey(orderKey);
     setTab(nextTab);
@@ -1004,12 +1027,33 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   }, [activeUserId, meta, tab, user?.id]);
 
   useEffect(() => {
-    if (!boxRef.current) {
+    const element = boxRef.current;
+    if (!element) {
       return;
     }
 
-    boxRef.current.scrollTop = boxRef.current.scrollHeight;
-  }, [messages]);
+    const threadChanged = lastChatThreadKeyRef.current !== activeChatThreadKey;
+    const shouldScroll =
+      threadChanged ||
+      pendingScrollToBottomRef.current ||
+      chatPinnedToBottomRef.current ||
+      messages.length < lastMessageCountRef.current;
+
+    lastChatThreadKeyRef.current = activeChatThreadKey;
+    lastMessageCountRef.current = messages.length;
+
+    if (!shouldScroll) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const currentElement = boxRef.current;
+      if (!currentElement) return;
+      currentElement.scrollTop = currentElement.scrollHeight;
+      chatPinnedToBottomRef.current = true;
+      pendingScrollToBottomRef.current = false;
+    });
+  }, [activeChatThreadKey, messages]);
 
   const content = (
     <div className="space-y-6">
@@ -1370,6 +1414,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                   ) : null}
                   <div
                     ref={boxRef}
+                    onScroll={handleChatScroll}
                     className="flex h-[560px] flex-col gap-3 overflow-y-auto rounded-[1.7rem] border border-slate-200 bg-slate-50 p-4 custom-scrollbar dark:border-white/10 dark:bg-[#0b1220]"
                   >
                     {messages.length === 0 ? (
