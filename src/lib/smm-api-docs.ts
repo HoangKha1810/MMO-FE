@@ -252,6 +252,20 @@ console.log(payload);`,
         code: `curl '${externalBaseUrl}/status?order=${sampleOrderId}' \\
   --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
       },
+      {
+        id: 'deposit',
+        title: 'Nạp tiền nguồn bằng API key',
+        description: 'Dùng cho web con hoặc webhook ngân hàng cần cộng tiền vào tài khoản đang sở hữu API key trước khi tạo đơn.',
+        language: 'bash',
+        code: `curl --request POST '${externalBaseUrl}/deposit' \\
+  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
+  --header 'Content-Type: application/json' \\
+  --data '${JSON.stringify({
+    amount: 100000,
+    external_ref: 'BANK_TXN_001',
+    note: 'Nap tien tu web con',
+  })}'`,
+      },
     ],
     endpoints: [
       {
@@ -623,6 +637,60 @@ console.log(payload);`,
           'balance là ví chính users.balance, dùng cho đơn SMM.',
           'Đối tác nạp tiền vào tài khoản web rồi gọi API tạo đơn từ số dư này.',
           'Có thể gọi endpoint tổng /api/external/smm?action=balance.',
+        ],
+      },
+      {
+        id: 'deposit',
+        title: 'Nạp tiền vào ví nguồn API key',
+        method: 'POST',
+        endpoint: `${externalBaseUrl}/deposit`,
+        description: 'Cộng tiền vào ví chính của user đang sở hữu API key. Dùng cho web con hoặc webhook ngân hàng nạp tiền nguồn trước khi tạo đơn SMM.',
+        parameters: [
+          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'action', description: '"deposit" nếu gọi endpoint tổng /api/external/smm' },
+          { name: 'amount', description: 'Số tiền VND cần cộng vào ví nguồn', required: true },
+          { name: 'external_ref', description: 'Mã giao dịch bên ngoài để chống cộng trùng' },
+          { name: 'note', description: 'Ghi chú đối soát' },
+        ],
+        requestPayloadTitle: 'JSON Body',
+        requestPayload: prettyJson({
+          amount: 100000,
+          external_ref: 'BANK_TXN_001',
+          note: 'Nap tien tu web con',
+        }),
+        requestExample: `curl --request POST '${externalBaseUrl}/deposit' \\
+  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
+  --header 'Content-Type: application/json' \\
+  --data '${JSON.stringify({
+    amount: 100000,
+    external_ref: 'BANK_TXN_001',
+    note: 'Nap tien tu web con',
+  })}'`,
+        responseExample: prettyJson({
+          success: true,
+          message: 'Đã nạp tiền vào tài khoản nguồn API key',
+          amount: 100000,
+          balance: 443423,
+          currency: 'VND',
+          transaction_id: 12345,
+          external_ref: 'BANK_TXN_001',
+          already_processed: false,
+          data: {
+            user_id: 1001,
+            username: 'partner_user',
+            amount: 100000,
+            balance_after: 443423,
+            transaction_id: 12345,
+          },
+        }),
+        errorExample: prettyJson({
+          success: false,
+          message: 'Thiếu amount hoặc amount không hợp lệ',
+        }),
+        notes: [
+          'Endpoint này cộng users.balance của tài khoản gắn với API key.',
+          'external_ref nên là mã giao dịch ngân hàng/webhook; nếu gửi lại cùng mã, hệ thống trả already_processed để tránh cộng trùng.',
+          'Có thể gọi endpoint tổng /api/external/smm với action=deposit.',
         ],
       },
       {

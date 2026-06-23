@@ -11,6 +11,7 @@ import {
   readExternalSmmRequestBody,
   toExternalSmmSearchParams,
 } from '@/lib/smm-external-api';
+import { creditExternalApiBalance } from '@/lib/external-wallet-api';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -18,8 +19,9 @@ export const revalidate = 0;
 function normalizeAction(value: unknown) {
   const action = String(value || '').trim().toLowerCase();
   if (['add_order', 'order', 'create'].includes(action)) return 'add';
+  if (['deposit', 'topup', 'recharge'].includes(action)) return 'deposit';
   if (['orders_status', 'multi_status', 'multiple_status'].includes(action)) return 'status';
-  if (['services', 'add', 'status', 'balance', 'quote', 'categories', 'orders', 'profile'].includes(action)) return action;
+  if (['services', 'add', 'status', 'balance', 'quote', 'categories', 'orders', 'profile', 'deposit'].includes(action)) return action;
   return action || 'services';
 }
 
@@ -55,6 +57,16 @@ async function handleExternalSmmAction(req: NextRequest, body: Record<string, un
       const data = await createExternalSmmOrder(auth.account, mergedInput);
       return NextResponse.json(data, { status: data.success ? 200 : 200 });
     }
+    case 'deposit': {
+      if (req.method !== 'POST') {
+        return NextResponse.json(
+          { success: false, message: 'Nạp tiền qua API chỉ hỗ trợ POST' },
+          { status: 405 }
+        );
+      }
+
+      return NextResponse.json(await creditExternalApiBalance(auth.account, mergedInput, 'SMM API'));
+    }
     case 'status':
       return NextResponse.json(await getExternalSmmStatus(auth.account, params));
     case 'orders':
@@ -72,7 +84,7 @@ async function handleExternalSmmAction(req: NextRequest, body: Record<string, un
     }
     default:
       return NextResponse.json(
-        { success: false, message: 'Action không hợp lệ. Hỗ trợ: services, add, status, balance, quote, categories, orders, profile' },
+        { success: false, message: 'Action không hợp lệ. Hỗ trợ: services, add, status, balance, quote, categories, orders, profile, deposit' },
         { status: 400 }
       );
   }

@@ -11,6 +11,7 @@ import {
   readExternalAutoMxhRequestBody,
   toExternalAutoMxhSearchParams,
 } from '@/lib/automxh-external-api';
+import { creditExternalApiBalance } from '@/lib/external-wallet-api';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -19,7 +20,8 @@ function normalizeAction(value: unknown) {
   const action = String(value || '').trim().toLowerCase();
   if (['add_order', 'order', 'create'].includes(action)) return 'add';
   if (['catalog', 'categories'].includes(action)) return 'catalog';
-  if (['services', 'add', 'status', 'balance', 'quote', 'orders', 'profile', 'catalog'].includes(action)) return action;
+  if (['deposit', 'topup', 'recharge'].includes(action)) return 'deposit';
+  if (['services', 'add', 'status', 'balance', 'quote', 'orders', 'profile', 'catalog', 'deposit'].includes(action)) return action;
   return action || 'services';
 }
 
@@ -54,6 +56,16 @@ async function handleExternalAutoMxhAction(req: NextRequest, body: Record<string
 
       return NextResponse.json(await createExternalAutoMxhOrder(auth.account, mergedInput));
     }
+    case 'deposit': {
+      if (req.method !== 'POST') {
+        return NextResponse.json(
+          { success: false, message: 'Nạp tiền qua API chỉ hỗ trợ POST' },
+          { status: 405 }
+        );
+      }
+
+      return NextResponse.json(await creditExternalApiBalance(auth.account, mergedInput, 'Auto MXH API'));
+    }
     case 'status':
       return NextResponse.json(await getExternalAutoMxhStatus(auth.account, params));
     case 'orders':
@@ -71,7 +83,7 @@ async function handleExternalAutoMxhAction(req: NextRequest, body: Record<string
     }
     default:
       return NextResponse.json(
-        { success: false, message: 'Action không hợp lệ. Hỗ trợ: services, catalog, add, status, balance, quote, orders, profile' },
+        { success: false, message: 'Action không hợp lệ. Hỗ trợ: services, catalog, add, status, balance, quote, orders, profile, deposit' },
         { status: 400 }
       );
   }
