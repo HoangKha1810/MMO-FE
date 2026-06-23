@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { authenticateGameApiRequest } from '@/lib/game-integration-api';
 import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
 import {
+  createSmmProviderOrder,
   findSmmService,
   getSmmCheckoutAmount,
   getSmmProviderMeta,
@@ -15,6 +16,7 @@ import {
   type SmmServiceRecord,
 } from '@/lib/smm-provider';
 import { applySmmProviderStatusToOrder } from '@/lib/smm-refund';
+import { SMM_RUNNING_STATUS } from '@/lib/smm-status';
 import { slugify, toNumber } from '@/lib/utils';
 
 interface SmmApiAccount {
@@ -42,6 +44,12 @@ type AuthenticatedSmmApiRequest =
       message: string;
       account: null;
     };
+
+function smmApiError(message: string, status = 400) {
+  const error = new Error(message) as Error & { status?: number };
+  error.status = status;
+  return error;
+}
 
 function roundVnd(value: number, digits = 4) {
   const factor = 10 ** digits;
@@ -148,6 +156,80 @@ function buildCategorySummary(category: string, items: SmmServiceRecord[], vatPe
     vat_percent: vatPercent,
     total_orders: items.reduce((sum, service) => sum + Math.max(0, Math.trunc(toNumber(service.total_orders, 0))), 0),
   };
+}
+
+function normalizeExternalComments(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean).join('\n');
+  }
+
+  return String(value || '').trim();
+}
+
+function sanitizeProviderCreateOrderMessage(reason: string) {
+  const normalized = String(reason || '').trim();
+  if (!normalized) {
+    return 'Nguồn SMM đang bận. Đơn chưa được tạo và hệ thống đã hoàn lại tiền.';
+  }
+
+  if (/telegram|api\.telegram\.org|curl|timed out|timeout|ssl connection timeout|failed to connect/i.test(normalized)) {
+    return 'Nguồn SMM đang lỗi kết nối nội bộ. Đơn chưa được tạo và hệ thống đã hoàn lại tiền cho bạn.';
+  }
+
+  if (/incorrect order id|incorrect service|service not found|invalid service/i.test(normalized)) {
+    return 'Provider SMM từ chối dịch vụ hoặc dữ liệu gửi lên không hợp lệ. Đơn chưa được tạo và tiền đã hoàn lại.';
+  }
+
+  return normalized;
+}
+
+export async function readExternalSmmRequestBody(req: NextRequest): Promise<Record<string, unknown>> {
+  const contentType = String(req.headers.get('content-type') || '').toLowerCase();
+
+  if (contentType.includes('application/json')) {
+    const body = await req.json().catch(() => ({}));
+    return body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {};
+  }
+
+  if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+    const formData = await req.formData().catch(() => null);
+    if (!formData) {
+      return {};
+    }
+
+    const body: Record<string, unknown> = {};
+    for (const [key, value] of formData.entries()) {
+      body[key] = typeof value === 'string' ? value : value.name;
+    }
+    return body;
+  }
+
+  const text = await req.text().catch(() => '');
+  if (!text.trim()) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    const params = new URLSearchParams(text);
+    return Object.fromEntries(params.entries());
+  }
+}
+
+export function toExternalSmmSearchParams(input: Record<string, unknown>) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined || value === null || Array.isArray(value) || typeof value === 'object') {
+      continue;
+    }
+
+    params.set(key, String(value));
+  }
+
+  return params;
 }
 
 export async function authenticateSmmApiRequest(
@@ -299,10 +381,10 @@ export async function getExternalSmmQuote(input: Record<string, unknown>) {
     ? undefined
     : Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
   let quantity = Math.max(0, Math.trunc(toNumber(input.quantity, 0)));
-  const comments = String(input.comments || '').trim();
+  const comments = normalizeExternalComments(input.comments || input.comment || input.list_comment);
 
-  if (!serviceId || !quantity) {
-    throw new Error('Thiếu service_id hoặc quantity');
+  if (!serviceId) {
+    throw new Error('Thiếu service_id hoặc service');
   }
 
   const service = await findSmmService(serviceId, providerId);
@@ -319,6 +401,8 @@ export async function getExternalSmmQuote(input: Record<string, unknown>) {
     if (quantity === 0) {
       throw new Error('Dịch vụ comment cần danh sách comments để tính số lượng');
     }
+  } else if (!quantity) {
+    throw new Error('Thiếu quantity');
   }
 
   if (quantity < service.min || quantity > service.max) {
@@ -343,6 +427,244 @@ export async function getExternalSmmQuote(input: Record<string, unknown>) {
       formula: 'ceil(quantity / 1000 * price_per_1k_vnd) + VAT',
     },
   };
+}
+
+export async function createExternalSmmOrder(account: SmmApiAccount, input: Record<string, unknown>) {
+  const serviceId = Math.max(0, Math.trunc(toNumber(input.service_id || input.service, 0)));
+  const providerId = input.provider_id === undefined || input.provider_id === null || input.provider_id === ''
+    ? undefined
+    : Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
+  let quantity = Math.max(0, Math.trunc(toNumber(input.quantity, 0)));
+  const link = String(input.link || input.url || input.object_id || '').trim();
+  const comments = normalizeExternalComments(input.comments || input.comment || input.list_comment);
+  const reaction = String(input.reaction || '').trim();
+
+  if (!serviceId || !link) {
+    throw smmApiError('Thiếu service/service_id hoặc link');
+  }
+
+  const [user, service] = await Promise.all([
+    db.users.findUnique({
+      where: { id: account.userId },
+      select: {
+        id: true,
+        username: true,
+        balance: true,
+        status: true,
+      },
+    }),
+    findSmmService(serviceId, providerId),
+  ]);
+
+  if (!user) {
+    throw smmApiError('Không tìm thấy tài khoản API', 404);
+  }
+
+  if (String(user.status || '').trim().toLowerCase() !== 'active') {
+    throw smmApiError('Tài khoản API hiện không hoạt động', 403);
+  }
+
+  if (!service) {
+    throw smmApiError('Không tìm thấy dịch vụ SMM', 404);
+  }
+
+  if (service.is_comment_service) {
+    const commentLines = comments
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (commentLines.length === 0) {
+      throw smmApiError('Dịch vụ comment cần danh sách comments');
+    }
+
+    quantity = commentLines.length;
+  } else if (!quantity) {
+    throw smmApiError('Thiếu quantity');
+  }
+
+  if (quantity < service.min || quantity > service.max) {
+    throw smmApiError(`Số lượng không hợp lệ. Min ${service.min.toLocaleString('vi-VN')} - Max ${service.max.toLocaleString('vi-VN')}`);
+  }
+
+  const checkout = await getSmmCheckoutAmount(service, quantity);
+  const currentBalance = toNumber(user.balance, 0);
+
+  if (currentBalance < checkout.totalToPay) {
+    throw smmApiError('Số dư ví chính không đủ. Vui lòng nạp thêm tiền vào web');
+  }
+
+  const provisionalOrder = await db.$transaction(async (tx) => {
+    const updated = await tx.users.updateMany({
+      where: {
+        id: account.userId,
+        balance: {
+          gte: checkout.totalToPay,
+        },
+      },
+      data: {
+        balance: {
+          decrement: checkout.totalToPay,
+        },
+        last_activity: new Date(),
+      },
+    });
+
+    if (updated.count === 0) {
+      throw smmApiError('Giao dịch thất bại. Vui lòng kiểm tra lại số dư.');
+    }
+
+    const updatedUser = await tx.users.findUnique({
+      where: { id: account.userId },
+      select: { balance: true },
+    });
+
+    const order = await tx.smm_orders.create({
+      data: {
+        user_id: account.userId,
+        provider_id: service.provider_id,
+        api_order_id: '',
+        service_id: service.service,
+        service_name: service.name,
+        link,
+        custom_data: comments || null,
+        quantity,
+        price: checkout.subtotal,
+        status: SMM_RUNNING_STATUS,
+      },
+    });
+
+    return {
+      orderId: order.id,
+      balanceAfter: roundVnd(toNumber(updatedUser?.balance, currentBalance - checkout.totalToPay), 2),
+    };
+  });
+
+  try {
+    const providerOrder = await createSmmProviderOrder({
+      providerId: service.provider_id,
+      serviceId: service.service,
+      quantity,
+      link,
+      comments: service.is_comment_service ? comments : undefined,
+      reaction: reaction || undefined,
+    });
+
+    const savedOrder = await db.$transaction(async (tx) => {
+      await tx.smm_orders.update({
+        where: { id: provisionalOrder.orderId },
+        data: {
+          api_order_id: providerOrder.orderId,
+          status: SMM_RUNNING_STATUS,
+          balance_after: provisionalOrder.balanceAfter,
+        },
+      });
+
+      await tx.transactions.create({
+        data: {
+          user_id: account.userId,
+          type: 'order',
+          amount: -checkout.totalToPay,
+          balance_after: provisionalOrder.balanceAfter,
+          content: `Thanh toán đơn SMM API #${providerOrder.orderId} - ${service.name}`,
+          status: 'success',
+        },
+      });
+
+      return tx.smm_orders.findUnique({
+        where: { id: provisionalOrder.orderId },
+      });
+    });
+
+    return {
+      success: true,
+      message: 'Đơn SMM đã được tạo và trừ tiền ví chính',
+      order: providerOrder.orderId,
+      charge: checkout.totalToPay,
+      currency: 'VND',
+      balance: provisionalOrder.balanceAfter,
+      data: {
+        id: savedOrder?.id || provisionalOrder.orderId,
+        order: providerOrder.orderId,
+        api_order_id: providerOrder.orderId,
+        provider_id: service.provider_id,
+        service: service.service,
+        service_id: service.service,
+        service_name: service.name,
+        link,
+        quantity,
+        status: SMM_RUNNING_STATUS,
+        subtotal: checkout.subtotal,
+        vat_amount: checkout.vatAmount,
+        vat_percent: checkout.vatPercent,
+        total_to_pay: checkout.totalToPay,
+        balance_after: provisionalOrder.balanceAfter,
+        created_at: savedOrder?.created_at?.toISOString(),
+      },
+    };
+  } catch (providerError) {
+    const rawMessage = providerError instanceof Error ? providerError.message : 'Provider từ chối tạo đơn';
+    const revertedBalance = await db.$transaction(async (tx) => {
+      await tx.users.update({
+        where: { id: account.userId },
+        data: {
+          balance: {
+            increment: checkout.totalToPay,
+          },
+          last_activity: new Date(),
+        },
+      });
+
+      const refundedUser = await tx.users.findUnique({
+        where: { id: account.userId },
+        select: { balance: true },
+      });
+
+      const balanceAfterRefund = roundVnd(toNumber(refundedUser?.balance, currentBalance), 2);
+
+      await tx.smm_orders.update({
+        where: { id: provisionalOrder.orderId },
+        data: {
+          status: 'Cancelled',
+          reason: rawMessage,
+          is_refunded: true,
+          refund_amount: checkout.totalToPay,
+          balance_after: balanceAfterRefund,
+        },
+      });
+
+      await tx.transactions.create({
+        data: {
+          user_id: account.userId,
+          type: 'refund',
+          amount: checkout.totalToPay,
+          balance_after: balanceAfterRefund,
+          content: `Hoàn tiền đơn SMM API lỗi: ${rawMessage}`,
+          status: 'success',
+        },
+      });
+
+      return balanceAfterRefund;
+    });
+
+    return {
+      success: false,
+      message: sanitizeProviderCreateOrderMessage(rawMessage),
+      provider_error: rawMessage,
+      refunded: true,
+      charge: checkout.totalToPay,
+      currency: 'VND',
+      balance: revertedBalance,
+      data: {
+        id: provisionalOrder.orderId,
+        service: service.service,
+        service_id: service.service,
+        quantity,
+        total_to_pay: checkout.totalToPay,
+        balance_after: revertedBalance,
+      },
+    };
+  }
 }
 
 export async function listExternalSmmOrders(account: SmmApiAccount, params: URLSearchParams) {

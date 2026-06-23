@@ -8,9 +8,11 @@ import {
   FileText,
   Layers,
   Percent,
+  PlusCircle,
   RefreshCcw,
   Server,
   ShoppingBag,
+  Wallet,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,6 +85,48 @@ function CodeBlock({
   );
 }
 
+function ParametersTable({
+  parameters = [],
+}: {
+  parameters?: Array<{
+    name: string;
+    description: string;
+    required?: boolean;
+  }>;
+}) {
+  if (parameters.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-[1rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/40">
+      <table className="w-full min-w-[560px] text-left">
+        <thead className="border-b border-slate-100 bg-slate-50/90 text-xs font-black text-slate-700 dark:border-white/5 dark:bg-white/[0.04] dark:text-slate-200">
+          <tr>
+            <th className="px-4 py-3">Parameters</th>
+            <th className="px-4 py-3">Description</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700 dark:divide-white/5 dark:text-slate-200">
+          {parameters.map((parameter) => (
+            <tr key={parameter.name}>
+              <td className="px-4 py-3 font-mono text-xs font-black text-slate-950 dark:text-white">
+                {parameter.name}
+                {parameter.required ? (
+                  <Badge variant="warning" className="ml-2 rounded-full px-2 py-0.5 text-[10px]">
+                    bắt buộc
+                  </Badge>
+                ) : null}
+              </td>
+              <td className="px-4 py-3 leading-6 text-slate-600 dark:text-slate-300">{parameter.description}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function PriceRow({ service }: { service: SmmApiDocsService }) {
   return (
     <tr className="align-top">
@@ -141,7 +185,22 @@ export function AdminSmmApiDocsPage({
   loadError,
 }: AdminSmmApiDocsPageProps) {
   const [query, setQuery] = useState('');
+  const [activeEndpointId, setActiveEndpointId] = useState('services');
   const docs = useMemo(() => buildSmmApiDocs(baseUrl, services, runtimeMeta), [baseUrl, services, runtimeMeta]);
+  const activeEndpoint = useMemo(
+    () => docs.endpoints.find((endpoint) => endpoint.id === activeEndpointId) || docs.endpoints[0],
+    [activeEndpointId, docs.endpoints]
+  );
+  const endpointNav = useMemo(
+    () => [
+      { id: 'services', label: 'Services', icon: <Server className="h-4 w-4" /> },
+      { id: 'add-order', label: 'Add order', icon: <PlusCircle className="h-4 w-4" /> },
+      { id: 'status', label: 'Order status', icon: <RefreshCcw className="h-4 w-4" /> },
+      { id: 'multi-status', label: 'Multiple orders status', icon: <Layers className="h-4 w-4" /> },
+      { id: 'balance', label: 'Balance', icon: <Wallet className="h-4 w-4" /> },
+    ],
+    []
+  );
 
   const filteredServices = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -368,53 +427,74 @@ export function AdminSmmApiDocsPage({
       <SectionPanel className="space-y-5">
         <SectionHeader
           eyebrow="Endpoints"
-          title="Mẫu Request Và Response API SMM"
-          description="Mỗi endpoint bên dưới có payload mẫu, lệnh gọi nhanh và response/error theo code đang chạy trong hệ thống."
+          title="Tài Liệu Kiểu SMM Panel"
+          description="Chọn từng mục bên trái để xem tham số, request mẫu và response. Endpoint tạo đơn sẽ trừ ví chính của user gắn với API key."
         />
 
-        <div className="space-y-5">
-          {docs.endpoints.map((endpoint) => (
-            <article
-              key={endpoint.id}
-              className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-950/40"
-            >
+        <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="rounded-[1.3rem] border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/40">
+            <div className="space-y-1">
+              {endpointNav.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveEndpointId(item.id)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-black transition ${
+                    activeEndpoint?.id === item.id
+                      ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/20'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          {activeEndpoint ? (
+            <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-950/40">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={endpoint.method === 'POST' ? 'info' : 'muted'} className="rounded-full px-3 py-1.5">
-                      {endpoint.method}
+                    <Badge variant={activeEndpoint.method === 'POST' ? 'info' : 'muted'} className="rounded-full px-3 py-1.5">
+                      {activeEndpoint.method}
                     </Badge>
-                    <div className="text-lg font-black text-slate-950 dark:text-white">{endpoint.title}</div>
+                    <div className="text-lg font-black text-slate-950 dark:text-white">{activeEndpoint.title}</div>
                   </div>
                   <div className="break-all font-mono text-[12px] font-semibold text-brand-blue">
-                    {endpoint.endpoint}
+                    {activeEndpoint.endpoint}
                   </div>
                   <p className="max-w-4xl text-sm font-medium leading-7 text-slate-600 dark:text-slate-300">
-                    {endpoint.description}
+                    {activeEndpoint.description}
                   </p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => void copyText(endpoint.endpoint, `Đã copy ${endpoint.title}`)}>
+                <Button size="sm" variant="outline" onClick={() => void copyText(activeEndpoint.endpoint, `Đã copy ${activeEndpoint.title}`)}>
                   <Copy className="h-4 w-4" />
                   Copy URL
                 </Button>
+              </div>
+
+              <div className="mt-5">
+                <ParametersTable parameters={activeEndpoint.parameters} />
               </div>
 
               <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 <div className="space-y-4">
                   <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      {endpoint.requestPayloadTitle}
+                      {activeEndpoint.requestPayloadTitle}
                     </div>
                     <pre className="mt-3 whitespace-pre-wrap break-words text-[12px] font-semibold leading-6 text-slate-700 dark:text-slate-200">
-                      {endpoint.requestPayload}
+                      {activeEndpoint.requestPayload}
                     </pre>
                   </div>
-                  <CodeBlock title="Request Example" language={endpoint.method === 'POST' ? 'bash/json' : 'bash'} code={endpoint.requestExample} />
+                  <CodeBlock title="Request Example" language={activeEndpoint.method === 'POST' ? 'bash/json' : 'bash'} code={activeEndpoint.requestExample} />
                 </div>
 
                 <div className="space-y-4">
-                  <CodeBlock title="Response Example" language="json" code={endpoint.responseExample} />
-                  <CodeBlock title="Error Example" language="json" code={endpoint.errorExample} />
+                  <CodeBlock title="Response Example" language="json" code={activeEndpoint.responseExample} />
+                  <CodeBlock title="Error Example" language="json" code={activeEndpoint.errorExample} />
                 </div>
               </div>
 
@@ -423,13 +503,13 @@ export function AdminSmmApiDocsPage({
                   Lưu ý tích hợp
                 </div>
                 <div className="mt-3 space-y-2 text-sm font-semibold leading-7 text-emerald-900 dark:text-emerald-100">
-                  {endpoint.notes.map((note) => (
+                  {activeEndpoint.notes.map((note) => (
                     <p key={note}>- {note}</p>
                   ))}
                 </div>
               </div>
             </article>
-          ))}
+          ) : null}
         </div>
       </SectionPanel>
     </div>
