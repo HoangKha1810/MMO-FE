@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
-import { extractSePayPaymentReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
+import { buildSePayReferenceContent, extractSePayPaymentReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
 import { toNumber } from '@/lib/utils';
 
 function resolveDepositWallet(deposit: {
@@ -18,6 +18,14 @@ function resolveDepositWallet(deposit: {
   }
 
   return 'main' as const;
+}
+
+function preserveDepositReferenceContent(content: string | null | undefined, fallbackCode: string) {
+  const primaryCode = getPrimarySePayReferenceCode(content) || fallbackCode;
+  return buildSePayReferenceContent([
+    primaryCode,
+    content,
+  ]) || primaryCode;
 }
 
 async function processDepositByCodeInternal(code: string, amount: number | undefined, sourceLabel: string) {
@@ -85,7 +93,7 @@ async function processDepositByCodeInternal(code: string, amount: number | undef
         status: 'success',
         balance_after: nextBalance,
         wallet_type: wallet,
-        content: getPrimarySePayReferenceCode(deposit.content) || normalizedCode,
+        content: preserveDepositReferenceContent(deposit.content, normalizedCode),
       },
     });
 
@@ -154,7 +162,7 @@ export async function approveDepositById(id: number, sourceLabel = 'admin') {
         status: 'success',
         balance_after: nextBalance,
         wallet_type: wallet,
-        content: getPrimarySePayReferenceCode(deposit.content) || deposit.content || `TX-${id}`,
+        content: preserveDepositReferenceContent(deposit.content, `TX-${id}`),
       },
     });
 

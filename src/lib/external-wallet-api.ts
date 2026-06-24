@@ -1,6 +1,9 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
+import { serializeDatabaseDateTime } from '@/lib/date-time';
+import { buildSePayReferenceContent, extractSePayPaymentReferenceCodes } from '@/lib/sepay-codes';
+import { createSePayCheckoutSession } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
 
 type ExternalApiAccount = {
@@ -24,6 +27,15 @@ function normalizeExternalRef(value: unknown) {
     .trim()
     .replace(/\s+/g, '-')
     .slice(0, 120);
+}
+
+function normalizeTransactionContentMarker(value: string) {
+  return value
+    .split('|')
+    .map((part) => part.trim())
+    .find((part) => /^external_ref=/i.test(part))
+    ?.replace(/^external_ref=/i, '')
+    .trim() || '';
 }
 
 function buildTopupContent(input: {
@@ -171,6 +183,225 @@ export async function creditExternalApiBalance(
       transaction_id: result.transactionId,
       external_ref: result.externalRef,
       already_processed: result.alreadyProcessed,
+    },
+  };
+}
+
+export async function createExternalApiSePayDepositCheckout(
+  account: ExternalApiAccount,
+  input: Record<string, unknown>,
+  sourceLabel = 'External API',
+  origin?: string
+) {
+  const amount = Math.max(0, Math.trunc(toNumber(input.amount || input.value || input.money, 0)));
+  const externalRef = normalizeExternalRef(input.external_ref || input.reference || input.ref || input.transaction_id);
+  const note = String(input.note || input.content || '').trim();
+
+  if (!amount || amount < 10000) {
+    throw externalWalletError('Số tiền nạp tối thiểu là 10.000đ');
+  }
+
+  if (amount > 1_000_000_000) {
+    throw externalWalletError('Số tiền nạp vượt giới hạn 1.000.000.000đ');
+  }
+
+  const user = await db.users.findUnique({
+    where: { id: account.userId },
+    select: {
+      id: true,
+      username: true,
+      status: true,
+    },
+  });
+
+  if (!user) {
+    throw externalWalletError('Không tìm thấy tài khoản API', 404);
+  }
+
+  if (String(user.status || '').trim().toLowerCase() !== 'active') {
+    throw externalWalletError('Tài khoản API hiện không hoạt động', 403);
+  }
+
+  const sourceCode = `SEP${account.userId}T${Date.now()}`;
+  const markers = [
+    sourceCode,
+    externalRef ? `external_ref=${externalRef}` : '',
+    note ? `note=${note.slice(0, 180)}` : '',
+  ];
+
+  const deposit = await db.transactions.create({
+    data: {
+      user_id: account.userId,
+      type: 'deposit',
+      amount,
+      balance_after: 0,
+      wallet_type: 'main',
+      content: buildSePayReferenceContent(markers) || sourceCode,
+      status: 'pending',
+    },
+    select: {
+      id: true,
+      amount: true,
+      content: true,
+      status: true,
+      created_at: true,
+    },
+  });
+
+  const checkout = await createSePayCheckoutSession({
+    amount,
+    customerId: String(account.userId),
+    description: `Nap nguon API ${sourceLabel} ${user.username}${externalRef ? ` ${externalRef}` : ''}`.slice(0, 240),
+    orderId: sourceCode,
+    origin,
+    wallet: 'main',
+  });
+
+  if (!checkout.success) {
+    await db.transactions.update({
+      where: { id: deposit.id },
+      data: {
+        status: 'failed',
+        content: buildSePayReferenceContent([
+          deposit.content,
+          checkout.message ? `error=${checkout.message.slice(0, 180)}` : '',
+        ]) || deposit.content,
+      },
+    }).catch(() => undefined);
+
+    throw externalWalletError(checkout.message, 500);
+  }
+
+  const storedContent = buildSePayReferenceContent([
+    checkout.sepayOrderId,
+    sourceCode,
+    externalRef ? `external_ref=${externalRef}` : '',
+    note ? `note=${note.slice(0, 180)}` : '',
+  ]);
+
+  const updatedDeposit = await db.transactions.update({
+    where: { id: deposit.id },
+    data: {
+      content: storedContent || deposit.content,
+      wallet_type: 'main',
+    },
+    select: {
+      id: true,
+      amount: true,
+      content: true,
+      status: true,
+      created_at: true,
+    },
+  });
+
+  return {
+    success: true,
+    message: 'Đã tạo QR SePay cho tài khoản nguồn API key',
+    currency: 'VND',
+    amount,
+    external_ref: externalRef,
+    transaction_id: updatedDeposit.id,
+    source_order_id: sourceCode,
+    status: updatedDeposit.status,
+    data: {
+      user_id: account.userId,
+      username: account.username,
+      transaction_id: updatedDeposit.id,
+      amount: toNumber(updatedDeposit.amount, amount),
+      status: updatedDeposit.status,
+      external_ref: externalRef,
+      source_order_id: sourceCode,
+      content: updatedDeposit.content,
+      created_at: serializeDatabaseDateTime(updatedDeposit.created_at),
+    },
+    payment: {
+      order_id: sourceCode,
+      sepay_order_id: checkout.sepayOrderId,
+      checkout_url: checkout.checkoutUrl,
+      checkout_redirect_url: checkout.redirectUrl,
+      fields: checkout.fields,
+      ipn_url: checkout.config.ipnUrl,
+    },
+  };
+}
+
+export async function listExternalApiTransactions(
+  account: ExternalApiAccount,
+  params: URLSearchParams
+) {
+  const page = Math.max(1, Math.trunc(toNumber(params.get('page'), 1)));
+  const perPage = Math.min(100, Math.max(1, Math.trunc(toNumber(params.get('per_page') || params.get('limit'), 30))));
+  const type = String(params.get('type') || '').trim();
+  const status = String(params.get('status') || '').trim();
+  const wallet = String(params.get('wallet') || params.get('wallet_type') || '').trim();
+  const externalRef = normalizeExternalRef(
+    params.get('external_ref') || params.get('reference') || params.get('ref') || params.get('transaction_id')
+  );
+  const search = String(params.get('search') || params.get('q') || '').trim();
+
+  const where: Record<string, unknown> = {
+    user_id: account.userId,
+  };
+
+  if (type) where.type = type;
+  if (status) where.status = status;
+  if (wallet) where.wallet_type = wallet;
+
+  const contentFilters = [externalRef, search]
+    .filter(Boolean)
+    .map((value) => ({ content: { contains: value } }));
+
+  if (contentFilters.length === 1) {
+    Object.assign(where, contentFilters[0]);
+  } else if (contentFilters.length > 1) {
+    where.AND = contentFilters;
+  }
+
+  const [rows, total] = await Promise.all([
+    db.transactions.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      skip: (page - 1) * perPage,
+      take: perPage,
+      select: {
+        id: true,
+        user_id: true,
+        type: true,
+        amount: true,
+        balance_after: true,
+        wallet_type: true,
+        content: true,
+        status: true,
+        created_at: true,
+      },
+    }),
+    db.transactions.count({ where }),
+  ]);
+
+  return {
+    success: true,
+    data: rows.map((row) => {
+      const content = String(row.content || '');
+      return {
+        id: row.id,
+        transaction_id: row.id,
+        user_id: row.user_id,
+        type: row.type,
+        status: row.status,
+        amount: roundVnd(toNumber(row.amount, 0)),
+        balance_after: roundVnd(toNumber(row.balance_after, 0)),
+        wallet_type: row.wallet_type || 'main',
+        content,
+        external_ref: normalizeTransactionContentMarker(content),
+        payment_refs: extractSePayPaymentReferenceCodes(content),
+        created_at: serializeDatabaseDateTime(row.created_at),
+      };
+    }),
+    pagination: {
+      current_page: page,
+      per_page: perPage,
+      total_items: total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
     },
   };
 }

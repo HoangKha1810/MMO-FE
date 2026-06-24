@@ -11,7 +11,11 @@ import {
   readExternalSmmRequestBody,
   toExternalSmmSearchParams,
 } from '@/lib/smm-external-api';
-import { creditExternalApiBalance } from '@/lib/external-wallet-api';
+import {
+  createExternalApiSePayDepositCheckout,
+  creditExternalApiBalance,
+  listExternalApiTransactions,
+} from '@/lib/external-wallet-api';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -20,8 +24,10 @@ function normalizeAction(value: unknown) {
   const action = String(value || '').trim().toLowerCase();
   if (['add_order', 'order', 'create'].includes(action)) return 'add';
   if (['deposit', 'topup', 'recharge'].includes(action)) return 'deposit';
+  if (['deposit_checkout', 'checkout', 'sepay_checkout', 'create_deposit_qr'].includes(action)) return 'deposit_checkout';
+  if (['transactions', 'history', 'deposit_history', 'deposits_history'].includes(action)) return 'transactions';
   if (['orders_status', 'multi_status', 'multiple_status'].includes(action)) return 'status';
-  if (['services', 'add', 'status', 'balance', 'quote', 'categories', 'orders', 'profile', 'deposit'].includes(action)) return action;
+  if (['services', 'add', 'status', 'balance', 'quote', 'categories', 'orders', 'profile', 'deposit', 'deposit_checkout', 'transactions'].includes(action)) return action;
   return action || 'services';
 }
 
@@ -67,6 +73,20 @@ async function handleExternalSmmAction(req: NextRequest, body: Record<string, un
 
       return NextResponse.json(await creditExternalApiBalance(auth.account, mergedInput, 'SMM API'));
     }
+    case 'deposit_checkout': {
+      if (req.method !== 'POST') {
+        return NextResponse.json(
+          { success: false, message: 'Tạo QR nạp tiền chỉ hỗ trợ POST' },
+          { status: 405 }
+        );
+      }
+
+      return NextResponse.json(
+        await createExternalApiSePayDepositCheckout(auth.account, mergedInput, 'SMM API', req.nextUrl.origin)
+      );
+    }
+    case 'transactions':
+      return NextResponse.json(await listExternalApiTransactions(auth.account, params));
     case 'status':
       return NextResponse.json(await getExternalSmmStatus(auth.account, params));
     case 'orders':
@@ -84,7 +104,7 @@ async function handleExternalSmmAction(req: NextRequest, body: Record<string, un
     }
     default:
       return NextResponse.json(
-        { success: false, message: 'Action không hợp lệ. Hỗ trợ: services, add, status, balance, quote, categories, orders, profile, deposit' },
+        { success: false, message: 'Action không hợp lệ. Hỗ trợ: services, add, status, balance, quote, categories, orders, profile, deposit, deposit_checkout, transactions' },
         { status: 400 }
       );
   }
