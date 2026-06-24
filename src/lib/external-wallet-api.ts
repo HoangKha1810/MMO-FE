@@ -38,6 +38,34 @@ function normalizeTransactionContentMarker(value: string) {
     .trim() || '';
 }
 
+function resolveCallbackUrl(value: unknown, fallbackOrigin: string, fallbackPath: string) {
+  const raw = String(value || '').trim();
+  if (raw) {
+    try {
+      const url = new URL(raw, fallbackOrigin || 'https://trungtammmo.vn');
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return url.toString();
+      }
+    } catch {
+      // Fall through to origin fallback.
+    }
+  }
+
+  const origin = String(fallbackOrigin || '').trim();
+  if (!origin) return '';
+
+  try {
+    const url = new URL(fallbackPath, origin);
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return url.toString();
+    }
+  } catch {
+    return '';
+  }
+
+  return '';
+}
+
 function buildTopupContent(input: {
   sourceLabel: string;
   externalRef: string;
@@ -196,6 +224,15 @@ export async function createExternalApiSePayDepositCheckout(
   const amount = Math.max(0, Math.trunc(toNumber(input.amount || input.value || input.money, 0)));
   const externalRef = normalizeExternalRef(input.external_ref || input.reference || input.ref || input.transaction_id);
   const note = String(input.note || input.content || '').trim();
+  const callbackOrigin = String(
+    input.callback_origin ||
+    input.return_origin ||
+    input.origin ||
+    ''
+  ).trim();
+  const successUrl = resolveCallbackUrl(input.success_url, callbackOrigin, '/wallet?payment=success');
+  const errorUrl = resolveCallbackUrl(input.error_url, callbackOrigin, '/wallet?payment=error');
+  const cancelUrl = resolveCallbackUrl(input.cancel_url, callbackOrigin, '/wallet?payment=cancel');
 
   if (!amount || amount < 10000) {
     throw externalWalletError('Số tiền nạp tối thiểu là 10.000đ');
@@ -251,9 +288,12 @@ export async function createExternalApiSePayDepositCheckout(
   const checkout = await createSePayCheckoutSession({
     amount,
     customerId: String(account.userId),
-    description: `Nap nguon API ${sourceLabel} ${user.username}${externalRef ? ` ${externalRef}` : ''}`.slice(0, 240),
+    description: `Nap tien vi ${user.username || `User#${account.userId}`} (UID ${account.userId})`,
     orderId: sourceCode,
     origin,
+    successUrl,
+    errorUrl,
+    cancelUrl,
     wallet: 'main',
   });
 

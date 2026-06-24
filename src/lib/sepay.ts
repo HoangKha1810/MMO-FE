@@ -23,6 +23,9 @@ interface BuildSePayCheckoutInput {
   description: string;
   orderId: string;
   origin?: string;
+  successUrl?: string;
+  errorUrl?: string;
+  cancelUrl?: string;
   paymentMethod?: 'BANK_TRANSFER' | 'CARD';
   wallet?: 'main' | 'game';
 }
@@ -156,9 +159,9 @@ export function buildSePayCheckout(input: BuildSePayCheckoutInput) {
     order_description: input.description,
     order_invoice_number: input.orderId,
     customer_id: input.customerId || '',
-    success_url: config.successUrl,
-    error_url: config.errorUrl,
-    cancel_url: config.cancelUrl,
+    success_url: input.successUrl || config.successUrl,
+    error_url: input.errorUrl || config.errorUrl,
+    cancel_url: input.cancelUrl || config.cancelUrl,
   };
 
   if (input.paymentMethod) {
