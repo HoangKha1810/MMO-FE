@@ -25,6 +25,9 @@ ALTER TABLE `support_tiktok_messages`
   MODIFY COLUMN `image_url` LONGTEXT NULL;
 
 ALTER TABLE `support_tiktok_messages`
+  MODIFY COLUMN `image_urls` LONGTEXT NULL;
+
+ALTER TABLE `support_tiktok_messages`
   ADD COLUMN IF NOT EXISTS `order_id` BIGINT UNSIGNED NULL AFTER `user_id`;
 
 ALTER TABLE `support_tiktok_messages`

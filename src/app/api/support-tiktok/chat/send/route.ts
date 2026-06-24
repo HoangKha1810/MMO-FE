@@ -6,7 +6,7 @@ import {
   getSupportTiktokContext,
   validateSupportTikTokChatOrder,
 } from '@/lib/support-tiktok';
-import { saveUploadedFileAsDataUrl } from '@/lib/server-upload';
+import { saveUploadedFile } from '@/lib/server-upload';
 
 function getClientIp(req: NextRequest) {
   return (
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       for (const key of ['attachment_file', 'image', 'file']) {
         const file = body.get(key);
         if (isUploadFile(file)) {
-          imageUrls.push(await saveUploadedFileAsDataUrl({
+          imageUrls.push(await saveUploadedFile({
             file,
             folder: ['support-tiktok', String(context.isSupport ? targetUserId || userId : userId)],
             prefix: `support_${userId}`,

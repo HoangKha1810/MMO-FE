@@ -207,6 +207,7 @@ export async function ensureSupportTikTokChatTable() {
   }
 
   await db.$executeRawUnsafe('ALTER TABLE support_tiktok_messages MODIFY COLUMN image_url LONGTEXT NULL').catch(() => undefined);
+  await db.$executeRawUnsafe('ALTER TABLE support_tiktok_messages MODIFY COLUMN image_urls LONGTEXT NULL').catch(() => undefined);
   await db.$executeRawUnsafe("ALTER TABLE support_tiktok_messages MODIFY COLUMN sender_type VARCHAR(20) NOT NULL DEFAULT 'user'").catch(() => undefined);
 
   const indexes = await getTableIndexes('support_tiktok_messages');
