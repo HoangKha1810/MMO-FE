@@ -39,6 +39,7 @@ interface SupportMeta {
   chatBlockedReason: string;
   chatModuleAvailable: boolean;
   isSupport: boolean;
+  latestOrderId: number | null;
   latestOrderExpiresAt: string | null;
   latestOrderStatus: string | null;
   maintenance: boolean;
@@ -617,6 +618,8 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       const orderId = parseOrderChatKey(orderKey);
       if (orderId) {
         params.set('order_id', String(orderId));
+      } else if (meta.isSupport && orderKey === GENERAL_CHAT_KEY) {
+        params.set('order_id', '0');
       }
 
       const response = await fetch(`/api/support-tiktok/chat/messages?${params.toString()}`, {
@@ -948,16 +951,19 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
   }, []);
 
   useEffect(() => {
-    if (!meta) {
+    if (!meta?.isSupport) {
       return;
     }
 
-    if (meta.isSupport) {
-      void loadConversations(true);
-      if (meta.orderModuleAvailable) {
-        void loadAllOrders();
-      }
-      void loadPricing(true);
+    void loadConversations(true);
+    if (meta.orderModuleAvailable) {
+      void loadAllOrders();
+    }
+    void loadPricing(true);
+  }, [meta?.chatModuleAvailable, meta?.isSupport, meta?.orderModuleAvailable]);
+
+  useEffect(() => {
+    if (!meta || meta.isSupport) {
       return;
     }
 
@@ -970,6 +976,65 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       setMessages([]);
     }
   }, [activeOrderKey, meta, user?.id]);
+
+  useEffect(() => {
+    if (!meta?.isSupport) {
+      return;
+    }
+
+    if (conversations.length === 0) {
+      if (activeUserId !== null) {
+        setActiveUserId(null);
+      }
+      if (activeOrderKey !== GENERAL_CHAT_KEY) {
+        setActiveOrderKey(GENERAL_CHAT_KEY);
+      }
+      setMessages([]);
+      return;
+    }
+
+    const activeThreadExists =
+      activeUserId !== null &&
+      conversations.some(
+        (conversation) =>
+          conversation.user_id === activeUserId &&
+          toOrderChatKey(conversation.order_id) === activeOrderKey
+      );
+
+    if (activeThreadExists) {
+      return;
+    }
+
+    const activeUserConversation = activeUserId !== null
+      ? conversations.find((conversation) => conversation.user_id === activeUserId) || null
+      : null;
+
+    if (activeUserConversation && activeOrderKey === GENERAL_CHAT_KEY) {
+      return;
+    }
+
+    const nextConversation = activeUserConversation || conversations[0];
+    markChatShouldScrollToBottom();
+    setActiveUserId(nextConversation.user_id);
+    setActiveOrderKey(toOrderChatKey(nextConversation.order_id));
+  }, [activeOrderKey, activeUserId, conversations, meta?.isSupport]);
+
+  useEffect(() => {
+    if (!meta || meta.isSupport || !meta.canUseChat || activeOrderId || chatOrderOptions.length === 0) {
+      return;
+    }
+
+    const latestOrderId = Number(meta.latestOrderId || 0);
+    const preferredOrder =
+      chatOrderOptions.find((order) => Number(order.id) === latestOrderId) || chatOrderOptions[0];
+
+    if (!preferredOrder?.id) {
+      return;
+    }
+
+    markChatShouldScrollToBottom();
+    setActiveOrderKey(toOrderChatKey(preferredOrder.id));
+  }, [activeOrderId, chatOrderOptions, meta]);
 
   useEffect(() => {
     if (!meta?.isSupport || !activeUserId) {

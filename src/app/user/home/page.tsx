@@ -180,7 +180,7 @@ export default async function HomePage() {
                 {[
                   { label: 'Module', value: String(totalServiceModules), icon: Layers3, tone: 'text-brand-blue' },
                   { label: 'Đang mở', value: String(activeServiceModules), icon: CheckCircle2, tone: 'text-emerald-500' },
-                  { label: 'Tốc độ', value: '12ms', icon: Clock3, tone: 'text-amber-500' },
+                  { label: 'Tốc độ cao', value: '12ms', icon: Clock3, tone: 'text-amber-500' },
                   { label: 'Bảo hành', value: '30 ngày', icon: Sparkles, tone: 'text-cyan-500' },
                 ].map((item) => (
                   <div key={item.label} className="min-w-0 rounded-[1.15rem] border border-slate-200/80 bg-white/72 px-4 py-3 backdrop-blur-sm dark:border-white/8 dark:bg-white/[0.04]">

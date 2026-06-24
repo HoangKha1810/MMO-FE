@@ -419,7 +419,7 @@ export function LandingPage() {
             >
               {[
                 { value: '1.2M+', label: 'GIAO DỊCH', accent: '' },
-                { value: '12ms',  label: 'TỐC ĐỘ XỬ LÝ', accent: 'text-brand-blue' },
+                { value: '12ms',  label: 'TỐC ĐỘ CAO', accent: 'text-brand-blue' },
                 { value: '50K+',  label: 'KHÁCH HÀNG', accent: '' },
                 { value: '24/7',  label: 'HỖ TRỢ ONLINE', accent: '' },
               ].map((item, i) => (
@@ -454,7 +454,7 @@ export function LandingPage() {
                   </div>
                   <div className="mmo-preview-balance">
                     <div className="mmo-eyebrow">Realtime dashboard</div>
-                    <div className="mt-2 break-words text-[clamp(1.45rem,3.2vw,2.35rem)] font-black uppercase leading-tight text-slate-950 dark:text-white">12.680.000đ</div>
+                    <div className="mt-2 break-words text-[clamp(1.45rem,3.2vw,2.35rem)] font-black uppercase leading-tight text-slate-950 dark:text-white">120tr</div>
                     <div className="mt-1 text-xs font-bold text-emerald-400">+12.8% hôm nay</div>
                   </div>
                 </div>

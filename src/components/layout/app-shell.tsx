@@ -1312,7 +1312,7 @@ export function AppShell({
                 </div>
                 <div className="mmo-status-token">
                   <Zap className="h-3.5 w-3.5 text-amber-400" />
-                  <span>Tốc độ</span>
+                  <span>Tốc độ cao</span>
                   <strong>12ms</strong>
                 </div>
                 <div className="mmo-status-token">
