@@ -129,6 +129,8 @@ export interface GameAccountAutoSyncSummary extends MmoProviderSyncSummary {
 
 const GAME_ACCOUNT_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const GAME_ACCOUNT_BACKGROUND_SYNC_DELAY_MS = 1500;
+const GAME_ACCOUNT_PROVIDER_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, '');
@@ -140,6 +142,136 @@ function asArray<T>(value: unknown): T[] {
 
 function asObject(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function readProviderMessage(payload: unknown, fallback: string) {
+  const payloadObject = asObject(payload);
+  const message = payloadObject?.msg || payloadObject?.message || payloadObject?.error;
+  return typeof message === 'string' && message.trim() ? message.trim() : fallback;
+}
+
+function parseProviderJson(provider: ProviderRecord, text: string, context: string, httpStatus?: number) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 180);
+    const cloudflareBlocked = /cloudflare|just a moment|cf-browser-verification|cf-chl/i.test(text);
+    if (cloudflareBlocked) {
+      throw new Error(
+        `Provider ${provider.name} yêu cầu xác thực Cloudflare cho request server${httpStatus ? ` (HTTP ${httpStatus})` : ''}. Hãy cấp cookie cf_clearance hợp lệ hoặc cấu hình Cloudflare để endpoint API trả JSON cho server.`
+      );
+    }
+
+    throw new Error(
+      snippet
+        ? `Provider ${provider.name} trả về dữ liệu ${context} không hợp lệ: ${snippet}`
+        : `Provider ${provider.name} trả về dữ liệu ${context} không hợp lệ`
+    );
+  }
+}
+
+function collectProviderDeliveryLines(value: unknown): string[] {
+  const lines: string[] = [];
+  const visit = (item: unknown) => {
+    if (item === null || item === undefined) return;
+
+    if (Array.isArray(item)) {
+      item.forEach(visit);
+      return;
+    }
+
+    if (typeof item === 'object') {
+      const object = item as Record<string, unknown>;
+      const preferredKeys = [
+        'data',
+        'content',
+        'file',
+        'account',
+        'accounts',
+        'items',
+        'products',
+        'result',
+      ];
+
+      if (preferredKeys.some((key) => key in object)) {
+        preferredKeys.forEach((key) => visit(object[key]));
+        return;
+      }
+
+      const compact = JSON.stringify(object);
+      if (compact && compact !== '{}') lines.push(compact);
+      return;
+    }
+
+    const text = String(item || '').trim();
+    if (!text) return;
+    text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => lines.push(line));
+  };
+
+  visit(value);
+  return Array.from(new Set(lines));
+}
+
+function getProviderOrderId(payload: Record<string, unknown>) {
+  const nested = asObject(payload.data);
+  const candidates = [
+    payload.trans_id,
+    payload.order_id,
+    payload.order,
+    payload.id,
+    payload.transaction_id,
+    payload.transactionId,
+    nested?.trans_id,
+    nested?.order_id,
+    nested?.order,
+    nested?.id,
+    nested?.transaction_id,
+    nested?.transactionId,
+  ];
+
+  return String(candidates.find((item) => String(item || '').trim()) || '').trim();
+}
+
+function readFirstEnv(names: string[]) {
+  for (const name of names) {
+    const value = String(process.env[name] || '').trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+function getProviderCloudflareCookie(provider: ProviderRecord) {
+  const signature = `${provider.name || ''} ${provider.type || ''} ${provider.api_url || ''}`;
+  const isShopreg = /shopreg61|shopreg/i.test(signature);
+  const prefix = isShopreg ? 'SHOPREG61' : 'RANDOM1K';
+  const cookie = readFirstEnv([
+    `${prefix}_CLOUDFLARE_COOKIE`,
+    `${prefix}_CF_COOKIE`,
+    `${prefix}_COOKIE`,
+  ]);
+  if (cookie) return cookie;
+
+  const clearance = readFirstEnv([
+    `${prefix}_CF_CLEARANCE`,
+    `${prefix}_CLOUDFLARE_CLEARANCE`,
+  ]);
+  return clearance ? `cf_clearance=${clearance}` : '';
+}
+
+function buildProviderHeaders(provider: ProviderRecord) {
+  const headers: Record<string, string> = {
+    Accept: 'application/json, text/plain, */*',
+    'User-Agent': GAME_ACCOUNT_PROVIDER_USER_AGENT,
+  };
+  const cookie = getProviderCloudflareCookie(provider);
+  if (cookie) {
+    headers.Cookie = cookie;
+  }
+  return headers;
 }
 
 function truthy(value: unknown) {
@@ -277,8 +409,9 @@ async function ensureGameAccountProvidersFromEnv() {
         select: { id: true },
       });
 
+      const providerLabel = seed.kind === 'shopreg61' ? 'Shopreg61' : 'Random1k';
       const providerData = {
-        name: 'API Tài khoản game',
+        name: `API Tài khoản game ${providerLabel}`,
         type: seed.kind === 'shopreg61' ? 'GameAccountShopreg' : 'GameAccountRandom1k',
         api_url: seed.apiUrl,
         api_key: seed.apiKey,
@@ -330,27 +463,20 @@ async function requestCloneTut<T>(provider: ProviderRecord, endpoint: string, pa
 
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { Accept: 'application/json' },
+    headers: buildProviderHeaders(provider),
     cache: 'no-store',
   });
 
   const text = await response.text();
-  let payload: unknown = null;
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    throw new Error(`Provider ${provider.name} trả về dữ liệu không hợp lệ`);
-  }
+  const payload = parseProviderJson(provider, text, 'phản hồi', response.status);
 
   if (!response.ok) {
-    const message = asObject(payload)?.msg;
-    throw new Error(typeof message === 'string' && message.trim() ? message : `Provider ${provider.name} trả về HTTP ${response.status}`);
+    throw new Error(readProviderMessage(payload, `Provider ${provider.name} trả về HTTP ${response.status}`));
   }
 
   const payloadObject = asObject(payload);
   if (payloadObject && typeof payloadObject.status === 'string' && payloadObject.status.toLowerCase() !== 'success') {
-    const message = payloadObject.msg;
-    throw new Error(typeof message === 'string' && message.trim() ? message : `Provider ${provider.name} trả về lỗi`);
+    throw new Error(readProviderMessage(payload, `Provider ${provider.name} trả về lỗi`));
   }
 
   return payload as T;
@@ -364,12 +490,11 @@ async function requestCloneTutBuy(provider: ProviderRecord, input: { productId: 
     throw new Error(`Provider ${provider.name} chưa có api_url hoặc api_key`);
   }
 
-  const body = new URLSearchParams({
-    action: 'buyProduct',
-    id: input.productId,
-    amount: String(Math.max(1, Math.trunc(input.amount || 1))),
-    api_key: apiKey,
-  });
+  const body = new FormData();
+  body.set('api_key', apiKey);
+  body.set('action', 'buyProduct');
+  body.set('id', input.productId);
+  body.set('amount', String(Math.max(1, Math.trunc(input.amount || 1))));
 
   if (input.coupon?.trim()) {
     body.set('coupon', input.coupon.trim());
@@ -377,25 +502,16 @@ async function requestCloneTutBuy(provider: ProviderRecord, input: { productId: 
 
   const response = await fetch(`${apiUrl}/buy_product`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-    },
-    body: body.toString(),
+    headers: buildProviderHeaders(provider),
+    body,
     cache: 'no-store',
   });
 
   const text = await response.text();
-  let payload: unknown = null;
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    throw new Error(`Provider ${provider.name} trả về dữ liệu mua hàng không hợp lệ`);
-  }
+  const payload = parseProviderJson(provider, text, 'mua hàng', response.status);
 
   if (!response.ok) {
-    const message = asObject(payload)?.msg;
-    throw new Error(typeof message === 'string' && message.trim() ? message : `Provider ${provider.name} trả về HTTP ${response.status}`);
+    throw new Error(readProviderMessage(payload, `Provider ${provider.name} trả về HTTP ${response.status}`));
   }
 
   const data = asObject(payload);
@@ -404,7 +520,7 @@ async function requestCloneTutBuy(provider: ProviderRecord, input: { productId: 
   }
 
   if (String(data.status || '').toLowerCase() !== 'success') {
-    throw new Error(typeof data.msg === 'string' && data.msg.trim() ? data.msg : 'Provider từ chối tạo đơn hàng');
+    throw new Error(readProviderMessage(data, 'Provider từ chối tạo đơn hàng'));
   }
 
   return data as CloneTutBuyResponse;
@@ -476,12 +592,30 @@ export async function buyMmoProviderProduct(input: {
     amount: input.amount,
     coupon: input.coupon,
   });
+  const payloadObject = payload as Record<string, unknown>;
+  const orderId = getProviderOrderId(payloadObject);
+  const lines = collectProviderDeliveryLines([
+    payloadObject.data,
+    payloadObject.content,
+    payloadObject.file,
+    payloadObject.account,
+    payloadObject.accounts,
+    payloadObject.result,
+  ]);
+
+  if (!orderId) {
+    throw new Error(`Provider ${provider.name} tạo đơn thành công nhưng không trả mã đơn`);
+  }
+
+  if (lines.length === 0) {
+    throw new Error(`Provider ${provider.name} tạo đơn thành công nhưng không trả dữ liệu tài khoản`);
+  }
 
   return {
     providerId: provider.id,
     providerName: provider.name,
-    orderId: String(payload.trans_id || ''),
-    lines: asArray<string>(payload.data).map((item) => String(item || '').trim()).filter(Boolean),
+    orderId,
+    lines,
     raw: payload,
   };
 }
