@@ -129,6 +129,7 @@ export interface GameAccountAutoSyncSummary extends MmoProviderSyncSummary {
 
 const GAME_ACCOUNT_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const GAME_ACCOUNT_BACKGROUND_SYNC_DELAY_MS = 1500;
+const GAME_ACCOUNT_PROVIDER_DISPLAY_NAME = 'Provider API Tài khoản game';
 const GAME_ACCOUNT_PROVIDER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
@@ -150,7 +151,12 @@ function readProviderMessage(payload: unknown, fallback: string) {
   return typeof message === 'string' && message.trim() ? message.trim() : fallback;
 }
 
+function providerDisplayName() {
+  return GAME_ACCOUNT_PROVIDER_DISPLAY_NAME;
+}
+
 function parseProviderJson(provider: ProviderRecord, text: string, context: string, httpStatus?: number) {
+  const displayName = providerDisplayName();
   try {
     return JSON.parse(text);
   } catch {
@@ -158,14 +164,14 @@ function parseProviderJson(provider: ProviderRecord, text: string, context: stri
     const cloudflareBlocked = /cloudflare|just a moment|cf-browser-verification|cf-chl/i.test(text);
     if (cloudflareBlocked) {
       throw new Error(
-        `Provider ${provider.name} yêu cầu xác thực Cloudflare cho request server${httpStatus ? ` (HTTP ${httpStatus})` : ''}. Hãy cấp cookie cf_clearance hợp lệ hoặc cấu hình Cloudflare để endpoint API trả JSON cho server.`
+        `${displayName} yêu cầu xác thực Cloudflare cho request server${httpStatus ? ` (HTTP ${httpStatus})` : ''}. Hãy cấp cookie cf_clearance hợp lệ hoặc cấu hình Cloudflare để endpoint API trả JSON cho server.`
       );
     }
 
     throw new Error(
       snippet
-        ? `Provider ${provider.name} trả về dữ liệu ${context} không hợp lệ: ${snippet}`
-        : `Provider ${provider.name} trả về dữ liệu ${context} không hợp lệ`
+        ? `${displayName} trả về dữ liệu ${context} không hợp lệ: ${snippet}`
+        : `${displayName} trả về dữ liệu ${context} không hợp lệ`
     );
   }
 }
@@ -262,14 +268,47 @@ function getProviderCloudflareCookie(provider: ProviderRecord) {
   return clearance ? `cf_clearance=${clearance}` : '';
 }
 
+function getProviderAccessToken(provider: ProviderRecord) {
+  const signature = `${provider.name || ''} ${provider.type || ''} ${provider.api_url || ''}`;
+  const isShopreg = /shopreg61|shopreg/i.test(signature);
+  const prefix = isShopreg ? 'SHOPREG61' : 'RANDOM1K';
+  return readFirstEnv([
+    `${prefix}_ACCESS_TOKEN`,
+    `${prefix}_ACCESSTOKEN`,
+    `${prefix}_AUTH_TOKEN`,
+  ]);
+}
+
+function getProviderUserAgent(provider: ProviderRecord) {
+  const signature = `${provider.name || ''} ${provider.type || ''} ${provider.api_url || ''}`;
+  const isShopreg = /shopreg61|shopreg/i.test(signature);
+  const prefix = isShopreg ? 'SHOPREG61' : 'RANDOM1K';
+  return readFirstEnv([
+    `${prefix}_USER_AGENT`,
+    `${prefix}_UA`,
+    'GAME_ACCOUNT_PROVIDER_USER_AGENT',
+  ]) || GAME_ACCOUNT_PROVIDER_USER_AGENT;
+}
+
 function buildProviderHeaders(provider: ProviderRecord) {
   const headers: Record<string, string> = {
     Accept: 'application/json, text/plain, */*',
-    'User-Agent': GAME_ACCOUNT_PROVIDER_USER_AGENT,
+    'User-Agent': getProviderUserAgent(provider),
   };
+  const accessToken = getProviderAccessToken(provider);
   const cookie = getProviderCloudflareCookie(provider);
-  if (cookie) {
-    headers.Cookie = cookie;
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+    headers['x-access-token'] = accessToken;
+    headers['access-token'] = accessToken;
+    headers.accesstoken = accessToken;
+  }
+  const cookieParts = [
+    cookie,
+    accessToken ? `accessToken=${accessToken}` : '',
+  ].filter(Boolean);
+  if (cookieParts.length > 0) {
+    headers.Cookie = cookieParts.join('; ');
   }
   return headers;
 }
@@ -409,9 +448,8 @@ async function ensureGameAccountProvidersFromEnv() {
         select: { id: true },
       });
 
-      const providerLabel = seed.kind === 'shopreg61' ? 'Shopreg61' : 'Random1k';
       const providerData = {
-        name: `API Tài khoản game ${providerLabel}`,
+        name: GAME_ACCOUNT_PROVIDER_DISPLAY_NAME,
         type: seed.kind === 'shopreg61' ? 'GameAccountShopreg' : 'GameAccountRandom1k',
         api_url: seed.apiUrl,
         api_key: seed.apiKey,
@@ -450,9 +488,10 @@ async function getFallbackAdminId() {
 async function requestCloneTut<T>(provider: ProviderRecord, endpoint: string, params: Record<string, string | number> = {}) {
   const apiUrl = normalizeBaseUrl(String(provider.api_url || ''));
   const apiKey = String(provider.api_key || '').trim();
+  const displayName = providerDisplayName();
 
   if (!apiUrl || !apiKey) {
-    throw new Error(`Provider ${provider.name} chưa có api_url hoặc api_key`);
+    throw new Error(`${displayName} chưa có api_url hoặc api_key`);
   }
 
   const url = new URL(`${apiUrl}/${endpoint.replace(/^\/+/, '')}`);
@@ -471,12 +510,12 @@ async function requestCloneTut<T>(provider: ProviderRecord, endpoint: string, pa
   const payload = parseProviderJson(provider, text, 'phản hồi', response.status);
 
   if (!response.ok) {
-    throw new Error(readProviderMessage(payload, `Provider ${provider.name} trả về HTTP ${response.status}`));
+    throw new Error(readProviderMessage(payload, `${displayName} trả về HTTP ${response.status}`));
   }
 
   const payloadObject = asObject(payload);
   if (payloadObject && typeof payloadObject.status === 'string' && payloadObject.status.toLowerCase() !== 'success') {
-    throw new Error(readProviderMessage(payload, `Provider ${provider.name} trả về lỗi`));
+    throw new Error(readProviderMessage(payload, `${displayName} trả về lỗi`));
   }
 
   return payload as T;
@@ -485,9 +524,10 @@ async function requestCloneTut<T>(provider: ProviderRecord, endpoint: string, pa
 async function requestCloneTutBuy(provider: ProviderRecord, input: { productId: string; amount: number; coupon?: string }) {
   const apiUrl = normalizeBaseUrl(String(provider.api_url || ''));
   const apiKey = String(provider.api_key || '').trim();
+  const displayName = providerDisplayName();
 
   if (!apiUrl || !apiKey) {
-    throw new Error(`Provider ${provider.name} chưa có api_url hoặc api_key`);
+    throw new Error(`${displayName} chưa có api_url hoặc api_key`);
   }
 
   const body = new FormData();
@@ -511,12 +551,12 @@ async function requestCloneTutBuy(provider: ProviderRecord, input: { productId: 
   const payload = parseProviderJson(provider, text, 'mua hàng', response.status);
 
   if (!response.ok) {
-    throw new Error(readProviderMessage(payload, `Provider ${provider.name} trả về HTTP ${response.status}`));
+    throw new Error(readProviderMessage(payload, `${displayName} trả về HTTP ${response.status}`));
   }
 
   const data = asObject(payload);
   if (!data) {
-    throw new Error(`Provider ${provider.name} không trả về dữ liệu mua hàng hợp lệ`);
+    throw new Error(`${displayName} không trả về dữ liệu mua hàng hợp lệ`);
   }
 
   if (String(data.status || '').toLowerCase() !== 'success') {
@@ -536,7 +576,7 @@ export async function getMmoProviderProfile(providerId: number) {
 
   return {
     providerId: provider.id,
-    providerName: provider.name,
+    providerName: providerDisplayName(),
     username: String(data?.username || ''),
     balance: toNumber(data?.money, 0),
     raw: payload,
@@ -557,7 +597,7 @@ export async function getMmoProviderProductDetail(providerId: number, productId:
 
   return {
     providerId: provider.id,
-    providerName: provider.name,
+    providerName: providerDisplayName(),
     product,
     raw: payload,
   };
@@ -571,7 +611,7 @@ export async function getMmoProviderOrderDetail(providerId: number, orderId: str
   const payload = await requestCloneTut<CloneTutOrderResponse>(provider, 'order.php', { order: orderId });
   return {
     providerId: provider.id,
-    providerName: provider.name,
+    providerName: providerDisplayName(),
     orderId: String(payload.trans_id || orderId),
     raw: payload,
   };
@@ -604,16 +644,16 @@ export async function buyMmoProviderProduct(input: {
   ]);
 
   if (!orderId) {
-    throw new Error(`Provider ${provider.name} tạo đơn thành công nhưng không trả mã đơn`);
+    throw new Error(`${providerDisplayName()} tạo đơn thành công nhưng không trả mã đơn`);
   }
 
   if (lines.length === 0) {
-    throw new Error(`Provider ${provider.name} tạo đơn thành công nhưng không trả dữ liệu tài khoản`);
+    throw new Error(`${providerDisplayName()} tạo đơn thành công nhưng không trả dữ liệu tài khoản`);
   }
 
   return {
     providerId: provider.id,
-    providerName: provider.name,
+    providerName: providerDisplayName(),
     orderId,
     lines,
     raw: payload,
