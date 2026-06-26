@@ -164,11 +164,11 @@ const smmPlatformTags: Record<string, string[]> = {
 };
 
 const autoMxhPlatformLinks: Array<{ href: string; label: string; icon: typeof Globe; color: string; gif?: string }> = [
-  { href: '/user/automxh', label: 'Facebook', icon: Globe, color: 'text-blue-500', gif: 'facebook_gif.gif' },
-  { href: '/user/automxh', label: 'INSTAGRAM', icon: MessageCircle, color: 'text-pink-500', gif: 'ig_gif.gif' },
-  { href: '/user/automxh', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300', gif: 'tiktok_gif.gif' },
-  { href: '/user/automxh', label: 'X TWITTER', icon: MessageCircle, color: 'text-slate-500 dark:text-slate-300', gif: 'tw_gif.gif' },
-  { href: '/user/automxh', label: 'YOUTUBE', icon: Video, color: 'text-red-500', gif: 'youtube_gif.gif' },
+  { href: '/user/automxh?platform=facebook', label: 'Facebook', icon: Globe, color: 'text-blue-500', gif: 'facebook_gif.gif' },
+  { href: '/user/automxh?platform=instagram', label: 'INSTAGRAM', icon: MessageCircle, color: 'text-pink-500', gif: 'ig_gif.gif' },
+  { href: '/user/automxh?platform=tiktok', label: 'TikTok', icon: Music, color: 'text-slate-500 dark:text-slate-300', gif: 'tiktok_gif.gif' },
+  { href: '/user/automxh?platform=x-twitter', label: 'X TWITTER', icon: MessageCircle, color: 'text-slate-500 dark:text-slate-300', gif: 'tw_gif.gif' },
+  { href: '/user/automxh?platform=youtube', label: 'YOUTUBE', icon: Video, color: 'text-red-500', gif: 'youtube_gif.gif' },
 ];
 
 const utilityLinks = [
@@ -1164,14 +1164,6 @@ export function AppShell({
               {/* Notifications */}
               <NotificationBell />
 
-              {/* Cart */}
-              <Link
-                href="/user/cart"
-                className="group hidden h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 sm:flex dark:border-white/8 dark:bg-white/[0.04]"
-              >
-                <ShoppingCart className="h-4 w-4 text-slate-400 group-hover:text-brand-blue dark:text-white/45" />
-              </Link>
-
               {/* Theme toggle mobile */}
               <button
                 type="button"
@@ -1200,14 +1192,6 @@ export function AppShell({
                   {mounted && isDark ? <Moon className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" /> : <Sun className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" />}
                 </span>
               </button>
-
-              {/* AI button */}
-              <Link
-                href="/user/chatbot"
-                className="btn-kinetic hidden h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-md shadow-cyan-500/25 transition-all hover:-translate-y-0.5 hover:shadow-cyan-500/40 sm:flex"
-              >
-                <Bot className="h-4 w-4" />
-              </Link>
 
               {/* User avatar / dropdown */}
               {currentUser.data ? (

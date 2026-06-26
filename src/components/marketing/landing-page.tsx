@@ -325,21 +325,23 @@ export function LandingPage() {
 
               <div className="hidden h-4 w-px bg-slate-300/80 dark:bg-white/10 sm:block" />
 
-              <Link
-                href="/auth/login"
-                className="hidden text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors hover:text-slate-950 md:inline-flex dark:text-slate-400 dark:hover:text-white"
-              >
-                Đăng nhập
-              </Link>
+              <div className="landing-auth-frame flex items-center gap-2 rounded-[1.25rem] border border-cyan-300/30 bg-white/72 p-1.5 shadow-[0_18px_52px_-32px_rgba(14,165,233,0.7)] backdrop-blur-xl dark:bg-white/[0.045]">
+                <Link
+                  href="/auth/login"
+                  className="hidden rounded-[0.9rem] px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 md:inline-flex dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                >
+                  Đăng nhập
+                </Link>
 
-              <FlipButton
-                href="/auth/register"
-                size="sm"
-                className="shrink-0"
-                stageClassName="h-11 min-w-[7.75rem] text-[0.68rem] sm:h-12 sm:min-w-[10.5rem] sm:text-[0.74rem]"
-              >
-                Đăng ký
-              </FlipButton>
+                <FlipButton
+                  href="/auth/register"
+                  size="sm"
+                  className="shrink-0"
+                  stageClassName="h-11 min-w-[7.75rem] text-[0.68rem] sm:h-12 sm:min-w-[10.5rem] sm:text-[0.74rem]"
+                >
+                  Đăng ký
+                </FlipButton>
+              </div>
             </div>
           </div>
         </div>
@@ -699,7 +701,7 @@ export function LandingPage() {
                 <h2 className="text-[clamp(36px,5vw,68px)] font-black uppercase leading-[1.06] tracking-tighter text-slate-900 sm:leading-[1] dark:text-white">
                   TẠI SAO CHỌN{' '}
                   <span className="block pt-[0.12em] bg-gradient-to-r from-brand-blue to-violet-600 bg-clip-text text-transparent sm:pt-[0.1em]">
-                    TRUNGTAMMMO?
+                    TRUNGTAMMMO
                   </span>
                 </h2>
               </div>
@@ -938,7 +940,7 @@ export function LandingPage() {
 
             <div className="flex flex-col items-center gap-3 lg:items-start">
               <Link href="/" className="flex items-center gap-3">
-                <img src="/logo.gif" alt="TRUNGTAMMMO" className="h-8 w-auto opacity-70 grayscale" />
+                <img src="/logo.gif" alt="TRUNGTAMMMO" className="h-10 w-auto drop-shadow-[0_10px_24px_rgba(37,99,235,0.28)]" />
                 <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
                   TRUNGTAMMMO
                 </span>

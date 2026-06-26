@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { ArrowRight, BellRing, MessageCircle, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, BellRing, Send, ShieldCheck, X } from 'lucide-react';
+import { TELEGRAM_GROUP_URL } from '@/lib/support-links';
 
-const ZALO_GROUP_INVITE_URL = 'https://zalo.me/g/ejtvpx203';
 const COMMUNITY_POPUP_DELAY_MS = 1200;
 const COMMUNITY_POPUP_ROUTES = new Set(['/', '/user/home']);
 const COMMUNITY_POPUP_EXIT_MS = 220;
-const COMMUNITY_POPUP_DISMISSED_KEY = 'trungtammmo_zalo_giveaway_popup_dismissed_v1';
+const COMMUNITY_POPUP_DISMISSED_KEY = 'trungtammmo_telegram_community_popup_dismissed_v1';
 
 type PopupPhase = 'closed' | 'open' | 'closing';
 
@@ -91,7 +91,7 @@ export function SiteEntryDiscordPopup() {
       >
         <button
           type="button"
-          aria-label="Đóng thông báo nhóm Zalo"
+          aria-label="Đóng thông báo nhóm Telegram"
           className="telegram-entry-close"
           onClick={dismiss}
         >
@@ -100,7 +100,7 @@ export function SiteEntryDiscordPopup() {
 
         <div className="telegram-entry-icon" aria-hidden="true">
           <span className="telegram-entry-icon-ring" />
-          <MessageCircle className="h-6 w-6" />
+          <Send className="h-6 w-6" />
         </div>
 
         <div className="min-w-0">
@@ -109,7 +109,7 @@ export function SiteEntryDiscordPopup() {
             Kênh cộng đồng
           </div>
           <h2 id="telegram-entry-title" className="telegram-entry-title">
-            Tham gia nhóm Zalo
+            Tham gia nhóm Telegram
           </h2>
           <p id="telegram-entry-description" className="telegram-entry-description">
             Nhóm có chương trình giveaway mỗi tuần, cập nhật dịch vụ mới và thông báo quan trọng từ TRUNGTAMMMO.
@@ -122,13 +122,13 @@ export function SiteEntryDiscordPopup() {
 
           <div className="telegram-entry-actions">
             <a
-              href={ZALO_GROUP_INVITE_URL}
+              href={TELEGRAM_GROUP_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="telegram-entry-primary"
               onClick={dismiss}
             >
-              Vào nhóm Zalo
+              Vào nhóm Telegram
               <ArrowRight className="h-4 w-4" />
             </a>
             <button type="button" className="telegram-entry-secondary" onClick={dismiss}>

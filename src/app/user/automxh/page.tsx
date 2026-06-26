@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Flame, Loader2, Zap } from 'lucide-react';
+import { ArrowRight, Facebook, Flame, Instagram, Loader2, Music, Twitter, Youtube, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { slugify } from '@/lib/utils';
@@ -68,16 +69,28 @@ function platformPriority(label: string) {
   return 100;
 }
 
+function normalizePlatformKey(value: string) {
+  const lower = String(value || '').toLowerCase();
+  if (lower.includes('facebook') || lower === 'fb') return 'facebook';
+  if (lower.includes('tiktok') || lower.includes('tik-tok')) return 'tiktok';
+  if (lower.includes('instagram') || lower === 'insta' || lower === 'ig') return 'instagram';
+  if (lower.includes('twitter') || lower.includes('x-twitter') || lower === 'x') return 'x-twitter';
+  if (lower.includes('youtube') || lower === 'yt') return 'youtube';
+  return lower;
+}
+
 function isHotBadge(value?: string) {
   return String(value || '').trim().toLowerCase().includes('hot');
 }
 
 export default function UserAutomxhPage() {
   const currentUser = useSessionUser();
+  const searchParams = useSearchParams();
   const user = currentUser.data;
   const [sections, setSections] = useState<AutoMxhCatalogSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const activePlatform = normalizePlatformKey(searchParams.get('platform') || '');
   const groupedSections = useMemo<AutoMxhGroupedSection[]>(() => {
     const groups = new Map<string, AutoMxhGroupedSection>();
 
@@ -104,6 +117,18 @@ export default function UserAutomxhPage() {
       return a.groupLabel.localeCompare(b.groupLabel, 'vi');
     });
   }, [sections]);
+  const visibleGroups = useMemo(() => {
+    if (!activePlatform) return groupedSections;
+    return groupedSections.filter((group) => normalizePlatformKey(group.groupLabel) === activePlatform);
+  }, [activePlatform, groupedSections]);
+  const platformTabs = [
+    { key: '', label: 'Tất cả', shortLabel: 'All', icon: Zap },
+    { key: 'facebook', label: 'Facebook', shortLabel: 'FB', icon: Facebook },
+    { key: 'tiktok', label: 'TikTok', shortLabel: 'TikTok', icon: Music },
+    { key: 'instagram', label: 'Instagram', shortLabel: 'Insta', icon: Instagram },
+    { key: 'x-twitter', label: 'X Twitter', shortLabel: 'Twitter', icon: Twitter },
+    { key: 'youtube', label: 'YouTube', shortLabel: 'YouTube', icon: Youtube },
+  ];
 
   useEffect(() => {
     let active = true;
@@ -157,7 +182,7 @@ export default function UserAutomxhPage() {
               Đang tải Auto MXH
             </div>
           </div>
-        ) : groupedSections.length === 0 ? (
+        ) : visibleGroups.length === 0 ? (
           <div className="empty-state flex flex-col items-center justify-center px-6 py-20 text-center">
             <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-orange-500/20 bg-orange-500/10 text-orange-500 shadow-xl shadow-orange-500/5">
               <Zap className="h-12 w-12" />
@@ -170,11 +195,33 @@ export default function UserAutomxhPage() {
             </p>
           </div>
         ) : (
-          groupedSections.map((group: AutoMxhGroupedSection) => (
+          <>
+          <div className="automxh-platform-tabs sticky top-3 z-10 flex gap-2 overflow-x-auto rounded-[1.15rem] border border-cyan-300/15 bg-[#071426]/82 p-2 shadow-[0_20px_48px_-34px_rgba(14,165,233,0.65)] backdrop-blur-xl">
+            {platformTabs.map((tab) => {
+              const active = activePlatform === tab.key || (!activePlatform && tab.key === '');
+              const Icon = tab.icon;
+              return (
+                <Link
+                  key={tab.key || 'all'}
+                  href={tab.key ? `/user/automxh?platform=${tab.key}` : '/user/automxh'}
+                  className={`group inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[0.9rem] border px-4 text-xs font-black uppercase tracking-[0.16em] transition-all ${
+                    active
+                      ? 'border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_14px_34px_-22px_rgba(34,211,238,0.95)]'
+                      : 'border-white/8 bg-white/[0.035] text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-white'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.shortLabel}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {visibleGroups.map((group: AutoMxhGroupedSection) => (
             <section key={group.groupKey} className="category-section space-y-6 scroll-mt-28">
               <div className="mmo-section-title-row flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 shadow-sm dark:bg-white/5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/8 shadow-sm shadow-cyan-500/10">
                     {group.sections[0]?.category.gif ? (
                       <img src={assetUrl(group.sections[0].category.gif)} className="h-6 w-6 object-contain" alt="" />
                     ) : (
@@ -225,9 +272,9 @@ export default function UserAutomxhPage() {
                           ) : null}
                           <Link
                             href={`/user/automxh/order/${slugify(section.category.name)}?product=${product.id}`}
-                            className="group/link flex flex-1 flex-col p-4"
+                            className="smm-service-card-content group/link flex flex-1 flex-col p-4"
                           >
-                            <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-transform duration-300 group-hover:scale-110 dark:bg-white/5">
+                            <div className="smm-service-card-icon mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 transition-transform duration-300 group-hover:scale-110">
                               <Zap className="h-5 w-5 text-orange-500" />
                             </div>
 
@@ -242,7 +289,7 @@ export default function UserAutomxhPage() {
                             </div>
 
                             <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover/link:bg-brand-blue group-hover/link:text-white">
+                              <div className="smm-service-card-arrow flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover/link:bg-brand-blue group-hover/link:text-white">
                                 <ArrowRight className="h-3 w-3" />
                               </div>
                             </div>
@@ -254,7 +301,8 @@ export default function UserAutomxhPage() {
                 </div>
               ))}
             </section>
-          ))
+          ))}
+          </>
         )}
       </div>
     </AppShell>
