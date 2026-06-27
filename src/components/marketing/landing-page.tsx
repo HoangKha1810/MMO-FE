@@ -325,23 +325,21 @@ export function LandingPage() {
 
               <div className="hidden h-4 w-px bg-slate-300/80 dark:bg-white/10 sm:block" />
 
-              <div className="landing-auth-frame flex items-center gap-2 rounded-[1.25rem] border border-cyan-300/30 bg-white/72 p-1.5 shadow-[0_18px_52px_-32px_rgba(14,165,233,0.7)] backdrop-blur-xl dark:bg-white/[0.045]">
-                <Link
-                  href="/auth/login"
-                  className="hidden rounded-[0.9rem] px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 md:inline-flex dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                >
-                  Đăng nhập
-                </Link>
+              <Link
+                href="/auth/login"
+                className="hidden h-11 min-w-[7.25rem] items-center justify-center rounded-[0.9rem] border border-cyan-300/60 bg-cyan-400/10 px-4 text-[10px] font-black uppercase tracking-widest text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_14px_34px_-24px_rgba(34,211,238,0.9)] transition-all hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-cyan-300/16 hover:text-white md:inline-flex"
+              >
+                Đăng nhập
+              </Link>
 
-                <FlipButton
-                  href="/auth/register"
-                  size="sm"
-                  className="shrink-0"
-                  stageClassName="h-11 min-w-[7.75rem] text-[0.68rem] sm:h-12 sm:min-w-[10.5rem] sm:text-[0.74rem]"
-                >
-                  Đăng ký
-                </FlipButton>
-              </div>
+              <FlipButton
+                href="/auth/register"
+                size="sm"
+                className="shrink-0"
+                stageClassName="h-11 min-w-[7.75rem] text-[0.68rem] sm:h-12 sm:min-w-[10.5rem] sm:text-[0.74rem]"
+              >
+                Đăng ký
+              </FlipButton>
             </div>
           </div>
         </div>

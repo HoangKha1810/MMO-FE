@@ -99,8 +99,15 @@ export async function listOpenFindJobs(limit = 50) {
           u.username AS user_username
         FROM find_job_jobs j
         LEFT JOIN users u ON u.id = j.posted_by
-        WHERE j.status = 'open'
-          AND COALESCE(j.approval_status, 'pending') = 'approved'
+        WHERE (
+            j.status IN ('open', 'approved')
+            OR COALESCE(j.approval_status, 'pending') = 'approved'
+          )
+          AND j.status NOT IN ('closed', 'filled', 'rejected', 'deleted')
+          AND (
+            COALESCE(j.approval_status, 'approved') = 'approved'
+            OR j.status = 'approved'
+          )
         ORDER BY ${hasPinColumn ? 'j.is_pinned DESC,' : ''} j.posted_at DESC, j.id DESC
         LIMIT ?
       `,
@@ -113,8 +120,15 @@ export async function listOpenFindJobs(limit = 50) {
       SELECT ${hasPinColumn ? 'j.*' : 'j.*, 0 AS is_pinned'}, u.username AS user_username
       FROM find_jobs j
       LEFT JOIN users u ON u.id = j.user_id
-      WHERE j.status = 'open'
-        AND COALESCE(j.approval_status, 'pending') = 'approved'
+      WHERE (
+          j.status IN ('open', 'approved')
+          OR COALESCE(j.approval_status, 'pending') = 'approved'
+        )
+        AND j.status NOT IN ('closed', 'filled', 'rejected', 'deleted')
+        AND (
+          COALESCE(j.approval_status, 'approved') = 'approved'
+          OR j.status = 'approved'
+        )
       ORDER BY ${hasPinColumn ? 'j.is_pinned DESC,' : ''} j.updated_at DESC, j.created_at DESC
       LIMIT ?
     `,

@@ -33,11 +33,12 @@ export async function GET() {
         game_balance: true,
         rank: true,
         role: true,
+        status: true,
         is_blue_tick: true,
       },
     });
 
-    if (!user) {
+    if (!user || user.status !== 'active') {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404, headers: noStoreHeaders });
     }
 

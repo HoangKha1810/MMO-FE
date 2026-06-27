@@ -65,7 +65,7 @@ interface CategoryGroup {
 
 const platformConfig: PlatformConfig[] = [
   { name: 'Facebook', tag: '[FB]', gif: 'facebook_gif.gif', Icon: ThumbsUp, color: 'text-blue-500' },
-  { name: 'TikTok', tag: '[TT]', gif: 'tiktok_gif.gif', Icon: Music, color: 'text-slate-900 dark:text-white' },
+  { name: 'TikTok', tag: '[TT]', gif: 'tiktok_gif.gif', Icon: Music, color: 'text-white' },
   { name: 'Instagram', tag: '[IG]', gif: 'ig_gif.gif', Icon: AtSign, color: 'text-pink-500' },
   { name: 'YouTube', tag: '[YT]', gif: 'youtube_gif.gif', Icon: Play, color: 'text-red-500' },
   { name: 'Telegram', tag: '[TG]', Icon: Send, color: 'text-sky-500' },
@@ -74,7 +74,7 @@ const platformConfig: PlatformConfig[] = [
   { name: 'Spotify', tag: '[SPOTIFY]', Icon: Music, color: 'text-green-500' },
   { name: 'WhatsApp', tag: '[WHATSAPP]', Icon: MessageCircle, color: 'text-green-500' },
   { name: 'Bigo', tag: '[BIGO]', Icon: Video, color: 'text-purple-500' },
-  { name: 'Threads', tag: '[THREADS]', Icon: AtSign, color: 'text-slate-700 dark:text-white' },
+  { name: 'Threads', tag: '[THREADS]', Icon: AtSign, color: 'text-white' },
   { name: 'Khác', tag: '[OTHER]', Icon: Grid3X3, color: 'text-slate-500' },
 ];
 
@@ -205,8 +205,8 @@ function ServiceCard({
             onToggleFavorite(group.category);
           }}
           className={cn(
-            'absolute right-2 top-2 z-30 rounded-lg bg-slate-50 p-1.5 text-slate-300 shadow-sm transition-all hover:text-yellow-500 dark:bg-white/5',
-            isFavorite && 'bg-yellow-500/10 text-yellow-500'
+            'absolute right-2 top-2 z-30 rounded-lg border border-cyan-300/12 bg-cyan-400/8 p-1.5 text-slate-400 shadow-sm transition-all hover:border-yellow-400/30 hover:bg-yellow-400/10 hover:text-yellow-400',
+            isFavorite && 'border-yellow-400/30 bg-yellow-500/10 text-yellow-500'
           )}
           aria-label="Lưu dịch vụ"
         >
@@ -219,11 +219,11 @@ function ServiceCard({
           className="smm-service-card-content relative z-10 flex h-full w-full flex-col p-4"
           onClick={() => startPageTransition()}
         >
-            <div className="smm-service-card-icon mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5">
+            <div className="smm-service-card-icon mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/16 bg-cyan-400/10">
               <Icon className={cn('h-5 w-5', group.platform.color)} />
             </div>
 
-            <h3 className="mb-2 text-[12px] font-black leading-tight text-slate-800 dark:text-white">
+            <h3 className="mb-2 text-[12px] font-black leading-tight text-white">
               {group.cleanName}
               <span className="ml-1 inline-flex flex-wrap gap-1 align-middle">
                 {isHot ? (
@@ -241,20 +241,20 @@ function ServiceCard({
             </h3>
 
             <div className="mb-4">
-              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200/50 bg-slate-100 px-2 py-0.5 dark:border-white/5 dark:bg-white/5">
+              <div className="inline-flex items-center gap-1 rounded-lg border border-cyan-300/12 bg-cyan-400/8 px-2 py-0.5">
                 <span className="text-[7px] font-black uppercase text-slate-400">Min</span>
-                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">
+                <span className="text-[10px] font-bold text-slate-200">
                   {shortQty(group.minQty)}
                 </span>
-                <span className="text-[8px] text-slate-300 dark:text-slate-700">/</span>
+                <span className="text-[8px] text-slate-600">/</span>
                 <span className="text-[7px] font-black uppercase text-slate-400">Max</span>
-                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">
+                <span className="text-[10px] font-bold text-slate-200">
                   {shortQty(group.maxQty)}
                 </span>
               </div>
             </div>
 
-            <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
+            <div className="mt-auto flex items-center justify-between border-t border-cyan-300/10 pt-2">
               <div className="flex flex-col">
                 <span className="mb-1 text-[7px] font-bold uppercase leading-none tracking-widest text-slate-400">
                   Giá
@@ -441,8 +441,8 @@ function SmmPageContent() {
                   className={cn(
                     'mmo-chip inline-flex shrink-0 items-center gap-2 px-3 py-2 transition-all',
                     active
-                      ? 'border-brand-blue bg-brand-blue text-white shadow-lg shadow-brand-blue/20'
-                      : 'border-slate-200 bg-white text-slate-500 hover:border-brand-blue/40 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300'
+                      ? 'border-cyan-300/55 bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+                      : 'border-cyan-300/12 bg-[#061426]/82 text-slate-300 hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:text-white'
                   )}
                 >
                   {platform.gif ? (
@@ -531,7 +531,7 @@ function SmmPageContent() {
                 >
                   <div className="mmo-section-title-row flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 shadow-sm dark:bg-white/5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/14 bg-cyan-400/8 shadow-sm shadow-cyan-500/10">
                         {section.platform.gif ? (
                           <img
                             src={`/assets/images/gif/${section.platform.gif}`}

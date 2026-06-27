@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Facebook, Flame, Instagram, Loader2, Music, Twitter, Youtube, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
-import { slugify } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 
 interface AutoMxhCategory {
   id: number;
@@ -122,12 +122,12 @@ export default function UserAutomxhPage() {
     return groupedSections.filter((group) => normalizePlatformKey(group.groupLabel) === activePlatform);
   }, [activePlatform, groupedSections]);
   const platformTabs = [
-    { key: '', label: 'Tất cả', shortLabel: 'All', icon: Zap },
-    { key: 'facebook', label: 'Facebook', shortLabel: 'FB', icon: Facebook },
-    { key: 'tiktok', label: 'TikTok', shortLabel: 'TikTok', icon: Music },
-    { key: 'instagram', label: 'Instagram', shortLabel: 'Insta', icon: Instagram },
-    { key: 'x-twitter', label: 'X Twitter', shortLabel: 'Twitter', icon: Twitter },
-    { key: 'youtube', label: 'YouTube', shortLabel: 'YouTube', icon: Youtube },
+    { key: '', label: 'Tất cả', icon: Zap, tone: 'text-cyan-300' },
+    { key: 'facebook', label: 'Facebook', icon: Facebook, gif: 'assets/images/gif/facebook_gif.gif', tone: 'text-[#1877F2]' },
+    { key: 'tiktok', label: 'TikTok', icon: Music, gif: 'assets/images/gif/tiktok_gif.gif', tone: 'text-white' },
+    { key: 'instagram', label: 'Instagram', icon: Instagram, gif: 'assets/images/gif/ig_gif.gif', tone: 'text-pink-400' },
+    { key: 'x-twitter', label: 'Twitter', icon: Twitter, gif: 'assets/images/gif/tw_gif.gif', tone: 'text-sky-300' },
+    { key: 'youtube', label: 'YouTube', icon: Youtube, gif: 'assets/images/gif/youtube_gif.gif', tone: 'text-red-400' },
   ];
 
   useEffect(() => {
@@ -196,7 +196,7 @@ export default function UserAutomxhPage() {
           </div>
         ) : (
           <>
-          <div className="automxh-platform-tabs sticky top-3 z-10 flex gap-2 overflow-x-auto rounded-[1.15rem] border border-cyan-300/15 bg-[#071426]/82 p-2 shadow-[0_20px_48px_-34px_rgba(14,165,233,0.65)] backdrop-blur-xl">
+          <div className="automxh-platform-tabs sticky top-3 z-10 flex gap-2 overflow-x-auto rounded-[0.95rem] border border-cyan-300/12 bg-[#050f1e]/92 p-2 shadow-[0_20px_48px_-34px_rgba(14,165,233,0.65)] backdrop-blur-xl">
             {platformTabs.map((tab) => {
               const active = activePlatform === tab.key || (!activePlatform && tab.key === '');
               const Icon = tab.icon;
@@ -204,14 +204,25 @@ export default function UserAutomxhPage() {
                 <Link
                   key={tab.key || 'all'}
                   href={tab.key ? `/user/automxh?platform=${tab.key}` : '/user/automxh'}
-                  className={`group inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[0.9rem] border px-4 text-xs font-black uppercase tracking-[0.16em] transition-all ${
+                  className={`group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[0.8rem] border px-3 text-[10px] font-black uppercase tracking-[0.13em] transition-all ${
                     active
-                      ? 'border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_14px_34px_-22px_rgba(34,211,238,0.95)]'
-                      : 'border-white/8 bg-white/[0.035] text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-white'
+                      ? 'border-cyan-300/55 bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_14px_34px_-22px_rgba(34,211,238,0.95)]'
+                      : 'border-cyan-300/10 bg-[#07182c]/88 text-slate-300 hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:text-white'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span>{tab.shortLabel}</span>
+                  <span
+                    className={cn(
+                      'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-cyan-300/10 bg-cyan-400/8',
+                      active && 'border-white/20 bg-white/15'
+                    )}
+                  >
+                    {tab.gif ? (
+                      <img src={assetUrl(tab.gif)} alt="" className="h-4 w-4 object-contain" />
+                    ) : (
+                      <Icon className={cn('h-3.5 w-3.5', active ? 'text-white' : tab.tone)} />
+                    )}
+                  </span>
+                  <span>{tab.label}</span>
                 </Link>
               );
             })}
@@ -278,12 +289,12 @@ export default function UserAutomxhPage() {
                               <Zap className="h-5 w-5 text-orange-500" />
                             </div>
 
-                            <h3 className="mb-2 text-[12px] font-black uppercase leading-tight text-slate-800 dark:text-white">
+                            <h3 className="mb-2 text-[12px] font-black uppercase leading-tight text-white">
                               {product.name}
                             </h3>
 
                             <div className="mb-4">
-                              <p className="line-clamp-2 text-[10px] italic text-slate-500">
+                              <p className="line-clamp-2 text-[10px] italic text-slate-400">
                                 {product.description || 'Cung cấp đa dạng các gói dịch vụ chất lượng cao.'}
                               </p>
                             </div>

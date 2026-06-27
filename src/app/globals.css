@@ -4183,13 +4183,13 @@ html.theme-switching .nav-link-shell {
 :root:not(.dark) .smm-service-card-3d {
   border-color: rgba(37, 99, 235, 0.15) !important;
   background:
-    radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 247, 255, 0.84)) !important;
+    radial-gradient(circle at 18% 0%, rgba(22, 119, 255, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(8, 22, 40, 0.92), rgba(4, 14, 27, 0.88)) !important;
 }
 
 :root:not(.dark) .smm-service-card-icon {
-  border-color: rgba(37, 99, 235, 0.13);
-  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(54, 152, 255, 0.16);
+  background: rgba(8, 28, 50, 0.72) !important;
 }
 
 .resource-rich-content {

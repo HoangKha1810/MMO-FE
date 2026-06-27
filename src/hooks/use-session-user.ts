@@ -79,6 +79,18 @@ function setCachedSessionUser(user: SessionUser) {
   } catch {}
 }
 
+function clearCachedSessionUser() {
+  sessionUserMemoryCache = null;
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(SESSION_USER_CACHE_KEY);
+  } catch {}
+}
+
 export function useSessionUser(initialUser?: SessionUser): SessionUserState {
   const { setBalances } = useWalletBalance();
   const [data, setData] = useState<SessionUser | undefined>(initialUser);
@@ -96,6 +108,9 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
         });
         if (!response.ok) {
           if (active) {
+            clearCachedSessionUser();
+            setData(undefined);
+            setBalances({ balance: 0, gameBalance: 0 });
             setLoading(false);
           }
           return;
@@ -110,6 +125,9 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
               balance: Number((payload.user as SessionUser).balance || 0),
               gameBalance: Number((payload.user as SessionUser).game_balance || 0),
             });
+          } else {
+            clearCachedSessionUser();
+            setBalances({ balance: 0, gameBalance: 0 });
           }
           setLoading(false);
         }

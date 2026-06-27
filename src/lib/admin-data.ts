@@ -1174,6 +1174,10 @@ function buildPrismaWhere(resource: string, config: ResourceConfig, params: URLS
     where.type = 'deposit';
   }
 
+  if (resource === 'users') {
+    where.status = status || { notIn: ['banned', 'suspended'] };
+  }
+
   return where;
 }
 
@@ -2613,11 +2617,21 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
   }
 
   if (resource === 'users') {
+    const userColumns = getCachedPrismaModelFields('users');
+    const data: Record<string, unknown> = {
+      status: 'banned',
+      lock_reason: 'Admin delete action',
+      locked_at: new Date(),
+    };
+    if (userColumns.has('is_deleted')) {
+      data.is_deleted = true;
+    }
+
     const updated = await db.users.update({
       where: { id },
-      data: { status: 'banned', lock_reason: 'Admin mass/delete action', locked_at: new Date() },
+      data,
     });
-    await logAdminAction({ adminId, action: 'ban user', target: `#${id}`, req });
+    await logAdminAction({ adminId, action: 'delete user', target: `#${id}`, req });
     return { success: true, data: normalizeValue(updated) };
   }
 
