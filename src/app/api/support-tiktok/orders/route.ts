@@ -350,9 +350,20 @@ async function resolveTikTokOrderStatus(preferred: string) {
     return preferred;
   }
 
+  if (preferred === 'success') {
+    await db.$executeRawUnsafe(
+      "ALTER TABLE tiktok_support_orders MODIFY COLUMN status VARCHAR(32) NULL DEFAULT 'pending'"
+    ).catch(() => undefined);
+    const refreshedAllowed = await getTikTokOrderAllowedStatuses();
+    if (!refreshedAllowed || refreshedAllowed.includes(preferred)) {
+      return preferred;
+    }
+  }
+
   const fallbacks: Record<string, string[]> = {
-    active: ['completed', 'processing', 'pending'],
-    completed: ['active', 'success', 'processing', 'pending'],
+    active: ['success', 'completed', 'processing', 'pending'],
+    completed: ['success', 'active', 'processing', 'pending'],
+    success: ['completed', 'active', 'processing', 'pending'],
     processing: ['pending', 'active', 'completed'],
     pending: ['processing', 'active', 'completed'],
     canceled: ['cancelled', 'expired', 'pending'],
@@ -611,7 +622,7 @@ export async function POST(req: NextRequest) {
       pending: 'pending',
       active: 'active',
       processing: 'processing',
-      success: 'completed',
+      success: 'success',
       completed: 'completed',
       canceled: 'canceled',
       cancelled: 'canceled',
@@ -638,7 +649,7 @@ export async function POST(req: NextRequest) {
         throw new Error('Không tìm thấy đơn TikTok');
       }
 
-      if (nextStatus === 'completed' || nextStatus === 'active') {
+      if (nextStatus === 'success' || nextStatus === 'completed' || nextStatus === 'active') {
         const nowText = getVietnamDatabaseDateTime();
         const renewalText = normalizeSupportOrderDateTime(order.ngay_gia_han) || nowText;
         const currentStatus = String(order.status || '').trim().toLowerCase();
@@ -696,7 +707,7 @@ export async function POST(req: NextRequest) {
   if (action === 'renew') {
     const orderId = Number(readBodyValue(body, 'order_id') || 0);
     if (!orderId) return NextResponse.json({ success: false, message: 'Thiếu order_id' }, { status: 400 });
-    const renewedStatus = await resolveTikTokOrderStatus('completed');
+    const renewedStatus = await resolveTikTokOrderStatus('success');
     const pendingRenewStatus = await resolveTikTokOrderStatus('pending');
 
     const result = await db.$transaction(async (tx) => {
@@ -821,7 +832,7 @@ export async function POST(req: NextRequest) {
 
   await ensureDefaultTikTokSupportServices();
   const hasRegionServiceTable = await tableExists('tiktok_region_services');
-  const initialOrderStatus = await resolveTikTokOrderStatus('completed');
+  const initialOrderStatus = await resolveTikTokOrderStatus('pending');
 
   const created = await db.$transaction(async (tx) => {
     const serviceRows = hasRegionServiceTable
@@ -863,7 +874,6 @@ export async function POST(req: NextRequest) {
       },
     }).catch(() => undefined);
     const nowText = getVietnamDatabaseDateTime();
-    const expiresText = addDaysToDatabaseDateTime(nowText, 30);
     await tx.$executeRawUnsafe(
       `
         INSERT INTO tiktok_support_orders
@@ -879,8 +889,8 @@ export async function POST(req: NextRequest) {
       buyerContact,
       totalPrice,
       initialOrderStatus,
-      nowText,
-      expiresText,
+      null,
+      null,
       nowText,
       nowText
     );
@@ -896,7 +906,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    message: 'Mua gói Support TikTok thành công. Bạn có thể chat ngay bây giờ.',
+    message: 'Đã tạo đơn Support TikTok. Trạng thái pending, tài khoản support_tiktok cần duyệt thành success trước khi bạn chat bằng ID TikTok này.',
     data: created,
   });
   } catch (error) {

@@ -75,6 +75,11 @@ function isPendingStatus(value: unknown) {
   return normalized === 'pending' || normalized === 'processing';
 }
 
+function isApprovedStatus(value: unknown) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['success', 'active', 'completed'].includes(normalized);
+}
+
 export function SupportTiktokOrdersPage({
   embedded = false,
   onBackToChat,
@@ -483,9 +488,13 @@ export function SupportTiktokOrdersPage({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="info">#{order.id}</Badge>
-                      <Badge variant={String(order.status).toLowerCase() === 'active' ? 'success' : 'muted'}>{order.status || 'pending'}</Badge>
-                      {isManualRenewRegion(order.region) && isPendingStatus(order.status) ? (
-                        <Badge variant="warning">Chờ nhân viên duyệt gia hạn</Badge>
+                      <Badge variant={isApprovedStatus(order.status) ? 'success' : isPendingStatus(order.status) ? 'warning' : 'muted'}>
+                        {order.status || 'pending'}
+                      </Badge>
+                      {isPendingStatus(order.status) ? (
+                        <Badge variant="warning">
+                          {isManualRenewRegion(order.region) ? 'Chờ duyệt gia hạn' : 'Chờ support_tiktok duyệt'}
+                        </Badge>
                       ) : null}
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{order.region}</span>
                     </div>

@@ -215,7 +215,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'user_id', 'region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'price', 'status', 'ngay_het_han', 'updated_at'],
       editableFields: ['region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'price', 'status', 'ngay_gia_han', 'ngay_het_han'],
       createFields: ['user_id', 'region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'price', 'status', 'ngay_gia_han', 'ngay_het_han'],
-      statusOptions: ['pending', 'active', 'processing', 'completed', 'canceled', 'expired'],
+      statusOptions: ['pending', 'success', 'active', 'processing', 'completed', 'canceled', 'expired'],
     },
     {
       resource: 'tiktok-service-menus',

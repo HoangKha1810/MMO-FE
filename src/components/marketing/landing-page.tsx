@@ -353,14 +353,13 @@ export function LandingPage() {
                 <span className="relative">Đăng nhập</span>
               </Link>
 
-              <FlipButton
+              <Link
                 href="/auth/register"
-                size="sm"
-                className="shrink-0"
-                stageClassName="h-11 min-w-[7.75rem] text-[0.68rem] sm:h-12 sm:min-w-[10.5rem] sm:text-[0.74rem]"
+                className="group relative hidden h-11 min-w-[7.25rem] items-center justify-center overflow-hidden rounded-[0.9rem] border border-cyan-200/70 bg-[linear-gradient(135deg,rgba(37,99,235,0.95)_0%,rgba(14,165,233,0.92)_55%,rgba(45,212,191,0.86)_100%)] px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_18px_42px_-22px_rgba(34,211,238,0.95)] transition-all hover:-translate-y-0.5 hover:border-white/70 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_22px_50px_-22px_rgba(59,130,246,0.95)] md:inline-flex"
               >
-                Đăng ký
-              </FlipButton>
+                <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.34)_42%,transparent_62%)] opacity-0 transition duration-500 group-hover:translate-x-full group-hover:opacity-100" />
+                <span className="relative">Đăng ký</span>
+              </Link>
             </div>
           </div>
         </div>

@@ -262,7 +262,7 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
         SELECT id, status, ngay_het_han
         FROM tiktok_support_orders
         WHERE user_id = ?
-          AND LOWER(COALESCE(status, '')) IN ('active', 'completed', 'processing', 'success')
+          AND LOWER(COALESCE(status, '')) IN ('success', 'active', 'completed')
           AND ngay_het_han IS NOT NULL
           AND ngay_het_han >= ?
         ORDER BY updated_at DESC, id DESC
@@ -282,17 +282,17 @@ async function getSupportOrderAccess(userId: number, hasOrderTable: boolean) {
   let chatBlockedReason = '';
   if (!hasUnlockedChat) {
     if (!latestOrder) {
-      chatBlockedReason = 'Mua hàng thành công rồi mới chat được.';
+      chatBlockedReason = 'Mua gói Support TikTok rồi chờ tài khoản support_tiktok duyệt success để chat.';
+    } else if (latestStatus === 'pending' || latestStatus === 'processing') {
+      chatBlockedReason = 'Đơn Support TikTok đang chờ tài khoản support_tiktok duyệt. Khi status success bạn mới chat được bằng ID TikTok đã mua.';
     } else if (!latestExpiresAt) {
       chatBlockedReason = 'Gói Support TikTok của bạn chưa có hạn dùng. Hãy gia hạn hoặc đợi nhân viên hỗ trợ TikTok duyệt.';
     } else if (!notExpired) {
       chatBlockedReason = 'Gói Support TikTok của bạn đã hết hạn. Hãy gia hạn hoặc mua lại để chat tiếp.';
-    } else if (latestStatus === 'pending') {
-      chatBlockedReason = 'Đơn Support TikTok của bạn chưa được kích hoạt. Khi mua thành công bạn mới chat được.';
     } else if (latestStatus === 'canceled' || latestStatus === 'cancelled') {
       chatBlockedReason = 'Đơn Support TikTok của bạn đã bị hủy. Hãy tạo đơn mới để mở chat.';
     } else {
-      chatBlockedReason = 'Mua hàng thành công rồi mới chat được.';
+      chatBlockedReason = 'Mua gói Support TikTok rồi chờ tài khoản support_tiktok duyệt success để chat.';
     }
   }
 
@@ -482,16 +482,18 @@ export async function validateSupportTikTokChatOrder(input: {
     throw new Error('Đơn TikTok không thuộc khách đang chọn');
   }
 
-  if (!input.isSupport) {
-    const nowText = getVietnamDatabaseDateTime();
-    const status = String(order.status || '').trim().toLowerCase();
-    const expiresAt = order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '';
-    const activeStatus = ['active', 'completed', 'processing', 'success'].includes(status);
-    const notExpired = Boolean(expiresAt && expiresAt >= nowText);
+  const nowText = getVietnamDatabaseDateTime();
+  const status = String(order.status || '').trim().toLowerCase();
+  const expiresAt = order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '';
+  const activeStatus = ['success', 'active', 'completed'].includes(status);
+  const notExpired = Boolean(expiresAt && expiresAt >= nowText);
 
-    if (!activeStatus || !notExpired) {
-      throw new Error('Đơn TikTok này chưa mở hoặc đã hết hạn chat');
-    }
+  if (!activeStatus || !notExpired) {
+    throw new Error(
+      input.isSupport
+        ? 'Đơn TikTok này chưa được duyệt success hoặc đã hết hạn, chưa thể mở chat'
+        : 'Đơn TikTok này chưa mở hoặc đã hết hạn chat'
+    );
   }
 
   return {

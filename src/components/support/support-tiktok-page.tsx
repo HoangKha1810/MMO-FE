@@ -267,13 +267,18 @@ function sortSupportConversations(conversations: SupportConversation[]) {
   });
 }
 
+function isSupportOrderApproved(status: string | null | undefined) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return ['success', 'active', 'completed'].includes(normalized);
+}
+
 function isOrderChatOpen(order: SupportOrder) {
   const normalized = String(order.status || '').trim().toLowerCase();
   const expiresAt = order.ngay_het_han ? serializeDatabaseDateTime(order.ngay_het_han) : '';
   const nowText = serializeDatabaseDateTime(new Date().toISOString());
 
   return (
-    ['active', 'completed', 'processing', 'success'].includes(normalized) &&
+    isSupportOrderApproved(normalized) &&
     Boolean(expiresAt && expiresAt >= nowText)
   );
 }
@@ -293,8 +298,11 @@ function OrderCard({
   onMarkCanceled?: (orderId: number) => void;
   updating?: boolean;
 }) {
-  const canComplete = supportMode && !['completed', 'success', 'active'].includes(String(order.status || '').toLowerCase());
-  const canCancel = supportMode && !['canceled', 'cancelled'].includes(String(order.status || '').toLowerCase());
+  const orderApproved = isSupportOrderApproved(order.status);
+  const orderCanceled = ['canceled', 'cancelled'].includes(String(order.status || '').trim().toLowerCase());
+  const canOpenChat = supportMode && isOrderChatOpen(order) && Boolean(order.user_id);
+  const canComplete = supportMode && !orderApproved && !orderCanceled;
+  const canCancel = supportMode && !orderCanceled;
 
   return (
     <div className="surface-card rounded-[1.4rem] p-4">
@@ -347,16 +355,20 @@ function OrderCard({
 
       {supportMode ? (
         <div className="mt-4 flex flex-wrap gap-2">
-          {order.user_id ? (
+          {canOpenChat ? (
             <Button type="button" size="sm" variant="outline" onClick={() => onOpenConversation?.(Number(order.user_id), Number(order.id) || null)}>
               <MessageCircle className="mr-2 h-4 w-4" />
               Mở chat
             </Button>
+          ) : order.user_id && !orderCanceled ? (
+            <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-amber-500">
+              {orderApproved ? 'Đơn đã hết hạn, cần gia hạn để mở chat' : 'Chờ support_tiktok duyệt success để mở chat'}
+            </span>
           ) : null}
           {canComplete ? (
             <Button type="button" size="sm" onClick={() => onMarkCompleted?.(order.id)} loading={updating} loadingText="Đang lưu...">
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              Đánh dấu success
+              Duyệt thành success
             </Button>
           ) : null}
           {canCancel ? (
@@ -427,7 +439,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
       return secondTime.localeCompare(firstTime) || Number(second.id || 0) - Number(first.id || 0);
     });
 
-    return sortedOrders.filter((order) => meta?.isSupport || isOrderChatOpen(order));
+    return sortedOrders.filter((order) => isOrderChatOpen(order));
   }, [meta?.isSupport, orders]);
 
   const activeChatOrder = useMemo(
@@ -900,7 +912,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
     }
   }
 
-  async function updateOrderStatus(orderId: number, status: 'completed' | 'canceled') {
+  async function updateOrderStatus(orderId: number, status: 'success' | 'canceled') {
     setUpdatingOrderId(orderId);
     setError('');
     setNotice('');
@@ -1161,7 +1173,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
           {
             label: 'Quyền chat',
             value: canUseChat ? 'MỞ' : 'KHÓA',
-            hint: canUseChat ? 'Có thể chat trực tiếp ngay' : meta?.chatBlockedReason || 'Cần mua/gia hạn gói để mở chat',
+            hint: canUseChat ? 'Đơn đã success, có thể chat bằng ID TikTok đã mua' : meta?.chatBlockedReason || 'Cần mua gói và chờ support_tiktok duyệt',
             tone: canUseChat ? 'emerald' : 'amber',
           },
           {
@@ -1494,7 +1506,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                           {!meta?.chatModuleAvailable
                             ? 'Khung chat đang thiếu bảng dữ liệu. Tạo bootstrap xong rồi tải lại trang để tiếp tục.'
                             : !meta?.isSupport && !canUseChat
-                              ? meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'
+                              ? meta?.chatBlockedReason || 'Mua gói xong cần chờ support_tiktok duyệt status success mới chat được.'
                               : meta?.isSupport
                                 ? 'Chọn một khách ở cột trái để trả lời theo đúng source inbox cũ.'
                                 : 'Gửi nội dung cần hỗ trợ, TikTok ID hoặc mã đơn để nhân viên hỗ trợ TikTok xử lý nhanh hơn.'}
@@ -1641,7 +1653,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                         !meta?.chatModuleAvailable
                           ? 'Phần chat đang chờ tạo bảng dữ liệu'
                           : !meta?.isSupport && !canUseChat
-                            ? meta?.chatBlockedReason || 'Mua hàng thành công rồi mới chat được.'
+                            ? meta?.chatBlockedReason || 'Mua gói xong cần chờ support_tiktok duyệt status success mới chat được.'
                             : mustSelectTikTokOrder
                               ? 'Chọn ID TikTok đã mua trước khi gửi chat.'
                               : meta?.isSupport && !activeUserId
@@ -1744,7 +1756,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                             order={order}
                             supportMode={Boolean(meta?.isSupport)}
                             onOpenConversation={(conversationUserId, orderId) => selectConversation(conversationUserId, 'chat', toOrderChatKey(orderId))}
-                            onMarkCompleted={(orderId) => void updateOrderStatus(orderId, 'completed')}
+                            onMarkCompleted={(orderId) => void updateOrderStatus(orderId, 'success')}
                             onMarkCanceled={(orderId) => void updateOrderStatus(orderId, 'canceled')}
                             updating={updatingOrderId === order.id}
                           />
@@ -1798,7 +1810,7 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
                           order={order}
                           supportMode
                           onOpenConversation={(conversationUserId, orderId) => selectConversation(conversationUserId, 'chat', toOrderChatKey(orderId))}
-                          onMarkCompleted={(orderId) => void updateOrderStatus(orderId, 'completed')}
+                          onMarkCompleted={(orderId) => void updateOrderStatus(orderId, 'success')}
                           onMarkCanceled={(orderId) => void updateOrderStatus(orderId, 'canceled')}
                           updating={updatingOrderId === order.id}
                         />

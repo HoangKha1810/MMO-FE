@@ -1106,17 +1106,7 @@ export function AppShell({
             </div>
 
             {/* Right: wallet, tools, avatar */}
-            <div className="shell-toolbar-cluster custom-scrollbar flex max-w-[calc(100dvw-5.5rem)] min-w-0 shrink-0 items-center gap-1 overflow-x-auto overscroll-x-contain p-1 sm:max-w-none sm:gap-3 sm:overflow-visible sm:p-1.5">
-
-              {/* Wallet balance compact */}
-              <Link
-                href="/user/deposit"
-                className="interactive-lift relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 sm:hidden dark:border-white/8 dark:bg-white/[0.04]"
-                aria-label="Nạp tiền"
-              >
-                <Wallet className="h-4 w-4 text-brand-blue" />
-              </Link>
-
+            <div className="shell-toolbar-cluster custom-scrollbar hidden max-w-[calc(100dvw-5.5rem)] min-w-0 shrink-0 items-center gap-1 overflow-x-auto overscroll-x-contain p-1 sm:flex sm:max-w-none sm:gap-3 sm:overflow-visible sm:p-1.5">
               {/* Wallet balance */}
               <Link
                 href="/user/deposit"
@@ -1169,25 +1159,11 @@ export function AppShell({
               {/* Notifications */}
               <NotificationBell />
 
-              {/* Theme toggle mobile */}
-              <button
-                type="button"
-                onClick={handleThemeToggle}
-                className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 sm:hidden dark:border-white/8 dark:bg-white/[0.04]"
-                aria-label="Toggle theme"
-              >
-                {mounted && isDark ? (
-                  <Moon className="h-4 w-4 text-slate-500 dark:text-slate-200" />
-                ) : (
-                  <Sun className="h-4 w-4 text-amber-500" />
-                )}
-              </button>
-
               {/* Theme toggle desktop */}
               <button
                 type="button"
                 onClick={handleThemeToggle}
-                className="theme-switch-shell group hidden border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 sm:inline-flex dark:border-white/8 dark:bg-white/[0.04]"
+                className="theme-switch-shell group border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 dark:border-white/8 dark:bg-white/[0.04]"
                 data-mode={mounted && isDark ? 'dark' : 'light'}
                 aria-label="Toggle theme"
               >
@@ -1292,7 +1268,7 @@ export function AppShell({
 
           {/* Breadcrumb bar */}
           {!isAdmin ? (
-            <div className="mx-2 mt-2 grid shrink-0 gap-2 sm:mx-3 sm:mt-3 md:mx-5 xl:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="mx-2 mt-2 hidden shrink-0 gap-2 sm:mx-3 sm:mt-3 sm:grid md:mx-5 xl:grid-cols-[minmax(0,1fr)_auto]">
               <div className="mmo-status-strip min-w-0">
                 <div className="mmo-status-token">
                   <CircleCheck className="h-3.5 w-3.5 text-emerald-400" />
@@ -1321,7 +1297,7 @@ export function AppShell({
             </div>
           ) : null}
 
-          <div className="shell-breadcrumb mx-2 mt-2 shrink-0 px-3 py-2.5 sm:mx-3 sm:mt-3 sm:px-5 sm:py-3 md:mx-5 md:px-6">
+          <div className="shell-breadcrumb mx-2 mt-2 hidden shrink-0 px-3 py-2.5 sm:mx-3 sm:mt-3 sm:block sm:px-5 sm:py-3 md:mx-5 md:px-6">
             <nav className="relative z-10 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400 custom-scrollbar dark:text-white/35 sm:text-[9px] sm:tracking-[0.34em]">
               <Link href={isAdmin ? '/admin/dashboard' : '/user/home'} className="transition-colors hover:text-brand-blue">
                 Trang Chủ

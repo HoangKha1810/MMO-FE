@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import {
   getSupportConversationMessages,
   getSupportTiktokContext,
+  validateSupportTikTokChatOrder,
 } from '@/lib/support-tiktok';
 
 function getClientIp(req: NextRequest) {
@@ -52,6 +53,21 @@ export async function GET(req: NextRequest) {
   const hasOrderFilter = orderIdParam !== null;
   const orderId = Number(orderIdParam || 0);
   const conversationUserId = context.isSupport && targetUserId > 0 ? targetUserId : userId;
+
+  if (hasOrderFilter && orderId > 0) {
+    try {
+      await validateSupportTikTokChatOrder({
+        orderId,
+        conversationUserId,
+        isSupport: context.isSupport,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, message: error instanceof Error ? error.message : 'Đơn TikTok này chưa mở chat' },
+        { status: 403 }
+      );
+    }
+  }
 
   const messages = await getSupportConversationMessages(
     conversationUserId,
