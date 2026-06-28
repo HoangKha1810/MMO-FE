@@ -98,11 +98,11 @@ export function GameMarketDetailActions({
           description: `Bạn sẽ thanh toán ${new Intl.NumberFormat('vi-VN').format(itemPrice)}đ bằng ví game. Số dư hiện tại: ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ. Sau khi mua, hệ thống sẽ mở chat bàn giao với người bán.`,
           confirmText: 'Sử dụng ví game',
           cancelText: 'Liên hệ admin',
+          cancelHref: '/user/support-tiktok',
           tone: 'payment',
         });
 
         if (!useGameWallet) {
-          router.push('/user/support-tiktok');
           return;
         }
 

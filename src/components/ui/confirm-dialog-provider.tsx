@@ -27,6 +27,8 @@ type ConfirmDialogRequest = {
   linkHref?: string;
   linkText?: string;
   linkTarget?: string;
+  cancelHref?: string;
+  cancelTarget?: string;
   requireAgreement?: boolean;
   agreementText?: string;
 };
@@ -39,7 +41,10 @@ type ConfirmDialogContextValue = {
 type QueuedDialogRequest = Required<
   Pick<ConfirmDialogRequest, 'description' | 'confirmText' | 'cancelText' | 'tone' | 'kind'>
 > &
-  Pick<ConfirmDialogRequest, 'title' | 'linkHref' | 'linkText' | 'linkTarget' | 'agreementText'> & {
+  Pick<
+    ConfirmDialogRequest,
+    'title' | 'linkHref' | 'linkText' | 'linkTarget' | 'cancelHref' | 'cancelTarget' | 'agreementText'
+  > & {
     requireAgreement: boolean;
     resolve: (value: boolean) => void;
   };
@@ -100,6 +105,8 @@ function normalizeRequest(
     linkHref: request.linkHref,
     linkText: request.linkText,
     linkTarget: request.linkTarget,
+    cancelHref: request.cancelHref,
+    cancelTarget: request.cancelTarget,
     requireAgreement: Boolean(request.requireAgreement),
     agreementText: request.agreementText,
     resolve,
@@ -194,9 +201,10 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
           <Dialog.Overlay className="vault-dialog-backdrop fixed inset-0 z-[300] bg-[linear-gradient(135deg,rgba(2,6,23,0.82),rgba(6,12,28,0.72))] backdrop-blur-md" />
           <Dialog.Content
             className={cn(
-              'vault-dialog-card fixed left-1/2 top-1/2 z-[301] w-[calc(100vw-1.5rem)] max-w-[35rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] p-5 shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] outline-none dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(6,12,23,0.98))] sm:p-6',
-              isPaymentTone &&
-                'vault-wallet-card max-w-[39rem] border-cyan-300/30 bg-[linear-gradient(160deg,rgba(12,35,54,0.98),rgba(4,10,22,0.99)_46%,rgba(7,22,37,0.98))] shadow-[0_40px_120px_-44px_rgba(34,211,238,0.72)]'
+              'fixed left-1/2 top-1/2 z-[301] w-[calc(100vw-1.5rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.75rem] border p-5 outline-none sm:p-6',
+              isPaymentTone
+                ? 'vault-wallet-card max-w-[39rem] border-cyan-300/30 bg-[linear-gradient(160deg,rgba(12,35,54,0.98),rgba(4,10,22,0.99)_46%,rgba(7,22,37,0.98))] shadow-[0_40px_120px_-44px_rgba(34,211,238,0.72)]'
+                : 'vault-dialog-card max-w-[35rem] border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(6,12,23,0.98))]'
             )}
           >
             {current ? (
@@ -263,14 +271,27 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
 
                   <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     {current.kind === 'confirm' ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => resolveCurrent(false)}
-                        className="w-full sm:w-auto"
-                      >
-                        {current.cancelText}
-                      </Button>
+                      current.cancelHref ? (
+                        <Button asChild variant="outline" className="w-full sm:w-auto">
+                          <a
+                            href={current.cancelHref}
+                            target={current.cancelTarget || '_self'}
+                            rel={current.cancelTarget === '_blank' ? 'noopener noreferrer' : undefined}
+                            onClick={() => resolveCurrent(false)}
+                          >
+                            {current.cancelText}
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => resolveCurrent(false)}
+                          className="w-full sm:w-auto"
+                        >
+                          {current.cancelText}
+                        </Button>
+                      )
                     ) : null}
                     {current.linkHref && current.linkText ? (
                       <Button asChild variant="outline" className="w-full sm:w-auto">

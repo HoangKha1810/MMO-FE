@@ -124,13 +124,13 @@ export function ResourceDetailActions({
           description: `Bạn sẽ thanh toán ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ bằng ví game để thuê tài khoản game trong thời hạn 99 năm. Số dư hiện tại: ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ. Sau khi thanh toán thành công, đơn sẽ xuất hiện trong lịch sử tải.`,
           confirmText: 'Sử dụng ví game',
           cancelText: 'Liên hệ admin',
+          cancelHref: '/user/support-tiktok',
           tone: 'payment',
           requireAgreement: true,
           agreementText: GAME_RENTAL_99_YEAR_AGREEMENT,
         });
 
         if (!useGameWallet) {
-          window.location.href = '/user/support-tiktok';
           return;
         }
       }
