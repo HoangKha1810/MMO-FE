@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { processBankDepositByCode, processSePayDepositByCode } from '@/lib/deposit-processing';
-import { cleanForumHtml } from '@/lib/forum';
+import { cleanForumHtml, forumVietnamTimestampSql } from '@/lib/forum';
 import { toNumber } from '@/lib/utils';
 
 export type LegacyRow = Record<string, unknown>;
@@ -325,7 +325,7 @@ export async function searchForum(keyword: string) {
   const like = `%${keyword.trim()}%`;
   const [threads, posts] = await Promise.all([
     safeRows<LegacyRow>(`
-      SELECT t.id, t.title, t.views, t.is_pinned, t.created_at, f.name AS forum_name, u.username
+      SELECT t.id, t.title, t.views, t.is_pinned, ${forumVietnamTimestampSql('t.created_at')} AS created_at, f.name AS forum_name, u.username
       FROM forum_threads t
       LEFT JOIN forums f ON f.id = t.forum_id
       LEFT JOIN users u ON u.id = t.user_id
@@ -336,7 +336,7 @@ export async function searchForum(keyword: string) {
       LIMIT 40
     `, like),
     safeRows<LegacyRow>(`
-      SELECT p.id, p.thread_id, p.content, p.created_at, t.title, u.username
+      SELECT p.id, p.thread_id, p.content, ${forumVietnamTimestampSql('p.created_at')} AS created_at, t.title, u.username
       FROM forum_posts p
       LEFT JOIN forum_threads t ON t.id = p.thread_id
       LEFT JOIN users u ON u.id = p.user_id
@@ -357,7 +357,7 @@ export async function searchForum(keyword: string) {
 export async function listForumActivity(limit = 80) {
   const [threads, posts, ads] = await Promise.all([
     safeRows<LegacyRow>(`
-      SELECT 'thread' AS type, t.id, t.title AS title, t.created_at, u.username
+      SELECT 'thread' AS type, t.id, t.title AS title, ${forumVietnamTimestampSql('t.created_at')} AS created_at, u.username
       FROM forum_threads t
       LEFT JOIN users u ON u.id = t.user_id
       WHERE t.status = 'active' AND COALESCE(t.is_deleted, 0) = 0
@@ -365,7 +365,7 @@ export async function listForumActivity(limit = 80) {
       LIMIT ?
     `, limit),
     safeRows<LegacyRow>(`
-      SELECT 'post' AS type, p.id, p.thread_id, t.title, p.created_at, u.username
+      SELECT 'post' AS type, p.id, p.thread_id, t.title, ${forumVietnamTimestampSql('p.created_at')} AS created_at, u.username
       FROM forum_posts p
       LEFT JOIN forum_threads t ON t.id = p.thread_id
       LEFT JOIN users u ON u.id = p.user_id
@@ -399,7 +399,7 @@ export async function listForumAds() {
 
 export async function listMyForumThreads(userId: number) {
   return safeRows<LegacyRow>(`
-    SELECT t.id, t.title, t.views, t.is_pinned, t.is_locked, t.status, t.created_at, f.name AS forum_name
+    SELECT t.id, t.title, t.views, t.is_pinned, t.is_locked, t.status, ${forumVietnamTimestampSql('t.created_at')} AS created_at, f.name AS forum_name
     FROM forum_threads t
     LEFT JOIN forums f ON f.id = t.forum_id
     WHERE t.user_id = ?
@@ -418,14 +418,14 @@ export async function getForumProfile(userId: number) {
   if (!profile) return null;
   const [threads, posts] = await Promise.all([
     safeRows<LegacyRow>(`
-      SELECT id, title, views, is_pinned, created_at
+      SELECT id, title, views, is_pinned, ${forumVietnamTimestampSql('created_at')} AS created_at
       FROM forum_threads
       WHERE user_id = ? AND status = 'active' AND COALESCE(is_deleted, 0) = 0
       ORDER BY created_at DESC
       LIMIT 20
     `, userId),
     safeRows<LegacyRow>(`
-      SELECT p.id, p.thread_id, p.created_at, t.title
+      SELECT p.id, p.thread_id, ${forumVietnamTimestampSql('p.created_at')} AS created_at, t.title
       FROM forum_posts p
       LEFT JOIN forum_threads t ON t.id = p.thread_id
       WHERE p.user_id = ? AND p.status = 'active' AND COALESCE(p.is_deleted, 0) = 0
@@ -447,20 +447,19 @@ export async function listForumFoldersForPosting() {
 
 export async function createForumThread(userId: number, input: { forum_id: number; title: string; content: string }) {
   const slug = `${input.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Date.now()}`;
-  const now = new Date();
 
   await db.$transaction(async (tx) => {
     await tx.$executeRawUnsafe(`
       INSERT INTO forum_threads (forum_id, user_id, title, slug, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'pending', ?, ?)
-    `, input.forum_id, userId, input.title, slug, now, now);
+      VALUES (?, ?, ?, ?, 'pending', NOW(), NOW())
+    `, input.forum_id, userId, input.title, slug);
     const rows = await tx.$queryRawUnsafe<Array<{ id: number }>>('SELECT id FROM forum_threads WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);
     const threadId = Number(rows[0]?.id || 0);
     if (!threadId) throw new Error('Không tạo được thread');
     await tx.$executeRawUnsafe(`
       INSERT INTO forum_posts (thread_id, user_id, content, is_first_post, status, created_at, updated_at)
-      VALUES (?, ?, ?, 1, 'pending', ?, ?)
-    `, threadId, userId, input.content, now, now);
+      VALUES (?, ?, ?, 1, 'pending', NOW(), NOW())
+    `, threadId, userId, input.content);
   });
 
   return safeOne<LegacyRow>('SELECT id, title FROM forum_threads WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);

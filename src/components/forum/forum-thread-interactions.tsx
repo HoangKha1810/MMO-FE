@@ -52,7 +52,7 @@ export function ForumThreadInteractions({
                     if (!payload.success) {
                       throw new Error(payload.message || 'Không phản hồi được');
                     }
-                    toast.success(payload.message || 'Đã đăng phản hồi');
+                    toast.success(payload.message || 'Đã gửi phản hồi cho admin duyệt');
                     setContent('');
                     router.refresh();
                   } catch (error) {

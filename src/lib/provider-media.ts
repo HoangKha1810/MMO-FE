@@ -12,18 +12,34 @@ export function isBlockedProviderMedia(value: unknown) {
   return blockedProviderMediaPattern.test(raw);
 }
 
-export function sanitizeProviderMedia(primary: unknown, fallback?: unknown) {
-  const fallbackRaw = normalizeRawMediaPath(fallback);
-  const fallbackUrl = isBlockedProviderMedia(fallbackRaw) ? null : buildLegacyAssetUrl(fallbackRaw);
+export function buildProviderMediaProxyUrl(value: unknown) {
+  const raw = normalizeRawMediaPath(value);
+  if (!raw || !isBlockedProviderMedia(raw)) return null;
+
+  try {
+    const url = new URL(raw);
+    if (!/^https?:$/i.test(url.protocol)) return null;
+    return `/api/provider-media?url=${encodeURIComponent(url.toString())}`;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveProviderMediaUrl(primary: unknown, fallback?: unknown) {
   const primaryRaw = normalizeRawMediaPath(primary);
+  const fallbackRaw = normalizeRawMediaPath(fallback);
+  const primaryDirect = isBlockedProviderMedia(primaryRaw) ? null : buildLegacyAssetUrl(primaryRaw);
+  const fallbackDirect = isBlockedProviderMedia(fallbackRaw) ? null : buildLegacyAssetUrl(fallbackRaw);
 
-  if (!primaryRaw) {
-    return fallbackUrl || null;
-  }
+  return (
+    primaryDirect ||
+    fallbackDirect ||
+    buildProviderMediaProxyUrl(primaryRaw) ||
+    buildProviderMediaProxyUrl(fallbackRaw) ||
+    null
+  );
+}
 
-  if (isBlockedProviderMedia(primaryRaw)) {
-    return fallbackUrl || null;
-  }
-
-  return buildLegacyAssetUrl(primaryRaw) || fallbackUrl || null;
+export function sanitizeProviderMedia(primary: unknown, fallback?: unknown) {
+  return resolveProviderMediaUrl(primary, fallback);
 }

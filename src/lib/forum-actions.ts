@@ -1,8 +1,9 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
+import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { buildForumModerationText, cleanForumHtml, containsForumGamblingContent, isActiveForumStatus } from '@/lib/forum';
+import { buildForumModerationText, cleanForumHtml, containsForumGamblingContent, forumVietnamTimestampSql, isActiveForumStatus } from '@/lib/forum';
 
 interface ForumActionRow {
   [key: string]: unknown;
@@ -12,7 +13,7 @@ function normalizeRow<T extends ForumActionRow>(row: T): T {
   return Object.fromEntries(
     Object.entries(row).map(([key, value]) => {
       if (value instanceof Date) {
-        return [key, value.toISOString()];
+        return [key, serializeDatabaseDateTime(value)];
       }
 
       if (typeof value === 'bigint') {
@@ -116,8 +117,8 @@ export async function listUserForumPosts(userId: number) {
         p.thread_id,
         p.content,
         p.is_first_post,
-        p.created_at,
-        p.updated_at,
+        ${forumVietnamTimestampSql('p.created_at')} AS created_at,
+        ${forumVietnamTimestampSql('p.updated_at')} AS updated_at,
         p.status,
         t.title,
         t.slug,
@@ -187,7 +188,7 @@ export async function createForumReply(userId: number, threadId: number, content
     await tx.$executeRawUnsafe(
       `
         INSERT INTO forum_posts (thread_id, user_id, content, is_first_post, status, created_at, updated_at, is_deleted)
-        VALUES (?, ?, ?, 0, 'active', NOW(), NOW(), 0)
+        VALUES (?, ?, ?, 0, 'pending', NOW(), NOW(), 0)
       `,
       threadId,
       userId,
@@ -199,7 +200,7 @@ export async function createForumReply(userId: number, threadId: number, content
     );
     const postId = Number(inserted[0]?.id || 0);
 
-    return { id: postId, thread_id: threadId };
+    return { id: postId, thread_id: threadId, status: 'pending' };
   });
 }
 

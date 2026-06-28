@@ -35,7 +35,7 @@ export default async function UserForumPostsPage() {
                     {String(post.title || 'Không có tiêu đề')}
                   </div>
                   <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    {String(post.forum_name || 'Forum')} · {post.is_first_post ? 'Bài mở thread' : 'Bài trả lời'}
+                    {String(post.forum_name || 'Forum')} · {post.is_first_post ? 'Bài mở thread' : 'Bài trả lời'} · {String(post.status || 'pending')}
                   </div>
                   <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-500 dark:text-slate-400">{String(post.preview || '')}</p>
                 </div>

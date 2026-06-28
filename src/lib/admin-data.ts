@@ -18,7 +18,8 @@ import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
 import { ensureVibeCodeTables } from '@/lib/vibe-code';
 import { ensurePressServiceTables } from '@/lib/press-service';
-import { buildForumModerationText, containsForumGamblingContent } from '@/lib/forum';
+import { ensureWebServiceTables } from '@/lib/web-service';
+import { buildForumModerationText, containsForumGamblingContent, forumVietnamTimestampSql } from '@/lib/forum';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -178,6 +179,23 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     statusField: 'status',
     rawOrder: 'created_at DESC, id DESC',
     updateFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
+  },
+  'web-service-packages': {
+    table: 'web_service_packages',
+    title: 'Web service packages',
+    searchFields: ['category', 'package_key', 'title', 'description', 'status'],
+    statusField: 'status',
+    rawOrder: "FIELD(category, 'web_con', 'build_web'), display_order ASC, id ASC",
+    createFields: ['category', 'package_key', 'title', 'description', 'price_min_vnd', 'price_max_vnd', 'display_order', 'status'],
+    updateFields: ['category', 'package_key', 'title', 'description', 'price_min_vnd', 'price_max_vnd', 'display_order', 'status'],
+  },
+  'web-service-orders': {
+    table: 'web_service_orders',
+    title: 'Web service orders',
+    searchFields: ['order_code', 'category', 'package_key', 'package_title', 'contact', 'desired_domain', 'requirement', 'status', 'admin_note'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    updateFields: ['status', 'admin_note', 'quoted_price_vnd', 'contact', 'desired_domain', 'requirement', 'price_min_vnd', 'price_max_vnd'],
   },
   'press-publications': {
     table: 'press_publications',
@@ -1099,6 +1117,14 @@ async function normalizeRawTablePayload(table: string, data: Record<string, unkn
     return output;
   }
 
+  if (table === 'web_service_packages' || table === 'web_service_orders') {
+    const now = getVietnamDatabaseDateTime();
+    if (columnTypes.has('updated_at')) {
+      output.updated_at = now;
+    }
+    return output;
+  }
+
   if (table === 'press_publications' || table === 'press_orders') {
     const now = getUtcDatabaseDateTime();
     if (columnTypes.has('updated_at')) {
@@ -1245,6 +1271,10 @@ export async function listAdminResource(resource: string, params: URLSearchParam
 
   if (resource === 'forum-threads') {
     return listForumThreads(config, params, page, perPage, skip);
+  }
+
+  if (resource === 'forum-posts') {
+    return listForumPosts(config, params, page, perPage, skip);
   }
 
   if (config.table) {
@@ -1673,7 +1703,9 @@ async function listForumThreads(config: ResourceConfig, params: URLSearchParams,
       `
         SELECT
           t.*,
-          p.content AS content
+          p.content AS content,
+          ${forumVietnamTimestampSql('t.created_at')} AS created_at,
+          ${forumVietnamTimestampSql('t.updated_at')} AS updated_at
         ${fromSql}
         ORDER BY t.is_pinned DESC, t.updated_at DESC, t.id DESC
         LIMIT ? OFFSET ?
@@ -2199,6 +2231,70 @@ async function listRegistrationIps(config: ResourceConfig, params: URLSearchPara
   };
 }
 
+async function listForumPosts(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
+  const search = (params.get('search') || '').trim();
+  const status = (params.get('status') || '').trim();
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(`(
+      CAST(p.id AS CHAR) LIKE ?
+      OR CAST(p.thread_id AS CHAR) LIKE ?
+      OR CAST(p.user_id AS CHAR) LIKE ?
+      OR COALESCE(p.content, '') LIKE ?
+      OR COALESCE(p.status, '') LIKE ?
+    )`);
+    values.push(like, like, like, like, like);
+  }
+
+  if (status) {
+    conditions.push('COALESCE(p.status, \'\') = ?');
+    values.push(status);
+  }
+
+  const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const fromSql = `FROM forum_posts p ${whereSql}`;
+
+  const [rows, countRows] = await Promise.all([
+    db.$queryRawUnsafe<Record<string, unknown>[]>(
+      `
+        SELECT
+          p.*,
+          ${forumVietnamTimestampSql('p.created_at')} AS created_at,
+          ${forumVietnamTimestampSql('p.updated_at')} AS updated_at
+        ${fromSql}
+        ORDER BY p.updated_at DESC, p.id DESC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `SELECT COUNT(*) AS total ${fromSql}`,
+      ...values
+    ),
+  ]);
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: config.title,
+    data: normalizeValue(rows),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: Boolean(config.readonly),
+    create_fields: config.createFields || [],
+    update_fields: config.updateFields || [],
+  };
+}
+
 async function listRawTable(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
   const table = await getActualRawTable(config);
   const hasFindJobPinColumn = config.table === 'find_jobs' ? await ensureFindJobPinColumn(table as 'find_job_jobs' | 'find_jobs') : false;
@@ -2375,6 +2471,10 @@ export async function updateAdminResource(resource: string, id: number, input: R
     data.status = normalizeAutoMxhOrderStatus(data.status);
   }
 
+  if ((resource === 'forum-threads' || resource === 'forum-posts') && typeof data.status === 'string') {
+    data.status = normalizeForumModerationStatus(data.status);
+  }
+
   let updated: unknown;
   if (config.table) {
     updated = await updateRawTable(config, id, data);
@@ -2389,6 +2489,14 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   if (resource === 'smm-services') {
     clearSmmServicesCache();
+  }
+
+  if (resource === 'forum-threads' && typeof data.status === 'string') {
+    await syncForumThreadStatusAfterAdminPatch(id, String(data.status), req, adminId);
+  }
+
+  if (resource === 'forum-posts' && typeof data.status === 'string') {
+    await syncForumPostStatusAfterAdminPatch(id, String(data.status), req, adminId);
   }
 
   await logAdminAction({ adminId, action: `update ${resource}`, target: `#${id}`, req });
@@ -2951,6 +3059,136 @@ async function setSmmServicesMarginPercent(
   });
 
   return { success: true, affected };
+}
+
+function normalizeForumModerationStatus(status: string) {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (['active', 'approved', 'open', 'published'].includes(normalized)) return 'active';
+  if (['reject', 'rejected'].includes(normalized)) return 'rejected';
+  if (['delete', 'deleted'].includes(normalized)) return 'deleted';
+  if (['hide', 'hidden'].includes(normalized)) return 'hidden';
+  if (normalized === 'pending') return 'pending';
+  return normalized || 'pending';
+}
+
+async function syncForumThreadStatusAfterAdminPatch(id: number, status: string, req: NextRequest, adminId: number) {
+  const nextStatus = normalizeForumModerationStatus(status);
+
+  if (!['active', 'rejected', 'pending', 'hidden', 'deleted'].includes(nextStatus)) return;
+
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    'SELECT id, user_id, title FROM `forum_threads` WHERE id = ? LIMIT 1',
+    id
+  );
+  const thread = rows[0];
+  if (!thread) return;
+
+  const firstPostRows = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>(
+    'SELECT id FROM `forum_posts` WHERE thread_id = ? AND is_first_post = 1 ORDER BY id ASC LIMIT 1',
+    id
+  );
+  const firstPostId = Number(firstPostRows[0]?.id || 0) || null;
+
+  await db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      'UPDATE `forum_threads` SET status = ?, is_deleted = ?, updated_at = NOW(), last_post_id = COALESCE(?, last_post_id) WHERE id = ?',
+      nextStatus,
+      nextStatus === 'deleted' ? 1 : 0,
+      firstPostId,
+      id
+    );
+    await tx.$executeRawUnsafe(
+      'UPDATE `forum_posts` SET status = ?, is_deleted = ?, updated_at = NOW() WHERE thread_id = ? AND is_first_post = 1',
+      nextStatus,
+      nextStatus === 'deleted' ? 1 : 0,
+      id
+    );
+  });
+
+  if (nextStatus === 'active' || nextStatus === 'rejected') {
+    await notifyModerationUser({
+      userId: Number(thread.user_id || 0),
+      adminId,
+      type: nextStatus === 'active' ? 'forum_thread_approved' : 'forum_thread_rejected',
+      message: nextStatus === 'active'
+        ? `Thread của bạn đã được duyệt: ${String(thread.title || `#${id}`)}`
+        : `Thread của bạn đã bị từ chối: ${String(thread.title || `#${id}`)}`,
+      link: nextStatus === 'active' ? `/user/forum/thread/${id}` : '/user/forum/my-threads',
+    });
+    await logAdminAction({ adminId, action: `sync forum thread ${nextStatus}`, target: `#${id}`, req });
+  }
+}
+
+async function syncForumPostStatusAfterAdminPatch(id: number, status: string, req: NextRequest, adminId: number) {
+  const nextStatus = normalizeForumModerationStatus(status);
+
+  if (!['active', 'rejected', 'pending', 'hidden', 'deleted'].includes(nextStatus)) return;
+
+  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
+    `
+      SELECT p.id, p.thread_id, p.user_id, p.is_first_post, t.title, t.user_id AS thread_owner_id
+      FROM forum_posts p
+      LEFT JOIN forum_threads t ON t.id = p.thread_id
+      WHERE p.id = ?
+      LIMIT 1
+    `,
+    id
+  );
+  const post = rows[0];
+  if (!post) return;
+
+  const threadId = Number(post.thread_id || 0);
+  const postUserId = Number(post.user_id || 0);
+  const threadOwnerId = Number(post.thread_owner_id || 0);
+  const isFirstPost = Number(post.is_first_post || 0) === 1;
+
+  await db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      'UPDATE `forum_posts` SET status = ?, is_deleted = ?, updated_at = NOW() WHERE id = ?',
+      nextStatus,
+      nextStatus === 'deleted' ? 1 : 0,
+      id
+    );
+
+    if (isFirstPost) {
+      await tx.$executeRawUnsafe(
+        'UPDATE `forum_threads` SET status = ?, is_deleted = ?, updated_at = NOW(), last_post_id = ? WHERE id = ?',
+        nextStatus,
+        nextStatus === 'deleted' ? 1 : 0,
+        id,
+        threadId
+      );
+    } else if (nextStatus === 'active') {
+      await tx.$executeRawUnsafe(
+        'UPDATE `forum_threads` SET updated_at = NOW(), last_post_id = ? WHERE id = ?',
+        id,
+        threadId
+      );
+    }
+  });
+
+  if (nextStatus === 'active' || nextStatus === 'rejected') {
+    await notifyModerationUser({
+      userId: postUserId,
+      adminId,
+      type: nextStatus === 'active' ? 'forum_post_approved' : 'forum_post_rejected',
+      message: nextStatus === 'active'
+        ? `Bài viết của bạn đã được duyệt trong thread: ${String(post.title || `#${threadId}`)}`
+        : `Bài viết của bạn đã bị từ chối trong thread: ${String(post.title || `#${threadId}`)}`,
+      link: nextStatus === 'active' ? `/user/forum/thread/${threadId}#post-${id}` : '/user/forum/posts',
+    });
+
+    if (nextStatus === 'active' && !isFirstPost && threadOwnerId && threadOwnerId !== postUserId) {
+      await notifyModerationUser({
+        userId: threadOwnerId,
+        adminId,
+        type: 'reply',
+        message: `Có phản hồi mới đã được duyệt trong chủ đề của bạn: ${String(post.title || `#${threadId}`)}`,
+        link: `/user/forum/thread/${threadId}#post-${id}`,
+      });
+    }
+    await logAdminAction({ adminId, action: `sync forum post ${nextStatus}`, target: `#${id}`, req });
+  }
 }
 
 export async function runAdminAction(resource: string, input: Record<string, unknown>, adminId: number, req: NextRequest) {
@@ -3632,6 +3870,9 @@ async function insertRawTable(config: ResourceConfig, data: Record<string, unkno
   if ((table === 'press_publications' || table === 'press_orders') && columnsInTable.has('created_at') && payload.created_at === undefined) {
     payload.created_at = getUtcDatabaseDateTime();
   }
+  if ((table === 'web_service_packages' || table === 'web_service_orders') && columnsInTable.has('created_at') && payload.created_at === undefined) {
+    payload.created_at = getVietnamDatabaseDateTime();
+  }
   const filteredData = await normalizeRawTablePayload(table, await filterRawTableData(table, payload));
   const fields = Object.keys(filteredData);
   if (fields.length === 0) {
@@ -3711,6 +3952,10 @@ async function getActualRawTable(config: ResourceConfig) {
 
   if (config.table === 'press_publications' || config.table === 'press_orders') {
     await ensurePressServiceTables();
+  }
+
+  if (config.table === 'web_service_packages' || config.table === 'web_service_orders') {
+    await ensureWebServiceTables();
   }
 
   return config.table!;

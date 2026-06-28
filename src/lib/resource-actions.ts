@@ -30,7 +30,7 @@ function formatVnd(value: number) {
 
 function insufficientBalanceMessage(wallet: 'main' | 'game', missingAmount: number) {
   return wallet === 'game'
-    ? `Ví game không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để mua sản phẩm này.`
+    ? `Cần nạp thêm ví game ${formatVnd(missingAmount)} để hoàn tất đơn này.`
     : `Số dư không đủ. Vui lòng nạp thêm ${formatVnd(missingAmount)} để mua tài nguyên.`;
 }
 

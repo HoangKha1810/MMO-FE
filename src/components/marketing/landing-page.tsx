@@ -10,11 +10,13 @@ import {
   BarChart3,
   Check,
   Cloud,
+  Code2,
   Clock3,
   Cpu,
   CreditCard,
   Facebook,
   Gamepad2,
+  GraduationCap,
   Instagram,
   Menu,
   MessageCircle,
@@ -167,6 +169,24 @@ const services = [
     gradient: 'from-slate-600 to-slate-700',
     glow: 'shadow-slate-500/20',
     badge: null,
+  },
+  {
+    title: 'Khóa học MMO',
+    desc: 'Học MMO thực chiến từ cơ bản đến nâng cao',
+    href: 'https://hotieubao.net',
+    icon: GraduationCap,
+    gradient: 'from-amber-500 to-orange-600',
+    glow: 'shadow-amber-500/20',
+    badge: 'COURSE',
+  },
+  {
+    title: 'Khóa học Code',
+    desc: 'Học lập trình, web và công cụ AI thực chiến',
+    href: 'https://hotieubao.net',
+    icon: Code2,
+    gradient: 'from-blue-500 to-cyan-600',
+    glow: 'shadow-blue-500/20',
+    badge: 'CODE',
   },
 ];
 
@@ -807,43 +827,48 @@ export function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {services.map((service, i) => (
-              <Link
-                key={service.title}
-                href={service.href}
-                className="group relative block overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-8 shadow-sm transition-all duration-400 hover:-translate-y-2 hover:border-transparent hover:shadow-2xl dark:border-white/[0.06] dark:bg-[#0c1529]"
-                style={{ transitionDelay: `${i * 30}ms` }}
-              >
-                {/* Hover glow */}
-                <div className={`absolute -inset-px rounded-3xl bg-gradient-to-br ${service.gradient} opacity-0 transition-opacity duration-500 group-hover:opacity-10`} />
+            {services.map((service, i) => {
+              const isExternal = /^https?:\/\//i.test(service.href);
+              return (
+                <Link
+                  key={service.title}
+                  href={service.href}
+                  target={isExternal ? '_blank' : undefined}
+                  rel={isExternal ? 'noreferrer' : undefined}
+                  className="group relative block overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-8 shadow-sm transition-all duration-400 hover:-translate-y-2 hover:border-transparent hover:shadow-2xl dark:border-white/[0.06] dark:bg-[#0c1529]"
+                  style={{ transitionDelay: `${i * 30}ms` }}
+                >
+                  {/* Hover glow */}
+                  <div className={`absolute -inset-px rounded-3xl bg-gradient-to-br ${service.gradient} opacity-0 transition-opacity duration-500 group-hover:opacity-10`} />
 
-                <div className="relative z-10 space-y-6">
-                  {/* Icon */}
-                  <div className={`relative inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${service.gradient} shadow-lg ${service.glow}`}>
-                    <service.icon className="h-6 w-6 text-white" />
-                    {service.badge ? (
-                      <span className="absolute -right-2 -top-2 rounded-full bg-rose-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest text-white shadow-md">
-                        {service.badge}
-                      </span>
-                    ) : null}
-                  </div>
+                  <div className="relative z-10 space-y-6">
+                    {/* Icon */}
+                    <div className={`relative inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${service.gradient} shadow-lg ${service.glow}`}>
+                      <service.icon className="h-6 w-6 text-white" />
+                      {service.badge ? (
+                        <span className="absolute -right-2 -top-2 rounded-full bg-rose-500 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest text-white shadow-md">
+                          {service.badge}
+                        </span>
+                      ) : null}
+                    </div>
 
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white">
-                      {service.title}
-                    </h3>
-                    <p className="text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                      {service.desc}
-                    </p>
-                  </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white">
+                        {service.title}
+                      </h3>
+                      <p className="text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                        {service.desc}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 transition-colors group-hover:text-brand-blue">
-                    Xem thêm
-                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                    <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 transition-colors group-hover:text-brand-blue">
+                      Xem thêm
+                      <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

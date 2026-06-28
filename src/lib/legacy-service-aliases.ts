@@ -35,6 +35,8 @@ const LEGACY_SERVICE_ALIASES: LegacyServiceAliasEntry[] = [
   { slug: 'resources', label: 'Tài nguyên MMO', target: '/user/resources', area: 'user', preserveTail: true },
   { slug: 'support-tiktok', label: 'Support TikTok', target: '/user/support-tiktok', area: 'user', preserveTail: true },
   { slug: 'meta-support', label: 'Auto kích nút Meta', target: '/user/meta-support', area: 'user', preserveTail: true },
+  { slug: 'web-service', label: 'Web con MMO và Build Website', target: '/user/web-service', area: 'user', preserveTail: true },
+  { slug: 'build-website', label: 'Build Website', target: '/user/web-service', area: 'user', preserveTail: true },
   { slug: 'forum', label: 'Forum MMO', target: '/user/forum', area: 'user', preserveTail: true },
   { slug: 'find-job', label: 'Find Job', target: '/user/find-job', area: 'user', preserveTail: true },
   { slug: 'game-market', label: 'Game Market', target: '/user/game-market', area: 'user', preserveTail: true },

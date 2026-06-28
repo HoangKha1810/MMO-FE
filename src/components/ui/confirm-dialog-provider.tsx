@@ -1,7 +1,7 @@
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';
-import { AlertTriangle, HelpCircle, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, HelpCircle, ShieldCheck, WalletCards } from 'lucide-react';
 import {
   createContext,
   useCallback,
@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-type ConfirmTone = 'default' | 'brand' | 'danger';
+type ConfirmTone = 'default' | 'brand' | 'danger' | 'payment';
 
 type ConfirmDialogRequest = {
   title?: string;
@@ -49,6 +49,7 @@ const toneConfig: Record<
     icon: typeof HelpCircle;
     iconClassName: string;
     accentClassName: string;
+    shellClassName: string;
     confirmVariant: 'default' | 'destructive';
   }
 > = {
@@ -56,19 +57,29 @@ const toneConfig: Record<
     icon: HelpCircle,
     iconClassName: 'text-slate-500 dark:text-slate-300',
     accentClassName: 'from-slate-500/16 via-slate-300/10 to-transparent dark:from-white/10 dark:via-white/4',
+    shellClassName: 'border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/[0.05]',
     confirmVariant: 'default',
   },
   brand: {
     icon: ShieldCheck,
     iconClassName: 'text-brand-blue',
     accentClassName: 'from-brand-blue/22 via-cyan-400/12 to-transparent dark:from-brand-blue/24 dark:via-cyan-300/10',
+    shellClassName: 'border-brand-blue/20 bg-brand-blue/10 dark:border-brand-blue/30 dark:bg-brand-blue/12',
     confirmVariant: 'default',
   },
   danger: {
     icon: AlertTriangle,
     iconClassName: 'text-rose-500',
     accentClassName: 'from-rose-500/20 via-orange-400/12 to-transparent dark:from-rose-500/24 dark:via-orange-300/10',
+    shellClassName: 'border-rose-400/25 bg-rose-500/10 dark:border-rose-300/20 dark:bg-rose-500/12',
     confirmVariant: 'destructive',
+  },
+  payment: {
+    icon: WalletCards,
+    iconClassName: 'text-cyan-300 dark:text-cyan-200',
+    accentClassName: 'from-cyan-400/24 via-brand-blue/16 to-emerald-400/10 dark:from-cyan-300/18 dark:via-brand-blue/18 dark:to-emerald-300/10',
+    shellClassName: 'border-cyan-300/30 bg-cyan-400/10 dark:border-cyan-200/20 dark:bg-cyan-300/10',
+    confirmVariant: 'default',
   },
 };
 
@@ -170,9 +181,9 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="confirm-dialog-overlay fixed inset-0 z-[300] bg-slate-950/58 backdrop-blur-md" />
+          <Dialog.Overlay className="confirm-dialog-overlay fixed inset-0 z-[300] bg-[linear-gradient(135deg,rgba(2,6,23,0.76),rgba(15,23,42,0.66))] backdrop-blur-md" />
           <Dialog.Content
-            className="confirm-dialog-content fixed left-1/2 top-1/2 z-[301] w-[calc(100vw-1.5rem)] max-w-[32rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] p-5 shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] outline-none dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(11,17,31,0.98),rgba(8,13,24,0.96))] sm:p-6"
+            className="confirm-dialog-content fixed left-1/2 top-1/2 z-[301] w-[calc(100vw-1.5rem)] max-w-[35rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] p-5 shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] outline-none dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(6,12,23,0.98))] sm:p-6"
           >
             {current ? (
               <>
@@ -182,17 +193,23 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                     tone.accentClassName
                   )}
                 />
-                <div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-soft-light dark:opacity-30">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.25),transparent_48%)]" />
+                <div className="confirm-dialog-sweep pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-70" />
+                <div className="pointer-events-none absolute inset-0 opacity-[0.18] dark:opacity-[0.12]">
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:28px_28px]" />
                 </div>
 
                 <div className="relative">
                   <div className="flex items-start gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.35rem] border border-slate-200/80 bg-white/90 shadow-[0_20px_40px_-28px_rgba(37,99,235,0.28)] dark:border-white/10 dark:bg-white/[0.05]">
+                    <div
+                      className={cn(
+                        'confirm-dialog-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.2rem] border shadow-[0_20px_40px_-28px_rgba(37,99,235,0.28)]',
+                        tone.shellClassName
+                      )}
+                    >
                       <Icon className={cn('h-6 w-6', tone.iconClassName)} />
                     </div>
                     <div className="min-w-0 space-y-2 pt-1">
-                      <Dialog.Title className="text-lg font-black uppercase tracking-[-0.03em] text-slate-950 dark:text-white sm:text-xl">
+                      <Dialog.Title className="text-lg font-black uppercase tracking-normal text-slate-950 dark:text-white sm:text-xl">
                         {current.title}
                       </Dialog.Title>
                       <Dialog.Description className="text-sm font-medium leading-7 text-slate-600 dark:text-slate-300 sm:text-[15px]">

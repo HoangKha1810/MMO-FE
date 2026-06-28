@@ -103,11 +103,11 @@ export function ResourceDetailActions({
         if (gameBalance < totalPrice) {
           const missingAmount = Math.max(0, totalPrice - gameBalance);
           const goDeposit = await confirm({
-            title: 'Ví game không đủ',
-            description: `Bạn cần nạp thêm ${new Intl.NumberFormat('vi-VN').format(missingAmount)}đ vào ví game để mua sản phẩm này.`,
+            title: 'Cần nạp thêm ví game',
+            description: `Đơn này cần ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ. Ví game hiện có ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ, còn thiếu ${new Intl.NumberFormat('vi-VN').format(missingAmount)}đ để hoàn tất thanh toán.`,
             confirmText: 'Nạp ví game',
             cancelText: 'Để sau',
-            tone: 'danger',
+            tone: 'payment',
           });
 
           if (goDeposit) {
@@ -117,11 +117,11 @@ export function ResourceDetailActions({
         }
 
         const useGameWallet = await confirm({
-          title: 'Thanh toán dịch vụ game',
-          description: `Sản phẩm này dùng ví game riêng. Bạn có thể thanh toán bằng ví game hiện có (${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ), hoặc liên hệ Admin để rút/chuyển tiền từ tài khoản chính sang ví game. Mỗi lần rút/chuyển từ tài khoản chính có phí 10%.`,
+          title: 'Xác nhận thanh toán ví game',
+          description: `Bạn sẽ thanh toán ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ bằng ví game. Số dư hiện tại: ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ. Sau khi mua thành công, đơn sẽ xuất hiện trong lịch sử tải.`,
           confirmText: 'Sử dụng ví game',
           cancelText: 'Liên hệ admin',
-          tone: 'brand',
+          tone: 'payment',
         });
 
         if (!useGameWallet) {

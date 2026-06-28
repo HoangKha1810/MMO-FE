@@ -69,6 +69,11 @@ export const ACTIVE_FORUM_STATUSES = ['active', 'approved', 'open', 'published']
 export const VISIBLE_FORUM_STATUSES = [...ACTIVE_FORUM_STATUSES, 'pending', 'rejected', 'hidden'] as const;
 const ACTIVE_FORUM_STATUS_SQL = "'active', 'approved', 'open', 'published'";
 const VISIBLE_FORUM_STATUS_SQL = "'active', 'approved', 'open', 'published', 'pending', 'rejected', 'hidden'";
+
+export function forumVietnamTimestampSql(column: string) {
+  return `DATE_FORMAT(DATE_ADD('1970-01-01 00:00:00', INTERVAL (UNIX_TIMESTAMP(${column}) + 25200) SECOND), '%Y-%m-%d %H:%i:%s')`;
+}
+
 const FORUM_GAMBLING_PATTERNS = [
   /\bcasino\b/i,
   /\bbaccarat\b/i,
@@ -152,8 +157,8 @@ export async function getForumOverview() {
           t.is_pinned,
           t.is_locked,
           t.status,
-          t.created_at,
-          t.updated_at,
+          ${forumVietnamTimestampSql('t.created_at')} AS created_at,
+          ${forumVietnamTimestampSql('t.updated_at')} AS updated_at,
           f.name AS forum_name,
           f.slug AS forum_slug,
           c.name AS category_name,
@@ -272,8 +277,8 @@ const threadSelectSql = `
     t.is_pinned,
     t.is_locked,
     t.status,
-    t.created_at,
-    t.updated_at,
+    ${forumVietnamTimestampSql('t.created_at')} AS created_at,
+    ${forumVietnamTimestampSql('t.updated_at')} AS updated_at,
     f.name AS forum_name,
     f.slug AS forum_slug,
     c.name AS category_name,
@@ -457,8 +462,8 @@ export async function getForumThreadDetails(threadId: number, viewerId?: number,
         p.user_id,
         p.content,
         p.is_first_post,
-        p.created_at,
-        p.updated_at,
+        ${forumVietnamTimestampSql('p.created_at')} AS created_at,
+        ${forumVietnamTimestampSql('p.updated_at')} AS updated_at,
         p.status,
         u.username,
         u.role,

@@ -1,6 +1,11 @@
 import 'server-only';
 
+import { createHash } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, extname, join } from 'node:path';
+
 import { db } from '@/lib/db';
+import { detectGameAccountThumbnailKey } from '@/lib/game-account-media';
 import {
   calculateGameAccountApiPrice,
   clampResourcePrice,
@@ -11,11 +16,13 @@ import {
   buildRandom1kResourceWhereSql,
   buildRandom1kTags,
   getGameAccountProviderKind,
+  getProviderOrigin,
   getRandom1kResourceType,
   isRandom1kProviderLike,
   normalizeProviderAssetUrl,
 } from '@/lib/random1k';
 import { hideProviderBranding } from '@/lib/provider-branding';
+import { isBlockedProviderMedia } from '@/lib/provider-media';
 import { cleanResourceHtml } from '@/lib/resource-content';
 import { slugify, toNumber } from '@/lib/utils';
 
@@ -324,6 +331,161 @@ function normalizeMoney(value: unknown, exchangeRate: number) {
 
 function buildCategoryKey(name: string, parentRemoteId: string | null) {
   return `${parentRemoteId || 'root'}::${slugify(name)}`;
+}
+
+function isPlaceholderCategoryIcon(value: unknown) {
+  const raw = String(value || '').trim().toLowerCase();
+  return !raw || ['package', 'image', 'photo', 'box'].includes(raw);
+}
+
+function isLocalSiteMedia(value: unknown) {
+  const raw = String(value || '').trim();
+  return (
+    /^data:/i.test(raw) ||
+    /^blob:/i.test(raw) ||
+    /^(?:\/)?(?:assets|uploads|automxh|public)\//i.test(raw)
+  );
+}
+
+function isProviderMediaCachePath(value: unknown) {
+  return /^(?:\/)?uploads\/provider-media\//i.test(String(value || '').trim());
+}
+
+function isProtectedLocalSiteMedia(value: unknown) {
+  return isLocalSiteMedia(value) && !isProviderMediaCachePath(value);
+}
+
+function isProviderOwnedMedia(provider: ProviderRecord, value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?\//i.test(raw)) return true;
+  if (isBlockedProviderMedia(raw)) return true;
+
+  const providerOrigin = getProviderOrigin(provider);
+  if (!providerOrigin || !/^https?:\/\//i.test(raw)) return false;
+
+  try {
+    return new URL(raw).hostname.toLowerCase() === new URL(providerOrigin).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+function chooseProviderSyncedMedia(
+  provider: ProviderRecord,
+  current: unknown,
+  remote: unknown,
+  options: { placeholderIcon?: boolean } = {}
+) {
+  const remoteRaw = String(remote || '').trim();
+  const remoteUrl = isLocalSiteMedia(remoteRaw) ? remoteRaw : normalizeProviderAssetUrl(provider, remoteRaw);
+  const currentRaw = String(current || '').trim();
+
+  if (!remoteUrl) return currentRaw;
+  if (!currentRaw) return remoteUrl;
+  if (options.placeholderIcon && isPlaceholderCategoryIcon(currentRaw)) return remoteUrl;
+  if (isProtectedLocalSiteMedia(currentRaw)) return currentRaw;
+  if (normalizeProviderAssetUrl(provider, currentRaw) !== currentRaw) return remoteUrl;
+  if (isProviderOwnedMedia(provider, currentRaw)) return remoteUrl;
+
+  return currentRaw;
+}
+
+function chooseManualProductMedia(provider: ProviderRecord, current: unknown) {
+  const currentRaw = String(current || '').trim();
+  if (!currentRaw || isProviderMediaCachePath(currentRaw)) return '';
+  if (isProtectedLocalSiteMedia(currentRaw)) return currentRaw;
+  if (normalizeProviderAssetUrl(provider, currentRaw) !== currentRaw) return '';
+  if (isProviderOwnedMedia(provider, currentRaw)) return '';
+  return currentRaw;
+}
+
+const providerMediaCache = new Map<string, Promise<string>>();
+
+function getProviderMediaExtension(contentType: string, mediaUrl: string) {
+  const normalizedType = contentType.toLowerCase().split(';')[0]?.trim();
+  if (normalizedType === 'image/jpeg' || normalizedType === 'image/jpg') return '.jpg';
+  if (normalizedType === 'image/png') return '.png';
+  if (normalizedType === 'image/webp') return '.webp';
+  if (normalizedType === 'image/gif') return '.gif';
+  if (normalizedType === 'image/svg+xml') return '.svg';
+
+  try {
+    const ext = extname(new URL(mediaUrl).pathname).toLowerCase();
+    if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'].includes(ext)) {
+      return ext === '.jpeg' ? '.jpg' : ext;
+    }
+  } catch {
+    // Fall through to the default extension.
+  }
+
+  return '.png';
+}
+
+async function downloadProviderMediaAsset(provider: ProviderRecord, mediaUrl: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch(mediaUrl, {
+      method: 'GET',
+      headers: {
+        ...buildProviderHeaders(provider),
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+      cache: 'no-store',
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    const contentType = response.headers.get('content-type') || '';
+
+    if (!response.ok || !/^image\//i.test(contentType)) {
+      return mediaUrl;
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length === 0) return mediaUrl;
+
+    const hash = createHash('sha256').update(mediaUrl).update(buffer.subarray(0, 4096)).digest('hex').slice(0, 28);
+    const extension = getProviderMediaExtension(contentType, mediaUrl);
+    const relativePath = `/uploads/provider-media/${provider.id}/${hash}${extension}`;
+    const absolutePath = join(process.cwd(), 'public', relativePath.replace(/^\/+/, ''));
+
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, buffer);
+
+    return relativePath;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[mmo-provider] provider media cache failed', {
+        providerId: provider.id,
+        mediaUrl,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return mediaUrl;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function cacheProviderMediaAsset(provider: ProviderRecord, value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (isLocalSiteMedia(raw)) return raw;
+
+  const mediaUrl = normalizeProviderAssetUrl(provider, raw);
+  if (!mediaUrl || !/^https?:\/\//i.test(mediaUrl)) return mediaUrl;
+  if (!isProviderOwnedMedia(provider, mediaUrl)) return mediaUrl;
+
+  const key = `${provider.id}:${mediaUrl}`;
+  let promise = providerMediaCache.get(key);
+  if (!promise) {
+    promise = downloadProviderMediaAsset(provider, mediaUrl);
+    providerMediaCache.set(key, promise);
+  }
+
+  return promise;
 }
 
 function guessResourceType(categoryName: string, productName: string) {
@@ -824,6 +986,7 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
 
     let displayOrder = 1;
     const seenCategoryIds = new Set<string>();
+    const categoryMediaByRemoteId = new Map<string, string>();
 
     for (const remoteCategory of sortedCategories) {
       const remoteId = String(remoteCategory.id || '').trim();
@@ -841,8 +1004,10 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
       const categoryName = isRandom1kProvider ? hideProviderBranding(rawCategoryName, `Category ${remoteId}`) : rawCategoryName;
       const slug = existing?.slug || `${slugify(categoryName)}-${provider.id}-${remoteId}`;
       const remoteIcon = normalizeProviderAssetUrl(provider, remoteCategory.icon || '');
-      const icon = String(remoteIcon || existing?.icon || 'package');
-      const image = String(remoteIcon || existing?.image || '');
+      const cachedRemoteIcon = await cacheProviderMediaAsset(provider, remoteIcon);
+      categoryMediaByRemoteId.set(remoteId, cachedRemoteIcon);
+      const icon = chooseProviderSyncedMedia(provider, existing?.icon, cachedRemoteIcon, { placeholderIcon: true }) || 'package';
+      const image = chooseProviderSyncedMedia(provider, existing?.image, cachedRemoteIcon);
 
       if (existing?.id) {
         await db.$executeRawUnsafe(
@@ -972,8 +1137,16 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
         ? rewriteGameAccountPriceMentions(baseDescription, { sourcePrice: providerPrice, displayPrice: finalPrice })
         : baseDescription;
       const nextStatus = stock > 0 ? 'active' : 'out_of_stock';
-      const remoteThumbnail = normalizeProviderAssetUrl(provider, entry.category.icon || '');
-      const thumbnail = String(existing?.thumbnail || remoteThumbnail || '');
+      const usesLocalGameThumbnail = Boolean(
+        detectGameAccountThumbnailKey(baseTitle, categoryName, rawDescription, existing?.custom_badge, existing?.tags)
+      );
+      const remoteThumbnail = usesLocalGameThumbnail
+        ? ''
+        : categoryMediaByRemoteId.get(String(entry.category.id || '')) ||
+          await cacheProviderMediaAsset(provider, normalizeProviderAssetUrl(provider, entry.category.icon || ''));
+      const thumbnail = usesLocalGameThumbnail
+        ? chooseManualProductMedia(provider, existing?.thumbnail)
+        : chooseProviderSyncedMedia(provider, existing?.thumbnail, remoteThumbnail);
       const resourceType = String(existing?.resource_type || (
         isRandom1kProvider ? getRandom1kResourceType(categoryName, baseTitle) : guessResourceType(categoryName, baseTitle)
       ));
@@ -1028,7 +1201,7 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
           `
             INSERT INTO mmo_resources
               (product_code, title, description, category, category_id, price, original_price, thumbnail, resource_type, stock, sold_count, download_url, content, product_content, product_note, tags, status, featured, is_pinned, created_by, created_at, updated_at, api_provider_id, api_product_id, is_auto, is_auto_margin, margin_percent, custom_badge, display_order, is_deleted)
-            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, NULL, ?, ?, ?, 0, 0, ?, NOW(), NOW(), ?, ?, 1, 0, 0, NULL, ?, 0)
+            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, NULL, ?, ?, ?, 0, 0, ?, NOW(), NOW(), ?, ?, 1, 0, 0, ?, ?, 0)
           `,
           title,
           description || null,
@@ -1045,6 +1218,7 @@ export async function syncMmoResourcesFromProviders(input: { providerId?: number
           adminId,
           String(provider.id),
           remoteProductId,
+          customBadge,
           productOrder
         );
         const inserted = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>('SELECT LAST_INSERT_ID() AS id');

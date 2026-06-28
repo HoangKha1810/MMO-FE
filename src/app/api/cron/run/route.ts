@@ -208,9 +208,74 @@ async function runResourceMaintenance() {
   return { expired_orders: Number(expired || 0) };
 }
 
-async function runMmoResourceSync() {
+type MmoProviderCronScope = 'random1k' | 'shopreg61' | 'game-account-api';
+
+function buildMmoProviderScopeWhere(scope: MmoProviderCronScope) {
+  if (scope === 'random1k') {
+    return `
+      AND (
+        LOWER(COALESCE(name, '')) LIKE '%random1k%'
+        OR LOWER(COALESCE(name, '')) LIKE '%random 1k%'
+        OR LOWER(COALESCE(type, '')) LIKE '%random1k%'
+        OR LOWER(COALESCE(api_url, '')) LIKE '%random1k.com%'
+      )
+    `;
+  }
+
+  if (scope === 'shopreg61') {
+    return `
+      AND (
+        LOWER(COALESCE(name, '')) LIKE '%shopreg61%'
+        OR LOWER(COALESCE(type, '')) LIKE '%shopreg%'
+        OR LOWER(COALESCE(api_url, '')) LIKE '%shopreg61.com%'
+      )
+    `;
+  }
+
+  return `
+    AND (
+      LOWER(COALESCE(name, '')) LIKE '%random1k%'
+      OR LOWER(COALESCE(name, '')) LIKE '%random 1k%'
+      OR LOWER(COALESCE(name, '')) LIKE '%shopreg61%'
+      OR LOWER(COALESCE(type, '')) LIKE '%gameaccount%'
+      OR LOWER(COALESCE(type, '')) LIKE '%random1k%'
+      OR LOWER(COALESCE(type, '')) LIKE '%shopreg%'
+      OR LOWER(COALESCE(api_url, '')) LIKE '%random1k.com%'
+      OR LOWER(COALESCE(api_url, '')) LIKE '%shopreg61.com%'
+    )
+  `;
+}
+
+async function runMmoResourceSync(scope?: MmoProviderCronScope) {
   const { syncMmoResourcesFromProviders } = await import('@/lib/mmo-provider');
-  return syncMmoResourcesFromProviders();
+  if (!scope) return syncMmoResourcesFromProviders();
+
+  const providers = await db.$queryRawUnsafe<Array<{ id: number | bigint }>>(`
+    SELECT id
+    FROM api_providers
+    WHERE service_type = 'mmo'
+      AND status = 'active'
+      ${buildMmoProviderScopeWhere(scope)}
+    ORDER BY id ASC
+  `);
+  const summary = {
+    providers: 0,
+    categories: 0,
+    products: 0,
+    disabled_categories: 0,
+    disabled_products: 0,
+  };
+
+  for (const provider of providers) {
+    const result = await syncMmoResourcesFromProviders({ providerId: Number(provider.id) });
+    summary.providers += Number(result.providers || 0);
+    summary.categories += Number(result.categories || 0);
+    summary.products += Number(result.products || 0);
+    summary.disabled_categories += Number(result.disabled_categories || 0);
+    summary.disabled_products += Number(result.disabled_products || 0);
+  }
+
+  return summary;
 }
 
 async function runFindJobMaintenance() {
@@ -298,7 +363,10 @@ async function runTask(task: string, options: { force?: boolean } = {}): Promise
   if (shouldRun('providers')) summary.providers = await runProviderHealth();
   if (shouldRun('automxh')) summary.automxh = await runAutoMxhMaintenance();
   if (shouldRun('resources')) summary.resources = await runResourceMaintenance();
-  if (shouldRun('mmo-resources') || shouldRun('game-account-api') || shouldRun('random1k')) summary.mmo_resources_sync = await runMmoResourceSync();
+  if (task === 'random1k') summary.mmo_resources_sync = await runMmoResourceSync('random1k');
+  else if (task === 'shopreg61') summary.mmo_resources_sync = await runMmoResourceSync('shopreg61');
+  else if (task === 'game-account-api') summary.mmo_resources_sync = await runMmoResourceSync('game-account-api');
+  else if (shouldRun('mmo-resources')) summary.mmo_resources_sync = await runMmoResourceSync();
   if (shouldRun('find-job')) summary.find_job = await runFindJobMaintenance();
   if (shouldRun('support-tiktok')) summary.support_tiktok = await runSupportTikTokMaintenance();
   if (shouldRun('forum-ads')) summary.forum_ads = { expired: Number(await runForumAdsExpiry() || 0) };

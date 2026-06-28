@@ -68,11 +68,11 @@ export function GameMarketDetailActions({
         if (gameBalance < itemPrice) {
           const missingAmount = Math.max(0, itemPrice - gameBalance);
           const goDeposit = await confirm({
-            title: 'Ví game không đủ',
-            description: `Bạn cần nạp thêm ${new Intl.NumberFormat('vi-VN').format(missingAmount)}đ vào ví game để mua sản phẩm này.`,
+            title: 'Cần nạp thêm ví game',
+            description: `Sản phẩm này cần ${new Intl.NumberFormat('vi-VN').format(itemPrice)}đ. Ví game hiện có ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ, còn thiếu ${new Intl.NumberFormat('vi-VN').format(missingAmount)}đ để đặt mua.`,
             confirmText: 'Nạp ví game',
             cancelText: 'Để sau',
-            tone: 'danger',
+            tone: 'payment',
           });
 
           if (goDeposit) {
@@ -86,7 +86,7 @@ export function GameMarketDetailActions({
           description: `Hãy chat với ${sellerUsername || 'người đăng bài'} trước để chốt tình trạng tài khoản, hình thức bàn giao và các thông tin cần thiết. Nếu bạn muốn giao dịch trung gian, nhớ liên hệ Admin trước khi mua để được hỗ trợ đứng giữa xác nhận. Sau khi mua xong, toàn bộ tài khoản, mật khẩu, mail hoặc dữ liệu liên quan nên được gửi qua chính đoạn chat này để dễ đối soát.`,
           confirmText: 'Đã hiểu, mua ngay',
           cancelText: 'Để tôi chat trước',
-          tone: 'brand',
+          tone: 'payment',
         });
 
         if (!accepted) {
@@ -94,11 +94,11 @@ export function GameMarketDetailActions({
         }
 
         const useGameWallet = await confirm({
-          title: 'Thanh toán dịch vụ game',
-          description: `Khu mua bán game dùng ví game riêng. Bạn có thể thanh toán bằng ví game hiện có (${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ), hoặc liên hệ Admin để rút/chuyển tiền từ tài khoản chính sang ví game. Mỗi lần rút/chuyển từ tài khoản chính có phí 10%.`,
+          title: 'Xác nhận thanh toán ví game',
+          description: `Bạn sẽ thanh toán ${new Intl.NumberFormat('vi-VN').format(itemPrice)}đ bằng ví game. Số dư hiện tại: ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ. Sau khi mua, hệ thống sẽ mở chat bàn giao với người bán.`,
           confirmText: 'Sử dụng ví game',
           cancelText: 'Liên hệ admin',
-          tone: 'brand',
+          tone: 'payment',
         });
 
         if (!useGameWallet) {

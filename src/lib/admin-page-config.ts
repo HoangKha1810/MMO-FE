@@ -169,6 +169,25 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
     },
   ],
+  'web-service': [
+    {
+      resource: 'web-service-packages',
+      title: 'Bảng giá dịch vụ web',
+      description: 'Chỉnh gói Web con MMO và Build Website: giá thấp nhất, cao nhất, thứ tự hiển thị và trạng thái.',
+      columns: ['id', 'category', 'package_key', 'title', 'price_min_vnd', 'price_max_vnd', 'display_order', 'status', 'updated_at'],
+      editableFields: ['category', 'package_key', 'title', 'description', 'price_min_vnd', 'price_max_vnd', 'display_order', 'status'],
+      createFields: ['category', 'package_key', 'title', 'description', 'price_min_vnd', 'price_max_vnd', 'display_order', 'status'],
+      statusOptions: ['active', 'inactive'],
+    },
+    {
+      resource: 'web-service-orders',
+      title: 'Đơn dịch vụ web',
+      description: 'Đơn khách gửi từ tab Web con MMO và Build Website. Admin cập nhật báo giá, ghi chú và trạng thái xử lý.',
+      columns: ['id', 'order_code', 'user_id', 'category', 'package_title', 'contact', 'desired_domain', 'price_min_vnd', 'price_max_vnd', 'quoted_price_vnd', 'status', 'admin_note', 'created_at'],
+      editableFields: ['status', 'admin_note', 'quoted_price_vnd', 'contact', 'desired_domain', 'requirement', 'price_min_vnd', 'price_max_vnd'],
+      statusOptions: ['pending', 'processing', 'quoted', 'completed', 'canceled'],
+    },
+  ],
   press: [
     {
       resource: 'press-publications',

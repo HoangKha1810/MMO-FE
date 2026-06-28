@@ -3623,6 +3623,18 @@
   }
 }
 
+@keyframes confirm-dialog-icon-pop {
+  0% { opacity: 0; transform: translateY(8px) scale(0.82); }
+  62% { opacity: 1; transform: translateY(-2px) scale(1.06); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes confirm-dialog-sweep {
+  0% { transform: translateX(-120%); opacity: 0; }
+  18% { opacity: 0.8; }
+  100% { transform: translateX(120%); opacity: 0; }
+}
+
 .confirm-dialog-overlay[data-state="open"] {
   animation: confirm-dialog-overlay-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -3638,6 +3650,14 @@
 
 .confirm-dialog-content[data-state="closed"] {
   animation: confirm-dialog-content-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.confirm-dialog-content[data-state="open"] .confirm-dialog-icon {
+  animation: confirm-dialog-icon-pop 560ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
+}
+
+.confirm-dialog-content[data-state="open"] .confirm-dialog-sweep {
+  animation: confirm-dialog-sweep 1600ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
 }
 
 .telegram-entry-overlay {
@@ -4013,6 +4033,8 @@ html.theme-switching .nav-link-shell {
   .notification-trigger[data-has-unread="true"] .notification-trigger-icon,
   .confirm-dialog-overlay,
   .confirm-dialog-content,
+  .confirm-dialog-icon,
+  .confirm-dialog-sweep,
   .telegram-entry-overlay,
   .telegram-entry-card,
   .route-stage,

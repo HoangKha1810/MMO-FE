@@ -484,7 +484,7 @@ export async function purchaseGameItem(userId: number, itemId: number) {
         const price = toNumber(item.price, 0);
         const nextBalance = toNumber(buyer.game_balance, 0) - price;
         if (nextBalance < 0) {
-          throw new Error(`Ví game không đủ. Vui lòng nạp thêm ${formatVnd(Math.abs(nextBalance))} để mua sản phẩm này.`);
+          throw new Error(`Cần nạp thêm ví game ${formatVnd(Math.abs(nextBalance))} để đặt mua sản phẩm này.`);
         }
 
         await tx.users.update({
