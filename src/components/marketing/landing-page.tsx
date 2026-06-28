@@ -135,8 +135,8 @@ const services = [
     badge: null,
   },
   {
-    title: 'Tài khoản game',
-    desc: 'Sản phẩm game đồng bộ API',
+    title: 'Thuê tài khoản game 99 năm',
+    desc: 'Tài khoản game thuê 99 năm đồng bộ API',
     href: '/services/tai-khoan-game',
     icon: Gamepad2,
     gradient: 'from-emerald-500 to-cyan-600',
@@ -144,8 +144,8 @@ const services = [
     badge: 'API',
   },
   {
-    title: 'Random tài khoản game',
-    desc: 'Mua random acc game tự động',
+    title: 'Random thuê tài khoản game 99 năm',
+    desc: 'Random tài khoản game thuê 99 năm tự động',
     href: '/services/random-game',
     icon: Shuffle,
     gradient: 'from-amber-500 to-rose-600',
@@ -347,9 +347,10 @@ export function LandingPage() {
 
               <Link
                 href="/auth/login"
-                className="hidden h-11 min-w-[7.25rem] items-center justify-center rounded-[0.9rem] border border-cyan-300/60 bg-cyan-400/10 px-4 text-[10px] font-black uppercase tracking-widest text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_14px_34px_-24px_rgba(34,211,238,0.9)] transition-all hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-cyan-300/16 hover:text-white md:inline-flex"
+                className="group relative hidden h-11 min-w-[7.25rem] items-center justify-center overflow-hidden rounded-[0.9rem] border border-cyan-200/70 bg-[linear-gradient(135deg,rgba(37,99,235,0.95)_0%,rgba(14,165,233,0.92)_55%,rgba(45,212,191,0.86)_100%)] px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_18px_42px_-22px_rgba(34,211,238,0.95)] transition-all hover:-translate-y-0.5 hover:border-white/70 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_22px_50px_-22px_rgba(59,130,246,0.95)] md:inline-flex"
               >
-                Đăng nhập
+                <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.34)_42%,transparent_62%)] opacity-0 transition duration-500 group-hover:translate-x-full group-hover:opacity-100" />
+                <span className="relative">Đăng nhập</span>
               </Link>
 
               <FlipButton

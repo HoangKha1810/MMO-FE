@@ -25,19 +25,19 @@ const collectionCopy = {
   'game-accounts': {
     basePath: '/user/game-accounts',
     eyebrow: 'Game Account API',
-    title: 'Tài khoản game',
-    description: 'Danh sách sản phẩm tài khoản game được đồng bộ trực tiếp từ API, hiển thị tồn kho, giá bán và trạng thái mua bằng số dư.',
+    title: 'Thuê tài khoản game 99 năm',
+    description: 'Danh sách tài khoản game thuê 99 năm được đồng bộ trực tiếp từ API, hiển thị tồn kho, giá bán và trạng thái thuê bằng ví game.',
     icon: Gamepad2,
-    emptyTitle: 'Chưa có tài khoản game API',
+    emptyTitle: 'Chưa có tài khoản game thuê 99 năm',
     emptyDescription: 'Admin cần cấu hình provider API tài khoản game và chạy đồng bộ để sản phẩm xuất hiện trong module này.',
   },
   'random-game-accounts': {
     basePath: '/user/random-game-accounts',
     eyebrow: 'Random / Túi mù',
-    title: 'Random tài khoản game',
-    description: 'Kho sản phẩm quay, random và túi mù được tự động tách từ API, dùng cùng luồng mua tự động để nhận dữ liệu sau thanh toán.',
+    title: 'Random thuê tài khoản game 99 năm',
+    description: 'Kho sản phẩm quay, random và túi mù tài khoản game thuê 99 năm được tự động tách từ API, dùng cùng luồng mua tự động bằng ví game.',
     icon: Shuffle,
-    emptyTitle: 'Chưa có sản phẩm random tài khoản game',
+    emptyTitle: 'Chưa có sản phẩm random thuê tài khoản game 99 năm',
     emptyDescription: 'Sau khi sync API, các sản phẩm có từ khóa quay, random hoặc túi mù sẽ được gom riêng tại đây.',
   },
 } satisfies Record<ResourceCollection, {
@@ -97,7 +97,7 @@ export async function ResourceCollectionPage({ collection, search = '', category
           stats={[
             { label: 'Danh mục', value: String(categories.length), hint: 'Nhóm sản phẩm API', tone: 'blue' },
             { label: 'Sản phẩm', value: String(resources.length), hint: category ? 'Đang lọc theo nhóm' : 'Đang hiển thị', tone: 'emerald' },
-            { label: 'Tồn kho', value: String(totalStock), hint: 'Số lượng có thể mua', tone: 'amber' },
+            { label: 'Tồn kho', value: String(totalStock), hint: 'Số lượng có thể thuê', tone: 'amber' },
             { label: 'Đã bán', value: String(totalSold), hint: 'Lượt mua ghi nhận', tone: 'violet' },
           ]}
           actions={
@@ -107,7 +107,7 @@ export async function ResourceCollectionPage({ collection, search = '', category
                 API tự động
               </Badge>
               <Badge variant="muted" className="rounded-full px-3 py-1.5">
-                Mua tự động
+                Thuê tự động
               </Badge>
             </>
           }
@@ -119,7 +119,7 @@ export async function ResourceCollectionPage({ collection, search = '', category
           <SectionHeader
             eyebrow="Catalog"
             title="Tìm nhanh sản phẩm"
-            description="Lọc theo tên sản phẩm hoặc danh mục để chọn đúng tài khoản cần mua."
+            description="Lọc theo tên sản phẩm hoặc danh mục để chọn đúng tài khoản cần thuê."
           />
 
           <form action={copy.basePath} className="mt-6 flex flex-col gap-3 xl:flex-row">

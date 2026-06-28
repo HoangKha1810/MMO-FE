@@ -1,7 +1,7 @@
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';
-import { AlertTriangle, HelpCircle, ShieldCheck, WalletCards } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, ShieldCheck, WalletCards } from 'lucide-react';
 import {
   createContext,
   useCallback,
@@ -27,6 +27,8 @@ type ConfirmDialogRequest = {
   linkHref?: string;
   linkText?: string;
   linkTarget?: string;
+  requireAgreement?: boolean;
+  agreementText?: string;
 };
 
 type ConfirmDialogContextValue = {
@@ -37,7 +39,8 @@ type ConfirmDialogContextValue = {
 type QueuedDialogRequest = Required<
   Pick<ConfirmDialogRequest, 'description' | 'confirmText' | 'cancelText' | 'tone' | 'kind'>
 > &
-  Pick<ConfirmDialogRequest, 'title' | 'linkHref' | 'linkText' | 'linkTarget'> & {
+  Pick<ConfirmDialogRequest, 'title' | 'linkHref' | 'linkText' | 'linkTarget' | 'agreementText'> & {
+    requireAgreement: boolean;
     resolve: (value: boolean) => void;
   };
 
@@ -97,6 +100,8 @@ function normalizeRequest(
     linkHref: request.linkHref,
     linkText: request.linkText,
     linkTarget: request.linkTarget,
+    requireAgreement: Boolean(request.requireAgreement),
+    agreementText: request.agreementText,
     resolve,
   };
 }
@@ -105,10 +110,12 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<QueuedDialogRequest[]>([]);
   const currentRef = useRef<QueuedDialogRequest | null>(null);
   const [current, setCurrent] = useState<QueuedDialogRequest | null>(null);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
 
   const showNext = useCallback(() => {
     const next = queueRef.current.shift() || null;
     currentRef.current = next;
+    setAgreementAccepted(false);
     setCurrent(next);
   }, []);
 
@@ -117,6 +124,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
       const active = currentRef.current;
       currentRef.current = null;
       setCurrent(null);
+      setAgreementAccepted(false);
       active?.resolve(value);
       window.setTimeout(() => {
         if (!currentRef.current && queueRef.current.length > 0) {
@@ -167,6 +175,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
 
   const tone = toneConfig[current?.tone || 'brand'];
   const Icon = tone.icon;
+  const isPaymentTone = current?.tone === 'payment';
+  const confirmDisabled = Boolean(current?.requireAgreement && !agreementAccepted);
 
   return (
     <ConfirmDialogContext.Provider value={value}>
@@ -181,9 +191,13 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="confirm-dialog-overlay fixed inset-0 z-[300] bg-[linear-gradient(135deg,rgba(2,6,23,0.76),rgba(15,23,42,0.66))] backdrop-blur-md" />
+          <Dialog.Overlay className="vault-dialog-backdrop fixed inset-0 z-[300] bg-[linear-gradient(135deg,rgba(2,6,23,0.82),rgba(6,12,28,0.72))] backdrop-blur-md" />
           <Dialog.Content
-            className="confirm-dialog-content fixed left-1/2 top-1/2 z-[301] w-[calc(100vw-1.5rem)] max-w-[35rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] p-5 shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] outline-none dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(6,12,23,0.98))] sm:p-6"
+            className={cn(
+              'vault-dialog-card fixed left-1/2 top-1/2 z-[301] w-[calc(100vw-1.5rem)] max-w-[35rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,252,0.96))] p-5 shadow-[0_44px_120px_-52px_rgba(15,23,42,0.55)] outline-none dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(6,12,23,0.98))] sm:p-6',
+              isPaymentTone &&
+                'vault-wallet-card max-w-[39rem] border-cyan-300/30 bg-[linear-gradient(160deg,rgba(12,35,54,0.98),rgba(4,10,22,0.99)_46%,rgba(7,22,37,0.98))] shadow-[0_40px_120px_-44px_rgba(34,211,238,0.72)]'
+            )}
           >
             {current ? (
               <>
@@ -193,7 +207,13 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                     tone.accentClassName
                   )}
                 />
-                <div className="confirm-dialog-sweep pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-70" />
+                {isPaymentTone ? (
+                  <>
+                    <div className="vault-dialog-rail pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/80 to-transparent" />
+                    <div className="vault-dialog-scan pointer-events-none absolute inset-x-0 top-0 h-full bg-[linear-gradient(110deg,transparent_0%,rgba(125,211,252,0.10)_42%,transparent_68%)]" />
+                  </>
+                ) : null}
+                <div className="vault-dialog-tracer pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-70" />
                 <div className="pointer-events-none absolute inset-0 opacity-[0.18] dark:opacity-[0.12]">
                   <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:28px_28px]" />
                 </div>
@@ -202,10 +222,13 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                   <div className="flex items-start gap-4">
                     <div
                       className={cn(
-                        'confirm-dialog-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.2rem] border shadow-[0_20px_40px_-28px_rgba(37,99,235,0.28)]',
+                        'vault-dialog-icon relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.2rem] border shadow-[0_20px_40px_-28px_rgba(37,99,235,0.28)]',
                         tone.shellClassName
                       )}
                     >
+                      {isPaymentTone ? (
+                        <span className="vault-dialog-icon-ring pointer-events-none absolute -inset-1 rounded-[1.35rem] border border-cyan-200/30" />
+                      ) : null}
                       <Icon className={cn('h-6 w-6', tone.iconClassName)} />
                     </div>
                     <div className="min-w-0 space-y-2 pt-1">
@@ -217,6 +240,26 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                       </Dialog.Description>
                     </div>
                   </div>
+
+                  {current.requireAgreement ? (
+                    <label className="mt-5 flex cursor-pointer gap-3 rounded-[1.15rem] border border-cyan-200/20 bg-cyan-300/[0.07] p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-cyan-200/35">
+                      <input
+                        type="checkbox"
+                        checked={agreementAccepted}
+                        onChange={(event) => setAgreementAccepted(event.target.checked)}
+                        className="mt-1 h-5 w-5 shrink-0 rounded border-cyan-200/40 bg-slate-950/40 text-brand-blue accent-brand-blue"
+                      />
+                      <span className="space-y-1">
+                        <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Xác nhận điều khoản thuê
+                        </span>
+                        <span className="block text-sm font-semibold leading-6 text-slate-200">
+                          {current.agreementText || 'Tôi đã đọc và đồng ý với điều khoản của dịch vụ này.'}
+                        </span>
+                      </span>
+                    </label>
+                  ) : null}
 
                   <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     {current.kind === 'confirm' ? (
@@ -245,6 +288,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                       type="button"
                       variant={tone.confirmVariant}
                       onClick={() => resolveCurrent(true)}
+                      disabled={confirmDisabled}
                       className="w-full sm:w-auto"
                     >
                       {current.confirmText}

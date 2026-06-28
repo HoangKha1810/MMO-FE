@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Clock3,
   Code2,
-  ExternalLink,
   Globe2,
   Loader2,
   MonitorSmartphone,
@@ -319,14 +318,6 @@ export function WebServicePage() {
             { label: 'Web con', value: `${grouped.web_con.length} gói`, hint: 'Đấu 1 dịch vụ hoặc full', tone: 'blue' },
             { label: 'Build web', value: `${grouped.build_web.length} gói`, hint: 'Portfolio, store, chatbot', tone: 'emerald' },
           ]}
-          actions={
-            <Button asChild variant="outline" size="sm">
-              <a href="https://hotieubao.net" target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4" />
-                Hotieubao.net
-              </a>
-            </Button>
-          }
         />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">

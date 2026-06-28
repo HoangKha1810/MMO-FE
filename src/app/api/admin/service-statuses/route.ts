@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'toggle-auto-check-lock' && control.key !== 'random_game_accounts') {
-      throw new Error('Hành động chỉ áp dụng cho Random tài khoản game');
+      throw new Error('Hành động chỉ áp dụng cho Random thuê tài khoản game 99 năm');
     }
 
     const settingKey = action === 'resource-contact-mode'

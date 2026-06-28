@@ -179,14 +179,14 @@ export const serviceSeoEntries: ServiceSeoEntry[] = [
   },
   {
     slug: 'tai-khoan-game',
-    title: 'Tài khoản game từ nguồn API Random1K và ShopReg61',
-    shortTitle: 'Tài khoản game',
+    title: 'Thuê tài khoản game 99 năm từ nguồn API Random1K và ShopReg61',
+    shortTitle: 'Thuê tài khoản game 99 năm',
     eyebrow: 'Game Accounts',
     description:
-      'Dịch vụ tài khoản game đồng bộ nguồn API, hỗ trợ danh mục game, kho sản phẩm và luồng mua tự động bằng ví game.',
-    keywords: ['tài khoản game', 'mua acc game', 'shop tài khoản game', 'Random1K', 'ShopReg61'],
-    highlights: ['Đồng bộ nguồn API', 'Mua nhanh bằng ví game', 'Dễ lọc theo danh mục'],
-    useCases: ['Bán tài khoản game lẻ', 'Tạo shop acc game', 'Kết hợp random và sản phẩm cố định'],
+      'Dịch vụ thuê tài khoản game 99 năm đồng bộ nguồn API, hỗ trợ danh mục game, kho sản phẩm và luồng thuê tự động bằng ví game.',
+    keywords: ['thuê tài khoản game 99 năm', 'tài khoản game thuê', 'shop tài khoản game', 'Random1K', 'ShopReg61'],
+    highlights: ['Đồng bộ nguồn API', 'Thuê nhanh bằng ví game', 'Dễ lọc theo danh mục'],
+    useCases: ['Cho thuê tài khoản game 99 năm', 'Tạo shop acc game', 'Kết hợp random và sản phẩm cố định'],
     faqs: [
       {
         question: 'Nguồn tài khoản game lấy từ đâu?',
@@ -194,25 +194,25 @@ export const serviceSeoEntries: ServiceSeoEntry[] = [
       },
       {
         question: 'Người mua nhận hàng thế nào?',
-        answer: 'Sau khi mua thành công, tài khoản nhận dữ liệu đơn trong lịch sử hoặc khu vực đơn hàng game.',
+        answer: 'Sau khi thuê thành công, tài khoản nhận dữ liệu đơn trong lịch sử hoặc khu vực đơn hàng game.',
       },
     ],
-    ctaLabel: 'Xem tài khoản game',
+    ctaLabel: 'Xem tài khoản game thuê',
     ctaHref: '/auth/login',
   },
   {
     slug: 'random-game',
-    title: 'Random tài khoản game và túi mù game',
-    shortTitle: 'Random game',
+    title: 'Random thuê tài khoản game 99 năm và túi mù game',
+    shortTitle: 'Random thuê tài khoản game 99 năm',
     eyebrow: 'Random Game',
     description:
-      'Dịch vụ random tài khoản game giúp người dùng mua nhanh các gói túi mù, quay tài khoản và nhận kết quả tự động sau thanh toán.',
-    keywords: ['random game', 'random tài khoản game', 'túi mù acc game', 'mua random acc'],
+      'Dịch vụ random thuê tài khoản game 99 năm giúp người dùng thuê nhanh các gói túi mù, quay tài khoản và nhận kết quả tự động sau thanh toán.',
+    keywords: ['random thuê tài khoản game 99 năm', 'random tài khoản game', 'túi mù acc game', 'thuê random acc'],
     highlights: ['Trải nghiệm mua nhanh', 'Phù hợp chiến dịch khuyến mãi', 'Tối ưu doanh thu ví game'],
     useCases: ['Bán gói túi mù acc', 'Tạo minigame bán hàng', 'Đẩy doanh thu từ ví game'],
     faqs: [
       {
-        question: 'Random game có lời hơn bán thường không?',
+        question: 'Random thuê game có phù hợp hơn gói thường không?',
         answer: 'Nếu thiết kế gói hợp lý, random game thường tạo vòng mua nhanh và tỷ lệ quay lại tốt hơn sản phẩm cố định.',
       },
       {
@@ -220,7 +220,7 @@ export const serviceSeoEntries: ServiceSeoEntry[] = [
         answer: 'Có. Người dùng cần đăng nhập để hệ thống trừ ví, lưu lịch sử và bàn giao kết quả.',
       },
     ],
-    ctaLabel: 'Mua random game',
+    ctaLabel: 'Thuê random game',
     ctaHref: '/auth/login',
   },
   {

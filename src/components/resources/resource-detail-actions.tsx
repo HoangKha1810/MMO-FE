@@ -46,6 +46,9 @@ Video minh hoa:
 https://drive.google.com/file/d/1vnKgNdSXaIynZm38SuiGvFhWknXyfBwv/view?usp=drive_link
 `;
 
+const GAME_RENTAL_99_YEAR_AGREEMENT =
+  'Tôi đồng ý rằng đây là tài khoản game thuê với thời hạn 99 năm, không phải hoạt động mua bán hoặc trao đổi điểm/tài khoản của game.';
+
 function normalizeText(input: string) {
   return input
     .normalize('NFD')
@@ -118,10 +121,12 @@ export function ResourceDetailActions({
 
         const useGameWallet = await confirm({
           title: 'Xác nhận thanh toán ví game',
-          description: `Bạn sẽ thanh toán ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ bằng ví game. Số dư hiện tại: ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ. Sau khi mua thành công, đơn sẽ xuất hiện trong lịch sử tải.`,
+          description: `Bạn sẽ thanh toán ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ bằng ví game để thuê tài khoản game trong thời hạn 99 năm. Số dư hiện tại: ${new Intl.NumberFormat('vi-VN').format(gameBalance)}đ. Sau khi thanh toán thành công, đơn sẽ xuất hiện trong lịch sử tải.`,
           confirmText: 'Sử dụng ví game',
           cancelText: 'Liên hệ admin',
           tone: 'payment',
+          requireAgreement: true,
+          agreementText: GAME_RENTAL_99_YEAR_AGREEMENT,
         });
 
         if (!useGameWallet) {
@@ -176,7 +181,9 @@ export function ResourceDetailActions({
   return (
     <div className="space-y-6">
       <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-white/[0.03]">
-        <div className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Mua nhanh</div>
+        <div className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+          {paymentWallet === 'game' ? 'Thuê nhanh' : 'Mua nhanh'}
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="number"
@@ -188,7 +195,7 @@ export function ResourceDetailActions({
           />
           <Button disabled={stock <= 0 || purchaseLoading} loading={purchaseLoading} onClick={purchase}>
             <ShoppingCart className="mr-2 h-4 w-4" />
-            {paymentWallet === 'game' ? 'Mua bằng ví game' : 'Mua bằng số dư'}
+            {paymentWallet === 'game' ? 'Thuê bằng ví game' : 'Mua bằng số dư'}
           </Button>
           <Button variant="outline" asChild>
             <a href={historyHref}>
@@ -201,7 +208,9 @@ export function ResourceDetailActions({
 
       {orders.length > 0 ? (
         <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-white/[0.03]">
-          <div className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Đơn đã mua</div>
+          <div className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+            {paymentWallet === 'game' ? 'Đơn đã thuê' : 'Đơn đã mua'}
+          </div>
           <div className="grid gap-3 md:grid-cols-2">
             {orders.map((order) => (
               <div key={String(order.id)} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/40">

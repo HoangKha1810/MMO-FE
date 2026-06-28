@@ -32,19 +32,19 @@ const collectionCopy = {
   },
   'game-accounts': {
     basePath: '/user/game-accounts',
-    backLabel: 'Quay lại tài khoản game',
-    fallbackDescription: 'Tài khoản game API đang được bán tự động trên hệ thống.',
-    relatedTitle: 'Tài khoản game liên quan',
+    backLabel: 'Quay lại thuê tài khoản game 99 năm',
+    fallbackDescription: 'Tài khoản game thuê 99 năm từ API đang được xử lý tự động trên hệ thống.',
+    relatedTitle: 'Tài khoản game thuê 99 năm liên quan',
     historyHref: '/user/resources/history',
-    purchaseErrorLabel: 'Không thể mua tài khoản game',
+    purchaseErrorLabel: 'Không thể thuê tài khoản game',
   },
   'random-game-accounts': {
     basePath: '/user/random-game-accounts',
-    backLabel: 'Quay lại random game',
-    fallbackDescription: 'Sản phẩm random tài khoản game đang được bán tự động trên hệ thống.',
-    relatedTitle: 'Random game liên quan',
+    backLabel: 'Quay lại random thuê tài khoản game 99 năm',
+    fallbackDescription: 'Sản phẩm random thuê tài khoản game 99 năm đang được xử lý tự động trên hệ thống.',
+    relatedTitle: 'Random thuê tài khoản game 99 năm liên quan',
     historyHref: '/user/resources/history',
-    purchaseErrorLabel: 'Không thể mua random game',
+    purchaseErrorLabel: 'Không thể thuê random tài khoản game',
   },
 } satisfies Record<ResourceCollection | 'resources', {
   basePath: string;

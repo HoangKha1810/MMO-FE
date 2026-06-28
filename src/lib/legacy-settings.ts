@@ -271,8 +271,8 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     iconKey: 'gamepad-2',
     color: 'from-emerald-500 to-cyan-600',
     textColor: 'text-emerald-500',
-    defaultTitle: 'Tài khoản game',
-    defaultDesc: 'Sản phẩm game đồng bộ API',
+    defaultTitle: 'Thuê tài khoản game 99 năm',
+    defaultDesc: 'Tài khoản game thuê 99 năm đồng bộ API',
   },
   {
     key: 'random_game_accounts',
@@ -283,8 +283,8 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     iconKey: 'shuffle',
     color: 'from-amber-500 to-rose-600',
     textColor: 'text-amber-500',
-    defaultTitle: 'Random tài khoản game',
-    defaultDesc: 'Mua random acc game tự động',
+    defaultTitle: 'Random thuê tài khoản game 99 năm',
+    defaultDesc: 'Random tài khoản game thuê 99 năm tự động',
   },
   {
     key: '7',
@@ -484,7 +484,7 @@ function mapServices(
 ): LegacyServiceItem[] {
   return definitions.map((definition) => ({
     key: definition.key,
-    title: getLegacySetting(settings, definition.nameKey, definition.defaultTitle),
+    title: normalizeLegacyServiceTitle(definition.key, getLegacySetting(settings, definition.nameKey, definition.defaultTitle)),
     desc: getLegacySetting(settings, definition.descKey, definition.defaultDesc),
     href: definition.href,
     iconKey: definition.iconKey,
@@ -493,6 +493,17 @@ function mapServices(
     maintenance: getLegacySetting(settings, definition.statusKey, 'active') === 'maintenance',
     external: Boolean(definition.external),
   }));
+}
+
+function normalizeLegacyServiceTitle(key: string, title: string) {
+  const normalized = String(title || '').trim().toLowerCase();
+  if (key === 'game_accounts' && normalized === 'tài khoản game') {
+    return 'Thuê tài khoản game 99 năm';
+  }
+  if (key === 'random_game_accounts' && (normalized === 'random tài khoản game' || normalized === 'random game')) {
+    return 'Random thuê tài khoản game 99 năm';
+  }
+  return title;
 }
 
 const prioritizedServiceKeys = [

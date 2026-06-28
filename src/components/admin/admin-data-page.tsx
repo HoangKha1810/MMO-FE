@@ -440,6 +440,7 @@ function humanizeFieldName(field: string, resource?: string) {
 }
 
 function resolveActionLabel(action: NonNullable<AdminSectionConfig['actions']>[number]) {
+  if (action.key === 'bulk-delete') return 'Xóa 1 lượt';
   return ACTION_TEXT_LABELS[action.label] || ACTION_KEY_LABELS[action.key] || action.label;
 }
 
@@ -1553,6 +1554,17 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
       return;
     }
 
+    if (action === 'bulk-delete') {
+      const accepted = await confirm({
+        title: 'Xóa các dòng đã chọn?',
+        description: `Bạn đang chọn ${actionIds.length} dòng. Hệ thống sẽ chuyển các dòng này sang trạng thái đã xóa/ẩn khỏi danh sách công khai.`,
+        confirmText: 'Xóa 1 lượt',
+        cancelText: 'Để sau',
+        tone: 'danger',
+      });
+      if (!accepted) return;
+    }
+
     setSaving(true);
     try {
       const response = await fetch(`/api/admin/${section.resource}`, {
@@ -1987,17 +1999,23 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                         ))}
                       </select>
                     ) : null}
-                    {bulkActions.map((action) => (
-                      <Button
-                        key={action.key}
-                        type="button"
-                        size="sm"
-                        variant={action.tone === 'danger' ? 'destructive' : 'default'}
-                        onClick={() => runAction(action.key)}
-                      >
-                        {resolveActionLabel(action)}
-                      </Button>
-                    ))}
+                    {bulkActions.map((action) => {
+                      const isBulkDelete = action.key === 'bulk-delete';
+                      return (
+                        <Button
+                          key={action.key}
+                          type="button"
+                          size="sm"
+                          variant={action.tone === 'danger' ? 'destructive' : 'default'}
+                          className={isBulkDelete ? 'rounded-[1rem] shadow-[0_18px_44px_-24px_rgba(239,68,68,0.92)]' : undefined}
+                          disabled={saving}
+                          onClick={() => runAction(action.key)}
+                        >
+                          {isBulkDelete ? <Trash2 className="mr-2 h-3.5 w-3.5" /> : null}
+                          {resolveActionLabel(action)}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -2774,17 +2792,23 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                         ))}
                       </select>
                     ) : null}
-                    {bulkActions.map((action) => (
-                      <Button
-                        key={action.key}
-                        type="button"
-                        size="sm"
-                        variant={action.tone === 'danger' ? 'destructive' : 'default'}
-                        onClick={() => runAction(action.key)}
-                      >
-                        {resolveActionLabel(action)}
-                      </Button>
-                    ))}
+                    {bulkActions.map((action) => {
+                      const isBulkDelete = action.key === 'bulk-delete';
+                      return (
+                        <Button
+                          key={action.key}
+                          type="button"
+                          size="sm"
+                          variant={action.tone === 'danger' ? 'destructive' : 'default'}
+                          className={isBulkDelete ? 'rounded-[1rem] shadow-[0_18px_44px_-24px_rgba(239,68,68,0.92)]' : undefined}
+                          disabled={saving}
+                          onClick={() => runAction(action.key)}
+                        >
+                          {isBulkDelete ? <Trash2 className="mr-2 h-3.5 w-3.5" /> : null}
+                          {resolveActionLabel(action)}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

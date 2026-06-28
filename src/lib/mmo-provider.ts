@@ -136,7 +136,7 @@ export interface GameAccountAutoSyncSummary extends MmoProviderSyncSummary {
 
 const GAME_ACCOUNT_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const GAME_ACCOUNT_BACKGROUND_SYNC_DELAY_MS = 1500;
-const GAME_ACCOUNT_PROVIDER_DISPLAY_NAME = 'Provider API Tài khoản game';
+const GAME_ACCOUNT_PROVIDER_DISPLAY_NAME = 'Provider API tài khoản game thuê 99 năm';
 const GAME_ACCOUNT_PROVIDER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 

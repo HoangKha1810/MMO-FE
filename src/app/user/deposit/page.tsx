@@ -323,10 +323,18 @@ export default function DepositPage() {
                 </span>
               ) : null}
               <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${pm.color} p-[1px]`}>
-                <div className="flex h-full w-full items-center justify-center rounded-[0.85rem] bg-[#06162a]">
-                  <pm.icon className={`w-6 h-6 ${
-                    method === pm.id ? 'text-brand-blue' : 'text-slate-400'
-                  }`} />
+                <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[0.85rem] bg-[#06162a]">
+                  {pm.id === 'sepay' ? (
+                    <img
+                      src="/assets/images/bank-qr-icon.png"
+                      alt="Thanh toán ngân hàng QR"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <pm.icon className={`w-6 h-6 ${
+                      method === pm.id ? 'text-brand-blue' : 'text-slate-400'
+                    }`} />
+                  )}
                 </div>
               </div>
               <span className={`text-xs font-black uppercase text-center ${
