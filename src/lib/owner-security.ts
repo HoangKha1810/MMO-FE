@@ -3,6 +3,7 @@ import 'server-only';
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getRequestIp } from '@/lib/ip-security';
 
 type OwnerSecurityUser = {
   id: number;
@@ -92,21 +93,17 @@ export function isOperatorAdminRole(role: unknown) {
 
 export function getOwnerAllowedIps() {
   return String(process.env.OWNER_ALLOWED_IPS || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+    .split(/[,\n;\s]+/)
+    .map((item) => normalizeIp(item))
+    .filter((item) => item && item !== 'unknown');
 }
 
 function normalizeIp(ip: string | null | undefined) {
-  return String(ip || '').split(',')[0]?.trim() || 'unknown';
+  return String(ip || '').replace(/^::ffff:/, '').split(',')[0]?.trim() || 'unknown';
 }
 
 function getClientIp(req: NextRequest) {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip')?.trim() ||
-    'unknown'
-  );
+  return normalizeIp(getRequestIp(req));
 }
 
 function getOwnerManualCode() {
@@ -261,7 +258,7 @@ function runOwnerLoginAiLayerOne(input: {
   }
 
   if (input.allowedIps.length > 0 && !input.allowedIps.includes(input.ip)) {
-    riskScore += 100;
+    riskScore += input.trusted ? 25 : 100;
     reasons.push('owner_ip_not_allowlisted');
   }
 
@@ -345,6 +342,8 @@ export async function verifyOwnerLoginSecurity(
   const layerTwo = await runOwnerLoginAiLayerTwo({ userId: user.id, ip, deviceHash });
   const riskScore = layerOne.riskScore + layerTwo.riskScore;
   const reasons = [...layerOne.reasons, ...layerTwo.reasons];
+  const ipAllowlistEnabled = allowedIps.length > 0;
+  const ipAllowed = !ipAllowlistEnabled || allowedIps.includes(ip);
 
   if (!has2fa) {
     await logOwnerSecurityEvent({
@@ -366,7 +365,7 @@ export async function verifyOwnerLoginSecurity(
     };
   }
 
-  if (allowedIps.length > 0 && !allowedIps.includes(ip)) {
+  if (!ipAllowed && !trusted) {
     await logOwnerSecurityEvent({
       user,
       req,
@@ -379,7 +378,7 @@ export async function verifyOwnerLoginSecurity(
     });
     return {
       allowed: false,
-      message: 'IP này không nằm trong OWNER_ALLOWED_IPS.',
+      message: 'IP này chưa được tin cậy. Hãy đăng nhập từ thiết bị owner đã xác thực hoặc dùng IP trong OWNER_ALLOWED_IPS lần đầu.',
       riskScore,
       reasons,
       deviceHash,
@@ -450,11 +449,11 @@ export async function verifyOwnerActionSecurity(req: NextRequest, user: AdminSes
     reasons.push('owner_action_from_untrusted_device');
   }
   if (allowedIps.length > 0 && !allowedIps.includes(ip)) {
-    riskScore += 100;
+    riskScore += trusted ? 25 : 100;
     reasons.push('owner_action_ip_not_allowlisted');
   }
 
-  if (riskScore >= 100) {
+  if (!trusted || riskScore >= 100) {
     await logOwnerSecurityEvent({
       user,
       req,
