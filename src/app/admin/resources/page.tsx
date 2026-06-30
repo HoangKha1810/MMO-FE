@@ -5,7 +5,7 @@ export default function AdminResourcesPage() {
   return (
     <AdminDataPage
       title="Quản trị tài nguyên MMO"
-      description="Resources, sales và provider MMO/API tài khoản game."
+      description="Quản lý tài nguyên MMO, danh mục và provider MMO/API tài khoản game."
       sections={adminPageSections.resources}
     />
   );

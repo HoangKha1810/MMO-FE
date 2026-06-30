@@ -112,8 +112,6 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
   'MMO resources': 'Tài nguyên MMO',
   'MMO API providers': 'Provider MMO API',
   'Resource categories': 'Danh mục tài nguyên',
-  'Resource sales': 'Đơn tài nguyên',
-  'Resource orders': 'Đơn tài nguyên',
   'Forum categories': 'Danh mục forum',
   'Forum folders': 'Chuyên mục forum',
   Threads: 'Chủ đề',

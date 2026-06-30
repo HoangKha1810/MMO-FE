@@ -283,15 +283,6 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       statusOptions: ['active', 'inactive'],
     },
     {
-      resource: 'resource-orders',
-      title: 'Resource sales',
-      description: 'Đơn mua tài nguyên và trạng thái giao hàng.',
-      columns: ['id', 'user_id', 'resource_id', 'quantity', 'total_price', 'status', 'payment_method', 'is_exported', 'created_at'],
-      editableFields: ['status', 'total_price', 'quantity', 'payment_method', 'download_count', 'max_downloads', 'expires_at', 'delivery_data', 'is_exported', 'exported_at'],
-      statusOptions: ['pending', 'completed', 'cancelled', 'refunded'],
-      actions: [ORDER_BULK_DELETE_ACTION],
-    },
-    {
       resource: 'providers',
       title: 'MMO API providers',
       description: 'Provider API tài khoản game/MMO dùng chung bảng api_providers.',
@@ -460,14 +451,6 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'user_id', 'type', 'amount', 'balance_after', 'status', 'content', 'created_at'],
       editableFields: ['status', 'content'],
       statusOptions: ['pending', 'success', 'failed'],
-    },
-    {
-      resource: 'resource-orders',
-      title: 'Resource sales',
-      description: 'Doanh số tài nguyên.',
-      columns: ['id', 'user_id', 'resource_id', 'quantity', 'total_price', 'status', 'created_at'],
-      editableFields: ['status', 'total_price', 'quantity', 'payment_method', 'delivery_data'],
-      statusOptions: ['pending', 'completed', 'cancelled', 'refunded'],
     },
     {
       resource: 'card-orders',
@@ -683,15 +666,6 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'order_code', 'user_id', 'publication_name', 'title', 'contact', 'docx_path', 'price_vnd', 'status', 'admin_note', 'created_at'],
       editableFields: ['status', 'admin_note', 'publication_name', 'title', 'contact', 'note', 'docx_path', 'price_vnd'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
-      actions: [ORDER_BULK_DELETE_ACTION],
-    },
-    {
-      resource: 'resource-orders',
-      title: 'Resource sales',
-      description: 'Đơn mua tài nguyên và trạng thái giao hàng.',
-      columns: ['id', 'user_id', 'resource_id', 'quantity', 'total_price', 'status', 'payment_method', 'is_exported', 'created_at'],
-      editableFields: ['status', 'total_price', 'quantity', 'payment_method', 'download_count', 'max_downloads', 'expires_at', 'delivery_data', 'is_exported', 'exported_at'],
-      statusOptions: ['pending', 'completed', 'cancelled', 'refunded'],
       actions: [ORDER_BULK_DELETE_ACTION],
     },
     {

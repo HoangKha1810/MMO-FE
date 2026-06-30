@@ -35,6 +35,10 @@ function parseEmailList(value: string) {
   );
 }
 
+export function normalizeEmailRecipients(values: string[]) {
+  return normalizeEmailList(values);
+}
+
 function normalizeEmailList(values: string[]) {
   return Array.from(
     new Set(
@@ -104,6 +108,17 @@ function createSmtpTransporter(config: SmtpRuntimeConfig) {
   });
 }
 
+function buildFromAddress(inputFrom: string | null | undefined, configFrom: string, smtpUser: string) {
+  const requestedFrom = String(inputFrom || configFrom || smtpUser || DEFAULT_ADMIN_ALERT_EMAIL).trim();
+  const allowCustomFrom = parseBoolean(process.env.SMTP_ALLOW_CUSTOM_FROM || '0', false);
+  const from = allowCustomFrom ? requestedFrom : smtpUser || requestedFrom;
+
+  return {
+    from,
+    replyTo: requestedFrom && requestedFrom !== from ? requestedFrom : undefined,
+  };
+}
+
 export async function sendSystemEmail(input: {
   to: string[];
   subject: string;
@@ -126,10 +141,20 @@ export async function sendSystemEmail(input: {
   const recipients = normalizeEmailList(input.to);
   const finalRecipients = recipients.length > 0 ? recipients : config.recipients;
 
+  if (recipients.length === 0 && input.to.length > 0) {
+    return {
+      sent: false,
+      skipped: true,
+      reason: `Danh sách người nhận không hợp lệ: ${input.to.join(', ')}`,
+      recipients: [],
+    };
+  }
+
   const transporter = createSmtpTransporter(smtp);
-  const from = String(input.from || config.from || smtp.user || DEFAULT_ADMIN_ALERT_EMAIL).trim() || DEFAULT_ADMIN_ALERT_EMAIL;
+  const fromAddress = buildFromAddress(input.from, config.from, smtp.user);
   const result = await transporter.sendMail({
-    from,
+    from: fromAddress.from,
+    replyTo: fromAddress.replyTo,
     to: finalRecipients.join(', '),
     subject: input.subject,
     text: input.text,
@@ -140,7 +165,10 @@ export async function sendSystemEmail(input: {
     sent: true,
     skipped: false,
     recipients: finalRecipients,
-    from,
+    from: fromAddress.from,
+    reply_to: fromAddress.replyTo,
+    accepted: result.accepted,
+    rejected: result.rejected,
     message_id: result.messageId,
   };
 }
@@ -200,9 +228,11 @@ export async function sendAdminAlertEmail(input: {
   }
 
   const transporter = createSmtpTransporter(smtp);
+  const fromAddress = buildFromAddress(config.from, config.from, smtp.user);
 
   const result = await transporter.sendMail({
-    from: config.from,
+    from: fromAddress.from,
+    replyTo: fromAddress.replyTo,
     to: config.recipients.join(', '),
     subject: input.subject,
     text: input.text,
@@ -213,7 +243,10 @@ export async function sendAdminAlertEmail(input: {
     sent: true,
     skipped: false,
     recipients: config.recipients,
-    from: config.from,
+    from: fromAddress.from,
+    reply_to: fromAddress.replyTo,
+    accepted: result.accepted,
+    rejected: result.rejected,
     message_id: result.messageId,
   };
 }

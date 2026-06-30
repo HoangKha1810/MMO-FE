@@ -10,7 +10,6 @@ export const ORDER_ADMIN_RESOURCES = new Set([
   'vibe-code-orders',
   'web-service-orders',
   'press-orders',
-  'resource-orders',
   'card-orders',
   'game-orders',
 ]);
@@ -24,8 +23,6 @@ export const OPERATOR_ADMIN_PATH_PREFIXES = [
   '/admin/vibe-code',
   '/admin/web-service',
   '/admin/press',
-  '/admin/resources/orders',
-  '/admin/resources/sales',
   '/admin/card/history',
   '/admin/game-market',
 ];

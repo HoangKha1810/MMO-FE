@@ -8,6 +8,7 @@ import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
 import { isTrackableIp } from '@/lib/ip-security';
 import { decryptLegacyData } from '@/lib/legacy-crypto';
 import { getLegacySettingsMap, getVatPercent, invalidateLegacySettingsCache } from '@/lib/legacy-settings';
+import { sendSecurityAlertEmail } from '@/lib/security-alert-email';
 import { ensureMetaSupportOrdersTable, normalizeMetaSupportStatus } from '@/lib/meta-support';
 import { approveDepositById } from '@/lib/deposit-processing';
 import { ensureGameApiKeyForUser } from '@/lib/game-integration-api';
@@ -231,14 +232,6 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     rawOrder: 'display_order ASC, id ASC',
     createFields: ['parent_id', 'name', 'slug', 'icon', 'image', 'description', 'display_order', 'status', 'api_provider_id', 'api_category_id'],
     updateFields: ['parent_id', 'name', 'slug', 'icon', 'image', 'description', 'display_order', 'status', 'is_deleted', 'api_provider_id', 'api_category_id'],
-  },
-  'resource-orders': {
-    table: 'resource_orders',
-    title: 'Đơn tài nguyên',
-    searchFields: ['status', 'payment_method'],
-    statusField: 'status',
-    rawOrder: 'created_at DESC, id DESC',
-    updateFields: ['status', 'total_price', 'quantity', 'payment_method', 'download_count', 'max_downloads', 'expires_at', 'delivery_data', 'is_exported', 'exported_at'],
   },
   'card-orders': {
     table: 'card_orders',
@@ -3748,6 +3741,18 @@ async function runRegistrationIpAction(
           VALUES (?, ?, 'admin', ?, NULL)
         `, ip, reason, adminId);
       }
+      await sendSecurityAlertEmail({
+        event: 'ADMIN_IP_BAN',
+        title: 'Admin đã khóa IP thủ công',
+        severity: 'HIGH',
+        ip,
+        userId: adminId,
+        reason,
+        path: req.nextUrl.pathname,
+        method: req.method,
+        userAgent: req.headers.get('user-agent') || null,
+        cooldownKey: `admin-ip-ban:${ip}:${adminId}`,
+      }).catch(() => undefined);
       affected += 1;
       continue;
     }

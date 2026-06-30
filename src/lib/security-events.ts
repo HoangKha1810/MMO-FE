@@ -3,6 +3,7 @@ import 'server-only';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { getRequestIp, isTrackableIp, logSecurityEvent } from '@/lib/ip-security';
+import { sendSecurityAlertEmail } from '@/lib/security-alert-email';
 import { invalidateSessionUserCache } from '@/lib/session-cookie';
 
 type SecuritySeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -259,6 +260,20 @@ async function banSecuritySubject(input: {
     }).catch(() => undefined);
     invalidateSessionUserCache(input.user.id);
   }
+
+  await sendSecurityAlertEmail({
+    event: 'SECURITY_SUBJECT_BANNED',
+    title: 'IP/tài khoản bị khóa do hành vi chạy code hoặc tool',
+    severity: 'CRITICAL',
+    ip: input.ip,
+    userId: input.user?.id || null,
+    reason: input.reason,
+    details: {
+      role: input.user?.role || null,
+      user_status_before: input.user?.status || null,
+    },
+    cooldownKey: `security-ban:${input.ip}:${input.user?.id || 'ip'}`,
+  }).catch(() => undefined);
 }
 
 export async function recordSecurityEvent(req: NextRequest, input: SecurityEventInput): Promise<SecurityVerdict> {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 const SUSPICIOUS_CLIPBOARD_PATTERNS = [
   /document\.cookie/i,
@@ -21,6 +22,8 @@ const SUSPICIOUS_RUNTIME_MARKERS = [
   '_phantom',
   'callPhantom',
 ];
+
+const SERVICE_PATH_PATTERN = /^\/user\/(smm|automxh|resources|game-accounts|random-game-accounts|game-market|support-tiktok|meta-support|proxy|vps-gpu|vibe-code|web-service|press|card|deposit|cart|orders)(?:\/|$)/;
 
 function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
@@ -49,6 +52,7 @@ export function ClientSecurityObserver() {
     const originalXhrSend = XMLHttpRequest.prototype.send;
 
     const isProtectedArea = () => /^\/(?:user|admin)(?:\/|$)/.test(window.location.pathname);
+    const isServiceArea = () => SERVICE_PATH_PATTERN.test(window.location.pathname);
 
     const isLogoutExemptApi = (url: string) => {
       try {
@@ -211,6 +215,75 @@ export function ClientSecurityObserver() {
       });
     };
 
+    const collectNetworkSignal = () => {
+      const nav = navigator as Navigator & {
+        connection?: { effectiveType?: string; rtt?: number; downlink?: number; saveData?: boolean };
+        deviceMemory?: number;
+      };
+      const parts = [
+        `tz:${Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown'}`,
+        `lang:${navigator.language || 'unknown'}`,
+        `platform:${navigator.platform || 'unknown'}`,
+        `cores:${navigator.hardwareConcurrency || 0}`,
+        `mem:${nav.deviceMemory || 0}`,
+        `conn:${nav.connection?.effectiveType || 'unknown'}`,
+        `rtt:${nav.connection?.rtt || 0}`,
+        `down:${nav.connection?.downlink || 0}`,
+        nav.connection?.saveData ? 'save-data' : '',
+        navigator.webdriver ? 'automation' : '',
+      ];
+
+      if ((nav.deviceMemory || 8) <= 1 || navigator.hardwareConcurrency <= 2) {
+        parts.push('low-memory');
+      }
+
+      return parts.filter(Boolean).join('|');
+    };
+
+    const checkNetworkRisk = (() => {
+      let inFlight = false;
+      let lastCheckedAt = 0;
+      return async (action: string) => {
+        if (!isServiceArea() || inFlight || forcedLogoutRef.current) {
+          return;
+        }
+
+        const now = Date.now();
+        if (lastCheckedAt + 2_500 > now) {
+          return;
+        }
+        lastCheckedAt = now;
+        inFlight = true;
+
+        try {
+          const response = await originalFetch('/api/security/network-risk', {
+            method: 'POST',
+            credentials: 'include',
+            cache: 'no-store',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              action,
+              path: window.location.pathname,
+              href: window.location.href,
+              signal: collectNetworkSignal(),
+            }),
+          });
+          const payload = await response.clone().json().catch(() => null);
+          inspectSecurityPayload(payload, response.status, response.url);
+          if (payload?.warning && payload?.message) {
+            toast.warning(String(payload.message), {
+              duration: 7000,
+              id: `network-risk-${payload.warnings || 1}`,
+            });
+          }
+        } catch {
+          // Network risk checks should never break normal UI events.
+        } finally {
+          inFlight = false;
+        }
+      };
+    })();
+
     const onPaste = (event: ClipboardEvent) => {
       const text = event.clipboardData?.getData('text') || '';
       if (!text) {
@@ -233,6 +306,16 @@ export function ClientSecurityObserver() {
       if (devtoolsShortcut) {
         report('DEVTOOLS_SHORTCUT', key, 'keyboard');
       }
+    };
+
+    const onServiceInteraction = (event: Event) => {
+      const target = event.target instanceof HTMLElement
+        ? event.target.closest('button,a,input,select,textarea,[role="button"],[data-security-action]')
+        : null;
+      if (!target) {
+        return;
+      }
+      checkNetworkRisk(target.getAttribute('aria-label') || target.textContent?.slice(0, 80) || event.type);
     };
 
     const inspectRuntime = () => {
@@ -271,6 +354,9 @@ export function ClientSecurityObserver() {
     showConsoleWarning();
     window.addEventListener('paste', onPaste, true);
     window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('click', onServiceInteraction, true);
+    window.addEventListener('submit', onServiceInteraction, true);
+    window.addEventListener('change', onServiceInteraction, true);
     window.addEventListener('resize', inspectRuntime);
     const interval = window.setInterval(inspectRuntime, 12_000);
     const sessionInterval = window.setInterval(() => {
@@ -294,6 +380,9 @@ export function ClientSecurityObserver() {
       XMLHttpRequest.prototype.send = originalXhrSend;
       window.removeEventListener('paste', onPaste, true);
       window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('click', onServiceInteraction, true);
+      window.removeEventListener('submit', onServiceInteraction, true);
+      window.removeEventListener('change', onServiceInteraction, true);
       window.removeEventListener('resize', inspectRuntime);
       window.clearInterval(interval);
       window.clearInterval(sessionInterval);

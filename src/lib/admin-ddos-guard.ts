@@ -3,6 +3,7 @@ import { getAdminAlertEmailConfig, sendSystemEmail } from '@/lib/admin-alert-ema
 import { formatDatabaseDateTime, serializeAbsoluteDateTime } from '@/lib/date-time';
 import { tableExists } from '@/lib/legacy-modules';
 import { isTrackableIp } from '@/lib/ip-security';
+import { sendSecurityAlertEmail } from '@/lib/security-alert-email';
 import { toNumber } from '@/lib/utils';
 
 const DDOS_ALERT_STATE_KEY = 'admin_ddos_alert_state';
@@ -313,23 +314,37 @@ export async function collectPotentialDdosSignals(input: {
 }
 
 async function blockIpForDdos(ip: string, reason: string, adminId?: number | null) {
+  const bannedBy = adminId ? 'admin' : 'auto';
   const updated = await db.$executeRawUnsafe(`
     UPDATE banned_ips
     SET reason = ?, banned_by = ?, user_id = ?, expire_at = NULL, created_at = NOW()
     WHERE ip = ?
-  `, reason, adminId ? 'admin-ai' : 'auto-ddos-guard', adminId || null, ip);
+  `, reason, bannedBy, adminId || null, ip);
 
   if (Number(updated || 0) === 0) {
     await db.$executeRawUnsafe(`
       INSERT INTO banned_ips (ip, reason, banned_by, user_id, expire_at)
       VALUES (?, ?, ?, ?, NULL)
-    `, ip, reason, adminId ? 'admin-ai' : 'auto-ddos-guard', adminId || null);
+    `, ip, reason, bannedBy, adminId || null);
   }
 
   await db.$executeRawUnsafe(`
     INSERT INTO security_logs (event_type, severity, ip, user_id, uri, method, field, payload, user_agent, auto_banned)
     VALUES ('DDOS_AUTO_BAN', 'CRITICAL', ?, ?, '/api/cron/run', 'SYSTEM', 'ip', ?, ?, 1)
   `, ip, adminId || null, reason, adminId ? 'admin-ai' : 'auto-ddos-guard').catch(() => undefined);
+
+  await sendSecurityAlertEmail({
+    event: 'DDOS_AUTO_BAN',
+    title: 'AI DDoS guard đã khóa IP',
+    severity: 'CRITICAL',
+    ip,
+    userId: adminId || null,
+    reason,
+    path: '/api/cron/run',
+    method: 'SYSTEM',
+    userAgent: adminId ? 'admin-ai' : 'auto-ddos-guard',
+    cooldownKey: `ddos-auto-ban:${ip}`,
+  }).catch(() => undefined);
 }
 
 function buildAlertText(report: DdosReport, blockedIps: string[]) {

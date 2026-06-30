@@ -17,7 +17,12 @@ const STATIC_PATH_PREFIXES = [
 
 const REQUEST_LIMIT_WINDOW_MS = 60_000;
 const REQUEST_LIMIT_MAX = 240;
+const DDOS_WINDOW_MS = 30_000;
+const DDOS_SOFT_LIMIT = 180;
+const DDOS_HARD_LIMIT = 420;
+const DDOS_TEMP_BAN_MS = 15 * 60_000;
 const requestWindow = new Map<string, { count: number; resetAt: number }>();
+const ddosWindow = new Map<string, { count: number; apiCount: number; resetAt: number; bannedUntil?: number }>();
 
 function getSessionSecret() {
   return (
@@ -102,6 +107,10 @@ function getRequestIp(req: NextRequest) {
 
 function isStaticPath(pathname: string) {
   return STATIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function shouldSkipDdosGuard(pathname: string) {
+  return isStaticPath(pathname) || pathname === '/api/security/event' || pathname === '/api/security/network-risk';
 }
 
 function buildSecurityHeaders(req: NextRequest) {
@@ -219,6 +228,63 @@ function isRateLimited(req: NextRequest) {
   return current.count > REQUEST_LIMIT_MAX;
 }
 
+function cleanupWindowMap<T extends { resetAt: number; bannedUntil?: number }>(map: Map<string, T>, now: number) {
+  if (map.size < 2000) {
+    return;
+  }
+
+  for (const [key, value] of map) {
+    if (value.resetAt <= now && (!value.bannedUntil || value.bannedUntil <= now)) {
+      map.delete(key);
+    }
+  }
+}
+
+function inspectDdosRisk(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  if (shouldSkipDdosGuard(pathname)) {
+    return { blocked: false, reason: '' };
+  }
+
+  const ip = getRequestIp(req);
+  const now = Date.now();
+  cleanupWindowMap(ddosWindow, now);
+
+  const current = ddosWindow.get(ip) || { count: 0, apiCount: 0, resetAt: now + DDOS_WINDOW_MS };
+  if (current.bannedUntil && current.bannedUntil > now) {
+    ddosWindow.set(ip, current);
+    return { blocked: true, reason: 'ai_ddos_temp_ban' };
+  }
+
+  if (current.resetAt <= now) {
+    current.count = 0;
+    current.apiCount = 0;
+    current.resetAt = now + DDOS_WINDOW_MS;
+    current.bannedUntil = undefined;
+  }
+
+  current.count += 1;
+  if (pathname.startsWith('/api/')) {
+    current.apiCount += 1;
+  }
+
+  const suspiciousUa = /(curl|wget|python-requests|go-http-client|httpclient|axios|undici|bot|spider|scanner|headlesschrome)/i.test(req.headers.get('user-agent') || '');
+  const hardHit = current.count > DDOS_HARD_LIMIT || current.apiCount > Math.floor(DDOS_HARD_LIMIT * 0.65);
+  const softAutomationHit = suspiciousUa && (current.count > DDOS_SOFT_LIMIT || current.apiCount > Math.floor(DDOS_SOFT_LIMIT * 0.55));
+
+  if (hardHit || softAutomationHit) {
+    current.bannedUntil = now + DDOS_TEMP_BAN_MS;
+    ddosWindow.set(ip, current);
+    return {
+      blocked: true,
+      reason: hardHit ? 'ai_ddos_hard_burst' : 'ai_ddos_automation_burst',
+    };
+  }
+
+  ddosWindow.set(ip, current);
+  return { blocked: false, reason: '' };
+}
+
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
@@ -229,6 +295,11 @@ export async function middleware(req: NextRequest) {
   const suspiciousReason = hasSuspiciousRequest(req);
   if (suspiciousReason) {
     return buildSecurityBlock(req, suspiciousReason, 403);
+  }
+
+  const ddosRisk = inspectDdosRisk(req);
+  if (ddosRisk.blocked) {
+    return buildSecurityBlock(req, ddosRisk.reason, 429);
   }
 
   if (isRateLimited(req)) {

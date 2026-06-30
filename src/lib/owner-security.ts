@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getRequestIp } from '@/lib/ip-security';
+import { sendSecurityAlertEmail } from '@/lib/security-alert-email';
 
 type OwnerSecurityUser = {
   id: number;
@@ -204,6 +205,9 @@ export async function logOwnerSecurityEvent(input: {
   const user = input.user;
   const ip = req ? getClientIp(req) : 'unknown';
   const userAgent = req?.headers.get('user-agent') || null;
+  const ownerLikeEvent = isOwnerRole(user?.role) || input.eventType.startsWith('OWNER_');
+  const allowedIps = getOwnerAllowedIps();
+  const outsideOwnerAllowedIps = ownerLikeEvent && allowedIps.length > 0 && !allowedIps.includes(normalizeIp(ip));
 
   await db.$executeRawUnsafe(
     `
@@ -227,6 +231,33 @@ export async function logOwnerSecurityEvent(input: {
     req?.method || null,
     input.details ? JSON.stringify(input.details).slice(0, 60000) : null
   ).catch(() => undefined);
+
+  if (outsideOwnerAllowedIps) {
+    await sendSecurityAlertEmail({
+      event: input.eventType,
+      title: 'Owner có đăng nhập/thao tác từ IP ngoài danh sách cho phép',
+      severity: input.verdict === 'allowed' ? 'HIGH' : 'CRITICAL',
+      ip,
+      userId: user?.id ? Number(user.id) : null,
+      username: typeof user?.username === 'string' ? user.username : null,
+      email: typeof user?.email === 'string' ? user.email : null,
+      reason: [
+        `verdict=${input.verdict}`,
+        `layer=${input.layer}`,
+        ...(input.reasons || []),
+      ].join('; '),
+      path: req?.nextUrl.pathname || null,
+      method: req?.method || null,
+      userAgent,
+      details: {
+        risk_score: input.riskScore || 0,
+        device_hash: input.deviceHash || (req ? getOwnerDeviceHash(req) : null),
+        allowed_ips: allowedIps,
+        details: input.details || null,
+      },
+      cooldownKey: `owner-outside-ip:${user?.id || 'unknown'}:${ip}:${input.eventType}:${input.verdict}`,
+    }).catch(() => undefined);
+  }
 }
 
 function timingSafeEqualText(left: string, right: string) {

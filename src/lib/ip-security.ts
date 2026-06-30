@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
+import { sendSecurityAlertEmail } from '@/lib/security-alert-email';
 
 export const MAX_ACCOUNTS_PER_IP = 10;
 
@@ -61,6 +62,69 @@ export async function getIpBlock(ip: string): Promise<BlockRow | null> {
   return rows[0] || null;
 }
 
+export async function temporaryBanIp(input: {
+  ip: string;
+  reason: string;
+  userId?: number | null;
+  minutes?: number;
+  eventType?: string;
+  uri?: string | null;
+  method?: string | null;
+  userAgent?: string | null;
+}) {
+  const ip = String(input.ip || '').trim();
+  if (!isTrackableIp(ip)) {
+    return false;
+  }
+
+  const minutes = Math.max(1, Math.min(24 * 60, Math.trunc(Number(input.minutes || 15))));
+  const expireSql = `DATE_ADD(NOW(), INTERVAL ${minutes} MINUTE)`;
+  const reason = String(input.reason || 'AI anti-DDoS temporary ban').trim().slice(0, 1000);
+  const userId = input.userId ? Math.trunc(Number(input.userId)) : null;
+
+  const updated = await db.$executeRawUnsafe(`
+    UPDATE banned_ips
+    SET reason = ?, banned_by = 'auto', user_id = ?, expire_at = ${expireSql}, created_at = NOW()
+    WHERE ip = ?
+  `, reason, userId || null, ip).catch(() => 0);
+
+  if (Number(updated || 0) === 0) {
+    await db.$executeRawUnsafe(`
+      INSERT INTO banned_ips (ip, reason, banned_by, user_id, expire_at)
+      VALUES (?, ?, 'auto', ?, ${expireSql})
+    `, ip, reason, userId || null).catch(() => undefined);
+  }
+
+  await logSecurityEvent({
+    eventType: input.eventType || 'AI_TEMP_IP_BAN',
+    severity: 'CRITICAL',
+    ip,
+    userId,
+    uri: input.uri || null,
+    method: input.method || null,
+    field: 'ip',
+    payload: `${reason}; minutes=${minutes}`,
+    userAgent: input.userAgent || null,
+    autoBanned: true,
+  });
+
+  await sendSecurityAlertEmail({
+    event: input.eventType || 'AI_TEMP_IP_BAN',
+    title: 'IP bị hệ thống khóa tạm thời',
+    severity: 'CRITICAL',
+    ip,
+    userId,
+    reason,
+    path: input.uri || null,
+    method: input.method || null,
+    userAgent: input.userAgent || null,
+    details: { minutes },
+    cooldownKey: `temp-ban:${ip}:${input.eventType || 'AI_TEMP_IP_BAN'}`,
+  }).catch(() => undefined);
+
+  return true;
+}
+
 export async function countAccountsByIp(ip: string) {
   if (!isTrackableIp(ip)) {
     return 0;
@@ -99,6 +163,19 @@ export async function autoBanRegistrationIp(ip: string, count: number, req: Next
     INSERT INTO security_logs (event_type, severity, ip, user_id, uri, method, field, payload, user_agent, auto_banned)
     VALUES ('REGISTER_IP_LIMIT', 'CRITICAL', ?, NULL, ?, ?, 'ip', ?, ?, 1)
   `, ip, req.nextUrl.pathname, req.method, `accounts=${count}`, req.headers.get('user-agent') || '').catch(() => undefined);
+
+  await sendSecurityAlertEmail({
+    event: 'REGISTER_IP_LIMIT',
+    title: 'IP bị khóa vì tạo quá nhiều tài khoản',
+    severity: 'CRITICAL',
+    ip,
+    reason,
+    path: req.nextUrl.pathname,
+    method: req.method,
+    userAgent: req.headers.get('user-agent') || null,
+    details: { accounts: count, max_accounts_per_ip: MAX_ACCOUNTS_PER_IP },
+    cooldownKey: `register-ip-limit:${ip}`,
+  }).catch(() => undefined);
 }
 
 export async function logSecurityEvent(input: {
