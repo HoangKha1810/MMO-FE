@@ -86,11 +86,26 @@ export async function POST(req: NextRequest) {
       telegram_2fa_enabled: true,
       role: true,
       email: true,
+      status: true,
     },
   });
 
   if (!user) {
     return NextResponse.json({ success: false, message: 'Không tìm thấy user' }, { status: 404 });
+  }
+
+  if (String(user.status || '').trim().toLowerCase() !== 'active') {
+    const response = NextResponse.json(
+      {
+        success: false,
+        code: 'ACCOUNT_BANNED',
+        bannedUser: true,
+        message: 'Tài khoản đã bị khóa. Vui lòng liên hệ owner để mở khóa.',
+      },
+      { status: 403 }
+    );
+    clearTwoFactorPendingCookie(response);
+    return response;
   }
 
   if (action === 'resend' || action === 'resend-pin') {

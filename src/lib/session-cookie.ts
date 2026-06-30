@@ -144,9 +144,16 @@ async function isActiveSessionUser(userId: number) {
   const active = String(user?.status || '').trim().toLowerCase() === 'active';
   activeSessionUserCache.set(safeUserId, {
     active,
-    expiresAt: Date.now() + 30_000,
+    expiresAt: Date.now() + 5_000,
   });
   return active;
+}
+
+export function invalidateSessionUserCache(userId: number) {
+  const safeUserId = Math.trunc(Number(userId || 0));
+  if (safeUserId) {
+    activeSessionUserCache.delete(safeUserId);
+  }
 }
 
 export function setAuthenticatedSessionCookies(response: NextResponse, userId: number, maxAgeSeconds: number) {

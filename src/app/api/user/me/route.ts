@@ -37,8 +37,23 @@ export async function GET() {
       },
     });
 
-    if (!user || user.status !== 'active') {
-      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404, headers: noStoreHeaders });
+    if (!user) {
+      return NextResponse.json(
+        { success: false, code: 'INVALID_SESSION', message: 'Không tìm thấy phiên đăng nhập.' },
+        { status: 401, headers: noStoreHeaders }
+      );
+    }
+
+    if (String(user.status || '').trim().toLowerCase() !== 'active') {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'ACCOUNT_BANNED',
+          bannedUser: true,
+          message: 'Tài khoản đã bị khóa. Vui lòng liên hệ owner để mở khóa.',
+        },
+        { status: 403, headers: noStoreHeaders }
+      );
     }
 
     await db.users.update({

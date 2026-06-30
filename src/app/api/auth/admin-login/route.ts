@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { getRequestIp, getIpBlock, buildBlockedIpPayload } from '@/lib/ip-security';
-import { clearTwoFactorPendingCookie, setAuthenticatedSessionCookies, setTwoFactorPendingCookie } from '@/lib/session-cookie';
+import {
+  clearAuthenticatedSessionCookies,
+  clearTwoFactorPendingCookie,
+  setAuthenticatedSessionCookies,
+  setTwoFactorPendingCookie,
+} from '@/lib/session-cookie';
 import { isAdminRole, isOwnerRole } from '@/lib/admin-permissions';
 import { logOwnerSecurityEvent, verifyOwnerLoginSecurity } from '@/lib/owner-security';
 import { isSupportTikTokStaffRole } from '@/lib/support-tiktok';
@@ -69,7 +74,17 @@ export async function POST(req: NextRequest) {
   }
 
   if (user.status !== 'active') {
-    return NextResponse.json({ success: false, message: 'Tài khoản không hoạt động' }, { status: 403 });
+    const response = NextResponse.json(
+      {
+        success: false,
+        code: 'ACCOUNT_BANNED',
+        bannedUser: true,
+        message: 'Tài khoản đã bị khóa. Vui lòng liên hệ owner để mở khóa.',
+      },
+      { status: 403 }
+    );
+    clearAuthenticatedSessionCookies(response);
+    return response;
   }
 
   if (isOwner) {

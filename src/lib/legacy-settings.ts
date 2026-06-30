@@ -604,7 +604,7 @@ export async function getLegacySettingsMap(forceRefresh = false): Promise<Record
     });
 
     const settings = rows.reduce<Record<string, string>>((acc, row) => {
-      acc[row.setting_key] = row.setting_value || '';
+      acc[row.setting_key] = sanitizeLegacySettingValue(row.setting_key, row.setting_value || '');
       return acc;
     }, {});
 
@@ -643,6 +643,18 @@ export function getLegacySetting(
 ): string {
   const value = settings[key];
   return typeof value === 'string' && value !== '' ? value : fallback;
+}
+
+function isPotentiallyCompromisedServiceText(key: string, value: string) {
+  if (!/^service_.*_(name|desc)$/i.test(key)) {
+    return false;
+  }
+
+  return /(hacked\s+by|cheapluxury|<script|javascript:|document\.cookie|localstorage|sessionstorage|onerror\s*=|onload\s*=)/i.test(value);
+}
+
+function sanitizeLegacySettingValue(key: string, value: string) {
+  return isPotentiallyCompromisedServiceText(key, value) ? '' : value;
 }
 
 export function isResourcesContactAdminMode(settings: Record<string, string>): boolean {

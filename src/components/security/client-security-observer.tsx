@@ -37,11 +37,151 @@ function containsSuspiciousCode(value: string) {
 
 export function ClientSecurityObserver() {
   const lastReportRef = useRef<Record<string, number>>({});
+  const forcedLogoutRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
+
+    const originalFetch = window.fetch.bind(window);
+    const originalXhrOpen = XMLHttpRequest.prototype.open;
+    const originalXhrSend = XMLHttpRequest.prototype.send;
+
+    const isProtectedArea = () => /^\/(?:user|admin)(?:\/|$)/.test(window.location.pathname);
+
+    const isLogoutExemptApi = (url: string) => {
+      try {
+        const pathname = new URL(url || '/', window.location.origin).pathname;
+        return [
+          '/api/auth/login',
+          '/api/auth/admin-login',
+          '/api/auth/2fa',
+          '/api/auth/logout',
+          '/api/security/event',
+        ].includes(pathname);
+      } catch {
+        return false;
+      }
+    };
+
+    const forceSecurityLogout = (reason = 'security-blocked') => {
+      if (forcedLogoutRef.current) {
+        return;
+      }
+      forcedLogoutRef.current = true;
+
+      try {
+        window.localStorage.setItem('ttmmo_security_logout_reason', reason);
+      } catch {
+        // Ignore storage failures; logout is the important part.
+      }
+
+      const loginUrl = new URL('/auth/login', window.location.origin);
+      loginUrl.searchParams.set('reason', reason);
+      loginUrl.searchParams.set('security', 'blocked');
+
+      originalFetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        keepalive: true,
+      }).finally(() => {
+        window.location.replace(loginUrl.toString());
+      });
+    };
+
+    const inspectSecurityPayload = (payload: unknown, fallbackStatus = 0, responseUrl = '') => {
+      if ((fallbackStatus === 401 || fallbackStatus === 403) && isProtectedArea() && !isLogoutExemptApi(responseUrl)) {
+        forceSecurityLogout(fallbackStatus === 403 ? 'security-banned' : 'session-ended');
+        return;
+      }
+
+      if (!payload || typeof payload !== 'object') {
+        return;
+      }
+
+      const data = payload as {
+        autoBanned?: unknown;
+        bannedUser?: unknown;
+        blocked?: unknown;
+        code?: unknown;
+        severity?: unknown;
+        riskScore?: unknown;
+      };
+      const code = String(data.code || '').toUpperCase();
+      const severity = String(data.severity || '').toUpperCase();
+      const riskScore = Number(data.riskScore || 0);
+      const shouldLogout =
+        data.autoBanned === true ||
+        data.bannedUser === true ||
+        data.blocked === true ||
+        code === 'SECURITY_BLOCKED' ||
+        code === 'ACCOUNT_BANNED' ||
+        code === 'USER_BANNED' ||
+        code === 'IP_BLOCKED' ||
+        code === 'INVALID_SESSION' ||
+        (fallbackStatus === 403 && severity === 'CRITICAL' && riskScore >= 95);
+
+      if (shouldLogout) {
+        forceSecurityLogout(code === 'INVALID_SESSION' ? 'session-ended' : 'security-banned');
+      }
+    };
+
+    const inspectSecurityResponse = async (response: Response) => {
+      if ((response.status === 401 || response.status === 403) && isProtectedArea() && !isLogoutExemptApi(response.url)) {
+        forceSecurityLogout(response.status === 403 ? 'security-banned' : 'session-ended');
+        return;
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        return;
+      }
+
+      const payload = await response.clone().json().catch(() => null);
+      inspectSecurityPayload(payload, response.status, response.url);
+    };
+
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
+      const response = await originalFetch(...args);
+      inspectSecurityResponse(response).catch(() => undefined);
+      return response;
+    };
+
+    const patchedOpen = function patchedOpen(
+      this: XMLHttpRequest,
+      method: string,
+      url: string | URL,
+      async?: boolean,
+      username?: string | null,
+      password?: string | null
+    ) {
+      (this as XMLHttpRequest & { __ttmmoSecurityUrl?: string }).__ttmmoSecurityUrl = String(url || '');
+      return originalXhrOpen.call(this, method, url, async ?? true, username ?? null, password ?? null);
+    } as typeof XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = patchedOpen;
+    XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) {
+      this.addEventListener('load', () => {
+        const xhr = this as XMLHttpRequest & { __ttmmoSecurityUrl?: string };
+        const responseUrl = xhr.__ttmmoSecurityUrl || '';
+        if ((xhr.status === 401 || xhr.status === 403) && isProtectedArea() && !isLogoutExemptApi(responseUrl)) {
+          forceSecurityLogout(xhr.status === 403 ? 'security-banned' : 'session-ended');
+          return;
+        }
+
+        const contentType = xhr.getResponseHeader('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          return;
+        }
+
+        try {
+          inspectSecurityPayload(JSON.parse(String(xhr.responseText || '')), xhr.status, responseUrl);
+        } catch {
+          // Ignore non-JSON API responses.
+        }
+      });
+      return originalXhrSend.call(this, body ?? null);
+    };
 
     const report = (eventType: string, payload = '', signal = '') => {
       const key = `${eventType}:${signal}:${payload.slice(0, 80)}`;
@@ -51,32 +191,24 @@ export function ClientSecurityObserver() {
       }
       lastReportRef.current[key] = now;
 
-      navigator.sendBeacon?.(
-        '/api/security/event',
-        new Blob([
-          JSON.stringify({
-            eventType,
-            payload: payload.slice(0, 1200),
-            signal,
-            path: window.location.pathname,
-            href: window.location.href,
-            source: 'client-security-observer',
-          }),
-        ], { type: 'application/json' })
-      ) || fetch('/api/security/event', {
+      const body = JSON.stringify({
+        eventType,
+        payload: payload.slice(0, 1200),
+        signal,
+        path: window.location.pathname,
+        href: window.location.href,
+        source: 'client-security-observer',
+      });
+
+      fetch('/api/security/event', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         credentials: 'include',
         keepalive: true,
-        body: JSON.stringify({
-          eventType,
-          payload: payload.slice(0, 1200),
-          signal,
-          path: window.location.pathname,
-          href: window.location.href,
-          source: 'client-security-observer',
-        }),
-      }).catch(() => undefined);
+        body,
+      }).catch(() => {
+        navigator.sendBeacon?.('/api/security/event', new Blob([body], { type: 'application/json' }));
+      });
     };
 
     const onPaste = (event: ClipboardEvent) => {
@@ -141,13 +273,30 @@ export function ClientSecurityObserver() {
     window.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('resize', inspectRuntime);
     const interval = window.setInterval(inspectRuntime, 12_000);
+    const sessionInterval = window.setInterval(() => {
+      if (!isProtectedArea() || forcedLogoutRef.current) {
+        return;
+      }
+
+      originalFetch('/api/user/me?security_check=1', {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'x-security-probe': '1' },
+      }).then((response) => {
+        inspectSecurityResponse(response).catch(() => undefined);
+      }).catch(() => undefined);
+    }, 5_000);
     inspectRuntime();
 
     return () => {
+      window.fetch = originalFetch;
+      XMLHttpRequest.prototype.open = originalXhrOpen;
+      XMLHttpRequest.prototype.send = originalXhrSend;
       window.removeEventListener('paste', onPaste, true);
       window.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('resize', inspectRuntime);
       window.clearInterval(interval);
+      window.clearInterval(sessionInterval);
     };
   }, []);
 

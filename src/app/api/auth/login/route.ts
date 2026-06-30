@@ -5,7 +5,12 @@ import { db } from '@/lib/db';
 import { shouldRequireEmailVerificationForUser } from '@/lib/auth-email-verification';
 import { buildBlockedIpPayload, getIpBlock, getRequestIp, logSecurityEvent } from '@/lib/ip-security';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { clearTwoFactorPendingCookie, setAuthenticatedSessionCookies, setTwoFactorPendingCookie } from '@/lib/session-cookie';
+import {
+  clearAuthenticatedSessionCookies,
+  clearTwoFactorPendingCookie,
+  setAuthenticatedSessionCookies,
+  setTwoFactorPendingCookie,
+} from '@/lib/session-cookie';
 import { isOwnerRole } from '@/lib/admin-permissions';
 import { logOwnerSecurityEvent } from '@/lib/owner-security';
 import { toNumber } from '@/lib/utils';
@@ -139,10 +144,17 @@ export async function POST(req: NextRequest) {
         payload: String(user.status),
         userAgent: req.headers.get('user-agent'),
       });
-      return NextResponse.json(
-        { success: false, message: 'Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ.' },
+      const response = NextResponse.json(
+        {
+          success: false,
+          code: 'ACCOUNT_BANNED',
+          bannedUser: true,
+          message: 'Tài khoản đã bị khóa. Vui lòng liên hệ owner để mở khóa.',
+        },
         { status: 403 }
       );
+      clearAuthenticatedSessionCookies(response);
+      return response;
     }
 
     if (shouldRequireEmailVerificationForUser({ createdAt: user.created_at, emailVerified: user.email_verified })) {

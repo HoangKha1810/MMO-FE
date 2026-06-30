@@ -9,6 +9,8 @@ export interface AdminSectionConfig {
   actions?: Array<{ key: string; label: string; tone?: 'default' | 'danger' | 'success' }>;
 }
 
+const ORDER_BULK_DELETE_ACTION = { key: 'bulk-delete', label: 'Xóa đã chọn', tone: 'danger' } as const;
+
 export const vpsGpuAdminSections: AdminSectionConfig[] = [
   {
     resource: 'settings',
@@ -101,6 +103,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'username', 'provider_id', 'api_order_id', 'service_name', 'quantity', 'price', 'status', 'created_at'],
       editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'start_count', 'remains'],
       statusOptions: ['Processing', 'Completed', 'Refunded', 'Canceled'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
   automxh: [
@@ -129,6 +132,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'user_id', 'product_id', 'variant_id', 'api_provider_id', 'api_order_id', 'price', 'status', 'is_refunded', 'refund_amount', 'created_at'],
       editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'price', 'cost_price', 'buyer_info', 'api_order_id', 'api_response', 'api_status_log', 'perfection_content', 'perfection_image', 'avatar_path', 'additional_files', 'confirm_1', 'confirm_2', 'is_exported'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
     {
       resource: 'automxh-variants',
@@ -148,6 +152,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'user_id', 'contact', 'gmail', 'quantity', 'price', 'status', 'admin_note', 'updated_at', 'created_at'],
       editableFields: ['contact', 'gmail', 'quantity', 'price', 'note', 'admin_note', 'status'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
   'vibe-code': [
@@ -167,6 +172,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'order_code', 'username', 'provider', 'package_title', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'status', 'admin_note', 'created_at'],
       editableFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
   'web-service': [
@@ -186,6 +192,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'order_code', 'user_id', 'category', 'package_title', 'contact', 'desired_domain', 'price_min_vnd', 'price_max_vnd', 'quoted_price_vnd', 'status', 'admin_note', 'created_at'],
       editableFields: ['status', 'admin_note', 'quoted_price_vnd', 'contact', 'desired_domain', 'requirement', 'price_min_vnd', 'price_max_vnd'],
       statusOptions: ['pending', 'processing', 'quoted', 'completed', 'canceled'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
   press: [
@@ -205,6 +212,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'order_code', 'user_id', 'publication_name', 'title', 'contact', 'docx_path', 'price_vnd', 'status', 'admin_note', 'created_at'],
       editableFields: ['status', 'admin_note', 'publication_name', 'title', 'contact', 'note', 'docx_path', 'price_vnd'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
   'support-tiktok': [
@@ -216,6 +224,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       editableFields: ['region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'price', 'status', 'ngay_gia_han', 'ngay_het_han'],
       createFields: ['user_id', 'region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'price', 'status', 'ngay_gia_han', 'ngay_het_han'],
       statusOptions: ['pending', 'success', 'active', 'processing', 'completed', 'canceled', 'expired'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
     {
       resource: 'tiktok-service-menus',
@@ -280,6 +289,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'user_id', 'resource_id', 'quantity', 'total_price', 'status', 'payment_method', 'is_exported', 'created_at'],
       editableFields: ['status', 'total_price', 'quantity', 'payment_method', 'download_count', 'max_downloads', 'expires_at', 'delivery_data', 'is_exported', 'exported_at'],
       statusOptions: ['pending', 'completed', 'cancelled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
     {
       resource: 'providers',
@@ -392,7 +402,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       columns: ['id', 'user_id', 'type', 'telco', 'card_amount', 'amount', 'serial', 'api_order_id', 'status', 'created_at'],
       editableFields: ['status', 'note', 'amount', 'api_order_id'],
       statusOptions: ['pending', 'success', 'failed', 'refunded'],
-      actions: [{ key: 'refund', label: 'Refund', tone: 'success' }],
+      actions: [{ key: 'refund', label: 'Refund', tone: 'success' }, ORDER_BULK_DELETE_ACTION],
     },
   ],
   'game-market': [
@@ -421,6 +431,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       editableFields: ['buyer_id', 'seller_id', 'item_id', 'stock_id', 'amount', 'delivered_data', 'status', 'rating', 'review'],
       createFields: ['id', 'buyer_id', 'seller_id', 'item_id', 'stock_id', 'amount', 'delivered_data', 'status'],
       statusOptions: ['completed', 'failed', 'refunded', 'processing'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
   'find-job': [
@@ -615,25 +626,91 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'smm-orders',
       title: 'SMM orders',
       description: 'Đơn SMM.',
-      columns: ['id', 'username', 'api_order_id', 'service_name', 'quantity', 'price', 'status', 'created_at'],
-      editableFields: ['status', 'reason', 'is_refunded', 'refund_amount'],
+      columns: ['id', 'username', 'provider_id', 'api_order_id', 'service_name', 'quantity', 'price', 'status', 'created_at'],
+      editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'start_count', 'remains'],
       statusOptions: ['Processing', 'Completed', 'Refunded', 'Canceled'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
     {
       resource: 'automxh-orders',
       title: 'Auto MXH orders',
       description: 'Đơn Auto MXH.',
-      columns: ['id', 'user_id', 'title', 'quantity', 'amount', 'status', 'is_refunded', 'refund_amount', 'created_at'],
-      editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'amount', 'quantity', 'buyer_info'],
+      columns: ['id', 'user_id', 'product_id', 'variant_id', 'api_provider_id', 'api_order_id', 'price', 'status', 'is_refunded', 'refund_amount', 'created_at'],
+      editableFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'price', 'cost_price', 'buyer_info', 'api_order_id', 'api_response', 'api_status_log', 'perfection_content', 'perfection_image', 'avatar_path', 'additional_files', 'confirm_1', 'confirm_2', 'is_exported'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
+    },
+    {
+      resource: 'meta-support-orders',
+      title: 'Auto kích nút Meta orders',
+      description: 'Đơn Auto kích nút + Chat Support Meta.',
+      columns: ['id', 'user_id', 'contact', 'gmail', 'quantity', 'price', 'status', 'admin_note', 'updated_at', 'created_at'],
+      editableFields: ['contact', 'gmail', 'quantity', 'price', 'note', 'admin_note', 'status'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled'],
+      actions: [ORDER_BULK_DELETE_ACTION],
+    },
+    {
+      resource: 'tiktok-orders',
+      title: 'Support TikTok orders',
+      description: 'Đơn support TikTok, trạng thái duyệt và hạn dùng.',
+      columns: ['id', 'user_id', 'region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'price', 'status', 'ngay_het_han', 'updated_at'],
+      editableFields: ['region', 'service_key', 'service_name', 'tiktok_id', 'buyer_name', 'buyer_contact', 'price', 'status', 'ngay_gia_han', 'ngay_het_han'],
+      statusOptions: ['pending', 'success', 'active', 'processing', 'completed', 'canceled', 'expired'],
+      actions: [ORDER_BULK_DELETE_ACTION],
+    },
+    {
+      resource: 'vibe-code-orders',
+      title: 'Đơn Vibe Code',
+      description: 'Đơn Cursor AI/Codex API và trạng thái cấp gói.',
+      columns: ['id', 'order_code', 'username', 'provider', 'package_title', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'status', 'admin_note', 'created_at'],
+      editableFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
+    },
+    {
+      resource: 'web-service-orders',
+      title: 'Đơn Web con MMO / Build Website',
+      description: 'Đơn khách gửi từ dịch vụ web, báo giá và ghi chú xử lý.',
+      columns: ['id', 'order_code', 'user_id', 'category', 'package_title', 'contact', 'desired_domain', 'price_min_vnd', 'price_max_vnd', 'quoted_price_vnd', 'status', 'admin_note', 'created_at'],
+      editableFields: ['status', 'admin_note', 'quoted_price_vnd', 'contact', 'desired_domain', 'requirement', 'price_min_vnd', 'price_max_vnd'],
+      statusOptions: ['pending', 'processing', 'quoted', 'completed', 'canceled'],
+      actions: [ORDER_BULK_DELETE_ACTION],
+    },
+    {
+      resource: 'press-orders',
+      title: 'Đơn lên báo',
+      description: 'Đơn booking bài báo, file DOCX và trạng thái xử lý.',
+      columns: ['id', 'order_code', 'user_id', 'publication_name', 'title', 'contact', 'docx_path', 'price_vnd', 'status', 'admin_note', 'created_at'],
+      editableFields: ['status', 'admin_note', 'publication_name', 'title', 'contact', 'note', 'docx_path', 'price_vnd'],
+      statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
+    },
+    {
+      resource: 'resource-orders',
+      title: 'Resource sales',
+      description: 'Đơn mua tài nguyên và trạng thái giao hàng.',
+      columns: ['id', 'user_id', 'resource_id', 'quantity', 'total_price', 'status', 'payment_method', 'is_exported', 'created_at'],
+      editableFields: ['status', 'total_price', 'quantity', 'payment_method', 'download_count', 'max_downloads', 'expires_at', 'delivery_data', 'is_exported', 'exported_at'],
+      statusOptions: ['pending', 'completed', 'cancelled', 'refunded'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
     {
       resource: 'card-orders',
       title: 'Card orders',
       description: 'Đơn thẻ.',
-      columns: ['id', 'user_id', 'type', 'telco', 'amount', 'status', 'created_at'],
-      editableFields: ['status', 'note'],
+      columns: ['id', 'user_id', 'type', 'telco', 'card_amount', 'amount', 'serial', 'api_order_id', 'status', 'created_at'],
+      editableFields: ['status', 'note', 'amount', 'api_order_id'],
       statusOptions: ['pending', 'success', 'failed', 'refunded'],
+      actions: [{ key: 'refund', label: 'Refund', tone: 'success' }, ORDER_BULK_DELETE_ACTION],
+    },
+    {
+      resource: 'game-orders',
+      title: 'Game market orders',
+      description: 'Đơn mua bán game/tài khoản game.',
+      columns: ['id', 'buyer_id', 'seller_id', 'item_id', 'amount', 'status', 'rating', 'created_at'],
+      editableFields: ['buyer_id', 'seller_id', 'item_id', 'stock_id', 'amount', 'delivered_data', 'status', 'rating', 'review'],
+      statusOptions: ['completed', 'failed', 'refunded', 'processing'],
+      actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
 };

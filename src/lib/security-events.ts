@@ -3,6 +3,7 @@ import 'server-only';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { getRequestIp, isTrackableIp, logSecurityEvent } from '@/lib/ip-security';
+import { invalidateSessionUserCache } from '@/lib/session-cookie';
 
 type SecuritySeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -256,6 +257,7 @@ async function banSecuritySubject(input: {
         locked_at: new Date(),
       },
     }).catch(() => undefined);
+    invalidateSessionUserCache(input.user.id);
   }
 }
 

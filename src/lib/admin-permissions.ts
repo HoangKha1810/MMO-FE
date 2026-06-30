@@ -74,5 +74,5 @@ export function canOperatorAccessResource(resource: string, action: AdminResourc
     return false;
   }
 
-  return action === 'list' || action === 'detail' || action === 'update' || action === 'action';
+  return action === 'list' || action === 'detail' || action === 'update' || action === 'delete' || action === 'action';
 }
