@@ -29,8 +29,48 @@ function timingSafeEqualString(left: string, right: string) {
 function parseAllowlist(value: string) {
   return value
     .split(/[,\n;\s]+/)
-    .map((item) => item.trim())
+    .map((item) => item.trim().replace(/^::ffff:/, ''))
     .filter(Boolean);
+}
+
+function ipv4ToNumber(value: string) {
+  const parts = value.split('.');
+  if (parts.length !== 4) return null;
+
+  let result = 0;
+  for (const part of parts) {
+    if (!/^\d{1,3}$/.test(part)) return null;
+    const byte = Number(part);
+    if (!Number.isInteger(byte) || byte < 0 || byte > 255) return null;
+    result = (result << 8) + byte;
+  }
+
+  return result >>> 0;
+}
+
+function isIpInCidr(ip: string, cidr: string) {
+  const [range, bitsText] = cidr.split('/');
+  const bits = Number(bitsText);
+  if (!range || !Number.isInteger(bits) || bits < 0 || bits > 32) return false;
+
+  const ipNum = ipv4ToNumber(ip);
+  const rangeNum = ipv4ToNumber(range);
+  if (ipNum === null || rangeNum === null) return false;
+
+  const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
+  return (ipNum & mask) === (rangeNum & mask);
+}
+
+function isIpAllowed(ip: string, allowlist: string[]) {
+  const normalizedIp = ip.trim().replace(/^::ffff:/, '');
+  if (!isTrackableIp(normalizedIp)) return false;
+
+  return allowlist.some((entry) => {
+    const normalizedEntry = entry.trim().replace(/^::ffff:/, '');
+    return normalizedEntry.includes('/')
+      ? isIpInCidr(normalizedIp, normalizedEntry)
+      : normalizedEntry === normalizedIp;
+  });
 }
 
 function readDirectDepositSignature(req: NextRequest | undefined, input: Record<string, unknown>) {
@@ -100,7 +140,7 @@ async function assertDirectExternalDepositAllowed(input: {
     expectedSignature &&
     timingSafeEqualString(providedSignature.toLowerCase(), expectedSignature.toLowerCase())
   );
-  const ipOk = allowlist.length === 0 || (isTrackableIp(ip) && allowlist.includes(ip));
+  const ipOk = allowlist.length > 0 && isIpAllowed(ip, allowlist);
   const legacySecretOk = Boolean(expectedSecret && providedSecret && timingSafeEqualString(expectedSecret, providedSecret));
 
   if (!isEnabled || !ipOk || !signatureOk || !legacySecretOk) {
@@ -114,6 +154,8 @@ async function assertDirectExternalDepositAllowed(input: {
       field: 'direct_deposit',
       payload: JSON.stringify({
         enabled: isEnabled,
+        request_ip: ip,
+        allowed_ips: allowlist,
         ip_ok: ipOk,
         signature_ok: signatureOk,
         secret_ok: legacySecretOk,
