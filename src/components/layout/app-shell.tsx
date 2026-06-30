@@ -1069,6 +1069,19 @@ export function AppShell({
                 <Menu className="h-4 w-4 text-slate-600 dark:text-white/70" />
               </button>
 
+              <Link
+                href={isAdmin ? '/admin/dashboard' : '/user/home'}
+                onClick={handleBrandHomeClick}
+                aria-label="TRUNGTAMMMO.VN"
+                className="ml-auto flex min-w-0 items-center justify-end pr-1 lg:hidden"
+              >
+                <img
+                  src="/logo.gif"
+                  alt="TRUNGTAMMMO.VN"
+                  className="h-9 max-w-[52vw] object-contain drop-shadow-[0_10px_22px_rgba(37,99,235,0.28)]"
+                />
+              </Link>
+
               <div className="hidden max-w-3xl flex-1 items-center gap-3 lg:flex">
                 {/* Forum search */}
                 <form className="group relative hidden flex-1 lg:block" onSubmit={(event) => submitSearch(event, 'forum')}>

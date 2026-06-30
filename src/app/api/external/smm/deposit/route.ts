@@ -11,13 +11,14 @@ export async function GET() {
     docs: {
       endpoint: '/api/external/smm/deposit',
       method: 'POST',
-      auth: 'x-api-key: API key do admin cấp',
+      auth: 'x-api-key: API key do admin cấp + deposit_secret nội bộ nếu admin bật ENABLE_EXTERNAL_API_DIRECT_DEPOSIT=1',
       body: {
         amount: 100000,
         external_ref: 'BANK_TXN_001',
         note: 'Nạp từ web con hoặc webhook ngân hàng',
+        deposit_secret: 'server-only-secret',
       },
-      description: 'Cộng tiền vào ví chính của tài khoản đang sở hữu API key. Dùng cho web con nạp tiền vào tài khoản nguồn trước khi đặt đơn.',
+      description: 'Mặc định endpoint cộng ví trực tiếp bị tắt để tránh giả mạo nạp tiền. Nên dùng /api/external/smm/deposit/checkout để tạo QR SePay.',
     },
   });
 }
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: auth.message }, { status: auth.status });
     }
 
-    return NextResponse.json(await creditExternalApiBalance(auth.account, body, 'SMM API'));
+    return NextResponse.json(await creditExternalApiBalance(auth.account, body, 'SMM API', req));
   } catch (error) {
     const status = typeof (error as { status?: unknown })?.status === 'number'
       ? Number((error as { status: number }).status)

@@ -11,7 +11,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '', owner_code: '' });
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,6 +50,7 @@ export default function AdminLoginPage() {
         <div className="mt-6 space-y-4">
           <Input placeholder="Username/email" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
           <Input type="password" placeholder="Mật khẩu" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+          <Input type="password" placeholder="Mã bảo mật owner (nếu là owner)" value={form.owner_code} onChange={(e) => setForm({ ...form, owner_code: e.target.value })} />
           <Button type="submit" disabled={loading} className="w-full" loading={loading} loadingText="Đang xác thực...">
             Vào admin
           </Button>

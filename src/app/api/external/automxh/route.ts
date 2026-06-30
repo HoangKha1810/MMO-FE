@@ -70,7 +70,7 @@ async function handleExternalAutoMxhAction(req: NextRequest, body: Record<string
         );
       }
 
-      return NextResponse.json(await creditExternalApiBalance(auth.account, mergedInput, 'Auto MXH API'));
+      return NextResponse.json(await creditExternalApiBalance(auth.account, mergedInput, 'Auto MXH API', req));
     }
     case 'deposit_checkout': {
       if (req.method !== 'POST') {

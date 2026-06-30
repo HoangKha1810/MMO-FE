@@ -71,7 +71,7 @@ async function handleExternalSmmAction(req: NextRequest, body: Record<string, un
         );
       }
 
-      return NextResponse.json(await creditExternalApiBalance(auth.account, mergedInput, 'SMM API'));
+      return NextResponse.json(await creditExternalApiBalance(auth.account, mergedInput, 'SMM API', req));
     }
     case 'deposit_checkout': {
       if (req.method !== 'POST') {

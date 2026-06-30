@@ -4,7 +4,7 @@ import {
   getAdminResourceDetail,
   updateAdminResource,
 } from '@/lib/admin-data';
-import { requireAdminApi } from '@/lib/admin-auth';
+import { assertAdminResourceAccess, requireAdminApi } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -24,6 +24,8 @@ export async function PATCH(
 
   try {
     const { resource, id } = await context.params;
+    const denied = await assertAdminResourceAccess(auth.user!, resource, 'update', req);
+    if (denied) return denied;
     const body = await req.json().catch(() => ({}));
     const data = await updateAdminResource(resource, Number(id), body, auth.user!.id, req);
     return NextResponse.json(data, { headers: noStoreHeaders });
@@ -42,6 +44,8 @@ export async function GET(
 
   try {
     const { resource, id } = await context.params;
+    const denied = await assertAdminResourceAccess(auth.user!, resource, 'detail', req);
+    if (denied) return denied;
     const data = await getAdminResourceDetail(resource, Number(id));
     return NextResponse.json(data, { headers: noStoreHeaders });
   } catch (error) {
@@ -59,6 +63,8 @@ export async function DELETE(
 
   try {
     const { resource, id } = await context.params;
+    const denied = await assertAdminResourceAccess(auth.user!, resource, 'delete', req);
+    if (denied) return denied;
     const data = await deleteAdminResource(resource, Number(id), auth.user!.id, req);
     return NextResponse.json(data, { headers: noStoreHeaders });
   } catch (error) {

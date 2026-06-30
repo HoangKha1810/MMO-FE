@@ -37,11 +37,19 @@ export async function POST(req: NextRequest) {
         id: true,
         username: true,
         email: true,
+        role: true,
       },
     });
 
     if (!user) {
       return NextResponse.json({ success: false, message: 'Không tìm thấy người dùng.' }, { status: 404, headers: noStoreHeaders });
+    }
+
+    if (String(user.role || '').trim().toLowerCase() === 'owner') {
+      return NextResponse.json(
+        { success: false, message: 'Không được đổi mật khẩu owner qua endpoint web. Hãy dùng quy trình owner offline.' },
+        { status: 403, headers: noStoreHeaders }
+      );
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

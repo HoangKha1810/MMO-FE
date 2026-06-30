@@ -1,13 +1,12 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
 
 export async function getCurrentUserForShell() {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     redirect(buildAccessPageUrl({

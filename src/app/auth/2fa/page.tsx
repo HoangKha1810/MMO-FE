@@ -34,7 +34,7 @@ function TwoFactorForm() {
       return;
     }
     startPageTransition();
-    router.push(next);
+    router.push(String(payload.redirect || next));
     router.refresh();
   }
 

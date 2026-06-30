@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { db } from '@/lib/db';
@@ -10,8 +10,7 @@ chromium.use(stealthPlugin());
 export const dynamic = 'force-dynamic';
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 interface CheckedAccount {

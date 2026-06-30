@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import {
   createMetaSupportOrder,
   listMetaSupportOrders,
   META_SUPPORT_PACKAGES,
 } from '@/lib/meta-support';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 
 async function requireUserId() {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
   if (!userId) {
     return {
       userId: 0,

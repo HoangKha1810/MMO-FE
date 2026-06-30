@@ -1,7 +1,10 @@
 import 'server-only';
 
+import crypto from 'node:crypto';
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
+import { getRequestIp, isTrackableIp, logSecurityEvent } from '@/lib/ip-security';
 import { buildSePayReferenceContent, extractSePayPaymentReferenceCodes } from '@/lib/sepay-codes';
 import { createSePayCheckoutSession } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
@@ -15,6 +18,116 @@ function externalWalletError(message: string, status = 400) {
   const error = new Error(message) as Error & { status?: number };
   error.status = status;
   return error;
+}
+
+function timingSafeEqualString(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function parseAllowlist(value: string) {
+  return value
+    .split(/[,\n;\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function readDirectDepositSignature(req: NextRequest | undefined, input: Record<string, unknown>) {
+  return String(
+    req?.headers.get('x-deposit-signature') ||
+    req?.headers.get('x-signature') ||
+    input.deposit_signature ||
+    input.signature ||
+    ''
+  ).trim();
+}
+
+function buildDirectDepositSignature(input: {
+  secret: string;
+  userId: number;
+  amount: number;
+  externalRef: string;
+}) {
+  return crypto
+    .createHmac('sha256', input.secret)
+    .update(`${input.amount}|${input.externalRef}|${input.userId}`)
+    .digest('hex');
+}
+
+async function assertDirectExternalDepositAllowed(input: {
+  req?: NextRequest;
+  payload: Record<string, unknown>;
+  userId: number;
+  amount: number;
+  externalRef: string;
+}) {
+  const isEnabled = process.env.ENABLE_EXTERNAL_API_DIRECT_DEPOSIT === '1';
+  const expectedSecret = String(
+    process.env.EXTERNAL_API_DEPOSIT_SECRET ||
+    process.env.EXTERNAL_WALLET_DEPOSIT_SECRET ||
+    ''
+  ).trim();
+  const providedSecret = String(
+    input.payload.deposit_secret ||
+    input.payload.webhook_secret ||
+    input.payload.external_deposit_secret ||
+    input.payload.secret ||
+    ''
+  ).trim();
+  const ip = input.req ? getRequestIp(input.req) : 'unknown';
+  const allowlist = parseAllowlist(
+    process.env.EXTERNAL_API_DEPOSIT_ALLOWED_IPS ||
+    process.env.EXTERNAL_WALLET_DEPOSIT_ALLOWED_IPS ||
+    ''
+  );
+  const signatureSecret = String(
+    process.env.EXTERNAL_API_DEPOSIT_SIGNATURE_SECRET ||
+    process.env.EXTERNAL_WALLET_DEPOSIT_SIGNATURE_SECRET ||
+    expectedSecret
+  ).trim();
+  const providedSignature = readDirectDepositSignature(input.req, input.payload);
+  const expectedSignature = signatureSecret
+    ? buildDirectDepositSignature({
+        secret: signatureSecret,
+        userId: input.userId,
+        amount: input.amount,
+        externalRef: input.externalRef,
+      })
+    : '';
+  const signatureOk = Boolean(
+    providedSignature &&
+    expectedSignature &&
+    timingSafeEqualString(providedSignature.toLowerCase(), expectedSignature.toLowerCase())
+  );
+  const ipOk = allowlist.length === 0 || (isTrackableIp(ip) && allowlist.includes(ip));
+  const legacySecretOk = Boolean(expectedSecret && providedSecret && timingSafeEqualString(expectedSecret, providedSecret));
+
+  if (!isEnabled || !ipOk || !signatureOk || !legacySecretOk) {
+    await logSecurityEvent({
+      eventType: 'EXTERNAL_DIRECT_DEPOSIT_DENIED',
+      severity: 'CRITICAL',
+      ip,
+      userId: input.userId,
+      uri: input.req?.nextUrl.pathname,
+      method: input.req?.method,
+      field: 'direct_deposit',
+      payload: JSON.stringify({
+        enabled: isEnabled,
+        ip_ok: ipOk,
+        signature_ok: signatureOk,
+        secret_ok: legacySecretOk,
+        amount: input.amount,
+        external_ref: input.externalRef,
+      }),
+      userAgent: input.req?.headers.get('user-agent'),
+      autoBanned: false,
+    }).catch(() => undefined);
+    throw externalWalletError(
+      'Nạp tiền trực tiếp qua API bị chặn. Vui lòng dùng deposit_checkout/SePay checkout hoặc cấu hình IP allowlist + HMAC signature cho webhook nội bộ.',
+      403
+    );
+  }
 }
 
 function roundVnd(value: number, digits = 2) {
@@ -84,7 +197,8 @@ function buildTopupContent(input: {
 export async function creditExternalApiBalance(
   account: ExternalApiAccount,
   input: Record<string, unknown>,
-  sourceLabel = 'External API'
+  sourceLabel = 'External API',
+  req?: NextRequest
 ) {
   const amount = Math.max(0, Math.trunc(toNumber(input.amount || input.value || input.money, 0)));
   const externalRef = normalizeExternalRef(input.external_ref || input.reference || input.ref || input.transaction_id);
@@ -97,6 +211,14 @@ export async function creditExternalApiBalance(
   if (amount > 1_000_000_000) {
     throw externalWalletError('Số tiền nạp vượt giới hạn 1.000.000.000đ');
   }
+
+  await assertDirectExternalDepositAllowed({
+    req,
+    payload: input,
+    userId: account.userId,
+    amount,
+    externalRef,
+  });
 
   const marker = externalRef ? `external_ref=${externalRef}` : '';
 

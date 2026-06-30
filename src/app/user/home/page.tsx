@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -107,8 +107,7 @@ async function getDepositStats(userId: number) {
 }
 
 export default async function HomePage() {
-  const cookieStore = await cookies();
-  const userId = parseInt(cookieStore.get('user_id')?.value || '0', 10);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     redirect(buildAccessPageUrl({

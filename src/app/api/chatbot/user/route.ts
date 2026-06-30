@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { db } from '@/lib/db';
 import {
   appendAssistantConversationExchange,
@@ -18,8 +18,7 @@ export const revalidate = 0;
 const DAILY_USER_MESSAGE_LIMIT = 5;
 
 async function getAuthorizedUser() {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return null;

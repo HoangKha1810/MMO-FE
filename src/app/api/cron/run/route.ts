@@ -29,8 +29,21 @@ interface ProviderRow extends Record<string, unknown> {
 }
 
 function authorized(req: NextRequest) {
-  const key = req.headers.get('x-api-key') || req.nextUrl.searchParams.get('key') || '';
-  return !process.env.API_KEY || key === process.env.API_KEY;
+  const expectedKey = String(process.env.CRON_SECRET || process.env.API_KEY || '').trim();
+  if (!expectedKey) {
+    return false;
+  }
+
+  const authorization = String(req.headers.get('authorization') || '').replace(/^bearer\s+/i, '').trim();
+  const receivedKey = String(
+    req.headers.get('x-cron-secret') ||
+    req.headers.get('x-api-key') ||
+    authorization ||
+    req.nextUrl.searchParams.get('key') ||
+    ''
+  ).trim();
+
+  return receivedKey === expectedKey;
 }
 
 function normalizeTask(value: unknown) {

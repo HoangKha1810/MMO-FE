@@ -1,5 +1,5 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import bcrypt from 'bcryptjs';
 import {
   buildLienQuanExportText,
@@ -21,8 +21,7 @@ function formatVnd(value: number) {
 }
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 function normalizeFilters(value: unknown): LienQuanAccountFilters {

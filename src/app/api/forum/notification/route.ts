@@ -1,5 +1,5 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { listForumNotifications, markForumNotificationsRead } from '@/lib/forum-actions';
 
 export const dynamic = 'force-dynamic';
@@ -12,8 +12,7 @@ const noStoreHeaders = {
 };
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 export async function GET() {

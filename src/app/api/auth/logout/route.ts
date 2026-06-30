@@ -1,10 +1,11 @@
 // src/app/api/auth/logout/route.ts
 import { NextResponse } from 'next/server';
 import { siteUrl } from '@/lib/seo';
+import { clearAuthenticatedSessionCookies } from '@/lib/session-cookie';
 
 export async function POST() {
   const response = NextResponse.json({ success: true });
-  response.cookies.set('user_id', '', { maxAge: 0, path: '/' });
+  clearAuthenticatedSessionCookies(response);
   response.cookies.set('2fa_pending', '', { maxAge: 0, path: '/' });
   response.cookies.set('integrated_ai_bridge', '', { maxAge: 0, path: '/' });
   response.cookies.set('integrated_vps_bridge', '', { maxAge: 0, path: '/' });

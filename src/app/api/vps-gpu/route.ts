@@ -1,5 +1,5 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import {
   buildVastOfferSearch,
   DEFAULT_VAST_MIN_INET_DOWN_MBPS,
@@ -73,8 +73,7 @@ const DEFAULT_VPS_GPU_INTERNET_RESERVE_VND = 50000;
 let activeVpsGpuBillingSweep: Promise<void> | null = null;
 
 async function requireUser() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 function json(data: Record<string, unknown>, init?: ResponseInit) {

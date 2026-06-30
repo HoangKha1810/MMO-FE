@@ -31,8 +31,8 @@ async function buildServiceStatusPayload() {
     return {
       key: control.key,
       statusKey: control.statusKey,
-      title: getLegacySetting(settings, control.nameKey, control.defaultTitle),
-      description: getLegacySetting(settings, control.descKey, control.defaultDesc),
+      title: control.defaultTitle,
+      description: control.defaultDesc,
       href: control.href,
       external: control.external,
       iconKey: control.iconKey,

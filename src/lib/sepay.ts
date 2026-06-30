@@ -231,14 +231,16 @@ export function verifySePayIpn(headers: Headers, payload: Record<string, unknown
     authorizationToken,
   ].filter(Boolean);
 
-  const validSecrets = [
-    ...configs.flatMap((config) => [config.webhookToken, config.secretKey]),
-  ].filter((value): value is string => Boolean(value && value.trim()));
+  const allowLegacySecretKey = process.env.SEPAY_ALLOW_SECRET_KEY_WEBHOOK === '1';
+  const validSecrets = configs.flatMap((config) => [
+    config.webhookToken,
+    ...(allowLegacySecretKey ? [config.secretKey] : []),
+  ]).filter((value): value is string => Boolean(value && value.trim()));
 
   if (!validSecrets.length) {
     return {
       success: false as const,
-      message: 'Chưa cấu hình SEPAY_WEBHOOK_TOKEN / SEPAY_SECRET_KEY',
+      message: 'Chưa cấu hình SEPAY_WEBHOOK_TOKEN',
     };
   }
 

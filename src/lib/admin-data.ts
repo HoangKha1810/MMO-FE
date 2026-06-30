@@ -66,8 +66,8 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
       lock_reason: true,
       created_at: true,
     },
-    createFields: ['username', 'email', 'password', 'fullname', 'role', 'status', 'balance', 'game_balance', 'rank'],
-    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick'],
+    createFields: ['username', 'email', 'password', 'fullname', 'status', 'rank'],
+    updateFields: ['fullname', 'email', 'status', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick'],
   },
   deposits: {
     delegate: 'transactions',
@@ -407,6 +407,20 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     title: 'Security logs',
     searchFields: ['event_type', 'ip', 'uri', 'payload', 'user_agent'],
     defaultOrder: commonOrder,
+    readonly: true,
+  },
+  'owner-security-events': {
+    table: 'owner_security_events',
+    title: 'Owner security events',
+    searchFields: ['username', 'email', 'event_type', 'verdict', 'reason', 'ip_address', 'user_agent', 'device_hash', 'request_path'],
+    rawOrder: 'created_at DESC, id DESC',
+    readonly: true,
+  },
+  'owner-trusted-devices': {
+    table: 'owner_trusted_devices',
+    title: 'Owner trusted devices',
+    searchFields: ['label', 'device_hash', 'first_ip', 'last_ip', 'trust_level'],
+    rawOrder: 'last_seen_at DESC, id DESC',
     readonly: true,
   },
   banks: {
@@ -2398,6 +2412,9 @@ export async function createAdminResource(resource: string, input: Record<string
   }
 
   if (resource === 'users' && typeof data.password === 'string') {
+    delete data.role;
+    delete data.balance;
+    delete data.game_balance;
     const bcrypt = await import('bcryptjs');
     data.password = await bcrypt.hash(data.password, 10);
   }
@@ -2438,6 +2455,19 @@ export async function updateAdminResource(resource: string, id: number, input: R
   let data = sanitizeData(input, config.updateFields);
   if (Object.keys(data).length === 0) {
     throw new Error('Không có dữ liệu cập nhật hợp lệ');
+  }
+
+  if (resource === 'users') {
+    delete data.role;
+    delete data.balance;
+    delete data.game_balance;
+    const target = await db.users.findUnique({
+      where: { id },
+      select: { role: true },
+    }).catch(() => null);
+    if (String(target?.role || '').toLowerCase() === 'owner') {
+      throw new Error('Không thể chỉnh tài khoản owner qua màn quản lý user.');
+    }
   }
 
   if (resource === 'smm-services') {
@@ -2725,6 +2755,14 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
   }
 
   if (resource === 'users') {
+    const target = await db.users.findUnique({
+      where: { id },
+      select: { role: true },
+    }).catch(() => null);
+    if (String(target?.role || '').toLowerCase() === 'owner') {
+      throw new Error('Không thể khóa/xóa tài khoản owner qua màn quản lý user.');
+    }
+
     const userColumns = getCachedPrismaModelFields('users');
     const data: Record<string, unknown> = {
       status: 'banned',
@@ -3725,7 +3763,7 @@ async function runRegistrationIpAction(
       const result = await db.users.updateMany({
         where: {
           last_ip: ip,
-          role: { not: 'admin' },
+          role: { notIn: ['admin', 'owner'] },
         },
         data: {
           status: 'banned',
@@ -3741,7 +3779,7 @@ async function runRegistrationIpAction(
       const result = await db.users.updateMany({
         where: {
           last_ip: ip,
-          role: { not: 'admin' },
+          role: { notIn: ['admin', 'owner'] },
           status: { in: ['locked', 'banned', 'suspended'] },
         },
         data: {

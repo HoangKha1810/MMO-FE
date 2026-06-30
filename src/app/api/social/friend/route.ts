@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import {
   getFriendStatus,
   getSocialCounters,
@@ -10,8 +10,7 @@ import {
 } from '@/lib/social';
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 export async function GET(req: NextRequest) {

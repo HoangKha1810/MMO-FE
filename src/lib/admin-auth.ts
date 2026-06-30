@@ -1,8 +1,20 @@
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { NextRequest, NextResponse } from 'next/server';
 import { buildAccessPageUrl } from '@/lib/access-page';
+import {
+  canOperatorAccessAdminPath,
+  canOperatorAccessResource,
+  isAdminRole,
+  isOperatorAdminRole,
+  isOwnerOnlyAdminApiPath,
+  isOwnerRole,
+  OPERATOR_ADMIN_LANDING,
+  type AdminResourceAction,
+} from '@/lib/admin-permissions';
 import { db } from '@/lib/db';
+import { getVerifiedPendingTwoFactorUserId, getVerifiedSessionUserId } from '@/lib/session-cookie';
+import { logOwnerSecurityEvent, verifyOwnerActionSecurity } from '@/lib/owner-security';
 
 export interface AdminSessionUser {
   id: number;
@@ -20,14 +32,13 @@ export interface SessionCookieState {
 }
 
 export async function getSessionCookieState(): Promise<SessionCookieState> {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
-  const pending2fa = String(cookieStore.get('2fa_pending')?.value || '').trim();
+  const userId = await getVerifiedSessionUserId();
+  const pending2faUserId = await getVerifiedPendingTwoFactorUserId();
 
   return {
     userId,
     hasUserSession: userId > 0,
-    hasPending2fa: Boolean(pending2fa),
+    hasPending2fa: pending2faUserId > 0,
   };
 }
 
@@ -67,6 +78,8 @@ export async function getSessionUser(): Promise<AdminSessionUser | null> {
 }
 
 export async function requireAdminPage() {
+  const headerStore = await headers();
+  const pathname = headerStore.get('x-pathname') || '/admin/dashboard';
   const user = await getSessionUser();
 
   if (!user) {
@@ -77,7 +90,34 @@ export async function requireAdminPage() {
     }));
   }
 
-  if (user.role !== 'admin') {
+  if (!isAdminRole(user.role)) {
+    redirect(buildAccessPageUrl({
+      reason: 'admin-only',
+      area: 'admin',
+      role: user.role,
+      next: '/admin/dashboard',
+    }));
+  }
+
+  if (isOperatorAdminRole(user.role) && !canOperatorAccessAdminPath(pathname)) {
+    redirect(OPERATOR_ADMIN_LANDING);
+  }
+
+  return user;
+}
+
+export async function requireOwnerPage() {
+  const user = await getSessionUser();
+
+  if (!user) {
+    redirect(buildAccessPageUrl({
+      reason: 'login-required',
+      area: 'admin',
+      next: '/admin/dashboard',
+    }));
+  }
+
+  if (!isOwnerRole(user.role)) {
     redirect(buildAccessPageUrl({
       reason: 'admin-only',
       area: 'admin',
@@ -99,11 +139,40 @@ export async function requireAdminApi(req?: NextRequest) {
     };
   }
 
-  if (user.role !== 'admin') {
+  if (!isAdminRole(user.role)) {
     return {
       user,
       response: NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 }),
     };
+  }
+
+  if (req && isOperatorAdminRole(user.role) && isOwnerOnlyAdminApiPath(req.nextUrl.pathname)) {
+    await logOwnerSecurityEvent({
+      user,
+      req,
+      eventType: 'ADMIN_OWNER_ONLY_API_DENIED',
+      layer: 'rbac',
+      verdict: 'blocked',
+      riskScore: 80,
+      reasons: [req.nextUrl.pathname],
+    });
+    return {
+      user,
+      response: NextResponse.json(
+        { success: false, message: 'Admin thường chỉ được quản lý đơn. Khu vực này dành cho owner.' },
+        { status: 403 }
+      ),
+    };
+  }
+
+  if (req && isOwnerRole(user.role) && isOwnerOnlyAdminApiPath(req.nextUrl.pathname)) {
+    const ownerResponse = await verifyOwnerActionSecurity(req, user, req.nextUrl.pathname);
+    if (ownerResponse) {
+      return {
+        user,
+        response: ownerResponse,
+      };
+    }
   }
 
   if (req) {
@@ -114,6 +183,54 @@ export async function requireAdminApi(req?: NextRequest) {
   }
 
   return { user, response: null };
+}
+
+export async function requireOwnerApi(req: NextRequest) {
+  const auth = await requireAdminApi(req);
+  if (auth.response) {
+    return auth;
+  }
+
+  const ownerResponse = await verifyOwnerActionSecurity(req, auth.user!, req.nextUrl.pathname);
+  if (ownerResponse) {
+    return { user: auth.user, response: ownerResponse };
+  }
+
+  return auth;
+}
+
+export async function assertAdminResourceAccess(
+  user: AdminSessionUser,
+  resource: string,
+  action: AdminResourceAction,
+  req: NextRequest
+) {
+  if (isOwnerRole(user.role)) {
+    const ownerResponse = await verifyOwnerActionSecurity(req, user, `${action}:${resource}`);
+    if (ownerResponse) {
+      return ownerResponse;
+    }
+    return null;
+  }
+
+  if (isOperatorAdminRole(user.role) && canOperatorAccessResource(resource, action)) {
+    return null;
+  }
+
+  await logOwnerSecurityEvent({
+    user,
+    req,
+    eventType: 'ADMIN_RESOURCE_DENIED',
+    layer: 'rbac',
+    verdict: 'blocked',
+    riskScore: 80,
+    reasons: [`${action}:${resource}`],
+  });
+
+  return NextResponse.json(
+    { success: false, message: 'Admin thường chỉ được quản lý đơn. Resource này dành cho owner.' },
+    { status: 403 }
+  );
 }
 
 export function getClientIp(req: NextRequest) {

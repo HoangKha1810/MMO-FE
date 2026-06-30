@@ -1,6 +1,6 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { getProxyMarketplaceOverview, runProxyUserAction } from '@/lib/proxy-service';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -11,13 +11,8 @@ const noStoreHeaders = {
   Expires: '0',
 };
 
-async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
-}
-
 export async function GET() {
-  const userId = await getUserId();
+  const userId = await getVerifiedSessionUserId();
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
   }
@@ -34,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const userId = await getUserId();
+  const userId = await getVerifiedSessionUserId();
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
   }

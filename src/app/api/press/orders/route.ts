@@ -2,8 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createPressOrder, listUserPressOrders } from '@/lib/press-service';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -26,8 +26,7 @@ type UploadFileLike = {
 };
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Math.trunc(toNumber(cookieStore.get('user_id')?.value, 0));
+  return getVerifiedSessionUserId();
 }
 
 function getFormString(formData: FormData, key: string) {

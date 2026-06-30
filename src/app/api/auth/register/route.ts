@@ -14,6 +14,7 @@ import {
   isTrackableIp,
   logSecurityEvent,
 } from '@/lib/ip-security';
+import { logOwnerSecurityEvent } from '@/lib/owner-security';
 import { siteName } from '@/lib/seo';
 
 function validateUsername(username: string): boolean {
@@ -160,6 +161,28 @@ export async function POST(req: NextRequest) {
         activity: `Đăng ký tài khoản chờ xác thực email từ IP ${ip}`,
         ip_address: isTrackableIp(ip) ? ip : undefined,
         user_agent: req.headers.get('user-agent') || undefined,
+      },
+    }).catch(() => undefined);
+
+    await logOwnerSecurityEvent({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: 'member',
+      },
+      req,
+      eventType: 'USER_REGISTER',
+      layer: 'audit',
+      verdict: emailVerificationEnabled ? 'pending_email' : 'created',
+      riskScore: isTrackableIp(ip) ? 0 : 10,
+      reasons: [
+        `registered_email:${normalizedEmail}`,
+        isTrackableIp(ip) ? `registered_ip:${ip}` : 'untracked_ip',
+      ],
+      details: {
+        fullname: safeFullname,
+        email_verification_enabled: emailVerificationEnabled,
       },
     }).catch(() => undefined);
 

@@ -544,6 +544,18 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       description: 'Log bảo mật, auto-ban và hành vi bất thường từ hệ thống legacy/Next.',
       columns: ['id', 'event_type', 'severity', 'ip', 'uri', 'payload', 'auto_banned', 'created_at'],
     },
+    {
+      resource: 'owner-security-events',
+      title: 'Owner security events',
+      description: 'Lịch sử đăng nhập, thiết bị, IP, hành động owner/admin và quyết định của các lớp bảo mật.',
+      columns: ['id', 'user_id', 'username', 'email', 'event_type', 'layer', 'verdict', 'risk_score', 'reason', 'ip_address', 'device_hash', 'request_path', 'request_method', 'created_at'],
+    },
+    {
+      resource: 'owner-trusted-devices',
+      title: 'Owner trusted devices',
+      description: 'Thiết bị/IP đã được owner xác nhận thủ công.',
+      columns: ['id', 'user_id', 'device_hash', 'label', 'first_ip', 'last_ip', 'trust_level', 'first_seen_at', 'last_seen_at', 'revoked_at'],
+    },
   ],
   'ip-blocks': [
     {

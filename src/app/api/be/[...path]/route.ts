@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildDirectBeApiUrl, getBeApiBaseUrl, withNgrokHeaders } from '@/lib/be-api';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,22 @@ function buildTargetUrl(req: NextRequest, pathSegments: string[]) {
   });
 
   return target;
+}
+
+function getAllowedPathPrefixes() {
+  return String(process.env.BE_PROXY_ALLOWED_PATHS || '')
+    .split(',')
+    .map((item) => `/${item.trim().replace(/^\/+/, '').replace(/\/+$/, '')}`)
+    .filter((item) => item !== '/');
+}
+
+function isAllowedProxyPath(pathname: string) {
+  const allowedPrefixes = getAllowedPathPrefixes();
+  if (allowedPrefixes.length === 0) {
+    return false;
+  }
+
+  return allowedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 function copyResponseHeaders(source: Headers) {
@@ -34,6 +51,22 @@ function copyResponseHeaders(source: Headers) {
 }
 
 async function proxyBeRequest(req: NextRequest, pathSegments: string[]) {
+  const userId = await getVerifiedSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const pathname = `/${pathSegments.join('/')}`;
+  if (!isAllowedProxyPath(pathname)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'BE proxy path is not allowed. Configure BE_PROXY_ALLOWED_PATHS to enable it.',
+      },
+      { status: 403 }
+    );
+  }
+
   const baseUrl = getBeApiBaseUrl();
   if (!baseUrl) {
     return NextResponse.json(

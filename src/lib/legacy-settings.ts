@@ -478,14 +478,42 @@ export function getLegacyHomeServiceControls(): LegacyServiceControlDefinition[]
   }));
 }
 
+export function getLegacyAllServiceControls(): LegacyServiceControlDefinition[] {
+  const merged = [...homeServiceDefinitions, ...sidebarServiceDefinitions];
+  const seen = new Set<string>();
+
+  return merged
+    .filter((definition) => {
+      const identity = `${definition.nameKey}:${definition.descKey}:${definition.statusKey}`;
+      if (seen.has(identity)) {
+        return false;
+      }
+      seen.add(identity);
+      return true;
+    })
+    .map((definition) => ({
+      key: definition.key,
+      nameKey: definition.nameKey,
+      descKey: definition.descKey,
+      statusKey: definition.statusKey,
+      href: definition.href,
+      iconKey: definition.iconKey,
+      color: definition.color,
+      textColor: definition.textColor,
+      defaultTitle: normalizeLegacyServiceTitle(definition.key, definition.defaultTitle),
+      defaultDesc: definition.defaultDesc,
+      external: Boolean(definition.external),
+    }));
+}
+
 function mapServices(
   settings: Record<string, string>,
   definitions: ServiceDefinition[]
 ): LegacyServiceItem[] {
   return definitions.map((definition) => ({
     key: definition.key,
-    title: normalizeLegacyServiceTitle(definition.key, getLegacySetting(settings, definition.nameKey, definition.defaultTitle)),
-    desc: getLegacySetting(settings, definition.descKey, definition.defaultDesc),
+    title: normalizeLegacyServiceTitle(definition.key, definition.defaultTitle),
+    desc: definition.defaultDesc,
     href: definition.href,
     iconKey: definition.iconKey,
     color: definition.color,

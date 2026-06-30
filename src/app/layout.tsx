@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { Providers } from '@/components/layout/providers';
 import { FloatingSupportButtons } from '@/components/layout/floating-support-buttons';
 import { NavigationEffects, RouteStage } from '@/components/layout/navigation-effects';
+import { ClientSecurityObserver } from '@/components/security/client-security-observer';
 import { buildAbsoluteUrl, defaultKeywords, siteDescription, siteName, siteShortName, siteUrl } from '@/lib/seo';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -135,6 +136,7 @@ export default function RootLayout({
       </head>
       <body className={`${plusJakartaSans.variable} ${jetBrainsMono.variable} font-sans antialiased`}>
         <Providers>
+          <ClientSecurityObserver />
           <NavigationEffects />
           <RouteStage>{children}</RouteStage>
           <FloatingSupportButtons />

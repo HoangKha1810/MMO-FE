@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -23,6 +24,11 @@ function buildTargetUrl(request: NextRequest, path: string[]) {
 }
 
 async function proxyRequest(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const userId = await getVerifiedSessionUserId();
+  if (!userId) {
+    return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { path = [] } = await context.params;
   const targetUrl = buildTargetUrl(request, path);
   const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text();

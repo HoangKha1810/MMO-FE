@@ -8,6 +8,7 @@ import { runDailyAdminAnomalyDigestWithOptions } from '@/lib/admin-anomaly-diges
 import { sendSystemEmail } from '@/lib/admin-alert-email';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
+import { isOwnerRole } from '@/lib/admin-permissions';
 import {
   adminResourceConfig,
   createAdminResource,
@@ -747,6 +748,17 @@ function ensureElevatedPermission(context: AdminToolContext, requestExcerpt: unk
   }
 }
 
+async function ensureOwnerToolContext(context: AdminToolContext) {
+  const user = await db.users.findUnique({
+    where: { id: context.adminId },
+    select: { role: true, status: true },
+  }).catch(() => null);
+  const status = String(user?.status || '').trim().toLowerCase();
+  if (!user || !isOwnerRole(user.role) || (status && status !== 'active')) {
+    throw new Error('AI Admin chỉ được chạy trong phiên owner hợp lệ.');
+  }
+}
+
 function buildAdminToolRequest(context: AdminToolContext, method: string) {
   const source = context.auditRequest;
   const headers = new Headers();
@@ -952,6 +964,8 @@ export async function executeAdminAiTool(
   name: string,
   input: Record<string, unknown>
 ): Promise<AdminToolExecution> {
+  await ensureOwnerToolContext(context);
+
   switch (name) {
     case 'list_admin_resource_capabilities': {
       const resources = listAdminResourceCapabilities();

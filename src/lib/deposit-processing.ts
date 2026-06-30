@@ -1,7 +1,12 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
-import { buildSePayReferenceContent, extractSePayPaymentReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
+import {
+  buildSePayReferenceContent,
+  extractSePayPaymentReferenceCodes,
+  extractSePayReferenceCodes,
+  getPrimarySePayReferenceCode,
+} from '@/lib/sepay-codes';
 import { toNumber } from '@/lib/utils';
 
 function resolveDepositWallet(deposit: {
@@ -28,6 +33,22 @@ function preserveDepositReferenceContent(content: string | null | undefined, fal
   ]) || primaryCode;
 }
 
+function contentHasExactReference(content: string | null | undefined, normalizedUpperCode: string) {
+  const raw = String(content || '').trim();
+  if (!raw) {
+    return false;
+  }
+
+  if (raw.toUpperCase() === normalizedUpperCode) {
+    return true;
+  }
+
+  return [
+    ...extractSePayPaymentReferenceCodes(raw),
+    ...extractSePayReferenceCodes(raw),
+  ].some((rowCode) => rowCode.toUpperCase() === normalizedUpperCode);
+}
+
 async function processDepositByCodeInternal(code: string, amount: number | undefined, sourceLabel: string) {
   const normalizedCode = code.trim();
   if (!normalizedCode) {
@@ -49,14 +70,17 @@ async function processDepositByCodeInternal(code: string, amount: number | undef
       take: 5,
     });
 
-    const deposit = deposits.find((row) => {
-      const codes = extractSePayPaymentReferenceCodes(row.content);
-      return codes.some((rowCode) => rowCode.toUpperCase() === normalizedUpperCode);
-    }) || deposits[0];
+    const deposit = deposits.find((row) => contentHasExactReference(row.content, normalizedUpperCode));
 
     if (!deposit) return { state: 'missing' as const };
     if (deposit.status === 'success') return { state: 'already_processed' as const, id: deposit.id };
     if (deposit.status === 'failed') return { state: 'failed' as const, id: deposit.id };
+
+    const expectedAmount = Math.trunc(toNumber(deposit.amount, 0));
+    const paidAmount = Math.trunc(toNumber(amount, 0));
+    if (!paidAmount || paidAmount !== expectedAmount) {
+      return { state: 'amount_mismatch' as const, id: deposit.id };
+    }
 
     const claimed = await tx.transactions.updateMany({
       where: {
@@ -77,7 +101,6 @@ async function processDepositByCodeInternal(code: string, amount: number | undef
     });
     if (!user) return { state: 'user_missing' as const, id: deposit.id };
 
-    const paidAmount = amount && amount > 0 ? amount : toNumber(deposit.amount, 0);
     const currentBalance = wallet === 'game' ? toNumber(user.game_balance, 0) : toNumber(user.balance, 0);
     const nextBalance = currentBalance + paidAmount;
 

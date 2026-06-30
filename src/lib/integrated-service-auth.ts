@@ -1,7 +1,8 @@
-import { cookies, headers } from 'next/headers';
+import { headers } from 'next/headers';
 import { createHash, randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
 
 type MmoUser = {
@@ -25,8 +26,7 @@ function hashAiSessionToken(rawToken: string) {
 }
 
 async function getLoggedInUser() {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return null;

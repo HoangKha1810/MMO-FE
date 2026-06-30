@@ -1,10 +1,9 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { createForumReply } from '@/lib/forum-actions';
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 export async function POST(req: NextRequest) {

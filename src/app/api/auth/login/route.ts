@@ -5,17 +5,10 @@ import { db } from '@/lib/db';
 import { shouldRequireEmailVerificationForUser } from '@/lib/auth-email-verification';
 import { buildBlockedIpPayload, getIpBlock, getRequestIp, logSecurityEvent } from '@/lib/ip-security';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { clearTwoFactorPendingCookie, setAuthenticatedSessionCookies, setTwoFactorPendingCookie } from '@/lib/session-cookie';
+import { isOwnerRole } from '@/lib/admin-permissions';
+import { logOwnerSecurityEvent } from '@/lib/owner-security';
 import { toNumber } from '@/lib/utils';
-
-function createSessionCookieOptions(maxAge: number) {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
-    maxAge,
-    path: '/',
-  };
-}
 
 async function findLoginUser(identifier: string) {
   const isEmailLike = identifier.includes('@');
@@ -177,6 +170,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (isOwnerRole(user.role)) {
+      await logSecurityEvent({
+        eventType: 'OWNER_PUBLIC_LOGIN_BLOCKED',
+        severity: 'HIGH',
+        ip,
+        userId: user.id,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'role',
+        payload: 'owner',
+        userAgent: req.headers.get('user-agent'),
+      });
+      return NextResponse.json(
+        { success: false, message: 'Owner chỉ được đăng nhập qua cổng admin bảo mật.' },
+        { status: 403 }
+      );
+    }
+
     let rememberToken: string | undefined;
     if (remember) {
       rememberToken = crypto.randomBytes(32).toString('hex');
@@ -192,12 +203,27 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await logOwnerSecurityEvent({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: String(user.role || 'member'),
+      },
+      req,
+      eventType: 'USER_LOGIN',
+      layer: 'audit',
+      verdict: 'password_ok',
+      riskScore: 0,
+      reasons: [`role:${String(user.role || 'member')}`],
+    }).catch(() => undefined);
+
     const sessionMaxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
 
     if (String(user.role || 'member') === 'admin' && user.fa_enabled) {
       const response = NextResponse.json({ success: true, require2fa: true });
       response.cookies.delete('user_id');
-      response.cookies.set('2fa_pending', String(user.id), createSessionCookieOptions(60 * 10));
+      setTwoFactorPendingCookie(response, user.id, 60 * 10);
       return response;
     }
 
@@ -215,8 +241,8 @@ export async function POST(req: NextRequest) {
         is_blue_tick: Boolean(user.is_blue_tick),
       },
     });
-    response.cookies.delete('2fa_pending');
-    response.cookies.set('user_id', String(user.id), createSessionCookieOptions(sessionMaxAge));
+    clearTwoFactorPendingCookie(response);
+    setAuthenticatedSessionCookies(response, user.id, sessionMaxAge);
     return response;
   } catch (error) {
     console.error('Login error:', error);

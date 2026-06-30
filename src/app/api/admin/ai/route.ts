@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminApi } from '@/lib/admin-auth';
+import { requireOwnerApi } from '@/lib/admin-auth';
 import {
   appendAssistantConversationExchange,
   createAssistantConversation,
@@ -34,7 +34,7 @@ async function buildConversationPayload(adminId: number, requestedConversationId
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminApi(req);
+  const auth = await requireOwnerApi(req);
   if (auth.response || !auth.user) {
     return auth.response as NextResponse;
   }
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminApi(req);
+  const auth = await requireOwnerApi(req);
   if (auth.response || !auth.user) {
     return auth.response as NextResponse;
   }

@@ -155,6 +155,20 @@ export async function POST(req: NextRequest) {
     0
   );
 
+  if (genericCodes.length > 0 && genericAmount <= 0) {
+    await logSePayDiagnostic({
+      channel: 'ipn',
+      level: 'warn',
+      message: 'Ignored SePay webhook because amount_in was missing or zero',
+      details: {
+        ip,
+        codes: genericCodes,
+        payload: summarizeSePayPayload(payload),
+      },
+    });
+    return NextResponse.json({ success: true, message: 'Ignored missing amount' });
+  }
+
   const notificationType = String(payload.notification_type || '').trim();
 
   if (notificationType !== 'ORDER_PAID' && genericCodes.length > 0 && (!transferType || transferType === 'in')) {

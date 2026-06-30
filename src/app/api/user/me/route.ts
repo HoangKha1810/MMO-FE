@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -14,8 +14,7 @@ const noStoreHeaders = {
 };
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });

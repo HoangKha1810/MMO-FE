@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { db } from '@/lib/db';
 import { getSmmProviderMultipleOrdersStatus, guessProviderStatusContext } from '@/lib/smm-provider';
 import { applySmmProviderStatusToOrder } from '@/lib/smm-refund';
@@ -73,8 +73,7 @@ async function syncVisibleRunningOrders(
 }
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });

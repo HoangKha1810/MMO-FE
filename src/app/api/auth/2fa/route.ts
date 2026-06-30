@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
-
-function createSessionCookieOptions(maxAge: number) {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
-    maxAge,
-    path: '/',
-  };
-}
+import {
+  clearTwoFactorPendingCookie,
+  getVerifiedPendingTwoFactorUserId,
+  setAuthenticatedSessionCookies,
+} from '@/lib/session-cookie';
+import { isAdminRole } from '@/lib/admin-permissions';
+import { logOwnerSecurityEvent } from '@/lib/owner-security';
 
 function base32Decode(input: string) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -69,8 +65,7 @@ async function sendTelegramCode(telegramId: string | null | undefined, code: str
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
-  const pendingUserId = Number(cookieStore.get('2fa_pending')?.value || 0);
+  const pendingUserId = await getVerifiedPendingTwoFactorUserId();
   if (!pendingUserId) {
     return NextResponse.json({ success: false, message: 'Không có phiên 2FA' }, { status: 401 });
   }
@@ -89,6 +84,8 @@ export async function POST(req: NextRequest) {
       failed_2fa_attempts: true,
       telegram_id: true,
       telegram_2fa_enabled: true,
+      role: true,
+      email: true,
     },
   });
 
@@ -141,6 +138,20 @@ export async function POST(req: NextRequest) {
         last_2fa_attempt_at: new Date(),
       },
     }).catch(() => undefined);
+    await logOwnerSecurityEvent({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: String(user.role || 'member'),
+      },
+      req,
+      eventType: 'TWO_FACTOR_FAILED',
+      layer: '2fa',
+      verdict: 'denied',
+      riskScore: 60,
+      reasons: ['invalid_2fa_code'],
+    }).catch(() => undefined);
     return NextResponse.json({ success: false, message: 'Mã 2FA không đúng' }, { status: 401 });
   }
 
@@ -149,8 +160,27 @@ export async function POST(req: NextRequest) {
     data: { failed_2fa_attempts: 0, last_activity: new Date() },
   }).catch(() => undefined);
 
-  const response = NextResponse.json({ success: true, message: 'Xác thực 2FA thành công' });
-  response.cookies.delete('2fa_pending');
-  response.cookies.set('user_id', String(user.id), createSessionCookieOptions(60 * 60 * 24));
+  await logOwnerSecurityEvent({
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: String(user.role || 'member'),
+    },
+    req,
+    eventType: 'TWO_FACTOR_SUCCESS',
+    layer: '2fa',
+    verdict: 'allowed',
+    riskScore: 0,
+    reasons: ['2fa_verified'],
+  }).catch(() => undefined);
+
+  const response = NextResponse.json({
+    success: true,
+    message: 'Xác thực 2FA thành công',
+    redirect: isAdminRole(user.role) ? '/admin' : '/user/home',
+  });
+  clearTwoFactorPendingCookie(response);
+  setAuthenticatedSessionCookies(response, user.id, 60 * 60 * 24);
   return response;
 }

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import {
   createSmmProviderOrder,
   findSmmService,
   getSmmCheckoutAmount,
 } from '@/lib/smm-provider';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { SMM_RUNNING_STATUS } from '@/lib/smm-status';
 import { toNumber } from '@/lib/utils';
 
@@ -27,8 +27,7 @@ function sanitizeProviderCreateOrderMessage(reason: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Vui lòng đăng nhập để đặt đơn' }, { status: 401 });

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { db } from '@/lib/db';
 import { getLegacySettingsMap, isResourcesContactAdminMode } from '@/lib/legacy-settings';
 import { normalizeLegacyRows } from '@/lib/legacy-modules';
 import { usesGameWalletResource } from '@/lib/resource-actions';
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 export async function GET() {

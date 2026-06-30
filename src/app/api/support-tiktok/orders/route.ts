@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { db } from '@/lib/db';
 import { addDaysToDatabaseDateTime, getVietnamDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { normalizeLegacyRow, normalizeLegacyRows, tableExists, type LegacyRow } from '@/lib/legacy-modules';
@@ -383,8 +383,7 @@ function getClientIp(req: NextRequest) {
 }
 
 async function requireContext(req: NextRequest, options: { allowMaintenance?: boolean } = {}) {
-  const cookieStore = await cookies();
-  const userId = Number(cookieStore.get('user_id')?.value || 0);
+  const userId = await getVerifiedSessionUserId();
   if (!userId) return { response: NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 }) };
 
   const context = await getSupportTiktokContext(userId, getClientIp(req)).catch((error) => {

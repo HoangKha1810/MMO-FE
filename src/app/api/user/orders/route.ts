@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { safeRows, safeRowsFromTable } from '@/lib/legacy-modules';
@@ -16,8 +16,7 @@ const noStoreHeaders = {
 };
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const userId = parseInt(cookieStore.get('user_id')?.value || '0', 10);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });

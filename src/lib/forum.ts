@@ -256,12 +256,113 @@ function normalizeFolder(folder: ForumFolderSummary): ForumFolderSummary {
   };
 }
 
+const SAFE_FORUM_HTML_TAGS = new Set([
+  'a',
+  'b',
+  'blockquote',
+  'br',
+  'code',
+  'div',
+  'em',
+  'h2',
+  'h3',
+  'h4',
+  'i',
+  'img',
+  'li',
+  'ol',
+  'p',
+  'pre',
+  's',
+  'span',
+  'strong',
+  'u',
+  'ul',
+]);
+
+const VOID_FORUM_HTML_TAGS = new Set(['br', 'img']);
+
+function escapeForumHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function isSafeForumUrl(value: string) {
+  const url = value.trim().replace(/[\u0000-\u001f\u007f\s]+/g, '');
+  if (!url) return false;
+  if (/^(javascript|data|vbscript|file|blob):/i.test(url)) return false;
+  return /^(https?:\/\/|\/(?!\/)|\.{0,2}\/|#)/i.test(url);
+}
+
+function safeForumAttribute(tag: string, name: string, value: string) {
+  const attr = name.toLowerCase();
+  if (attr.startsWith('on') || attr === 'style' || attr === 'srcdoc' || attr.includes(':')) {
+    return '';
+  }
+
+  const escaped = escapeForumHtml(value.trim()).replace(/`/g, '&#96;');
+  if (tag === 'a' && attr === 'href' && isSafeForumUrl(value)) {
+    return ` href="${escaped}" target="_blank" rel="nofollow noopener noreferrer"`;
+  }
+  if (tag === 'img') {
+    if (attr === 'src' && isSafeForumUrl(value)) {
+      return ` src="${escaped}" loading="lazy" decoding="async" referrerpolicy="no-referrer"`;
+    }
+    if (attr === 'alt') {
+      return ` alt="${escaped.slice(0, 160)}"`;
+    }
+  }
+
+  return '';
+}
+
+function sanitizeForumTag(tagSource: string, tagName: string) {
+  const tag = tagName.toLowerCase();
+  if (!SAFE_FORUM_HTML_TAGS.has(tag)) {
+    return '';
+  }
+  if (tagSource.startsWith('</')) {
+    return VOID_FORUM_HTML_TAGS.has(tag) ? '' : `</${tag}>`;
+  }
+
+  let attrs = '';
+  tagSource.replace(
+    /\s([a-zA-Z0-9:-]+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'<>`]+))/g,
+    (_match, attrName: string, _raw: string, quotedDouble: string, quotedSingle: string, unquoted: string) => {
+      attrs += safeForumAttribute(tag, attrName, quotedDouble ?? quotedSingle ?? unquoted ?? '');
+      return '';
+    }
+  );
+
+  return VOID_FORUM_HTML_TAGS.has(tag) ? `<${tag}${attrs}>` : `<${tag}${attrs}>`;
+}
+
 export function cleanForumHtml(html: string | null | undefined) {
-  return String(html || '')
+  const value = String(html || '').trim();
+  if (!value) return '';
+
+  const stripped = value
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, '')
-    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, '')
-    .replace(/javascript:/gi, '');
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+    .replace(/<\s*(iframe|object|embed|svg|math|template|form|input|button|textarea|select|option|link|meta)[\s\S]*?>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<\s*(iframe|object|embed|svg|math|template|form|input|button|textarea|select|option|link|meta)[^>]*\/?\s*>/gi, '');
+
+  if (!/<\/?[a-z][\s\S]*>/i.test(stripped)) {
+    return escapeForumHtml(stripped)
+      .split(/\n{2,}/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .map((paragraph) => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+
+  return stripped
+    .replace(/<\s*\/?\s*([a-zA-Z0-9:-]+)(?:\s[^>]*)?\s*\/?>/g, (fullTag, tagName) => sanitizeForumTag(fullTag, tagName))
+    .trim();
 }
 
 const threadSelectSql = `

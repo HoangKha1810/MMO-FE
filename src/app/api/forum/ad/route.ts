@@ -1,13 +1,12 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { createForumAd, getForumAdDetail, updateForumAd } from '@/lib/forum-actions';
 import { saveUploadedFile } from '@/lib/server-upload';
 
 export const runtime = 'nodejs';
 
 async function getUserId() {
-  const cookieStore = await cookies();
-  return Number(cookieStore.get('user_id')?.value || 0);
+  return getVerifiedSessionUserId();
 }
 
 function getFormString(formData: FormData, key: string) {

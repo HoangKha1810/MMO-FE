@@ -78,6 +78,10 @@ function normalizeText(value: unknown) {
   return String(value || '').trim().toUpperCase();
 }
 
+function normalizeReferenceToken(value: unknown) {
+  return normalizeText(value).replace(/[^0-9A-Z]/g, '');
+}
+
 function findMatchingReferenceCode(row: SePayTransactionRow, referenceCodes: string[]) {
   const codes = referenceCodes
     .map((code) => ({ raw: code, normalized: normalizeText(code) }))
@@ -95,7 +99,14 @@ function findMatchingReferenceCode(row: SePayTransactionRow, referenceCodes: str
   ].map(normalizeText);
 
   return codes.find((code) => (
-    candidates.some((candidate) => candidate.includes(code.normalized))
+    candidates.some((candidate) => {
+      if (candidate === code.normalized) {
+        return true;
+      }
+
+      const tokens = candidate.split(/[^0-9A-Z]+/).filter(Boolean);
+      return tokens.includes(code.normalized) || normalizeReferenceToken(candidate) === code.normalized;
+    })
   ))?.raw || '';
 }
 
@@ -280,10 +291,30 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
         continue;
       }
 
-      const result = await processSePayDepositByCode(
-        matchedCode || invoiceNumber,
-        toNumber(deposit.amount, 0)
-      );
+      const remoteAmount = Math.trunc(toNumber(transaction.amount_in, 0));
+      const expectedAmount = Math.trunc(toNumber(deposit.amount, 0));
+      if (!remoteAmount || remoteAmount !== expectedAmount) {
+        failed += 1;
+        await logSePayDiagnostic({
+          channel: 'sync',
+          level: 'error',
+          message: 'Blocked SePay reconcile because remote amount did not match local pending deposit',
+          details: {
+            depositId: deposit.id,
+            userId: deposit.user_id,
+            invoiceNumber,
+            matchedCode: matchedCode || null,
+            referenceCodes,
+            expectedAmount,
+            remoteAmount,
+            remoteTransactionId: transaction.id ?? null,
+          },
+          userId: deposit.user_id,
+        });
+        continue;
+      }
+
+      const result = await processSePayDepositByCode(matchedCode || invoiceNumber, remoteAmount);
 
       if (result.state === 'processed') {
         processed += 1;

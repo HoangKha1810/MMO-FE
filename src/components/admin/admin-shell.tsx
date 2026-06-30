@@ -49,6 +49,7 @@ import {
   Headset,
 } from 'lucide-react';
 import type { AdminSessionUser } from '@/lib/admin-auth';
+import { isOperatorAdminRole, isOwnerRole, OPERATOR_ADMIN_PATH_PREFIXES } from '@/lib/admin-permissions';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/layout/notification-bell';
@@ -237,6 +238,27 @@ function getCurrentPageLabel(pathname: string) {
   return label.replace(/-/g, ' ');
 }
 
+function canShowForOperator(href: string) {
+  return OPERATOR_ADMIN_PATH_PREFIXES.some((prefix) => href === prefix || href.startsWith(`${prefix}/`));
+}
+
+function getNavSectionsForRole(role: string): NavSection[] {
+  if (isOwnerRole(role)) {
+    return adminNavSections;
+  }
+
+  if (!isOperatorAdminRole(role)) {
+    return [];
+  }
+
+  return adminNavSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => canShowForOperator(item.href)),
+    }))
+    .filter((section) => section.items.length > 0);
+}
+
 function initials(username: string) {
   return String(username || 'AD')
     .trim()
@@ -283,6 +305,7 @@ export function AdminShell({
   }, []);
 
   const currentPageLabel = useMemo(() => getCurrentPageLabel(pathname), [pathname]);
+  const visibleNavSections = useMemo(() => getNavSectionsForRole(user.role), [user.role]);
 
   function handleThemeToggle(event: React.MouseEvent<HTMLButtonElement>) {
     if (!mounted) {
@@ -358,7 +381,7 @@ export function AdminShell({
             ref={sidebarNavRef}
             className="custom-scrollbar flex-1 space-y-1.5 overflow-y-auto p-5"
           >
-            {adminNavSections.map((section) => (
+            {visibleNavSections.map((section) => (
               <div key={section.title}>
                 <div
                   className={cn(
@@ -467,7 +490,7 @@ export function AdminShell({
               <DropdownMenuContent align="end" className="mt-4 w-64 rounded-2xl p-4">
                 <div className="mb-2 border-b border-slate-100 px-3 py-2 dark:border-white/5">
                   <div className="mb-1 text-[9px] font-black uppercase leading-none tracking-widest text-slate-400">
-                    Administrator
+                    {isOwnerRole(user.role) ? 'Owner' : 'Operator Admin'}
                   </div>
                   <div className="flex items-center gap-1 text-sm font-bold text-brand-blue">
                     <span className="truncate">{user.username}</span>

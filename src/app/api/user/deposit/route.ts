@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { buildSePayReferenceContent, extractSePayPaymentReferenceCodes, getPrimarySePayReferenceCode } from '@/lib/sepay-codes';
 import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { createSePayCheckoutSession } from '@/lib/sepay';
+import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -48,8 +48,7 @@ function normalizeTransaction(row: {
 }
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const userId = parseInt(cookieStore.get('user_id')?.value || '0', 10);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
@@ -124,8 +123,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
-  const userId = parseInt(cookieStore.get('user_id')?.value || '0', 10);
+  const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
