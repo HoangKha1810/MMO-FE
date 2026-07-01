@@ -9,6 +9,7 @@ import {
 } from '@/lib/assistant-conversation-store';
 import { generateOpenAiAdminReply } from '@/lib/openai-admin-assistant';
 import { getChatbotDocumentCatalog } from '@/lib/chatbot-knowledge';
+import { hasVerifiedAdminAiAccess } from '@/lib/session-cookie';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -33,10 +34,24 @@ async function buildConversationPayload(adminId: number, requestedConversationId
   };
 }
 
+function adminAiCodeRequiredResponse() {
+  return NextResponse.json(
+    {
+      success: false,
+      code: 'ADMIN_AI_CODE_REQUIRED',
+      message: 'Nhập mã bảo mật Admin AI trước khi dùng chức năng này.',
+    },
+    { status: 423 }
+  );
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireOwnerApi(req);
   if (auth.response || !auth.user) {
     return auth.response as NextResponse;
+  }
+  if (!(await hasVerifiedAdminAiAccess(auth.user.id))) {
+    return adminAiCodeRequiredResponse();
   }
 
   const payload = await buildConversationPayload(
@@ -55,6 +70,9 @@ export async function POST(req: NextRequest) {
   const auth = await requireOwnerApi(req);
   if (auth.response || !auth.user) {
     return auth.response as NextResponse;
+  }
+  if (!(await hasVerifiedAdminAiAccess(auth.user.id))) {
+    return adminAiCodeRequiredResponse();
   }
 
   try {

@@ -75,20 +75,121 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
+  const [accessGranted, setAccessGranted] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+  const [accessChecking, setAccessChecking] = useState(false);
   const [toolTrail, setToolTrail] = useState<ToolTrailItem[]>([]);
   const didAutoCreateRef = useRef(false);
+  const accessClearSentRef = useRef(false);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
   const knowledgeDocs = useMemo(() => documents, [documents]);
 
+  function expireAdminAiAccess(message?: string) {
+    setAccessGranted(false);
+    setAccessCode('');
+    setConversations([]);
+    setActiveConversationId(null);
+    setConversation(null);
+    setToolTrail([]);
+    didAutoCreateRef.current = false;
+    if (message) {
+      toast.warning(message);
+    }
+  }
+
+  async function readAdminAiPayload<T extends { success?: boolean; message?: string; code?: string }>(
+    response: Response,
+    fallbackMessage: string
+  ): Promise<T> {
+    const payload = await response.json().catch(() => ({} as T));
+    if (response.status === 423 || payload.code === 'ADMIN_AI_CODE_REQUIRED') {
+      expireAdminAiAccess(payload.message || 'Cần nhập lại mã bảo mật Admin AI.');
+      throw new Error(payload.message || 'Cần nhập lại mã bảo mật Admin AI.');
+    }
+    if (!response.ok || !payload.success) {
+      throw new Error(payload.message || fallbackMessage);
+    }
+    return payload;
+  }
+
+  function clearAdminAiAccess(updateState = true) {
+    if (accessClearSentRef.current) {
+      if (updateState) {
+        expireAdminAiAccess();
+      }
+      return;
+    }
+    accessClearSentRef.current = true;
+    const body = JSON.stringify({ action: 'clear' });
+    const blob = new Blob([body], { type: 'application/json' });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/admin/ai/access', blob);
+    } else {
+      void fetch('/api/admin/ai/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        keepalive: true,
+        body,
+      }).catch(() => undefined);
+    }
+    if (updateState) {
+      expireAdminAiAccess();
+    }
+  }
+
+  async function verifyAdminAiAccess(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    const code = accessCode.trim();
+    if (!code) {
+      toast.error('Nhập mã bảo mật Admin AI trước.');
+      return;
+    }
+
+    setAccessChecking(true);
+    try {
+      const response = await fetch('/api/admin/ai/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Mã bảo mật Admin AI không đúng.');
+      }
+
+      accessClearSentRef.current = false;
+      didAutoCreateRef.current = false;
+      setAccessGranted(true);
+      setAccessCode('');
+      setBooting(true);
+      toast.success('Đã mở khóa Admin AI cho phiên hiện tại.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể mở khóa Admin AI.');
+    } finally {
+      setAccessChecking(false);
+    }
+  }
+
   async function deleteConversation(conversationId: string) {
+    if (!accessGranted) {
+      toast.warning('Nhập mã bảo mật Admin AI trước.');
+      return;
+    }
     try {
       const response = await fetch('/api/admin/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete_conversation', conversationId }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) throw new Error(payload.message);
+      const payload = await readAdminAiPayload<{
+        success: boolean;
+        message?: string;
+        code?: string;
+        conversations?: ConversationSummary[];
+        activeConversationId?: string | null;
+        conversation?: ConversationDetail | null;
+      }>(response, 'Không thể xóa cuộc trò chuyện.');
       setConversations(payload.conversations || []);
       setActiveConversationId(payload.activeConversationId || null);
       setConversation(payload.conversation || null);
@@ -129,6 +230,9 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   }, [conversation?.messages, hasOnlyWelcomeMessage]);
 
   async function loadConversationData(conversationId?: string | null) {
+    if (!accessGranted) {
+      throw new Error('Nhập mã bảo mật Admin AI trước khi tải dữ liệu.');
+    }
     const params = new URLSearchParams();
     if (conversationId) {
       params.set('conversation_id', conversationId);
@@ -137,10 +241,14 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
     const response = await fetch(`/api/admin/ai?${params.toString()}`, {
       cache: 'no-store',
     });
-    const payload = await response.json();
-    if (!response.ok || !payload.success) {
-      throw new Error(payload.message || 'Không thể tải dữ liệu AI admin.');
-    }
+    const payload = await readAdminAiPayload<{
+      success: boolean;
+      message?: string;
+      code?: string;
+      conversations?: ConversationSummary[];
+      activeConversationId?: string | null;
+      conversation?: ConversationDetail | null;
+    }>(response, 'Không thể tải dữ liệu AI admin.');
 
     setConversations(payload.conversations || []);
     setActiveConversationId(payload.activeConversationId || null);
@@ -149,6 +257,10 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   }
 
   async function createConversation() {
+    if (!accessGranted) {
+      toast.warning('Nhập mã bảo mật Admin AI trước.');
+      return null;
+    }
     setLoading(true);
     try {
       const response = await fetch('/api/admin/ai', {
@@ -156,10 +268,14 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'create_conversation' }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.message || 'Không thể tạo cuộc trò chuyện mới.');
-      }
+      const payload = await readAdminAiPayload<{
+        success: boolean;
+        message?: string;
+        code?: string;
+        conversations?: ConversationSummary[];
+        activeConversationId?: string | null;
+        conversation?: ConversationDetail | null;
+      }>(response, 'Không thể tạo cuộc trò chuyện mới.');
 
       setConversations(payload.conversations || []);
       setActiveConversationId(payload.activeConversationId || null);
@@ -175,6 +291,11 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   }
 
   useEffect(() => {
+    if (!accessGranted) {
+      setBooting(false);
+      return;
+    }
+
     let active = true;
 
     async function bootstrap() {
@@ -205,7 +326,32 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [accessGranted]);
+
+  useEffect(() => {
+    if (!accessGranted) {
+      return;
+    }
+
+    function handlePageHidden() {
+      clearAdminAiAccess(true);
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        clearAdminAiAccess(true);
+      }
+    }
+
+    window.addEventListener('pagehide', handlePageHidden);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearAdminAiAccess(false);
+      window.removeEventListener('pagehide', handlePageHidden);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [accessGranted]);
 
   useEffect(() => {
     const viewport = messageViewportRef.current;
@@ -226,6 +372,10 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   }, [visibleMessages.length, loading, toolTrail.length]);
 
   async function handleSelectConversation(conversationId: string) {
+    if (!accessGranted) {
+      toast.warning('Nhập mã bảo mật Admin AI trước.');
+      return;
+    }
     if (loading) {
       return;
     }
@@ -242,6 +392,10 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
   }
 
   async function submitQuestion(question: string) {
+    if (!accessGranted) {
+      toast.warning('Nhập mã bảo mật Admin AI trước.');
+      return;
+    }
     const content = question.trim();
     if (!content || loading) {
       return;
@@ -270,10 +424,15 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
           content,
         }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.message || 'Không thể gọi AI admin.');
-      }
+      const payload = await readAdminAiPayload<{
+        success: boolean;
+        message?: string;
+        code?: string;
+        conversation?: ConversationDetail | null;
+        conversations?: ConversationSummary[];
+        activeConversationId?: string | null;
+        toolTrail?: ToolTrailItem[];
+      }>(response, 'Không thể gọi AI admin.');
 
       setConversations(payload.conversations || []);
       setActiveConversationId(payload.activeConversationId || nextConversationId);
@@ -285,6 +444,48 @@ export function AdminAiPage({ documents }: AdminAiPageProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!accessGranted) {
+    return (
+      <div className="flex min-h-[68vh] items-center justify-center rounded-[2rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.14),_transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,246,255,0.94))] p-6 text-slate-900 shadow-[0_40px_120px_-70px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.18),_transparent_34%),linear-gradient(180deg,#0d1323_0%,#090d17_100%)] dark:text-white">
+        <form
+          onSubmit={(event) => void verifyAdminAiAccess(event)}
+          className="w-full max-w-xl rounded-[2rem] border border-slate-200/80 bg-white/88 p-6 shadow-[0_34px_100px_-60px_rgba(15,23,42,0.45)] backdrop-blur dark:border-white/10 dark:bg-white/[0.045]"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-400/25 bg-emerald-400/10 text-emerald-400">
+            <ShieldAlert className="h-6 w-6" />
+          </span>
+          <div className="mt-6 text-[11px] font-black uppercase tracking-[0.24em] text-brand-blue dark:text-blue-300">
+            Owner verification
+          </div>
+          <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-4xl">
+            Nhập mã Admin AI
+          </h1>
+          <p className="mt-3 max-w-md text-sm font-semibold leading-7 text-slate-500 dark:text-white/55">
+            Mã này chỉ mở khóa trong phiên hiện tại. Rời khỏi trang, chuyển tab hoặc mở lại trình duyệt sẽ phải nhập lại.
+          </p>
+          <input
+            value={accessCode}
+            onChange={(event) => setAccessCode(event.target.value)}
+            type="password"
+            autoComplete="one-time-code"
+            autoFocus
+            placeholder="Mã bảo mật Admin AI"
+            className="mt-6 h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-bold text-slate-900 outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:border-white/10 dark:bg-white/[0.055] dark:text-white dark:focus:border-blue-400/60"
+          />
+          <Button
+            type="submit"
+            disabled={accessChecking || !accessCode.trim()}
+            loading={accessChecking}
+            loadingText="Đang xác thực..."
+            className="mt-4 h-12 w-full rounded-2xl text-sm font-black uppercase tracking-[0.18em]"
+          >
+            Mở Admin AI
+          </Button>
+        </form>
+      </div>
+    );
   }
 
   return (

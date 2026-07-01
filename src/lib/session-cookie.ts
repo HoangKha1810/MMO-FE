@@ -10,6 +10,7 @@ export const AUTH_SESSION_ROLE_COOKIE = 'ttmmo_session_role';
 export const LEGACY_USER_ID_COOKIE = 'user_id';
 export const TWO_FACTOR_PENDING_COOKIE = 'ttmmo_2fa_pending';
 export const LEGACY_TWO_FACTOR_PENDING_COOKIE = '2fa_pending';
+export const ADMIN_AI_ACCESS_COOKIE = 'ttmmo_admin_ai_access';
 
 const globalForSession = globalThis as unknown as {
   activeSessionUserCache?: Map<number, { active: boolean; expiresAt: number }>;
@@ -185,6 +186,26 @@ export function setTwoFactorPendingCookie(response: NextResponse, userId: number
   response.cookies.set(LEGACY_TWO_FACTOR_PENDING_COOKIE, '', { maxAge: 0, path: '/' });
 }
 
+export function setAdminAiAccessCookie(response: NextResponse, userId: number, maxAgeSeconds = 60 * 30) {
+  response.cookies.set(
+    ADMIN_AI_ACCESS_COOKIE,
+    createSignedPurposeToken('admin-ai-access', userId, maxAgeSeconds),
+    createSessionCookieOptions(maxAgeSeconds)
+  );
+}
+
+export function clearAdminAiAccessCookie(response: NextResponse) {
+  response.cookies.set(ADMIN_AI_ACCESS_COOKIE, '', { maxAge: 0, path: '/' });
+}
+
+export async function hasVerifiedAdminAiAccess(userId: number) {
+  const cookieStore = await cookies();
+  return verifySignedPurposeToken(
+    'admin-ai-access',
+    cookieStore.get(ADMIN_AI_ACCESS_COOKIE)?.value || ''
+  ) === Math.trunc(Number(userId || 0));
+}
+
 export function clearTwoFactorPendingCookie(response: NextResponse) {
   response.cookies.set(TWO_FACTOR_PENDING_COOKIE, '', { maxAge: 0, path: '/' });
   response.cookies.set(LEGACY_TWO_FACTOR_PENDING_COOKIE, '', { maxAge: 0, path: '/' });
@@ -194,6 +215,7 @@ export function clearAuthenticatedSessionCookies(response: NextResponse) {
   response.cookies.set(LEGACY_USER_ID_COOKIE, '', { maxAge: 0, path: '/' });
   response.cookies.set(AUTH_SESSION_COOKIE, '', { maxAge: 0, path: '/' });
   response.cookies.set(AUTH_SESSION_ROLE_COOKIE, '', { maxAge: 0, path: '/' });
+  clearAdminAiAccessCookie(response);
   clearTwoFactorPendingCookie(response);
 }
 

@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { getOwnerCurrentDeviceRevocation, isOwnerRole } from '@/lib/owner-security';
 import {
   AUTH_SESSION_ROLE_COOKIE,
   createSessionCookieOptions,
@@ -18,7 +19,7 @@ const noStoreHeaders = {
   Expires: '0',
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const userId = await getVerifiedSessionUserId();
 
   if (!userId) {
@@ -59,6 +60,24 @@ export async function GET() {
         },
         { status: 403, headers: noStoreHeaders }
       );
+    }
+
+    if (isOwnerRole(user.role)) {
+      const revokedDevice = await getOwnerCurrentDeviceRevocation(req, user.id).catch(() => null);
+      if (revokedDevice) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: 'OWNER_DEVICE_REVOKED',
+            blocked: true,
+            bannedUser: true,
+            message: 'Thiết bị owner này đã bị đăng xuất và khóa. Cần owner mở thủ công trước khi đăng nhập lại.',
+            device_id: revokedDevice.deviceId,
+            ip: revokedDevice.ip,
+          },
+          { status: 403, headers: noStoreHeaders }
+        );
+      }
     }
 
     await db.users.update({

@@ -42,6 +42,7 @@ import {
   ShoppingCart,
   Sun,
   Terminal,
+  UnlockKeyhole,
   Users,
   Wallet,
   X,
@@ -94,6 +95,7 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/users/passwords', label: 'Đổi mật khẩu user', icon: KeyRound, accent: 'amber' },
       { href: '/admin/security/check-ip', label: 'Kiểm tra IP', icon: Search },
       { href: '/admin/security', label: 'Bảo mật & IP Ban', icon: ShieldAlert, accent: 'red' },
+      { href: '/admin/security/owner-devices', label: 'Thiết bị owner', icon: UnlockKeyhole, accent: 'amber' },
     ],
   },
   {
