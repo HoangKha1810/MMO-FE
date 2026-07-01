@@ -16,6 +16,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "owner:create": "tsx scripts/create-owner.ts",
+    "support-tiktok:upsert": "tsx scripts/upsert-support-tiktok-user.ts",
     "service-cards:repair": "tsx scripts/repair-service-cards.ts"
   },
   "dependencies": {

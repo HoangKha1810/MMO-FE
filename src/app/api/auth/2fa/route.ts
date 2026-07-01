@@ -8,6 +8,7 @@ import {
 } from '@/lib/session-cookie';
 import { isAdminRole } from '@/lib/admin-permissions';
 import { logOwnerSecurityEvent } from '@/lib/owner-security';
+import { isSupportTikTokStaffRole } from '@/lib/support-tiktok';
 
 function base32Decode(input: string) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -193,9 +194,13 @@ export async function POST(req: NextRequest) {
   const response = NextResponse.json({
     success: true,
     message: 'Xác thực 2FA thành công',
-    redirect: isAdminRole(user.role) ? '/admin' : '/user/home',
+    redirect: isAdminRole(user.role)
+      ? '/admin'
+      : isSupportTikTokStaffRole(user.role)
+        ? '/user/support-tiktok'
+        : '/user/home',
   });
   clearTwoFactorPendingCookie(response);
-  setAuthenticatedSessionCookies(response, user.id, 60 * 60 * 24);
+  setAuthenticatedSessionCookies(response, user.id, 60 * 60 * 24, String(user.role || 'member'));
   return response;
 }

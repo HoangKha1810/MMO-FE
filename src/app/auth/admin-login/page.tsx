@@ -44,8 +44,8 @@ export default function AdminLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-[#06090f] px-4 text-white">
       <form onSubmit={submit} className="w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.04] p-7 shadow-2xl">
         <ShieldCheck className="h-9 w-9 text-emerald-400" />
-        <h1 className="mt-5 text-3xl font-black uppercase tracking-[-0.05em]">Admin / Support gate</h1>
-        <p className="mt-2 text-sm font-semibold text-slate-400">Cổng đăng nhập cho admin và nhân viên Support TikTok.</p>
+        <h1 className="mt-5 text-3xl font-black uppercase tracking-[-0.05em]">Admin gate</h1>
+        <p className="mt-2 text-sm font-semibold text-slate-400">Cổng đăng nhập bảo mật cho admin và owner.</p>
         {error ? <div className="mt-5 flex gap-2 rounded-xl bg-red-500/10 p-3 text-xs font-bold text-red-300"><AlertCircle className="h-4 w-4" />{error}</div> : null}
         <div className="mt-6 space-y-4">
           <Input placeholder="Username/email" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />

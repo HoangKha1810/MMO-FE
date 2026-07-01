@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 export const AUTH_SESSION_COOKIE = 'ttmmo_session';
+export const AUTH_SESSION_ROLE_COOKIE = 'ttmmo_session_role';
 export const LEGACY_USER_ID_COOKIE = 'user_id';
 export const TWO_FACTOR_PENDING_COOKIE = 'ttmmo_2fa_pending';
 export const LEGACY_TWO_FACTOR_PENDING_COOKIE = '2fa_pending';
@@ -69,6 +70,14 @@ export function createSignedSessionToken(userId: number, maxAgeSeconds: number) 
   const safeUserId = Math.trunc(Number(userId || 0));
   const expiresAt = Date.now() + Math.max(1, Math.trunc(maxAgeSeconds)) * 1000;
   const payload = `v1.${safeUserId}.${expiresAt}`;
+  return `${payload}.${signPayload(payload)}`;
+}
+
+export function createSignedSessionRoleToken(userId: number, role: string, maxAgeSeconds: number) {
+  const safeUserId = Math.trunc(Number(userId || 0));
+  const safeRole = String(role || 'member').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'member';
+  const expiresAt = Date.now() + Math.max(1, Math.trunc(maxAgeSeconds)) * 1000;
+  const payload = `v1.${safeUserId}.${safeRole}.${expiresAt}`;
   return `${payload}.${signPayload(payload)}`;
 }
 
@@ -156,10 +165,15 @@ export function invalidateSessionUserCache(userId: number) {
   }
 }
 
-export function setAuthenticatedSessionCookies(response: NextResponse, userId: number, maxAgeSeconds: number) {
+export function setAuthenticatedSessionCookies(response: NextResponse, userId: number, maxAgeSeconds: number, role?: string) {
   const options = createSessionCookieOptions(maxAgeSeconds);
   response.cookies.set(LEGACY_USER_ID_COOKIE, String(Math.trunc(userId)), options);
   response.cookies.set(AUTH_SESSION_COOKIE, createSignedSessionToken(userId, maxAgeSeconds), options);
+  if (role) {
+    response.cookies.set(AUTH_SESSION_ROLE_COOKIE, createSignedSessionRoleToken(userId, role, maxAgeSeconds), options);
+  } else {
+    response.cookies.set(AUTH_SESSION_ROLE_COOKIE, '', { maxAge: 0, path: '/' });
+  }
 }
 
 export function setTwoFactorPendingCookie(response: NextResponse, userId: number, maxAgeSeconds = 60 * 10) {
@@ -179,6 +193,7 @@ export function clearTwoFactorPendingCookie(response: NextResponse) {
 export function clearAuthenticatedSessionCookies(response: NextResponse) {
   response.cookies.set(LEGACY_USER_ID_COOKIE, '', { maxAge: 0, path: '/' });
   response.cookies.set(AUTH_SESSION_COOKIE, '', { maxAge: 0, path: '/' });
+  response.cookies.set(AUTH_SESSION_ROLE_COOKIE, '', { maxAge: 0, path: '/' });
   clearTwoFactorPendingCookie(response);
 }
 

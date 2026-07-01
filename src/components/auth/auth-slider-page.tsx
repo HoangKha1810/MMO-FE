@@ -233,7 +233,10 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
         return;
       }
 
-      const nextHref = data.require2fa ? '/auth/2fa?next=/user/home' : '/user/home';
+      const redirect = typeof data.redirect === 'string' && data.redirect.startsWith('/')
+        ? data.redirect
+        : '/user/home';
+      const nextHref = data.require2fa ? `/auth/2fa?next=${encodeURIComponent(redirect)}` : redirect;
       startPageTransition();
       if (typeof window !== 'undefined') {
         window.location.replace(nextHref);

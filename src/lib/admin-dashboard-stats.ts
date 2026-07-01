@@ -60,6 +60,8 @@ export interface AdminDashboardStats {
   activityLogs: Array<{
     id: number;
     activity: string;
+    ip_address: string | null;
+    user_agent: string | null;
     created_at: string;
     user: {
       username: string;
@@ -446,11 +448,11 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
         LIMIT 5
       `),
       safeRows<MetricRow>(`
-        SELECT al.id, al.activity, al.created_at, u.username, u.role
+        SELECT al.id, al.activity, al.ip_address, al.user_agent, al.created_at, u.username, u.role
         FROM activity_logs al
         LEFT JOIN users u ON u.id = al.user_id
         ORDER BY al.created_at DESC
-        LIMIT 10
+        LIMIT 60
       `),
     ]);
 
@@ -478,6 +480,8 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       activityLogs: activityRows.map((row) => ({
         id: Math.trunc(numberFrom(row, 'id')),
         activity: String(row.activity || ''),
+        ip_address: row.ip_address ? String(row.ip_address) : null,
+        user_agent: row.user_agent ? String(row.user_agent) : null,
         created_at: iso(row.created_at),
         user: row.username
           ? {

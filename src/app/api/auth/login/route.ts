@@ -13,6 +13,7 @@ import {
 } from '@/lib/session-cookie';
 import { isOwnerRole } from '@/lib/admin-permissions';
 import { logOwnerSecurityEvent } from '@/lib/owner-security';
+import { isSupportTikTokStaffRole } from '@/lib/support-tiktok';
 import { toNumber } from '@/lib/utils';
 
 async function findLoginUser(identifier: string) {
@@ -232,8 +233,10 @@ export async function POST(req: NextRequest) {
 
     const sessionMaxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
 
+    const redirectPath = isSupportTikTokStaffRole(user.role) ? '/user/support-tiktok' : '/user/home';
+
     if (String(user.role || 'member') === 'admin' && user.fa_enabled) {
-      const response = NextResponse.json({ success: true, require2fa: true });
+      const response = NextResponse.json({ success: true, require2fa: true, redirect: redirectPath });
       response.cookies.delete('user_id');
       setTwoFactorPendingCookie(response, user.id, 60 * 10);
       return response;
@@ -252,9 +255,10 @@ export async function POST(req: NextRequest) {
         avatar: buildLegacyAssetUrl(user.avatar) || undefined,
         is_blue_tick: Boolean(user.is_blue_tick),
       },
+      redirect: redirectPath,
     });
     clearTwoFactorPendingCookie(response);
-    setAuthenticatedSessionCookies(response, user.id, sessionMaxAge);
+    setAuthenticatedSessionCookies(response, user.id, sessionMaxAge, String(user.role || 'member'));
     return response;
   } catch (error) {
     console.error('Login error:', error);

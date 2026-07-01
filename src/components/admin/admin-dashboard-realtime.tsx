@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import {
   Activity,
   AlertTriangle,
   Banknote,
+  ChevronDown,
   Crown,
   DatabaseZap,
   FileWarning,
+  Filter,
   LockKeyhole,
   MessageSquare,
   RefreshCw,
@@ -37,10 +39,29 @@ function percent(value: number) {
   return `${Number(value || 0).toFixed(1)}%`;
 }
 
+function extractActivityAction(activity: string) {
+  const value = String(activity || '').trim();
+  if (!value) return 'system';
+
+  const parts = value.split(':').map((part) => part.trim()).filter(Boolean);
+  if (parts[0] === 'admin_ai' && parts[1]) {
+    return `admin_ai:${parts[1]}`;
+  }
+  if (parts[0] === 'Cron task' && parts[1]) {
+    return `cron:${parts[1]}`;
+  }
+  if (parts.length > 1) {
+    return parts[0];
+  }
+  return value.split(/\s+/).slice(0, 4).join(' ');
+}
+
 export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeProps) {
   const [stats, setStats] = useState(initialStats);
   const [isPending, startTransition] = useTransition();
   const [lastError, setLastError] = useState('');
+  const [activityFilter, setActivityFilter] = useState('all');
+  const [expandedActivityId, setExpandedActivityId] = useState<number | null>(null);
 
   async function refreshStats(silent = false) {
     try {
@@ -74,6 +95,27 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
   }, []);
 
   const { pulse, statsToday, stats7d, stats30d, topUsers, activityLogs } = stats;
+  const activityActions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const log of activityLogs) {
+      const action = extractActivityAction(log.activity);
+      counts.set(action, (counts.get(action) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([action, count]) => ({ action, count }))
+      .sort((a, b) => b.count - a.count || a.action.localeCompare(b.action));
+  }, [activityLogs]);
+  const filteredActivityLogs = useMemo(() => {
+    if (activityFilter === 'all') return activityLogs;
+    return activityLogs.filter((log) => extractActivityAction(log.activity) === activityFilter);
+  }, [activityFilter, activityLogs]);
+
+  useEffect(() => {
+    if (activityFilter !== 'all' && !activityActions.some((item) => item.action === activityFilter)) {
+      setActivityFilter('all');
+      setExpandedActivityId(null);
+    }
+  }, [activityActions, activityFilter]);
 
   const pulseCards = [
     {
@@ -256,42 +298,114 @@ export function AdminDashboardRealtime({ initialStats }: AdminDashboardRealtimeP
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
         <div className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5 dark:border-white/10">
+          <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-950 dark:text-white">Hoạt động gần đây</h3>
-              <p className="mt-1 text-xs font-semibold text-slate-400">User, admin và cron log mới nhất</p>
+              <p className="mt-1 text-xs font-semibold text-slate-400">
+                {filteredActivityLogs.length}/{activityLogs.length} log mới nhất
+              </p>
             </div>
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="relative inline-flex max-w-full items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                <Filter className="h-4 w-4 text-brand-blue" />
+                <select
+                  value={activityFilter}
+                  onChange={(event) => {
+                    setActivityFilter(event.target.value);
+                    setExpandedActivityId(null);
+                  }}
+                  className="max-w-[240px] appearance-none bg-transparent pr-7 outline-none"
+                  aria-label="Lọc hoạt động theo hành động"
+                >
+                  <option value="all">Tất cả hành động ({activityLogs.length})</option>
+                  {activityActions.map((item) => (
+                    <option key={item.action} value={item.action}>
+                      {item.action} ({item.count})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-slate-400" />
+              </label>
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            </div>
           </div>
           <div className="custom-scrollbar max-h-[560px] space-y-2 overflow-y-auto p-4">
-            {activityLogs.length === 0 ? (
+            {filteredActivityLogs.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-200 py-8 text-center text-xs font-bold uppercase text-slate-400 dark:border-white/10">
-                Chưa có hoạt động nào
+                Không có log khớp bộ lọc
               </p>
             ) : (
-              activityLogs.map((log) => (
-                <div key={log.id} className="flex items-start gap-4 rounded-2xl border border-transparent p-4 transition-all hover:border-slate-200 hover:bg-slate-50 dark:hover:border-white/10 dark:hover:bg-white/[0.04]">
-                  <div className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-                    log.user?.role === 'admin' ? 'bg-rose-500/10 text-rose-500' : 'bg-brand-blue/10 text-brand-blue'
-                  )}>
-                    {log.user?.role === 'admin' ? <ShieldCheck className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+              filteredActivityLogs.map((log) => {
+                const action = extractActivityAction(log.activity);
+                const expanded = expandedActivityId === log.id;
+                return (
+                  <div
+                    key={log.id}
+                    className={cn(
+                      'rounded-2xl border transition-all',
+                      expanded
+                        ? 'border-brand-blue/30 bg-brand-blue/5 shadow-[0_18px_55px_-42px_rgba(37,99,235,0.9)] dark:bg-brand-blue/10'
+                        : 'border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-white/10 dark:hover:bg-white/[0.04]'
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedActivityId(expanded ? null : log.id)}
+                      className="flex w-full items-start gap-4 p-4 text-left"
+                      aria-expanded={expanded}
+                    >
+                      <div className={cn(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
+                        log.user?.role === 'admin' || log.user?.role === 'owner' ? 'bg-rose-500/10 text-rose-500' : 'bg-brand-blue/10 text-brand-blue'
+                      )}>
+                        {log.user?.role === 'admin' || log.user?.role === 'owner' ? <ShieldCheck className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-950 dark:text-white">
+                            {log.user?.username || 'System'}
+                          </span>
+                          <span className="font-mono text-[10px] font-bold text-slate-400">
+                            {formatDatabaseDateTime(log.created_at)}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-brand-blue/20 bg-brand-blue/10 px-2.5 py-1 font-mono text-[10px] font-black text-brand-blue">
+                            {action}
+                          </span>
+                          {log.ip_address ? (
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[10px] font-bold text-slate-400 dark:border-white/10 dark:bg-white/[0.04]">
+                              {log.ip_address}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className={cn('mt-2 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400', expanded ? 'break-words' : 'line-clamp-2')}>
+                          {log.activity}
+                        </p>
+                      </div>
+                      <ChevronDown className={cn('mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform', expanded ? 'rotate-180 text-brand-blue' : '')} />
+                    </button>
+                    {expanded ? (
+                      <div className="border-t border-slate-200 px-4 pb-4 pt-3 dark:border-white/10 sm:ml-[4.75rem]">
+                        <div className="grid gap-3 text-xs font-bold text-slate-500 dark:text-slate-400 lg:grid-cols-2">
+                          <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.035]">
+                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Hành động</div>
+                            <div className="mt-2 break-words font-mono text-slate-700 dark:text-slate-200">{action}</div>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.035]">
+                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">IP</div>
+                            <div className="mt-2 break-words font-mono text-slate-700 dark:text-slate-200">{log.ip_address || 'Không ghi nhận'}</div>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.035] lg:col-span-2">
+                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Thiết bị / user agent</div>
+                            <div className="mt-2 break-words font-mono text-slate-700 dark:text-slate-200">{log.user_agent || 'Không ghi nhận'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-950 dark:text-white">
-                        {log.user?.username || 'System'}
-                      </span>
-                      <span className="font-mono text-[10px] font-bold text-slate-400">
-                        {formatDatabaseDateTime(log.created_at)}
-                      </span>
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
-                      {log.activity}
-                    </p>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

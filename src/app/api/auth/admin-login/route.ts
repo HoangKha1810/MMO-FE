@@ -10,7 +10,6 @@ import {
 } from '@/lib/session-cookie';
 import { isAdminRole, isOwnerRole } from '@/lib/admin-permissions';
 import { logOwnerSecurityEvent, verifyOwnerLoginSecurity } from '@/lib/owner-security';
-import { isSupportTikTokStaffRole } from '@/lib/support-tiktok';
 
 async function findAdminLoginUser(identifier: string) {
   const isEmailLike = identifier.includes('@');
@@ -67,10 +66,18 @@ export async function POST(req: NextRequest) {
   const role = String(user.role || 'member');
   const isAdmin = isAdminRole(role);
   const isOwner = isOwnerRole(role);
-  const isSupportTikTok = isSupportTikTokStaffRole(role);
 
-  if (!isAdmin && !isSupportTikTok) {
-    return NextResponse.json({ success: false, message: 'Tài khoản không có quyền admin/support TikTok' }, { status: 403 });
+  if (!isAdmin) {
+    const isSupportTikTok = role.trim().toLowerCase().replace(/-/g, '_') === 'support_tiktok';
+    return NextResponse.json(
+      {
+        success: false,
+        message: isSupportTikTok
+          ? 'Tài khoản Support TikTok đăng nhập tại cổng /auth, không dùng cổng admin.'
+          : 'Tài khoản không có quyền admin.',
+      },
+      { status: 403 }
+    );
   }
 
   if (user.status !== 'active') {
@@ -128,9 +135,8 @@ export async function POST(req: NextRequest) {
     return response;
   }
 
-  const redirect = isSupportTikTok ? '/user/support-tiktok' : '/admin/dashboard';
-  const response = NextResponse.json({ success: true, redirect });
+  const response = NextResponse.json({ success: true, redirect: '/admin/dashboard' });
   clearTwoFactorPendingCookie(response);
-  setAuthenticatedSessionCookies(response, user.id, 60 * 60 * 12);
+  setAuthenticatedSessionCookies(response, user.id, 60 * 60 * 12, role);
   return response;
 }

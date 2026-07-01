@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const AUTH_SESSION_COOKIE = 'ttmmo_session';
+const AUTH_SESSION_ROLE_COOKIE = 'ttmmo_session_role';
 const LEGACY_USER_ID_COOKIE = 'user_id';
 const TWO_FACTOR_PENDING_COOKIE = 'ttmmo_2fa_pending';
 const LEGACY_TWO_FACTOR_PENDING_COOKIE = '2fa_pending';
@@ -87,9 +88,95 @@ function nextWithPathname(req: NextRequest) {
 function clearSession(response: NextResponse) {
   response.cookies.set(LEGACY_USER_ID_COOKIE, '', { maxAge: 0, path: '/' });
   response.cookies.set(AUTH_SESSION_COOKIE, '', { maxAge: 0, path: '/' });
+  response.cookies.set(AUTH_SESSION_ROLE_COOKIE, '', { maxAge: 0, path: '/' });
   response.cookies.set(TWO_FACTOR_PENDING_COOKIE, '', { maxAge: 0, path: '/' });
   response.cookies.set(LEGACY_TWO_FACTOR_PENDING_COOKIE, '', { maxAge: 0, path: '/' });
   return response;
+}
+
+function normalizeRole(role: string) {
+  return String(role || '').trim().toLowerCase().replace(/-/g, '_');
+}
+
+async function getVerifiedSessionRole(userId: number, token: string | undefined) {
+  const secret = getSessionSecret();
+  if (!secret || !userId || !token) {
+    return '';
+  }
+
+  const parts = token.split('.');
+  if (parts.length !== 5 || parts[0] !== 'v1') {
+    return '';
+  }
+
+  const tokenUserId = Math.trunc(Number(parts[1] || 0));
+  const role = normalizeRole(parts[2] || '');
+  const expiresAt = Number(parts[3] || 0);
+  if (tokenUserId !== userId || !role || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    return '';
+  }
+
+  const payload = parts.slice(0, 4).join('.');
+  return await signPayload(payload, secret) === parts[4] ? role : '';
+}
+
+function isSupportTikTokAllowedPath(pathname: string) {
+  return (
+    pathname === '/user/support-tiktok' ||
+    pathname.startsWith('/user/support-tiktok/') ||
+    pathname.startsWith('/api/support-tiktok/') ||
+    pathname === '/api/user/me' ||
+    pathname === '/api/auth/logout' ||
+    pathname === '/api/security/event' ||
+    pathname === '/api/security/network-risk'
+  );
+}
+
+function blockSupportTikTokOutsideChat(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+
+  if (isSupportTikTokAllowedPath(pathname)) {
+    return null;
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return applySecurityHeaders(NextResponse.json(
+      {
+        success: false,
+        code: 'SUPPORT_TIKTOK_CHAT_ONLY',
+        message: 'Tài khoản Support TikTok chỉ được dùng khu vực chat Support TikTok.',
+      },
+      { status: 403 }
+    ), req);
+  }
+
+  if (pathname.startsWith('/user/') || pathname.startsWith('/admin/')) {
+    return applySecurityHeaders(NextResponse.redirect(new URL('/user/support-tiktok', req.url)), req);
+  }
+
+  return null;
+}
+
+function shouldRequireSignedRole(pathname: string) {
+  return (
+    pathname.startsWith('/user/') ||
+    pathname.startsWith('/admin/') ||
+    (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/'))
+  );
+}
+
+function buildInvalidSessionResponse(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    return applySecurityHeaders(clearSession(NextResponse.json(
+      { success: false, code: 'INVALID_SESSION', message: 'Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.' },
+      { status: 401 }
+    )), req);
+  }
+
+  const loginUrl = new URL('/auth/login', req.url);
+  loginUrl.searchParams.set('reason', 'invalid-session');
+  loginUrl.searchParams.set('next', req.nextUrl.pathname);
+  return applySecurityHeaders(clearSession(NextResponse.redirect(loginUrl)), req);
 }
 
 function firstHeaderIp(value: string | null) {
@@ -313,20 +400,20 @@ export async function middleware(req: NextRequest) {
 
   const isValid = await verifySessionToken(userId, req.cookies.get(AUTH_SESSION_COOKIE)?.value);
   if (isValid) {
+    const role = await getVerifiedSessionRole(userId, req.cookies.get(AUTH_SESSION_ROLE_COOKIE)?.value);
+    if (!role && shouldRequireSignedRole(pathname)) {
+      return buildInvalidSessionResponse(req);
+    }
+    if (role === 'support_tiktok') {
+      const supportBlock = blockSupportTikTokOutsideChat(req);
+      if (supportBlock) {
+        return supportBlock;
+      }
+    }
     return nextWithPathname(req);
   }
 
-  if (pathname.startsWith('/api/')) {
-    return applySecurityHeaders(clearSession(NextResponse.json(
-      { success: false, code: 'INVALID_SESSION', message: 'Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.' },
-      { status: 401 }
-    )), req);
-  }
-
-  const loginUrl = new URL('/auth/login', req.url);
-  loginUrl.searchParams.set('reason', 'invalid-session');
-  loginUrl.searchParams.set('next', pathname);
-  return applySecurityHeaders(clearSession(NextResponse.redirect(loginUrl)), req);
+  return buildInvalidSessionResponse(req);
 }
 
 export const config = {
