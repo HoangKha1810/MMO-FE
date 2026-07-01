@@ -16,6 +16,7 @@ import {
 } from '@/lib/ip-security';
 import { logOwnerSecurityEvent } from '@/lib/owner-security';
 import { siteName } from '@/lib/seo';
+import { assertUserEmailAvailable, isValidUserEmail, normalizeUserEmail } from '@/lib/user-email-guard';
 
 function validateUsername(username: string): boolean {
   return /^[a-zA-Z0-9_.@-]{3,50}$/.test(username);
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     const { username, email, password, fullname } = await req.json();
     const normalizedUsername = String(username || '').trim().toLowerCase();
-    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedEmail = normalizeUserEmail(email);
 
     if (!normalizedUsername || !normalizedEmail || !password) {
       return NextResponse.json(
@@ -79,11 +80,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
+    if (!isValidUserEmail(normalizedEmail)) {
       return NextResponse.json(
         { success: false, message: 'Email không hợp lệ' },
         { status: 400 }
+      );
+    }
+
+    try {
+      await assertUserEmailAvailable(normalizedEmail);
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, message: error instanceof Error ? error.message : 'Email đã được sử dụng' },
+        { status: 409 }
       );
     }
 
@@ -245,6 +254,17 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Register error:', error);
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2002'
+    ) {
+      return NextResponse.json(
+        { success: false, message: 'Email hoặc tên đăng nhập đã được sử dụng' },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { success: false, message: 'Có lỗi xảy ra. Vui lòng thử lại.' },
       { status: 500 }

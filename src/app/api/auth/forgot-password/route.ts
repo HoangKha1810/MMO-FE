@@ -3,13 +3,21 @@ import { db } from '@/lib/db';
 import { sendSystemEmail } from '@/lib/admin-alert-email';
 import { buildPasswordResetToken } from '@/lib/password-reset';
 import { buildAbsoluteUrl, siteName } from '@/lib/seo';
+import { countUsersByEmail, isValidUserEmail, normalizeUserEmail } from '@/lib/user-email-guard';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const email = String(body.email || '').trim().toLowerCase();
+  const email = normalizeUserEmail(body.email);
 
-  if (!email) {
+  if (!isValidUserEmail(email)) {
     return NextResponse.json({ success: false, message: 'Vui lòng nhập email hợp lệ' }, { status: 400 });
+  }
+
+  if (await countUsersByEmail(email) > 1) {
+    return NextResponse.json(
+      { success: false, message: 'Email này đang được gán cho nhiều tài khoản. Vui lòng liên hệ owner/admin để xử lý trước khi đặt lại mật khẩu.' },
+      { status: 409 }
+    );
   }
 
   const user = await db.users.findFirst({

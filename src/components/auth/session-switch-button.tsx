@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { clearSessionUserCache } from '@/hooks/use-session-user';
 
 export function SessionSwitchButton({
   href,
@@ -29,6 +30,7 @@ export function SessionSwitchButton({
     } catch {
       // Best-effort logout before switching accounts.
     } finally {
+      clearSessionUserCache();
       router.push(href);
       router.refresh();
       setLoading(false);

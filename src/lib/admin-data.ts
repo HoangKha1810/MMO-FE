@@ -21,6 +21,7 @@ import { ensureVibeCodeTables } from '@/lib/vibe-code';
 import { ensurePressServiceTables } from '@/lib/press-service';
 import { ensureWebServiceTables } from '@/lib/web-service';
 import { buildForumModerationText, containsForumGamblingContent, forumVietnamTimestampSql } from '@/lib/forum';
+import { assertUserEmailAvailable, normalizeUserEmail } from '@/lib/user-email-guard';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -2404,10 +2405,16 @@ export async function createAdminResource(resource: string, input: Record<string
     throw new Error('Không có dữ liệu tạo mới hợp lệ');
   }
 
-  if (resource === 'users' && typeof data.password === 'string') {
+  if (resource === 'users') {
     delete data.role;
     delete data.balance;
     delete data.game_balance;
+    if (typeof data.email !== 'undefined') {
+      data.email = await assertUserEmailAvailable(normalizeUserEmail(data.email));
+    }
+  }
+
+  if (resource === 'users' && typeof data.password === 'string') {
     const bcrypt = await import('bcryptjs');
     data.password = await bcrypt.hash(data.password, 10);
   }
@@ -2454,6 +2461,9 @@ export async function updateAdminResource(resource: string, id: number, input: R
     delete data.role;
     delete data.balance;
     delete data.game_balance;
+    if (typeof data.email !== 'undefined') {
+      data.email = await assertUserEmailAvailable(normalizeUserEmail(data.email), id);
+    }
     const target = await db.users.findUnique({
       where: { id },
       select: { role: true },

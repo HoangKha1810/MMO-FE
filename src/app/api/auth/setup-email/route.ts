@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
+import { assertUserEmailAvailable, isValidUserEmail, normalizeUserEmail } from '@/lib/user-email-guard';
 
 export async function POST(req: NextRequest) {
   const userId = await getVerifiedSessionUserId();
@@ -9,17 +10,18 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const email = String(body.email || '').trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const email = normalizeUserEmail(body.email);
+  if (!isValidUserEmail(email)) {
     return NextResponse.json({ success: false, message: 'Email không hợp lệ' }, { status: 400 });
   }
 
-  const duplicate = await db.users.findFirst({
-    where: { email, id: { not: userId } },
-    select: { id: true },
-  });
-  if (duplicate) {
-    return NextResponse.json({ success: false, message: 'Email đã được sử dụng' }, { status: 409 });
+  try {
+    await assertUserEmailAvailable(email, userId);
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Email đã được sử dụng' },
+      { status: 409 }
+    );
   }
 
   await db.users.update({

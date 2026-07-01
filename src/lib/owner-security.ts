@@ -3,6 +3,7 @@ import 'server-only';
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getRequestDeviceInfo } from '@/lib/device-info';
 import { getRequestIp } from '@/lib/ip-security';
 import { sendSecurityAlertEmail } from '@/lib/security-alert-email';
 
@@ -124,10 +125,7 @@ function hashValue(value: string) {
 }
 
 export function getOwnerDeviceHash(req: NextRequest) {
-  const ua = req.headers.get('user-agent') || 'unknown';
-  const lang = req.headers.get('accept-language') || '';
-  const platformHint = req.headers.get('sec-ch-ua-platform') || '';
-  return hashValue([ua, lang, platformHint].join('|')).slice(0, 64);
+  return getRequestDeviceInfo(req).deviceHash;
 }
 
 async function ensureOwnerSecurityTables() {

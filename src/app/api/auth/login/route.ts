@@ -14,6 +14,7 @@ import {
 import { isOwnerRole } from '@/lib/admin-permissions';
 import { logOwnerSecurityEvent } from '@/lib/owner-security';
 import { isSupportTikTokStaffRole } from '@/lib/support-tiktok';
+import { assertUserEmailUniqueForLogin, countUsersByEmail } from '@/lib/user-email-guard';
 import { toNumber } from '@/lib/utils';
 
 async function findLoginUser(identifier: string) {
@@ -95,6 +96,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (normalizedUsername.includes('@') && await countUsersByEmail(normalizedUsername) > 1) {
+      await logSecurityEvent({
+        eventType: 'LOGIN_BLOCKED_DUPLICATE_EMAIL',
+        severity: 'HIGH',
+        ip,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'email',
+        payload: normalizedUsername,
+        userAgent: req.headers.get('user-agent'),
+      });
+      return NextResponse.json(
+        { success: false, message: 'Email này đang được gán cho nhiều tài khoản. Vui lòng liên hệ owner/admin để xử lý trước khi đăng nhập.' },
+        { status: 409 }
+      );
+    }
+
     const user = await findLoginUser(normalizedUsername);
 
     if (!user) {
@@ -130,6 +148,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Tên đăng nhập hoặc mật khẩu không đúng' },
         { status: 401 }
+      );
+    }
+
+    try {
+      await assertUserEmailUniqueForLogin(user.email, user.id);
+    } catch (error) {
+      await logSecurityEvent({
+        eventType: 'LOGIN_BLOCKED_DUPLICATE_EMAIL',
+        severity: 'HIGH',
+        ip,
+        userId: user.id,
+        uri: req.nextUrl.pathname,
+        method: req.method,
+        field: 'email',
+        payload: String(user.email || ''),
+        userAgent: req.headers.get('user-agent'),
+      });
+      return NextResponse.json(
+        { success: false, message: error instanceof Error ? error.message : 'Email tài khoản đang bị trùng, vui lòng liên hệ owner/admin.' },
+        { status: 409 }
       );
     }
 

@@ -25,6 +25,7 @@ import {
 import { BrandForestWordmark } from '@/components/ui/brand-forest-wordmark';
 import { FlipButton } from '@/components/ui/flip-button';
 import { startPageTransition } from '@/components/layout/navigation-effects';
+import { clearSessionUserCache } from '@/hooks/use-session-user';
 import { siteName, siteShortName } from '@/lib/seo';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
 import { cn } from '@/lib/utils';
@@ -238,6 +239,7 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
         : '/user/home';
       const nextHref = data.require2fa ? `/auth/2fa?next=${encodeURIComponent(redirect)}` : redirect;
       startPageTransition();
+      clearSessionUserCache();
       if (typeof window !== 'undefined') {
         window.location.replace(nextHref);
         return;

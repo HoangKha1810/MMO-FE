@@ -24,64 +24,8 @@ interface SessionUserState {
 const POLL_INTERVAL_WITH_INITIAL_USER_MS = 60 * 1000;
 const POLL_INTERVAL_WITHOUT_INITIAL_USER_MS = 15 * 1000;
 const SESSION_USER_CACHE_KEY = 'session_user_v1';
-const SESSION_USER_CACHE_TTL_MS = 2 * 60 * 1000;
 
-let sessionUserMemoryCache:
-  | {
-      expiresAt: number;
-      data: SessionUser;
-    }
-  | null = null;
-
-function getCachedSessionUser() {
-  if (sessionUserMemoryCache && sessionUserMemoryCache.expiresAt > Date.now()) {
-    return sessionUserMemoryCache.data;
-  }
-
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    const raw = window.sessionStorage.getItem(SESSION_USER_CACHE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as { expiresAt?: number; data?: SessionUser };
-    if (!parsed?.expiresAt || parsed.expiresAt <= Date.now() || !parsed.data) {
-      window.sessionStorage.removeItem(SESSION_USER_CACHE_KEY);
-      return null;
-    }
-
-    sessionUserMemoryCache = {
-      expiresAt: parsed.expiresAt,
-      data: parsed.data,
-    };
-    return parsed.data;
-  } catch {
-    return null;
-  }
-}
-
-function setCachedSessionUser(user: SessionUser) {
-  sessionUserMemoryCache = {
-    expiresAt: Date.now() + SESSION_USER_CACHE_TTL_MS,
-    data: user,
-  };
-
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.sessionStorage.setItem(SESSION_USER_CACHE_KEY, JSON.stringify(sessionUserMemoryCache));
-  } catch {}
-}
-
-function clearCachedSessionUser() {
-  sessionUserMemoryCache = null;
-
+export function clearSessionUserCache() {
   if (typeof window === 'undefined') {
     return;
   }
@@ -108,7 +52,7 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
         });
         if (!response.ok) {
           if (active) {
-            clearCachedSessionUser();
+            clearSessionUserCache();
             setData(undefined);
             setBalances({ balance: 0, gameBalance: 0 });
             setLoading(false);
@@ -120,13 +64,12 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
         if (active) {
           setData(payload.user as SessionUser | undefined);
           if (payload.user) {
-            setCachedSessionUser(payload.user as SessionUser);
             setBalances({
               balance: Number((payload.user as SessionUser).balance || 0),
               gameBalance: Number((payload.user as SessionUser).game_balance || 0),
             });
           } else {
-            clearCachedSessionUser();
+            clearSessionUserCache();
             setBalances({ balance: 0, gameBalance: 0 });
           }
           setLoading(false);
@@ -140,24 +83,15 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
 
     if (initialUser) {
       setData(initialUser);
-      setCachedSessionUser(initialUser);
       setBalances({
         balance: initialUser.balance,
         gameBalance: initialUser.game_balance,
       });
       setLoading(false);
     } else {
-      const cachedUser = getCachedSessionUser();
-      if (cachedUser) {
-        setData(cachedUser);
-        setBalances({
-          balance: cachedUser.balance,
-          gameBalance: cachedUser.game_balance,
-        });
-        setLoading(false);
-      } else {
-        void loadUser();
-      }
+      setData(undefined);
+      setLoading(true);
+      void loadUser();
     }
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') {

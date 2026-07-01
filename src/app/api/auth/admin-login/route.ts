@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { recordAdminLoginDevice } from '@/lib/admin-device-security';
 import { getRequestIp, getIpBlock, buildBlockedIpPayload } from '@/lib/ip-security';
 import {
   clearAuthenticatedSessionCookies,
@@ -10,6 +11,7 @@ import {
 } from '@/lib/session-cookie';
 import { isAdminRole, isOwnerRole } from '@/lib/admin-permissions';
 import { logOwnerSecurityEvent, verifyOwnerLoginSecurity } from '@/lib/owner-security';
+import { assertUserEmailUniqueForLogin, countUsersByEmail } from '@/lib/user-email-guard';
 
 async function findAdminLoginUser(identifier: string) {
   const isEmailLike = identifier.includes('@');
@@ -57,10 +59,27 @@ export async function POST(req: NextRequest) {
   const username = String(body.username || '').trim().toLowerCase();
   const password = String(body.password || '');
   const ownerCode = String(body.owner_code || body.security_code || '').trim();
+
+  if (username.includes('@') && await countUsersByEmail(username) > 1) {
+    return NextResponse.json(
+      { success: false, message: 'Email này đang được gán cho nhiều tài khoản. Vui lòng xử lý trong DB trước khi đăng nhập admin.' },
+      { status: 409 }
+    );
+  }
+
   const user = await findAdminLoginUser(username);
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return NextResponse.json({ success: false, message: 'Sai tài khoản hoặc mật khẩu admin' }, { status: 401 });
+  }
+
+  try {
+    await assertUserEmailUniqueForLogin(user.email, user.id);
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Email tài khoản admin đang bị trùng, vui lòng xử lý trong DB trước.' },
+      { status: 409 }
+    );
   }
 
   const role = String(user.role || 'member');
@@ -126,6 +145,13 @@ export async function POST(req: NextRequest) {
     verdict: 'password_ok',
     riskScore: isOwner ? 10 : 0,
     reasons: [`role:${role}`],
+  }).catch(() => undefined);
+
+  await recordAdminLoginDevice(req, {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role,
   }).catch(() => undefined);
 
   if (isAdmin && (user.fa_enabled || isOwner)) {

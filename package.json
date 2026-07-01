@@ -17,6 +17,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "owner:create": "tsx scripts/create-owner.ts",
     "support-tiktok:upsert": "tsx scripts/upsert-support-tiktok-user.ts",
+    "users:email-unique": "tsx scripts/enforce-unique-user-email.ts",
     "service-cards:repair": "tsx scripts/repair-service-cards.ts"
   },
   "dependencies": {

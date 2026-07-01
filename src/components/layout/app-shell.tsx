@@ -65,7 +65,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { startPageTransition } from '@/components/layout/navigation-effects';
 import { NotificationBell } from '@/components/layout/notification-bell';
-import { useSessionUser, type SessionUser } from '@/hooks/use-session-user';
+import { clearSessionUserCache, useSessionUser, type SessionUser } from '@/hooks/use-session-user';
 import { readJsonResponse } from '@/lib/client-api';
 import type { LegacyServiceItem } from '@/lib/legacy-settings';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
@@ -640,6 +640,7 @@ export function AppShell({
         credentials: 'include',
       });
     } finally {
+      clearSessionUserCache();
       startPageTransition();
       router.push('/auth/login');
       router.refresh();
