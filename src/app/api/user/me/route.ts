@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { getVerifiedSessionUserId } from '@/lib/session-cookie';
+import {
+  AUTH_SESSION_ROLE_COOKIE,
+  createSessionCookieOptions,
+  createSignedSessionRoleToken,
+  getVerifiedSessionUserId,
+} from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -61,7 +66,7 @@ export async function GET() {
       data: { last_activity: new Date() },
     }).catch(() => undefined);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         ...user,
@@ -70,6 +75,14 @@ export async function GET() {
         game_balance: toNumber(user.game_balance, 0),
       },
     }, { headers: noStoreHeaders });
+
+    response.cookies.set(
+      AUTH_SESSION_ROLE_COOKIE,
+      createSignedSessionRoleToken(user.id, String(user.role || 'member'), 60 * 60 * 24),
+      createSessionCookieOptions(60 * 60 * 24)
+    );
+
+    return response;
   } catch {
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500, headers: noStoreHeaders });
   }

@@ -26,14 +26,21 @@ const requestWindow = new Map<string, { count: number; resetAt: number }>();
 const ddosWindow = new Map<string, { count: number; apiCount: number; resetAt: number; bannedUntil?: number }>();
 
 function getSessionSecret() {
-  return (
+  const secret =
     process.env.SESSION_SECRET ||
     process.env.AUTH_SECRET ||
     process.env.NEXTAUTH_SECRET ||
     process.env.JWT_SECRET ||
     process.env.APP_KEY ||
-    ''
-  );
+    '';
+
+  if (secret) {
+    return secret;
+  }
+
+  return process.env.NODE_ENV === 'production'
+    ? ''
+    : 'development-only-session-secret-change-in-env';
 }
 
 function base64url(bytes: ArrayBuffer) {
@@ -155,14 +162,6 @@ function blockSupportTikTokOutsideChat(req: NextRequest) {
   }
 
   return null;
-}
-
-function shouldRequireSignedRole(pathname: string) {
-  return (
-    pathname.startsWith('/user/') ||
-    pathname.startsWith('/admin/') ||
-    (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/'))
-  );
 }
 
 function buildInvalidSessionResponse(req: NextRequest) {
@@ -401,9 +400,6 @@ export async function middleware(req: NextRequest) {
   const isValid = await verifySessionToken(userId, req.cookies.get(AUTH_SESSION_COOKIE)?.value);
   if (isValid) {
     const role = await getVerifiedSessionRole(userId, req.cookies.get(AUTH_SESSION_ROLE_COOKIE)?.value);
-    if (!role && shouldRequireSignedRole(pathname)) {
-      return buildInvalidSessionResponse(req);
-    }
     if (role === 'support_tiktok') {
       const supportBlock = blockSupportTikTokOutsideChat(req);
       if (supportBlock) {

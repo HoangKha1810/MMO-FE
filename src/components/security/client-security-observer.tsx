@@ -69,6 +69,20 @@ export function ClientSecurityObserver() {
       }
     };
 
+    const shouldForceLogoutForStatus = (status: number, responseUrl = '') => {
+      if (!isProtectedArea() || isLogoutExemptApi(responseUrl)) {
+        return false;
+      }
+
+      if (status === 401) {
+        return true;
+      }
+
+      return status === 403 && /\/api\/(?:auth|user|security)(?:\/|$)/.test(
+        new URL(responseUrl || '/', window.location.origin).pathname
+      );
+    };
+
     const forceSecurityLogout = (reason = 'security-blocked') => {
       if (forcedLogoutRef.current) {
         return;
@@ -95,7 +109,7 @@ export function ClientSecurityObserver() {
     };
 
     const inspectSecurityPayload = (payload: unknown, fallbackStatus = 0, responseUrl = '') => {
-      if ((fallbackStatus === 401 || fallbackStatus === 403) && isProtectedArea() && !isLogoutExemptApi(responseUrl)) {
+      if (shouldForceLogoutForStatus(fallbackStatus, responseUrl)) {
         forceSecurityLogout(fallbackStatus === 403 ? 'security-banned' : 'session-ended');
         return;
       }
@@ -113,6 +127,9 @@ export function ClientSecurityObserver() {
         riskScore?: unknown;
       };
       const code = String(data.code || '').toUpperCase();
+      if (code === 'SUPPORT_TIKTOK_CHAT_ONLY') {
+        return;
+      }
       const severity = String(data.severity || '').toUpperCase();
       const riskScore = Number(data.riskScore || 0);
       const shouldLogout =
@@ -132,7 +149,7 @@ export function ClientSecurityObserver() {
     };
 
     const inspectSecurityResponse = async (response: Response) => {
-      if ((response.status === 401 || response.status === 403) && isProtectedArea() && !isLogoutExemptApi(response.url)) {
+      if (shouldForceLogoutForStatus(response.status, response.url)) {
         forceSecurityLogout(response.status === 403 ? 'security-banned' : 'session-ended');
         return;
       }
@@ -168,7 +185,7 @@ export function ClientSecurityObserver() {
       this.addEventListener('load', () => {
         const xhr = this as XMLHttpRequest & { __ttmmoSecurityUrl?: string };
         const responseUrl = xhr.__ttmmoSecurityUrl || '';
-        if ((xhr.status === 401 || xhr.status === 403) && isProtectedArea() && !isLogoutExemptApi(responseUrl)) {
+        if (shouldForceLogoutForStatus(xhr.status, responseUrl)) {
           forceSecurityLogout(xhr.status === 403 ? 'security-banned' : 'session-ended');
           return;
         }
