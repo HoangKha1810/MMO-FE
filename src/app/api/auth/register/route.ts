@@ -15,8 +15,11 @@ import {
   logSecurityEvent,
 } from '@/lib/ip-security';
 import { logOwnerSecurityEvent } from '@/lib/owner-security';
+import { assertRegistrationRiskAllowed, RegistrationSecurityError } from '@/lib/registration-security';
 import { siteName } from '@/lib/seo';
 import { assertUserEmailAvailable, isValidUserEmail, normalizeUserEmail } from '@/lib/user-email-guard';
+
+export const runtime = 'nodejs';
 
 function validateUsername(username: string): boolean {
   return /^[a-zA-Z0-9_.@-]{3,50}$/.test(username);
@@ -85,6 +88,30 @@ export async function POST(req: NextRequest) {
         { success: false, message: 'Email không hợp lệ' },
         { status: 400 }
       );
+    }
+
+    try {
+      await assertRegistrationRiskAllowed({
+        req,
+        email: normalizedEmail,
+        username: normalizedUsername,
+        provider: 'password',
+        intent: 'signup',
+      });
+    } catch (error) {
+      if (error instanceof RegistrationSecurityError) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: 'REGISTRATION_RISK_BLOCKED',
+            message: error.result.message,
+            risk_score: error.result.riskScore,
+          },
+          { status: 403 }
+        );
+      }
+
+      throw error;
     }
 
     try {

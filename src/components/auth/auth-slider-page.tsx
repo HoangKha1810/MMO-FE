@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
+  Chrome,
   DatabaseZap,
   Home,
   LayoutDashboard,
@@ -88,6 +89,7 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
   const isDark = mounted ? resolvedTheme === 'dark' : true;
   const requestedTab = searchParams.get('tab') === 'register' ? 'register' : 'login';
   const registered = searchParams.get('registered') === 'true';
+  const oauthError = searchParams.get('oauth_error') || '';
   const loginMessage = loginError || (registeredFlash ? 'Tài khoản đã được tạo. Anh có thể đăng nhập ngay bây giờ.' : '');
   const loginMessageTone = loginError ? 'warning' : 'success';
 
@@ -102,6 +104,19 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
   useEffect(() => {
     setRegisteredFlash(registered);
   }, [registered]);
+
+  useEffect(() => {
+    if (!oauthError) {
+      return;
+    }
+
+    if (requestedTab === 'register') {
+      setRegisterError(oauthError);
+    } else {
+      setLoginError(oauthError);
+    }
+    setRegisteredFlash(false);
+  }, [oauthError, requestedTab]);
 
   useEffect(() => {
     setTab(requestedTab);
@@ -207,6 +222,7 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
         params.delete('tab');
       }
       params.delete('registered');
+      params.delete('oauth_error');
       const nextSearch = params.toString();
       const target = nextSearch ? `/auth?${nextSearch}` : '/auth';
       const current = `${window.location.pathname}${window.location.search}`;
@@ -470,6 +486,15 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                     </div>
                   ) : null}
 
+                  <a href="/api/auth/google/start?mode=register" className="auth-google-button auth-form-enter">
+                    <Chrome className="h-4 w-4" />
+                    Đăng ký với Google
+                  </a>
+
+                  <div className="auth-divider auth-form-enter">
+                    <span>Hoặc đăng ký bằng email</span>
+                  </div>
+
                   <input
                     name="fullname"
                     placeholder="Họ và tên"
@@ -569,6 +594,10 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                     <ArrowRight className="h-4 w-4" />
                   </FlipButton>
 
+                  <p className="auth-oauth-note auth-form-enter">
+                    Khi đăng ký bằng Google, hệ thống vẫn kiểm tra domain email, MX, IP và thiết bị để chặn email ảo/tool tự động.
+                  </p>
+
                   <div className="auth-slider-links auth-form-enter">
                     <Link href="/" className="ghost-button">
                       <Home className="h-4 w-4" />
@@ -622,6 +651,15 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                       <span>{loginMessage}</span>
                     </div>
                   ) : null}
+
+                  <a href="/api/auth/google/start?mode=login" className="auth-google-button auth-form-enter">
+                    <Chrome className="h-4 w-4" />
+                    Đăng nhập với Google
+                  </a>
+
+                  <div className="auth-divider auth-form-enter">
+                    <span>Hoặc đăng nhập bằng mật khẩu</span>
+                  </div>
 
                   <input
                     name="identifier"
