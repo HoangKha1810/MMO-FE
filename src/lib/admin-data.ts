@@ -22,6 +22,7 @@ import { ensurePressServiceTables } from '@/lib/press-service';
 import { ensureWebServiceTables } from '@/lib/web-service';
 import { buildForumModerationText, containsForumGamblingContent, forumVietnamTimestampSql } from '@/lib/forum';
 import { assertUserEmailAvailable, normalizeUserEmail } from '@/lib/user-email-guard';
+import { isOwnerRole } from '@/lib/admin-permissions';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -68,8 +69,8 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
       lock_reason: true,
       created_at: true,
     },
-    createFields: ['username', 'email', 'password', 'fullname', 'status', 'rank'],
-    updateFields: ['fullname', 'email', 'status', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick'],
+    createFields: ['username', 'email', 'password', 'fullname', 'role', 'status', 'balance', 'game_balance', 'rank'],
+    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick'],
   },
   deposits: {
     delegate: 'transactions',
@@ -272,7 +273,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     title: 'Forum threads',
     searchFields: ['title', 'slug', 'status'],
     statusField: 'status',
-    rawOrder: 'is_pinned DESC, updated_at DESC, id DESC',
+    rawOrder: 'created_at DESC, id DESC',
     createFields: ['forum_id', 'user_id', 'title', 'slug', 'status', 'is_pinned', 'is_locked'],
     updateFields: ['forum_id', 'user_id', 'title', 'slug', 'status', 'is_pinned', 'is_locked', 'is_deleted'],
   },
@@ -281,7 +282,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     title: 'Forum posts',
     searchFields: ['content', 'status'],
     statusField: 'status',
-    rawOrder: 'id DESC',
+    rawOrder: 'created_at DESC, id DESC',
     updateFields: ['content', 'status', 'is_deleted'],
   },
   'forum-ads': {
@@ -1670,6 +1671,7 @@ async function listVibeCodeOrders(config: ResourceConfig, params: URLSearchParam
 async function listForumThreads(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
   const search = (params.get('search') || '').trim();
   const status = (params.get('status') || '').trim();
+  const normalizedStatus = status.toLowerCase();
   const values: unknown[] = [];
   const conditions: string[] = [];
 
@@ -1686,7 +1688,13 @@ async function listForumThreads(config: ResourceConfig, params: URLSearchParams,
     values.push(like, like, like, like, like, like);
   }
 
-  if (status) {
+  if (normalizedStatus === 'deleted') {
+    conditions.push('COALESCE(t.is_deleted, 0) = 1');
+  } else {
+    conditions.push('COALESCE(t.is_deleted, 0) = 0');
+  }
+
+  if (status && normalizedStatus !== 'deleted') {
     conditions.push('COALESCE(t.status, \'\') = ?');
     values.push(status);
   }
@@ -1700,6 +1708,7 @@ async function listForumThreads(config: ResourceConfig, params: URLSearchParams,
         FROM forum_posts fp
         WHERE fp.thread_id = t.id
           AND fp.is_first_post = 1
+          AND COALESCE(fp.is_deleted, 0) = 0
         ORDER BY fp.id ASC
         LIMIT 1
       )
@@ -1715,7 +1724,7 @@ async function listForumThreads(config: ResourceConfig, params: URLSearchParams,
           ${forumVietnamTimestampSql('t.created_at')} AS created_at,
           ${forumVietnamTimestampSql('t.updated_at')} AS updated_at
         ${fromSql}
-        ORDER BY t.is_pinned DESC, t.updated_at DESC, t.id DESC
+        ORDER BY t.created_at DESC, t.id DESC
         LIMIT ? OFFSET ?
       `,
       ...values,
@@ -2242,6 +2251,7 @@ async function listRegistrationIps(config: ResourceConfig, params: URLSearchPara
 async function listForumPosts(config: ResourceConfig, params: URLSearchParams, page: number, perPage: number, skip: number) {
   const search = (params.get('search') || '').trim();
   const status = (params.get('status') || '').trim();
+  const normalizedStatus = status.toLowerCase();
   const values: unknown[] = [];
   const conditions: string[] = [];
 
@@ -2257,7 +2267,13 @@ async function listForumPosts(config: ResourceConfig, params: URLSearchParams, p
     values.push(like, like, like, like, like);
   }
 
-  if (status) {
+  if (normalizedStatus === 'deleted') {
+    conditions.push('COALESCE(p.is_deleted, 0) = 1');
+  } else {
+    conditions.push('COALESCE(p.is_deleted, 0) = 0');
+  }
+
+  if (status && normalizedStatus !== 'deleted') {
     conditions.push('COALESCE(p.status, \'\') = ?');
     values.push(status);
   }
@@ -2273,7 +2289,7 @@ async function listForumPosts(config: ResourceConfig, params: URLSearchParams, p
           ${forumVietnamTimestampSql('p.created_at')} AS created_at,
           ${forumVietnamTimestampSql('p.updated_at')} AS updated_at
         ${fromSql}
-        ORDER BY p.updated_at DESC, p.id DESC
+        ORDER BY p.created_at DESC, p.id DESC
         LIMIT ? OFFSET ?
       `,
       ...values,
@@ -2457,19 +2473,54 @@ export async function updateAdminResource(resource: string, id: number, input: R
     throw new Error('Không có dữ liệu cập nhật hợp lệ');
   }
 
+  let previousUserSnapshot: { username: string | null; balance: unknown; game_balance: unknown } | null = null;
   if (resource === 'users') {
-    delete data.role;
-    delete data.balance;
-    delete data.game_balance;
+    const wantsBalancePatch =
+      Object.prototype.hasOwnProperty.call(data, 'balance') ||
+      Object.prototype.hasOwnProperty.call(data, 'game_balance');
+    const wantsRolePatch = Object.prototype.hasOwnProperty.call(data, 'role');
     if (typeof data.email !== 'undefined') {
       data.email = await assertUserEmailAvailable(normalizeUserEmail(data.email), id);
     }
-    const target = await db.users.findUnique({
-      where: { id },
-      select: { role: true },
-    }).catch(() => null);
+    const [target, admin] = await Promise.all([
+      db.users.findUnique({
+        where: { id },
+        select: { username: true, role: true, balance: true, game_balance: true },
+      }).catch(() => null),
+      db.users.findUnique({
+        where: { id: adminId },
+        select: { role: true },
+      }).catch(() => null),
+    ]);
+    if (!target) {
+      throw new Error('Không tìm thấy tài khoản cần cập nhật.');
+    }
     if (String(target?.role || '').toLowerCase() === 'owner') {
       throw new Error('Không thể chỉnh tài khoản owner qua màn quản lý user.');
+    }
+    previousUserSnapshot = {
+      username: target.username,
+      balance: target.balance,
+      game_balance: target.game_balance,
+    };
+
+    const currentAdminIsOwner = isOwnerRole(admin?.role);
+    if (!currentAdminIsOwner) {
+      delete data.role;
+      delete data.balance;
+      delete data.game_balance;
+    } else {
+      if (wantsRolePatch && isOwnerRole(data.role)) {
+        throw new Error('Không cấp role owner qua màn quản lý user.');
+      }
+      if (wantsBalancePatch) {
+        if (Object.prototype.hasOwnProperty.call(data, 'balance')) {
+          data.balance = Math.max(0, Math.round(toNumber(data.balance, 0)));
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'game_balance')) {
+          data.game_balance = Math.max(0, Math.round(toNumber(data.game_balance, 0)));
+        }
+      }
     }
   }
 
@@ -2530,6 +2581,25 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   if (resource === 'forum-posts' && typeof data.status === 'string') {
     await syncForumPostStatusAfterAdminPatch(id, String(data.status), req, adminId);
+  }
+
+  if (resource === 'users' && previousUserSnapshot) {
+    const balanceChanges: string[] = [];
+    if (Object.prototype.hasOwnProperty.call(data, 'balance')) {
+      balanceChanges.push(`ví chính ${toNumber(previousUserSnapshot.balance, 0).toLocaleString('vi-VN')}đ -> ${toNumber(data.balance, 0).toLocaleString('vi-VN')}đ`);
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'game_balance')) {
+      balanceChanges.push(`ví game ${toNumber(previousUserSnapshot.game_balance, 0).toLocaleString('vi-VN')}đ -> ${toNumber(data.game_balance, 0).toLocaleString('vi-VN')}đ`);
+    }
+    if (balanceChanges.length > 0) {
+      await db.activity_logs.create({
+        data: {
+          user_id: id,
+          activity: `Owner #${adminId} cập nhật số dư tài khoản ${previousUserSnapshot.username || `#${id}`}: ${balanceChanges.join(', ')}`,
+          user_agent: req.headers.get('user-agent') || null,
+        },
+      }).catch(() => undefined);
+    }
   }
 
   await logAdminAction({ adminId, action: `update ${resource}`, target: `#${id}`, req });

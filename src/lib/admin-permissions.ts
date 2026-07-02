@@ -14,6 +14,12 @@ export const ORDER_ADMIN_RESOURCES = new Set([
   'game-orders',
 ]);
 
+export const FORUM_APPROVAL_ADMIN_RESOURCES = new Set([
+  'forum-threads',
+  'forum-posts',
+  'forum-reports',
+]);
+
 export const OPERATOR_ADMIN_PATH_PREFIXES = [
   '/admin/orders',
   '/admin/smm/orders',
@@ -25,6 +31,7 @@ export const OPERATOR_ADMIN_PATH_PREFIXES = [
   '/admin/press',
   '/admin/card/history',
   '/admin/game-market',
+  '/admin/forum/approvals',
 ];
 
 export const OWNER_ONLY_ADMIN_API_PREFIXES = [
@@ -67,9 +74,13 @@ export function isOwnerOnlyAdminApiPath(pathname: string) {
 }
 
 export function canOperatorAccessResource(resource: string, action: AdminResourceAction) {
-  if (!ORDER_ADMIN_RESOURCES.has(resource)) {
-    return false;
+  if (ORDER_ADMIN_RESOURCES.has(resource)) {
+    return action === 'list' || action === 'detail' || action === 'update' || action === 'delete' || action === 'action';
   }
 
-  return action === 'list' || action === 'detail' || action === 'update' || action === 'delete' || action === 'action';
+  if (FORUM_APPROVAL_ADMIN_RESOURCES.has(resource)) {
+    return action === 'list' || action === 'detail' || action === 'update' || action === 'action';
+  }
+
+  return false;
 }

@@ -48,6 +48,12 @@ function base64url(bytes: ArrayBuffer) {
   return btoa(raw).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
+function generateNonce() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return base64url(bytes.buffer);
+}
+
 async function signPayload(payload: string, secret: string) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -83,13 +89,16 @@ async function verifySessionToken(userId: number, token: string | undefined) {
 }
 
 function nextWithPathname(req: NextRequest) {
+  const nonce = generateNonce();
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-pathname', req.nextUrl.pathname);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', buildSecurityHeaders(req, nonce)['Content-Security-Policy']);
   return applySecurityHeaders(NextResponse.next({
     request: {
       headers: requestHeaders,
     },
-  }), req);
+  }), req, nonce);
 }
 
 function clearSession(response: NextResponse) {
@@ -185,8 +194,8 @@ function firstHeaderIp(value: string | null) {
 function getRequestIp(req: NextRequest) {
   return (
     firstHeaderIp(req.headers.get('cf-connecting-ip')) ||
-    firstHeaderIp(req.headers.get('x-forwarded-for')) ||
     req.headers.get('x-real-ip')?.trim() ||
+    firstHeaderIp(req.headers.get('x-forwarded-for')) ||
     'unknown'
   ).replace(/^::ffff:/, '');
 }
@@ -199,7 +208,7 @@ function shouldSkipDdosGuard(pathname: string) {
   return isStaticPath(pathname) || pathname === '/api/security/event' || pathname === '/api/security/network-risk';
 }
 
-function buildSecurityHeaders(req: NextRequest) {
+function buildSecurityHeaders(req: NextRequest, nonce = '') {
   const isDev = process.env.NODE_ENV !== 'production';
   const connectSrc = [
     "'self'",
@@ -207,6 +216,12 @@ function buildSecurityHeaders(req: NextRequest) {
     'wss:',
     ...(isDev ? ['http://localhost:*', 'ws://localhost:*'] : []),
   ].join(' ');
+  const scriptSrc = [
+    "'self'",
+    nonce ? `'nonce-${nonce}'` : '',
+    "'wasm-unsafe-eval'",
+    ...(isDev ? ["'unsafe-eval'"] : []),
+  ].filter(Boolean).join(' ');
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -217,7 +232,7 @@ function buildSecurityHeaders(req: NextRequest) {
     "media-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
-    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
+    `script-src ${scriptSrc}`,
     `connect-src ${connectSrc}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
@@ -227,6 +242,7 @@ function buildSecurityHeaders(req: NextRequest) {
 
   return {
     'Content-Security-Policy': csp,
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -238,8 +254,8 @@ function buildSecurityHeaders(req: NextRequest) {
   };
 }
 
-function applySecurityHeaders(response: NextResponse, req: NextRequest) {
-  for (const [key, value] of Object.entries(buildSecurityHeaders(req))) {
+function applySecurityHeaders(response: NextResponse, req: NextRequest, nonce = '') {
+  for (const [key, value] of Object.entries(buildSecurityHeaders(req, nonce))) {
     response.headers.set(key, value);
   }
   return response;

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Be_Vietnam_Pro, Lexend, Nunito_Sans } from "next/font/google";
 import Script from "next/script";
 import { DesktopInstallPrompt } from "@vps/components/layout/desktop-install-prompt";
@@ -159,11 +160,12 @@ export const viewport: Viewport = {
   colorScheme: "dark light",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") || undefined;
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -197,7 +199,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full">
-        <Script id="bootstrap-client-ui" strategy="beforeInteractive">
+        <Script id="bootstrap-client-ui" nonce={nonce} strategy="beforeInteractive">
           {bootstrapClientUiScript}
         </Script>
         <div id="welcome-splash-prerender" aria-hidden="true">
@@ -215,6 +217,7 @@ export default function RootLayout({
         </div>
         <Script
           id="site-structured-data"
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />

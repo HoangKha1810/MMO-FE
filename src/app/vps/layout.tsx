@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { Be_Vietnam_Pro, Lexend, Nunito_Sans } from 'next/font/google';
 import type { ReactNode } from 'react';
 import Script from 'next/script';
@@ -116,11 +117,12 @@ export const viewport: Viewport = {
   colorScheme: 'dark light',
 };
 
-export default function VpsLayout({
+export default async function VpsLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const nonce = (await headers()).get('x-nonce') || undefined;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -142,7 +144,7 @@ export default function VpsLayout({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: criticalSplashStyles }} />
-      <Script id="vps-bootstrap-client-ui" strategy="beforeInteractive">
+      <Script id="vps-bootstrap-client-ui" nonce={nonce} strategy="beforeInteractive">
         {bootstrapClientUiScript}
       </Script>
       <div
@@ -163,6 +165,7 @@ export default function VpsLayout({
         </div>
         <Script
           id="vps-structured-data"
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />

@@ -159,6 +159,11 @@ async function assertDirectExternalDepositAllowed(input: {
         ip_ok: ipOk,
         signature_ok: signatureOk,
         secret_ok: legacySecretOk,
+        ip_headers: {
+          cf_connecting_ip: input.req?.headers.get('cf-connecting-ip') || '',
+          x_real_ip: input.req?.headers.get('x-real-ip') || '',
+          x_forwarded_for: input.req?.headers.get('x-forwarded-for') || '',
+        },
         amount: input.amount,
         external_ref: input.externalRef,
       }),
@@ -166,7 +171,7 @@ async function assertDirectExternalDepositAllowed(input: {
       autoBanned: false,
     }).catch(() => undefined);
     throw externalWalletError(
-      'Nạp tiền trực tiếp qua API bị chặn. Vui lòng dùng deposit_checkout/SePay checkout hoặc cấu hình IP allowlist + HMAC signature cho webhook nội bộ.',
+      `Nạp tiền trực tiếp qua API bị chặn. IP server đang thấy: ${ip}. Vui lòng dùng deposit_checkout/SePay checkout hoặc cấu hình IP allowlist + HMAC signature cho webhook nội bộ.`,
       403
     );
   }
@@ -254,6 +259,10 @@ export async function creditExternalApiBalance(
     throw externalWalletError('Số tiền nạp vượt giới hạn 1.000.000.000đ');
   }
 
+  if (!externalRef) {
+    throw externalWalletError('Thiếu external_ref để chống cộng trùng giao dịch');
+  }
+
   await assertDirectExternalDepositAllowed({
     req,
     payload: input,
@@ -266,7 +275,7 @@ export async function creditExternalApiBalance(
 
   const result = await db.$transaction(async (tx) => {
     if (marker) {
-      const existing = await tx.transactions.findFirst({
+      const candidates = await tx.transactions.findMany({
         where: {
           user_id: account.userId,
           type: 'deposit',
@@ -274,6 +283,7 @@ export async function creditExternalApiBalance(
           content: { contains: marker },
         },
         orderBy: { id: 'desc' },
+        take: 20,
         select: {
           id: true,
           amount: true,
@@ -282,6 +292,7 @@ export async function creditExternalApiBalance(
           created_at: true,
         },
       });
+      const existing = candidates.find((row) => normalizeTransactionContentMarker(String(row.content || '')) === externalRef);
 
       if (existing) {
         return {

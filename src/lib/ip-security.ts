@@ -21,8 +21,8 @@ function firstHeaderIp(value: string | null) {
 export function getRequestIp(req: NextRequest) {
   const raw =
     firstHeaderIp(req.headers.get('cf-connecting-ip')) ||
-    firstHeaderIp(req.headers.get('x-forwarded-for')) ||
     req.headers.get('x-real-ip')?.trim() ||
+    firstHeaderIp(req.headers.get('x-forwarded-for')) ||
     '';
 
   return raw.replace(/^::ffff:/, '') || 'unknown';

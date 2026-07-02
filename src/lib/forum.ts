@@ -208,14 +208,7 @@ export async function getForumOverview() {
         forums_count: toCount(category.forums_count),
         threads_count: toCount(category.threads_count),
       })),
-      threads: threads.map((thread) => ({
-        ...thread,
-        id: Number(thread.id),
-        user_id: Number(thread.user_id),
-        forum_id: Number(thread.forum_id),
-        views: toCount(thread.views),
-        replies: toCount(thread.replies),
-      })),
+      threads: threads.map(normalizeThread),
       totalPosts: toCount(postsCount[0]?.total),
       totalUsers: toCount(usersCount[0]?.total),
     };
@@ -239,6 +232,7 @@ function normalizeThread(thread: ForumThreadSummary): ForumThreadSummary {
     id: Number(thread.id),
     user_id: Number(thread.user_id),
     forum_id: Number(thread.forum_id),
+    content: forumPlainText(thread.content),
     views: toCount(thread.views),
     replies: toCount(thread.replies),
   };
@@ -362,6 +356,21 @@ export function cleanForumHtml(html: string | null | undefined) {
 
   return stripped
     .replace(/<\s*\/?\s*([a-zA-Z0-9:-]+)(?:\s[^>]*)?\s*\/?>/g, (fullTag, tagName) => sanitizeForumTag(fullTag, tagName))
+    .trim();
+}
+
+export function forumPlainText(html: string | null | undefined) {
+  return cleanForumHtml(html)
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
     .trim();
 }
 

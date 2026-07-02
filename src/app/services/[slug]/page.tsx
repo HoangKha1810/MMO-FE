@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
-import { buildAbsoluteUrl, siteName, siteUrl } from '@/lib/seo';
+import { buildAbsoluteUrl, siteName } from '@/lib/seo';
 import { getServiceSeoEntry, serviceSeoEntries } from '@/lib/service-seo';
 
 type PageProps = {
@@ -67,72 +67,8 @@ export default async function ServiceSeoPage({ params }: PageProps) {
     notFound();
   }
 
-  const canonical = buildAbsoluteUrl(`/services/${service.slug}`);
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Service',
-        '@id': `${canonical}#service`,
-        name: service.title,
-        alternateName: service.shortTitle,
-        description: service.description,
-        serviceType: service.shortTitle,
-        url: canonical,
-        areaServed: {
-          '@type': 'Country',
-          name: 'Vietnam',
-        },
-        provider: {
-          '@id': `${siteUrl}/#organization`,
-        },
-      },
-      {
-        '@type': 'BreadcrumbList',
-        '@id': `${canonical}#breadcrumb`,
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Trang chủ',
-            item: siteUrl,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: 'Dịch vụ',
-            item: buildAbsoluteUrl('/services/smm'),
-          },
-          {
-            '@type': 'ListItem',
-            position: 3,
-            name: service.shortTitle,
-            item: canonical,
-          },
-        ],
-      },
-      {
-        '@type': 'FAQPage',
-        '@id': `${canonical}#faq`,
-        mainEntity: service.faqs.map((faq) => ({
-          '@type': 'Question',
-          name: faq.question,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: faq.answer,
-          },
-        })),
-      },
-    ],
-  };
-
   return (
     <main className="mmo-board service-seo-page min-h-screen overflow-hidden">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
-
       <section className="mx-auto flex min-h-screen max-w-7xl flex-col px-5 py-8 sm:px-8 lg:px-10">
         <nav className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
           <Link href="/" className="transition hover:text-brand-blue dark:hover:text-white">

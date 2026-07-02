@@ -1126,7 +1126,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
   const [meta, setMeta] = useState<Record<string, unknown>>({});
   const [pagination, setPagination] = useState<ApiResponse['pagination']>();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(section.defaultStatus || '');
   const [perPage, setPerPage] = useState(isLegacySmmServices ? 10 : 25);
   const [providerFilter, setProviderFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');

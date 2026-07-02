@@ -6,6 +6,7 @@ export interface AdminSectionConfig {
   editableFields?: string[];
   createFields?: string[];
   statusOptions?: string[];
+  defaultStatus?: string;
   actions?: Array<{ key: string; label: string; tone?: 'default' | 'danger' | 'success' }>;
 }
 

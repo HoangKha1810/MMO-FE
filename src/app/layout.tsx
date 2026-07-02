@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import 'katex/dist/katex.min.css';
 import './globals.css';
@@ -92,11 +93,14 @@ export const viewport: Viewport = {
   colorScheme: 'light dark',
 };
 
-export default function RootLayout({
+export const dynamic = 'force-dynamic';
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = (await headers()).get('x-nonce') || undefined;
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -130,6 +134,7 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon-32x32.png?v=4" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
         <script
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
