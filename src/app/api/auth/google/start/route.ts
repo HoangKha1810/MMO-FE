@@ -6,15 +6,55 @@ export const runtime = 'nodejs';
 
 const GOOGLE_OAUTH_STATE_COOKIE = 'ttmmo_google_oauth_state';
 const GOOGLE_OAUTH_MODE_COOKIE = 'ttmmo_google_oauth_mode';
+const DEFAULT_PUBLIC_ORIGIN = 'https://trungtammmo.vn';
+
+function normalizePublicOrigin(value: string) {
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return '';
+  }
+
+  return trimmed;
+}
+
+function publicOrigin(req: NextRequest) {
+  const configured = [
+    process.env.GOOGLE_OAUTH_APP_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.SITE_URL,
+    process.env.CANONICAL_SITE_URL,
+    process.env.NEXT_PUBLIC_BASE_URL,
+    process.env.APP_URL,
+  ]
+    .map((value) => normalizePublicOrigin(String(value || '')))
+    .find(Boolean);
+
+  if (configured) {
+    return configured;
+  }
+
+  const forwardedHost = String(req.headers.get('x-forwarded-host') || '').split(',')[0]?.trim();
+  if (forwardedHost && !/^localhost(?::\d+)?$/i.test(forwardedHost)) {
+    const forwardedProto = String(req.headers.get('x-forwarded-proto') || 'https').split(',')[0]?.trim() || 'https';
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+  }
+
+  const requestOrigin = normalizePublicOrigin(req.nextUrl.origin);
+  if (requestOrigin && !/^https?:\/\/localhost(?::\d+)?$/i.test(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  return DEFAULT_PUBLIC_ORIGIN;
+}
 
 function googleRedirectUri(req: NextRequest) {
-  return String(process.env.GOOGLE_OAUTH_REDIRECT_URI || new URL('/api/auth/google/callback', req.nextUrl.origin)).trim();
+  return String(process.env.GOOGLE_OAUTH_REDIRECT_URI || new URL('/api/auth/google/callback', publicOrigin(req))).trim();
 }
 
 export async function GET(req: NextRequest) {
   const clientId = String(process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim();
   if (!clientId) {
-    return NextResponse.redirect(new URL('/auth?oauth_error=Thi%E1%BA%BFu%20GOOGLE_OAUTH_CLIENT_ID', req.nextUrl.origin));
+    return NextResponse.redirect(new URL('/auth?oauth_error=Thi%E1%BA%BFu%20GOOGLE_OAUTH_CLIENT_ID', publicOrigin(req)));
   }
 
   const mode = req.nextUrl.searchParams.get('mode') === 'register' ? 'register' : 'login';

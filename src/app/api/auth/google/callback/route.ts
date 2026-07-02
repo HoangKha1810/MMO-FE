@@ -19,6 +19,7 @@ export const runtime = 'nodejs';
 const GOOGLE_OAUTH_STATE_COOKIE = 'ttmmo_google_oauth_state';
 const GOOGLE_OAUTH_MODE_COOKIE = 'ttmmo_google_oauth_mode';
 const GOOGLE_PROVIDER = 'google';
+const DEFAULT_PUBLIC_ORIGIN = 'https://trungtammmo.vn';
 
 interface GoogleTokenResponse {
   access_token?: string;
@@ -54,8 +55,47 @@ const userSelect = {
   created_at: true,
 } as const;
 
+function normalizePublicOrigin(value: string) {
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return '';
+  }
+
+  return trimmed;
+}
+
+function publicOrigin(req: NextRequest) {
+  const configured = [
+    process.env.GOOGLE_OAUTH_APP_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.SITE_URL,
+    process.env.CANONICAL_SITE_URL,
+    process.env.NEXT_PUBLIC_BASE_URL,
+    process.env.APP_URL,
+  ]
+    .map((value) => normalizePublicOrigin(String(value || '')))
+    .find(Boolean);
+
+  if (configured) {
+    return configured;
+  }
+
+  const forwardedHost = String(req.headers.get('x-forwarded-host') || '').split(',')[0]?.trim();
+  if (forwardedHost && !/^localhost(?::\d+)?$/i.test(forwardedHost)) {
+    const forwardedProto = String(req.headers.get('x-forwarded-proto') || 'https').split(',')[0]?.trim() || 'https';
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+  }
+
+  const requestOrigin = normalizePublicOrigin(req.nextUrl.origin);
+  if (requestOrigin && !/^https?:\/\/localhost(?::\d+)?$/i.test(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  return DEFAULT_PUBLIC_ORIGIN;
+}
+
 function googleRedirectUri(req: NextRequest) {
-  return String(process.env.GOOGLE_OAUTH_REDIRECT_URI || new URL('/api/auth/google/callback', req.nextUrl.origin)).trim();
+  return String(process.env.GOOGLE_OAUTH_REDIRECT_URI || new URL('/api/auth/google/callback', publicOrigin(req))).trim();
 }
 
 function clearGoogleOAuthCookies(response: NextResponse) {
@@ -64,7 +104,7 @@ function clearGoogleOAuthCookies(response: NextResponse) {
 }
 
 function redirectWithOauthError(req: NextRequest, message: string, mode?: string | null) {
-  const url = new URL('/auth', req.nextUrl.origin);
+  const url = new URL('/auth', publicOrigin(req));
   if (mode === 'register') {
     url.searchParams.set('tab', 'register');
   }
@@ -382,7 +422,7 @@ export async function GET(req: NextRequest) {
     }).catch(() => undefined);
 
     const redirectPath = isSupportTikTokStaffRole(role) ? '/user/support-tiktok' : '/user/home';
-    const response = NextResponse.redirect(new URL(redirectPath, req.nextUrl.origin));
+    const response = NextResponse.redirect(new URL(redirectPath, publicOrigin(req)));
     clearGoogleOAuthCookies(response);
     clearTwoFactorPendingCookie(response);
     setAuthenticatedSessionCookies(response, user.id, 60 * 60 * 24, role);
