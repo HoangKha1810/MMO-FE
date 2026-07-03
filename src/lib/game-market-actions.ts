@@ -11,12 +11,21 @@ import {
   getGameMarketListedPrice,
   normalizeGameMarketSellerPrice,
 } from '@/lib/game-market-pricing';
-import { getGameMarketPendingLikeStatus } from '@/lib/game-market-schema';
 import { sendSocialMessage } from '@/lib/social';
 import { toNumber } from '@/lib/utils';
 
 type Row = Record<string, unknown>;
 type RawExecutor = Pick<typeof db, '$queryRawUnsafe' | '$executeRawUnsafe'>;
+type GameExchangeSellerAccess = {
+  canPost: boolean;
+  canManage: boolean;
+  user: {
+    id: number;
+    username: string | null;
+    email: string | null;
+    role: string | null;
+  } | null;
+};
 
 function normalize<T extends Row>(row: T): T {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => {
@@ -49,6 +58,74 @@ async function safeRows<T extends Row>(query: string, ...values: unknown[]) {
 async function safeOne<T extends Row>(query: string, ...values: unknown[]) {
   const rows = await safeRows<T>(query, ...values);
   return rows[0] || null;
+}
+
+function normalizeSellerToken(value: unknown) {
+  return String(value || '').trim().replace(/^@+/, '').toLowerCase();
+}
+
+function splitSellerTokens(value: unknown) {
+  return String(value || '')
+    .split(/[,\n;\s]+/)
+    .map(normalizeSellerToken)
+    .filter(Boolean);
+}
+
+async function getGameExchangeAllowedSellerTokens() {
+  const envValues = [
+    process.env.GAME_EXCHANGE_ALLOWED_SELLERS,
+    process.env.GAME_MARKET_ALLOWED_SELLERS,
+  ];
+  const envTokens = envValues.flatMap(splitSellerTokens);
+  const hasEnvConfig = envValues.some((value) => typeof value === 'string');
+
+  if (hasEnvConfig) {
+    return new Set(envTokens);
+  }
+
+  const rows = await db.settings.findMany({
+    where: {
+      setting_key: {
+        in: ['game_exchange_allowed_sellers', 'game_market_allowed_sellers'],
+      },
+    },
+    select: { setting_value: true },
+  }).catch(() => []);
+
+  rows.forEach((row) => {
+    if (row.setting_value) {
+      envValues.push(row.setting_value);
+    }
+  });
+
+  return new Set(envValues.flatMap(splitSellerTokens));
+}
+
+export async function getGameExchangeSellerAccess(userId: number): Promise<GameExchangeSellerAccess> {
+  const user = await db.users.findUnique({
+    where: { id: userId },
+    select: { id: true, username: true, email: true, role: true },
+  }).catch(() => null);
+
+  if (!user) {
+    return { canPost: false, canManage: false, user: null };
+  }
+
+  const allowedSellerTokens = await getGameExchangeAllowedSellerTokens();
+  const identifiers = [
+    String(user.id),
+    `user:${user.id}`,
+    normalizeSellerToken(user.username),
+    normalizeSellerToken(user.email),
+  ].filter(Boolean);
+  const canPost = identifiers.some((item) => allowedSellerTokens.has(item));
+  const role = String(user.role || '').trim().toLowerCase();
+
+  return {
+    canPost,
+    canManage: canPost || role === 'admin' || role === 'owner',
+    user,
+  };
 }
 
 function parseList(value: string) {
@@ -270,6 +347,11 @@ export async function createOrUpdateGameItem(userId: number, input: {
   accountDetails?: string;
   deliveryMethod?: string;
 }) {
+  const access = await getGameExchangeSellerAccess(userId);
+  if (!access.canPost) {
+    throw new Error('Tài khoản này chưa được cấp quyền đăng bài trao đổi game.');
+  }
+
   const imageRefs = parseGameMarketImageRefs(String(input.images || ''));
   if (imageRefs.length > 3) {
     throw new Error('Mỗi bài đăng chỉ được tối đa 3 ảnh');
@@ -304,15 +386,15 @@ export async function createOrUpdateGameItem(userId: number, input: {
   };
 
   if (payload.title.length < 6 || payload.description.length < 20) {
-    throw new Error('Tiêu đề hoặc mô tả sản phẩm quá ngắn');
+    throw new Error('Tiêu đề hoặc mô tả bài trao đổi quá ngắn');
   }
 
-  const pendingLikeStatus = await getGameMarketPendingLikeStatus();
+  const liveStatus = 'selling';
 
   if (input.itemId) {
     const owned = await safeOne<Row>('SELECT id FROM game_market_items WHERE id = ? AND seller_id = ? LIMIT 1', input.itemId, userId);
     if (!owned) {
-      throw new Error('Không tìm thấy sản phẩm để cập nhật');
+      throw new Error('Không tìm thấy bài trao đổi để cập nhật');
     }
 
     await db.$executeRawUnsafe(
@@ -339,14 +421,14 @@ export async function createOrUpdateGameItem(userId: number, input: {
       payload.champs || null,
       payload.accountDetails || null,
       payload.deliveryMethod || 'manual',
-      pendingLikeStatus,
+      liveStatus,
       input.itemId,
       userId
     );
 
     return {
       id: input.itemId,
-      status: pendingLikeStatus,
+      status: liveStatus,
       price: payload.price,
       sellerPrice,
       platformFee: 0,
@@ -384,13 +466,13 @@ export async function createOrUpdateGameItem(userId: number, input: {
         payload.skins || null,
         payload.champs || null,
         payload.accountDetails || null,
-        pendingLikeStatus,
+        liveStatus,
         payload.deliveryMethod || 'manual'
       );
 
       return {
         id: nextId,
-        status: pendingLikeStatus,
+        status: liveStatus,
         price: payload.price,
         sellerPrice,
         platformFee: GAME_MARKET_PLATFORM_FEE,
@@ -403,13 +485,13 @@ export async function createOrUpdateGameItem(userId: number, input: {
     }
   }
 
-  throw new Error('Không thể tạo ID mới cho bài game-market');
+  throw new Error('Không thể tạo ID mới cho bài trao đổi game');
 }
 
-export async function setGameItemState(userId: number, itemId: number, action: 'pin' | 'unpin' | 'hide') {
+export async function setGameItemState(userId: number, itemId: number, action: 'pin' | 'unpin' | 'hide' | 'delete') {
   const owned = await safeOne<Row>('SELECT id, status FROM game_market_items WHERE id = ? AND seller_id = ? LIMIT 1', itemId, userId);
   if (!owned) {
-    throw new Error('Không tìm thấy sản phẩm để thao tác');
+    throw new Error('Không tìm thấy bài trao đổi để thao tác');
   }
 
   if (action === 'hide') {
@@ -425,22 +507,20 @@ export async function setGameItemState(userId: number, itemId: number, action: '
     return { success: true };
   }
 
-  if (String(owned.status || '') !== 'selling') {
-    throw new Error('Chỉ có thể ghim bài đã được duyệt và đang hiển thị');
+  if (action === 'delete') {
+    await db.$executeRawUnsafe(
+      `
+        UPDATE game_market_items
+        SET status = 'deleted', updated_at = NOW()
+        WHERE id = ? AND seller_id = ?
+      `,
+      itemId,
+      userId
+    );
+    return { success: true };
   }
 
-  await db.$executeRawUnsafe(
-    `
-      UPDATE game_market_items
-      SET is_pinned = ?, pinned_until = ?, updated_at = NOW()
-      WHERE id = ? AND seller_id = ?
-    `,
-    action === 'pin' ? 1 : 0,
-    action === 'pin' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
-    itemId,
-    userId
-  );
-  return { success: true };
+  throw new Error('Chỉ admin hoặc owner mới được ghim/bỏ ghim bài trao đổi game.');
 }
 
 export async function purchaseGameItem(userId: number, itemId: number) {
@@ -462,15 +542,15 @@ export async function purchaseGameItem(userId: number, itemId: number) {
         );
         const item = normalize(items[0] || {});
         if (!item.id) {
-          throw new Error('Không tìm thấy sản phẩm');
+          throw new Error('Không tìm thấy bài trao đổi');
         }
 
         if (Number(item.seller_id || 0) === userId) {
-          throw new Error('Bạn không thể tự mua sản phẩm của chính mình');
+          throw new Error('Bạn không thể tự tạo đơn trao đổi với bài của chính mình');
         }
 
         if (toNumber(item.stock, 0) <= 0) {
-          throw new Error('Sản phẩm đã hết hàng');
+          throw new Error('Bài trao đổi này đã hết hàng');
         }
 
         const buyer = await tx.users.findUnique({
@@ -478,13 +558,13 @@ export async function purchaseGameItem(userId: number, itemId: number) {
           select: { game_balance: true },
         });
         if (!buyer) {
-          throw new Error('Không tìm thấy tài khoản người mua');
+          throw new Error('Không tìm thấy tài khoản người tạo đơn');
         }
 
         const price = toNumber(item.price, 0);
         const nextBalance = toNumber(buyer.game_balance, 0) - price;
         if (nextBalance < 0) {
-          throw new Error(`Cần nạp thêm ví game ${formatVnd(Math.abs(nextBalance))} để đặt mua sản phẩm này.`);
+          throw new Error(`Cần nạp thêm ví game ${formatVnd(Math.abs(nextBalance))} để tạo đơn trao đổi này.`);
         }
 
         await tx.users.update({
@@ -500,7 +580,7 @@ export async function purchaseGameItem(userId: number, itemId: number) {
             wallet_type: 'game',
             type: 'order',
             status: 'success',
-            content: `Mua game account #${itemId} bằng ví game`,
+            content: `Tạo đơn trao đổi game #${itemId} bằng ví game`,
           },
         }).catch(() => undefined);
 
@@ -546,7 +626,7 @@ export async function purchaseGameItem(userId: number, itemId: number) {
       void db.activity_logs.create({
         data: {
           user_id: userId,
-          activity: `Mua sản phẩm game-market #${itemId}, order #${result.orderId}`,
+          activity: `Tạo đơn trao đổi game #${itemId}, order #${result.orderId}`,
         },
       }).catch(() => undefined);
 
@@ -554,7 +634,7 @@ export async function purchaseGameItem(userId: number, itemId: number) {
         void sendSocialMessage({
           senderId: userId,
           receiverId: result.sellerId,
-          content: `Mình vừa mua bài "${result.itemTitle}" (order #${result.orderId}). Bạn vui lòng bàn giao tài khoản, mật khẩu và thông tin liên quan qua đoạn chat này giúp mình nhé.`,
+          content: `Mình vừa tạo đơn trao đổi cho bài "${result.itemTitle}" (order #${result.orderId}). Bạn vui lòng trao đổi/bàn giao thông tin liên quan qua đoạn chat này giúp mình nhé.`,
         }).catch(() => undefined);
       }
 
@@ -568,7 +648,7 @@ export async function purchaseGameItem(userId: number, itemId: number) {
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Không thể tạo order game-market');
+  throw lastError instanceof Error ? lastError : new Error('Không thể tạo đơn trao đổi game');
 }
 
 export async function rateGameOrder(userId: number, orderId: number, rating: number, review: string) {
@@ -599,11 +679,11 @@ export async function completeGameOrder(userId: number, orderId: number) {
   );
 
   if (!order) {
-    throw new Error('Không tìm thấy đơn game-market');
+    throw new Error('Không tìm thấy đơn trao đổi game');
   }
 
   if (Number(order.seller_id || 0) !== userId) {
-    throw new Error('Bạn không có quyền cập nhật đơn hàng này');
+    throw new Error('Bạn không có quyền cập nhật đơn trao đổi này');
   }
 
   if (String(order.status || '').toLowerCase() === 'completed') {
@@ -627,7 +707,7 @@ export async function completeGameOrder(userId: number, orderId: number) {
     `,
     Number(order.buyer_id || 0),
     userId,
-    `Seller đã xác nhận bàn giao xong cho đơn game #${orderId}. Bạn có thể mở chat để kiểm tra lại thông tin.`,
+    `Người đăng đã xác nhận bàn giao xong cho đơn trao đổi game #${orderId}. Bạn có thể mở chat để kiểm tra lại thông tin.`,
     `/user/game-market/${Number(order.item_id || 0)}`
   ).catch(() => undefined);
 

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'Thiếu order ID' }, { status: 400 });
       }
       const data = await rateGameOrder(userId, orderId, Number(body.rating || 5), String(body.review || ''));
-      return NextResponse.json({ success: true, message: 'Đã gửi đánh giá cho đơn hàng', data });
+      return NextResponse.json({ success: true, message: 'Đã gửi đánh giá cho đơn trao đổi', data });
     }
 
     if (action === 'complete') {
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'Thiếu order ID' }, { status: 400 });
       }
       const data = await completeGameOrder(userId, orderId);
-      return NextResponse.json({ success: true, message: 'Đã xác nhận bàn giao đơn hàng qua chat', data });
+      return NextResponse.json({ success: true, message: 'Đã xác nhận bàn giao đơn trao đổi qua chat', data });
     }
 
     const itemId = Number(body.item_id || 0);
@@ -40,10 +40,10 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await purchaseGameItem(userId, itemId);
-    return NextResponse.json({ success: true, message: 'Mua sản phẩm thành công', data });
+    return NextResponse.json({ success: true, message: 'Đã tạo đơn trao đổi thành công', data });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Không thể xử lý đơn game-market' },
+      { success: false, message: error instanceof Error ? error.message : 'Không thể xử lý đơn trao đổi game' },
       { status: 400 }
     );
   }

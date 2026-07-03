@@ -84,12 +84,12 @@ export async function POST(req: NextRequest) {
     const action = body.action;
     const itemId = body.itemId;
 
-    if (action === 'pin' || action === 'unpin' || action === 'hide') {
+    if (action === 'pin' || action === 'unpin' || action === 'hide' || action === 'delete') {
       if (!itemId) {
         return NextResponse.json({ success: false, message: 'Thiếu item ID' }, { status: 400 });
       }
       const data = await setGameItemState(userId, itemId, action);
-      return NextResponse.json({ success: true, message: 'Đã cập nhật trạng thái sản phẩm', data });
+      return NextResponse.json({ success: true, message: 'Đã cập nhật trạng thái bài trao đổi', data });
     }
 
     if (body.uploadedFiles.length + body.existingImages.length > 3) {
@@ -131,13 +131,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: action === 'update'
-        ? 'Đã cập nhật bài đăng và chuyển lại chờ admin duyệt'
-        : 'Đã gửi bài đăng mới. Hệ thống đã tự cộng 100.000đ tiền sàn vào giá hiển thị, vui lòng chờ admin duyệt trước khi hiển thị',
+        ? 'Đã cập nhật bài trao đổi và hiển thị công khai'
+        : 'Đã tạo bài trao đổi mới. Hệ thống đã tự cộng 100.000đ tiền sàn vào giá hiển thị.',
       data,
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Không thể xử lý sản phẩm game-market' },
+      { success: false, message: error instanceof Error ? error.message : 'Không thể xử lý bài trao đổi game' },
       { status: 400 }
     );
   }

@@ -70,14 +70,14 @@ const walletOptions: Record<WalletType, {
     button: 'Nạp tiền cho dịch vụ khác',
     description: 'Dùng cho SMM, Auto MXH, proxy, tài nguyên MMO và các module không thuộc tài khoản game.',
     noticeTitle: 'Nạp tiền cho dịch vụ khác',
-    noticeBody: 'Số tiền này được cộng vào ví chính. Ví chính không dùng trực tiếp để mua tài khoản game, random game hoặc mua bán game.',
+    noticeBody: 'Số tiền này được cộng vào ví chính. Ví chính không dùng trực tiếp để thuê tài khoản game, random game hoặc trao đổi game.',
   },
   game: {
-    title: 'Ví mua bán game',
-    button: 'Nạp tiền cho mua bán game',
-    description: 'Dùng riêng cho mua bán game, random game và tài khoản game API. Ví này tách biệt với ví chính.',
-    noticeTitle: 'Nạp tiền cho mua bán game',
-    noticeBody: 'Số tiền này được cộng vào ví game. Khi mua tài khoản game, random game hoặc mua bài ở chợ game, hệ thống sẽ trừ ví game.',
+    title: 'Ví trao đổi game',
+    button: 'Nạp tiền cho trao đổi game',
+    description: 'Dùng riêng cho trao đổi game, random game và tài khoản game API. Ví này tách biệt với ví chính.',
+    noticeTitle: 'Nạp tiền cho trao đổi game',
+    noticeBody: 'Số tiền này được cộng vào ví game. Khi thuê tài khoản game, random game hoặc tạo đơn trao đổi game, hệ thống sẽ trừ ví game.',
   },
 };
 
@@ -529,7 +529,7 @@ export default function DepositPage() {
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">3</span>
-              <p>Chọn đúng ví trước khi tạo QR: ví chính cho dịch vụ khác, ví game cho mua bán game và random game.</p>
+              <p>Chọn đúng ví trước khi tạo QR: ví chính cho dịch vụ khác, ví game cho trao đổi game và random game.</p>
             </div>
             <div className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center text-xs font-black shrink-0">4</span>

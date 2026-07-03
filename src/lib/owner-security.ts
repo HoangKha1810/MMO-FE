@@ -225,6 +225,36 @@ async function trustOwnerDevice(input: {
   ).catch(() => undefined);
 }
 
+export async function trustOwnerDeviceAfterTwoFactor(req: NextRequest, user: OwnerSecurityUser) {
+  if (!isOwnerRole(user.role)) {
+    return;
+  }
+
+  const ip = normalizeIp(getClientIp(req));
+  const userAgent = req.headers.get('user-agent') || 'unknown';
+  const deviceHash = getOwnerDeviceHash(req);
+
+  await trustOwnerDevice({
+    userId: user.id,
+    deviceHash,
+    ip,
+    userAgent,
+    label: 'Owner verified by 2FA',
+  });
+
+  await logOwnerSecurityEvent({
+    user,
+    req,
+    eventType: 'OWNER_DEVICE_TRUSTED_AFTER_2FA',
+    layer: '2fa-device-trust',
+    verdict: 'allowed',
+    riskScore: 0,
+    reasons: ['owner_2fa_success'],
+    deviceHash,
+    details: { ip },
+  }).catch(() => undefined);
+}
+
 export async function logOwnerSecurityEvent(input: {
   user?: Partial<OwnerSecurityUser | AdminSessionUser> | null;
   req?: NextRequest;

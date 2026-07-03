@@ -126,8 +126,8 @@ const services = [
     badge: null,
   },
   {
-    title: 'Mua Bán Game',
-    desc: 'Giao dịch game uy tín',
+    title: 'Trao Đổi Game',
+    desc: 'Trao đổi game uy tín',
     href: '/services/mua-ban-game',
     icon: Gamepad2,
     gradient: 'from-purple-500 to-violet-600',

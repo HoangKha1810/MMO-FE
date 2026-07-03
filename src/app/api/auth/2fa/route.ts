@@ -7,7 +7,7 @@ import {
   setAuthenticatedSessionCookies,
 } from '@/lib/session-cookie';
 import { isAdminRole } from '@/lib/admin-permissions';
-import { logOwnerSecurityEvent } from '@/lib/owner-security';
+import { logOwnerSecurityEvent, trustOwnerDeviceAfterTwoFactor } from '@/lib/owner-security';
 import { isSupportTikTokStaffRole } from '@/lib/support-tiktok';
 
 function base32Decode(input: string) {
@@ -189,6 +189,15 @@ export async function POST(req: NextRequest) {
     verdict: 'allowed',
     riskScore: 0,
     reasons: ['2fa_verified'],
+  }).catch(() => undefined);
+
+  await trustOwnerDeviceAfterTwoFactor(req, {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: String(user.role || 'member'),
+    fa_enabled: user.fa_enabled,
+    telegram_2fa_enabled: user.telegram_2fa_enabled,
   }).catch(() => undefined);
 
   const response = NextResponse.json({

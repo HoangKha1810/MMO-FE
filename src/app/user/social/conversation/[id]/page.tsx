@@ -42,15 +42,15 @@ export default async function ConversationPage({
   const contextCard = tradeItem ? {
     eyebrow:
       compose === 'handover-seller' || compose === 'handover-buyer'
-        ? 'Bàn giao sau mua'
+        ? 'Bàn giao trao đổi'
         : 'Chat thương lượng',
     title: orderId > 0 ? `${tradeTitle} · Order #${orderId}` : tradeTitle,
     description:
       compose === 'handover-seller'
-        ? 'Bạn đang ở kênh bàn giao chính thức của đơn game này. Hãy gửi tài khoản, mật khẩu, mail, số điện thoại, mã dự phòng và mọi lưu ý đăng nhập ngay trong đoạn chat để người mua dễ đối soát.'
+        ? 'Bạn đang ở kênh bàn giao chính thức của đơn trao đổi game này. Hãy gửi tài khoản, mật khẩu, mail, số điện thoại, mã dự phòng và mọi lưu ý đăng nhập ngay trong đoạn chat để người tạo đơn dễ đối soát.'
         : compose === 'handover-buyer'
-          ? 'Bạn đang ở kênh nhận bàn giao chính thức của đơn game này. Hãy yêu cầu seller gửi đầy đủ tài khoản, mật khẩu, mail, số điện thoại và các thông tin đăng nhập ngay trong đoạn chat này.'
-          : 'Hãy dùng đoạn chat này để thương lượng giá, xác nhận tình trạng account và thống nhất rõ cách bàn giao trước khi thanh toán.',
+          ? 'Bạn đang ở kênh nhận bàn giao chính thức của đơn trao đổi game này. Hãy yêu cầu người đăng gửi đầy đủ tài khoản, mật khẩu, mail, số điện thoại và các thông tin đăng nhập ngay trong đoạn chat này.'
+          : 'Hãy dùng đoạn chat này để thương lượng giá, xác nhận tình trạng account và thống nhất rõ cách bàn giao trước khi tạo đơn trao đổi.',
     href: `/user/game-market/${itemId}`,
     linkLabel: 'Mở bài đăng',
   } : undefined;
@@ -60,7 +60,7 @@ export default async function ConversationPage({
       ? `Mình bàn giao ${orderId > 0 ? `order #${orderId}` : `bài "${tradeTitle}"`} tại đây nhé:\n- Tài khoản:\n- Mật khẩu:\n- Mail / SĐT:\n- Mã dự phòng / backup:\n- Lưu ý đăng nhập thêm:`
       : compose === 'handover-buyer'
         ? `Mình đã thanh toán ${orderId > 0 ? `order #${orderId}` : `bài "${tradeTitle}"`}. Bạn vui lòng gửi tài khoản, mật khẩu, mail / số điện thoại và các thông tin đăng nhập liên quan qua đoạn chat này giúp mình nhé.`
-        : `Chào ${String(conversation.other.fullname || conversation.other.username || 'bạn')}, mình đang quan tâm tới bài "${tradeTitle}". Mình muốn hỏi thêm vài thông tin trước khi chốt mua.`
+        : `Chào ${String(conversation.other.fullname || conversation.other.username || 'bạn')}, mình đang quan tâm tới bài "${tradeTitle}". Mình muốn hỏi thêm vài thông tin trước khi chốt trao đổi.`
   ) : (viewerIsSeller ? 'Mình gửi thông tin bàn giao cho bạn tại đây nhé.' : '');
 
   return (

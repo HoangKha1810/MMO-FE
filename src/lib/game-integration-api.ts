@@ -1186,7 +1186,7 @@ export async function createExternalGameMarketOrder(userId: number, input: {
 
   await logGameApiAction(
     userId,
-    `Mua game market qua API: item #${itemId}, order #${Number(purchase.orderId || 0)}, ví game còn ${Math.round(toNumber(summary.game_balance, 0))}`
+    `Tạo đơn trao đổi game qua API: item #${itemId}, order #${Number(purchase.orderId || 0)}, ví game còn ${Math.round(toNumber(summary.game_balance, 0))}`
   );
 
   return {
@@ -1197,7 +1197,7 @@ export async function createExternalGameMarketOrder(userId: number, input: {
       account: summary,
       charged_account: buildChargedAccountMeta(summary),
       notes: [
-        'Đơn game market thường cần seller bàn giao thủ công.',
+        'Đơn trao đổi game thường cần người đăng bàn giao thủ công.',
         'Hãy poll endpoint trạng thái đơn để lấy delivered_data và trạng thái mới nhất.',
       ],
     },
@@ -1637,8 +1637,8 @@ function buildCompatMarketOrderPayload(
   const fallbackLines = lines.length > 0
     ? lines
     : String(order.status || '').toLowerCase() === 'completed'
-      ? ['Seller đã xác nhận bàn giao, nhưng chưa có delivered_data chi tiết.']
-      : ['Đơn game market đang chờ seller bàn giao. Vui lòng poll lại order.php để nhận thông tin.'];
+      ? ['Người đăng đã xác nhận bàn giao, nhưng chưa có delivered_data chi tiết.']
+      : ['Đơn trao đổi game đang chờ người đăng bàn giao. Vui lòng poll lại order.php để nhận thông tin.'];
   const file = detectFileUrl({
     content: delivered,
     lines: fallbackLines,
@@ -1685,7 +1685,7 @@ export async function createCompatProductOrder(userId: number, input: {
   }
 
   if (Math.max(1, Math.trunc(input.amount || 1)) > 1) {
-    return compatError('Game market chỉ hỗ trợ mua từng sản phẩm một lần', {
+    return compatError('Trao đổi game chỉ hỗ trợ tạo từng đơn một lần', {
       source_type: 'game-market',
     });
   }

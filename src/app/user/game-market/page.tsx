@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BadgeCheck, Pin, ShoppingBag, ShieldCheck, WandSparkles } from 'lucide-react';
+import { BadgeCheck, ExternalLink, Pin, ShoppingBag, ShieldCheck, WandSparkles } from 'lucide-react';
 import { GameMarketSafetyPopup } from '@/components/game-market/game-market-safety-popup';
 import { AppShell } from '@/components/layout/app-shell';
 import {
@@ -9,6 +9,7 @@ import {
   normalizeGameMarketCategory,
 } from '@/lib/game-market-config';
 import {
+  getGameExchangeSellerAccess,
   listGameMarketCategoryStats,
   listGameMarketItems,
   listSellerGameItems,
@@ -21,12 +22,15 @@ import { getCurrentUserForShell } from '@/lib/user-session';
 export const dynamic = 'force-dynamic';
 
 const statusLabels: Record<string, string> = {
-  pending: 'Chờ duyệt',
-  selling: 'Đang bán',
+  pending: 'Chờ xử lý',
+  selling: 'Đang trao đổi',
   rejected: 'Bị từ chối',
-  hidden: 'Chưa công khai',
-  sold: 'Đã bán',
+  hidden: 'Đã ẩn',
+  deleted: 'Đã xóa',
+  sold: 'Đã trao đổi',
 };
+
+const ADMIN_ZALO_QR_SRC = '/assets/zalo-admin-qr.png';
 
 const tradingRules = [
   {
@@ -62,7 +66,7 @@ export default async function UserGameMarketPage({
     ? normalizeGameMarketCategory(resolvedSearchParams.category)
     : 'all';
 
-  const [items, myOrders, myListings, categoryStats] = await Promise.all([
+  const [items, myOrders, myListings, categoryStats, sellerAccess] = await Promise.all([
     listGameMarketItems(24, activeCategory === 'all' ? undefined : activeCategory),
     safeRows(`
       SELECT o.*, i.title AS item_title
@@ -74,6 +78,7 @@ export default async function UserGameMarketPage({
     `, raw.id),
     listSellerGameItems(raw.id, 8),
     listGameMarketCategoryStats(),
+    getGameExchangeSellerAccess(raw.id),
   ]);
 
   const categoryStatsMap = new Map(categoryStats.map((item) => [item.slug, item.total]));
@@ -81,7 +86,7 @@ export default async function UserGameMarketPage({
     ...item,
     total: categoryStatsMap.get(item.slug) || 0,
   }));
-  const pendingListings = myListings.filter((item) => String(item.status || '') === 'pending').length;
+  const activeListings = myListings.filter((item) => String(item.status || '') === 'selling').length;
   const visibleCategoryMeta = activeCategory === 'all' ? null : getGameMarketCategoryMeta(activeCategory);
 
   return (
@@ -89,30 +94,39 @@ export default async function UserGameMarketPage({
       <GameMarketSafetyPopup />
       <div className="space-y-6">
         <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 sm:rounded-[2rem] sm:p-6">
-          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-blue">Game Market</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-blue">Trao đổi game</div>
           <h1 className="mt-3 break-words text-2xl font-black uppercase leading-[1.2] tracking-[-0.02em] text-slate-900 dark:text-white sm:text-3xl sm:leading-[1.16]">
-            Chợ mua bán game theo từng danh mục
+            Chợ trao đổi game theo từng danh mục
           </h1>
           <p className="mt-2 max-w-3xl text-sm font-medium leading-8 tracking-[0.018em] text-slate-500 dark:text-slate-400">
-            Đăng bài mua bán tài khoản game theo từng thể loại như Liên Quân Mobile, PUBG Mobile, Valorant và nhiều game khác. Mỗi bài đăng của user sẽ vào trạng thái chờ duyệt trước khi xuất hiện công khai.
+            Khu trao đổi tài khoản và vật phẩm game theo từng thể loại như Liên Quân Mobile, PUBG Mobile, Valorant và nhiều game khác. Chỉ tài khoản được cấp quyền mới đăng bài; bài hợp lệ hiển thị ngay, admin/owner có thể kiểm soát, chỉnh sửa, xóa hoặc ghim khi cần.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/user/game-market/sell" className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase text-white">
-              <WandSparkles className="h-4 w-4" />
-              Đăng bài mới
-            </Link>
-            <Link href="/user/seller/dashboard" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200">
-              Seller Center
-            </Link>
+            {sellerAccess.canPost ? (
+              <>
+                <Link href="/user/game-market/sell" className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase text-white">
+                  <WandSparkles className="h-4 w-4" />
+                  Đăng bài mới
+                </Link>
+                <Link href="/user/seller/dashboard" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200">
+                  Kênh người đăng
+                </Link>
+              </>
+            ) : (
+              <a href={ADMIN_ZALO_QR_SRC} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-4 py-2 text-xs font-black uppercase text-white">
+                <ExternalLink className="h-4 w-4" />
+                Liên hệ Admin Zalo
+              </a>
+            )}
             <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-black uppercase text-emerald-600 dark:text-emerald-300">
               <ShieldCheck className="h-4 w-4" />
-              {pendingListings} bài đang chờ duyệt
+              {sellerAccess.canPost ? `${activeListings} bài đang hiển thị` : 'Chỉ tài khoản được cấp quyền đăng'}
             </div>
           </div>
         </div>
 
         <section className="rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-rose-500">Nội quy giao dịch</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-rose-500">Nội quy trao đổi</div>
           <div className="mt-4 grid gap-4 xl:grid-cols-3">
             {tradingRules.map((rule) => (
               <div key={rule.title} className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.03]">
@@ -137,7 +151,7 @@ export default async function UserGameMarketPage({
               <p className="mt-2 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
                 {visibleCategoryMeta
                   ? visibleCategoryMeta.description
-                  : 'Lọc nhanh theo từng game để tìm đúng loại account và bài đăng bạn đang quan tâm.'}
+                  : 'Lọc nhanh theo từng game để tìm đúng loại account, vật phẩm và bài trao đổi bạn đang quan tâm.'}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -170,7 +184,7 @@ export default async function UserGameMarketPage({
 
         {items.length === 0 ? (
           <section className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-10 text-center text-sm font-semibold leading-8 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
-            Hiện chưa có bài đăng nào trong danh mục này. Bạn có thể chuyển danh mục khác hoặc tự đăng bài mới để bắt đầu giao dịch.
+            Hiện chưa có bài trao đổi nào trong danh mục này. Bạn có thể chuyển danh mục khác hoặc liên hệ Admin Zalo để được hỗ trợ giao dịch.
           </section>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -216,8 +230,8 @@ export default async function UserGameMarketPage({
                     </span>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3 text-[10px] font-bold uppercase text-slate-400">
-                    <span>Seller {String(item.seller_username || item.seller_id)}</span>
-                    <span>Stock {String(item.stock || 0)}</span>
+                    <span>Người đăng {String(item.seller_username || item.seller_id)}</span>
+                    <span>Số lượng {String(item.stock || 0)}</span>
                   </div>
                 </Link>
               );
@@ -227,10 +241,10 @@ export default async function UserGameMarketPage({
 
         <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Bài đăng của bạn</h2>
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Bài trao đổi của bạn</h2>
             <div className="mt-4 grid gap-3">
               {myListings.length === 0 ? (
-                <p className="text-sm text-slate-400">Bạn chưa có bài đăng game nào.</p>
+                <p className="text-sm text-slate-400">Bạn chưa có bài trao đổi game nào.</p>
               ) : myListings.map((item) => {
                 const previewImage = getGameMarketGalleryUrls({ thumbnail: item.thumbnail, images: item.images }, 1)[0];
                 return (
@@ -267,7 +281,7 @@ export default async function UserGameMarketPage({
                         <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold text-slate-400">
                           <span>{getGameMarketCategoryLabel(String(item.category || ''))}</span>
                           <span>{formatCurrency(toNumber(item.price))}</span>
-                          <span>Stock {String(item.stock || 0)}</span>
+                          <span>Số lượng {String(item.stock || 0)}</span>
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
                           <Link
@@ -292,10 +306,10 @@ export default async function UserGameMarketPage({
           </div>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Đơn game của bạn</h2>
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Đơn trao đổi game của bạn</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1">
               {myOrders.length === 0 ? (
-                <p className="text-sm text-slate-400">Bạn chưa có đơn game.</p>
+                <p className="text-sm text-slate-400">Bạn chưa có đơn trao đổi game.</p>
               ) : myOrders.map((order) => (
                 <Link key={String(order.id)} href={`/user/game-market/${String(order.item_id)}`} className="rounded-xl bg-slate-50 p-4 transition hover:border-brand-blue/30 dark:bg-white/5">
                   <div className="flex items-center gap-2 text-sm font-black text-slate-900 dark:text-white">

@@ -259,8 +259,8 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     iconKey: 'gamepad-2',
     color: 'from-cyan-500 to-blue-500',
     textColor: 'text-cyan-500',
-    defaultTitle: 'Mua Bán Game',
-    defaultDesc: 'Giao dịch game uy tín',
+    defaultTitle: 'Trao đổi Game',
+    defaultDesc: 'Trao đổi game uy tín',
   },
   {
     key: 'game_accounts',

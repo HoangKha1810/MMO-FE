@@ -196,9 +196,9 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
             tone: 'amber',
           },
           {
-            label: 'Game Market',
+            label: 'Trao đổi Game',
             value: String(toNumber(stats.market_items, 0)),
-            hint: 'Listing đang bán',
+            hint: 'Bài đang hiển thị',
             tone: 'violet',
           },
         ]}

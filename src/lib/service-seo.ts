@@ -156,14 +156,14 @@ export const serviceSeoEntries: ServiceSeoEntry[] = [
   },
   {
     slug: 'mua-ban-game',
-    title: 'Mua bán game, vật phẩm và dịch vụ game',
-    shortTitle: 'Mua bán game',
-    eyebrow: 'Game Commerce',
+    title: 'Trao đổi game, vật phẩm và dịch vụ game',
+    shortTitle: 'Trao đổi game',
+    eyebrow: 'Game Exchange',
     description:
-      'Khu mua bán game hỗ trợ giao dịch tài khoản, vật phẩm, dịch vụ game và sản phẩm liên quan cho cộng đồng game thủ.',
-    keywords: ['mua bán game', 'dịch vụ game', 'tài khoản game', 'vật phẩm game'],
+      'Khu trao đổi game hỗ trợ đăng bài tài khoản, vật phẩm, dịch vụ game và sản phẩm liên quan cho cộng đồng game thủ.',
+    keywords: ['trao đổi game', 'dịch vụ game', 'tài khoản game', 'vật phẩm game'],
     highlights: ['Dễ mở rộng danh mục game', 'Phù hợp ví game', 'Có thể kết hợp random tài khoản'],
-    useCases: ['Bán tài khoản game', 'Bán vật phẩm hoặc dịch vụ game', 'Tạo gói combo cho game thủ'],
+    useCases: ['Đăng bài trao đổi tài khoản game', 'Trao đổi vật phẩm hoặc dịch vụ game', 'Tạo gói combo cho game thủ'],
     faqs: [
       {
         question: 'Dịch vụ này dùng ví game không?',
@@ -174,7 +174,7 @@ export const serviceSeoEntries: ServiceSeoEntry[] = [
         answer: 'Có thể tách riêng random tài khoản game để người dùng mua nhanh theo danh mục.',
       },
     ],
-    ctaLabel: 'Mở khu game',
+    ctaLabel: 'Mở khu trao đổi game',
     ctaHref: '/auth/login',
   },
   {

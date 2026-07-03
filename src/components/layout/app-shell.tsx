@@ -82,7 +82,7 @@ const mainLinks = [
   { href: '/user/forum', label: 'Forum MMO', icon: MessageSquare },
   { href: '/user/social/inbox', label: 'Tin Nhắn', icon: MessageCircle },
   { href: '/user/find-job', label: 'Find Job MMO', icon: Briefcase },
-  { href: '/user/seller/dashboard', label: 'Seller Center', icon: Package },
+  { href: '/user/seller/dashboard', label: 'Kênh người đăng', icon: Package },
 ];
 
 const supportLinks = [
@@ -326,7 +326,7 @@ function formatBreadcrumb(pathname: string) {
     'support-tiktok': 'Support TikTok',
     'meta-support': 'Auto kích nút Meta',
     forum: 'Forum MMO',
-    'game-market': 'Mua Bán Game',
+    'game-market': 'Trao Đổi Game',
     'game-accounts': 'Thuê tài khoản game 99 năm',
     'random-game-accounts': 'Random thuê tài khoản game 99 năm',
     'vibe-code': 'Vibe Code',

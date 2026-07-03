@@ -33,7 +33,7 @@ export function SellerGameOrdersBoard({ orders }: { orders: SellerOrder[] }) {
       try {
         const accepted = await confirm({
           title: 'Xác nhận đã bàn giao',
-          description: 'Chỉ xác nhận khi bạn đã gửi đầy đủ tài khoản, mật khẩu, mail, số điện thoại và mọi thông tin liên quan cho buyer ngay trong đoạn chat giao dịch.',
+          description: 'Chỉ xác nhận khi bạn đã gửi đầy đủ tài khoản, mật khẩu, mail, số điện thoại và mọi thông tin liên quan cho người tạo đơn ngay trong đoạn chat giao dịch.',
           confirmText: 'Đã bàn giao xong',
           cancelText: 'Chưa xong',
           tone: 'brand',
@@ -50,13 +50,13 @@ export function SellerGameOrdersBoard({ orders }: { orders: SellerOrder[] }) {
         });
         const payload = await response.json();
         if (!response.ok || !payload.success) {
-          throw new Error(payload.message || 'Không thể cập nhật trạng thái đơn game');
+          throw new Error(payload.message || 'Không thể cập nhật trạng thái đơn trao đổi');
         }
 
-        toast.success(payload.message || 'Đã xác nhận bàn giao đơn game');
+        toast.success(payload.message || 'Đã xác nhận bàn giao đơn trao đổi');
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Không thể cập nhật đơn game');
+        toast.error(error instanceof Error ? error.message : 'Không thể cập nhật đơn trao đổi');
       }
     });
   }
@@ -64,14 +64,14 @@ export function SellerGameOrdersBoard({ orders }: { orders: SellerOrder[] }) {
   return (
     <div className="space-y-5">
       <div className="rounded-[1.5rem] border border-brand-blue/15 bg-brand-blue/5 p-4 text-sm font-semibold leading-7 text-slate-600 dark:border-brand-blue/20 dark:bg-brand-blue/10 dark:text-slate-300">
-        Ưu tiên trao đổi và bàn giao toàn bộ tài khoản, mật khẩu, mail, số điện thoại và lưu ý đăng nhập qua chat riêng của từng đơn để buyer dễ kiểm tra và admin dễ đối soát khi cần.
+        Ưu tiên trao đổi và bàn giao toàn bộ tài khoản, mật khẩu, mail, số điện thoại và lưu ý đăng nhập qua chat riêng của từng đơn để người tạo đơn dễ kiểm tra và admin dễ đối soát khi cần.
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1060px] text-left text-sm">
           <thead className="text-[10px] font-black uppercase tracking-widest text-slate-400">
             <tr>
-              {['ID', 'Sản phẩm', 'Buyer', 'Số tiền', 'Trạng thái', 'Ngày', 'Thao tác'].map((item) => (
+              {['ID', 'Bài trao đổi', 'Người tạo đơn', 'Số tiền', 'Trạng thái', 'Ngày', 'Thao tác'].map((item) => (
                 <th key={item} className="border-b border-slate-100 px-3 py-3 dark:border-white/5">{item}</th>
               ))}
             </tr>
@@ -87,7 +87,7 @@ export function SellerGameOrdersBoard({ orders }: { orders: SellerOrder[] }) {
                   <td className="px-3 py-4">
                     <div className="font-bold text-slate-700 dark:text-slate-200">{String(order.item_title || order.item_id)}</div>
                     <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      {String(order.item_category || 'Game Market')}
+                      {String(order.item_category || 'Trao đổi game')}
                     </div>
                   </td>
                   <td className="px-3 py-4">

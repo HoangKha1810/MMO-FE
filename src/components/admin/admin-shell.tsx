@@ -155,7 +155,7 @@ const adminNavSections: NavSection[] = [
     items: [
       { href: '/admin/game-api', label: 'Game API & Key', icon: Key, accent: 'blue' },
       { href: '/admin/game-api/docs', label: 'Game API Docs', icon: FileText, accent: 'blue' },
-      { href: '/admin/game-market', label: 'Chợ tài khoản Game', icon: Gamepad2 },
+      { href: '/admin/game-market', label: 'Trao đổi Game', icon: Gamepad2 },
       { href: '/admin/vibe-code', label: 'Vibe Code', icon: Terminal, accent: 'blue' },
       { href: '/admin/web-service', label: 'Web con MMO và Build Website', icon: Globe2, accent: 'blue' },
       { href: '/admin/press', label: 'Dịch vụ lên báo', icon: FileText, accent: 'blue' },

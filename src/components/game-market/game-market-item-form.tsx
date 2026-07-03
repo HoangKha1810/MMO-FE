@@ -199,7 +199,7 @@ export function GameMarketItemForm({
 
         await alert({
           title: 'Đã cộng tiền sàn',
-          description: `Giá bạn nhập là ${formatCurrency(sellerPrice)}. Hệ thống đã tự cộng ${formatCurrency(GAME_MARKET_PLATFORM_FEE)} tiền sàn, giá hiển thị cho người mua là ${formatCurrency(listedPrice)}.`,
+          description: `Giá bạn nhập là ${formatCurrency(sellerPrice)}. Hệ thống đã tự cộng ${formatCurrency(GAME_MARKET_PLATFORM_FEE)} tiền sàn, giá hiển thị cho người xem là ${formatCurrency(listedPrice)}.`,
           confirmText: 'Đã hiểu',
           tone: 'brand',
         });
@@ -231,7 +231,7 @@ export function GameMarketItemForm({
     <form onSubmit={submit} className="space-y-5">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 md:col-span-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tên sản phẩm</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tên bài trao đổi</span>
           <Input value={values.title} onChange={(event) => updateField('title', event.target.value)} required />
         </label>
 
@@ -252,7 +252,7 @@ export function GameMarketItemForm({
 
         <label className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            {values.action === 'create' ? 'Giá seller nhập' : 'Giá bán'}
+            {values.action === 'create' ? 'Giá người đăng nhập' : 'Giá trao đổi'}
           </span>
           <Input type="number" min={1000} value={values.price} onChange={(event) => updateField('price', event.target.value)} required />
         </label>
@@ -260,7 +260,7 @@ export function GameMarketItemForm({
         {values.action === 'create' ? (
           <div className="rounded-[1.25rem] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm font-semibold leading-7 text-amber-700 dark:text-amber-300 md:col-span-2">
             Hệ thống sẽ tự cộng <span className="font-black">{formatCurrency(GAME_MARKET_PLATFORM_FEE)}</span> tiền sàn khi đăng bài.
-            Giá người mua thấy: <span className="font-black">{listedPricePreview > 0 ? formatCurrency(listedPricePreview) : 'nhập giá để xem'}</span>.
+            Giá người xem thấy: <span className="font-black">{listedPricePreview > 0 ? formatCurrency(listedPricePreview) : 'nhập giá để xem'}</span>.
           </div>
         ) : null}
 
@@ -412,7 +412,7 @@ export function GameMarketItemForm({
         </label>
 
         <label className="space-y-2 md:col-span-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dữ liệu giao hàng / thông tin account</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Thông tin bàn giao / account</span>
           <textarea
             value={values.accountDetails}
             onChange={(event) => updateField('accountDetails', event.target.value)}

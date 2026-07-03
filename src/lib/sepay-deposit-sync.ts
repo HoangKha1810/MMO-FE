@@ -37,6 +37,7 @@ interface SePayTransactionRow {
 interface ReconcilePendingSePayDepositsInput {
   limit?: number;
   userId?: number;
+  externalRef?: string;
 }
 
 function buildSePayApiAuthHeader(wallet: 'main' | 'game' = 'main') {
@@ -221,14 +222,20 @@ export async function reconcilePendingSePayDeposits(input: ReconcilePendingSePay
     };
   }
 
+  const externalRefFilter = String(input.externalRef || '').trim();
   const pendingDeposits = await db.transactions.findMany({
     where: {
       type: 'deposit',
       status: { in: ['pending', 'processing'] },
-      OR: [
-        { content: { startsWith: 'SEP' } },
-        { content: { startsWith: 'GAMESEP' } },
-        { content: { startsWith: 'PAY' } },
+      AND: [
+        {
+          OR: [
+            { content: { startsWith: 'SEP' } },
+            { content: { startsWith: 'GAMESEP' } },
+            { content: { startsWith: 'PAY' } },
+          ],
+        },
+        ...(externalRefFilter ? [{ content: { contains: `external_ref=${externalRefFilter}` } }] : []),
       ],
       ...(input.userId ? { user_id: input.userId } : {}),
     },

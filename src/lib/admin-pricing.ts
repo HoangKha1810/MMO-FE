@@ -209,8 +209,8 @@ const pricingModuleConfigs: PricingModuleConfig[] = [
   },
   {
     key: 'game-market',
-    label: 'Game Market',
-    description: 'Giá listing game, account, vật phẩm trong game_market_items.',
+    label: 'Trao đổi Game',
+    description: 'Giá bài trao đổi game, account, vật phẩm trong game_market_items.',
     table: 'game_market_items',
     icon: 'gamepad',
     tone: 'emerald',
@@ -221,7 +221,7 @@ const pricingModuleConfigs: PricingModuleConfig[] = [
     updatedAtColumn: 'updated_at',
     searchColumns: ['title', 'category', 'tag', 'badge', 'code'],
     fields: [
-      { key: 'price', label: 'Giá bán', column: 'price', kind: 'money', editable: true, primary: true },
+      { key: 'price', label: 'Giá trao đổi', column: 'price', kind: 'money', editable: true, primary: true },
       { key: 'original_price', label: 'Giá gốc', column: 'original_price', kind: 'money', editable: true },
     ],
   },

@@ -43,7 +43,7 @@ const LEGACY_SERVICE_ALIASES: LegacyServiceAliasEntry[] = [
   { slug: 'build-website', label: 'Build Website', target: '/user/web-service', area: 'user', preserveTail: true },
   { slug: 'forum', label: 'Forum MMO', target: '/user/forum', area: 'user', preserveTail: true },
   { slug: 'find-job', label: 'Find Job', target: '/user/find-job', area: 'user', preserveTail: true },
-  { slug: 'game-market', label: 'Game Market', target: '/user/game-market', area: 'user', preserveTail: true },
+  { slug: 'game-market', label: 'Trao đổi game', target: '/user/game-market', area: 'user', preserveTail: true },
   { slug: 'card', label: 'Thẻ cào', target: '/user/card', area: 'user' },
   { slug: 'seller', label: 'Kênh người bán', target: '/user/seller', area: 'user', preserveTail: true },
   { slug: 'social', label: 'Mạng xã hội nội bộ', target: '/user/social', area: 'user', preserveTail: true },

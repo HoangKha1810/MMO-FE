@@ -106,7 +106,7 @@ export default async function UserProfilePage() {
           <MetricCard
             label="Ví game"
             value={new Intl.NumberFormat('vi-VN').format(shell.game_balance) + ' ₫'}
-            hint="Ví riêng cho mua bán game, random game và tài khoản game."
+            hint="Ví riêng cho trao đổi game, random game và tài khoản game."
             tone="violet"
             icon={<Wallet className="h-4 w-4" />}
           />

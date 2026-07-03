@@ -320,7 +320,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
   },
   'game-orders': {
     table: 'game_market_orders',
-    title: 'Game market orders',
+    title: 'Đơn trao đổi game',
     searchFields: ['status', 'delivered_data', 'review'],
     statusField: 'status',
     rawOrder: 'created_at DESC, id DESC',
@@ -329,7 +329,7 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
   },
   'game-items': {
     table: 'game_market_items',
-    title: 'Game market items',
+    title: 'Bài trao đổi game',
     searchFields: ['title', 'category', 'tag', 'status'],
     statusField: 'status',
     rawOrder: 'is_pinned DESC, created_at DESC, id DESC',

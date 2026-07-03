@@ -36,7 +36,7 @@ export default function AboutPage() {
       sections={[
         {
           title: 'Hệ sinh thái dịch vụ',
-          body: 'TRUNGTAMMMO phát triển theo mô hình nền tảng đa dịch vụ, nơi người dùng có thể tăng trưởng mạng xã hội, giao dịch tài nguyên số, mua bán sản phẩm game, nạp tiền và sử dụng các tiện ích MMO trong cùng một tài khoản.',
+          body: 'TRUNGTAMMMO phát triển theo mô hình nền tảng đa dịch vụ, nơi người dùng có thể tăng trưởng mạng xã hội, giao dịch tài nguyên số, trao đổi sản phẩm game, nạp tiền và sử dụng các tiện ích MMO trong cùng một tài khoản.',
         },
         {
           title: 'Không gian người dùng',

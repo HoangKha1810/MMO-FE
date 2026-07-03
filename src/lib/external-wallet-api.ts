@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { getRequestIp, isTrackableIp, logSecurityEvent } from '@/lib/ip-security';
 import { buildSePayReferenceContent, extractSePayPaymentReferenceCodes } from '@/lib/sepay-codes';
+import { reconcilePendingSePayDeposits } from '@/lib/sepay-deposit-sync';
 import { createSePayCheckoutSession } from '@/lib/sepay';
 import { toNumber } from '@/lib/utils';
 
@@ -13,6 +14,15 @@ type ExternalApiAccount = {
   userId: number;
   username: string;
 };
+
+const EXTERNAL_DEPOSIT_RECONCILE_COOLDOWN_MS = 15_000;
+const globalForExternalWalletApi = globalThis as typeof globalThis & {
+  externalDepositReconcileCooldown?: Map<string, number>;
+};
+const externalDepositReconcileCooldown =
+  globalForExternalWalletApi.externalDepositReconcileCooldown ??
+  new Map<string, number>();
+globalForExternalWalletApi.externalDepositReconcileCooldown = externalDepositReconcileCooldown;
 
 function externalWalletError(message: string, status = 400) {
   const error = new Error(message) as Error & { status?: number };
@@ -224,6 +234,42 @@ function resolveCallbackUrl(value: unknown, fallbackOrigin: string, fallbackPath
   }
 
   return '';
+}
+
+function getExternalDepositReconcileRef(params: URLSearchParams) {
+  const type = String(params.get('type') || '').trim().toLowerCase();
+  const status = String(params.get('status') || '').trim().toLowerCase();
+  const externalRef = normalizeExternalRef(
+    params.get('external_ref') || params.get('reference') || params.get('ref') || params.get('transaction_id')
+  );
+
+  if (!externalRef) return '';
+  if (type && type !== 'deposit') return '';
+  if (status && !['success', 'pending', 'processing'].includes(status)) return '';
+
+  return externalRef;
+}
+
+function shouldRunExternalDepositReconcile(userId: number, externalRef: string) {
+  const key = `${userId}:${externalRef.toUpperCase()}`;
+  const now = Date.now();
+  const lastRun = externalDepositReconcileCooldown.get(key) || 0;
+
+  if (now - lastRun < EXTERNAL_DEPOSIT_RECONCILE_COOLDOWN_MS) {
+    return false;
+  }
+
+  externalDepositReconcileCooldown.set(key, now);
+
+  if (externalDepositReconcileCooldown.size > 500) {
+    for (const [entryKey, entryTime] of externalDepositReconcileCooldown.entries()) {
+      if (now - entryTime > EXTERNAL_DEPOSIT_RECONCILE_COOLDOWN_MS * 4) {
+        externalDepositReconcileCooldown.delete(entryKey);
+      }
+    }
+  }
+
+  return true;
 }
 
 function buildTopupContent(input: {
@@ -544,6 +590,15 @@ export async function listExternalApiTransactions(
   account: ExternalApiAccount,
   params: URLSearchParams
 ) {
+  const reconcileRef = getExternalDepositReconcileRef(params);
+  if (reconcileRef && shouldRunExternalDepositReconcile(account.userId, reconcileRef)) {
+    await reconcilePendingSePayDeposits({
+      userId: account.userId,
+      externalRef: reconcileRef,
+      limit: 5,
+    }).catch(() => undefined);
+  }
+
   const page = Math.max(1, Math.trunc(toNumber(params.get('page'), 1)));
   const perPage = Math.min(100, Math.max(1, Math.trunc(toNumber(params.get('per_page') || params.get('limit'), 30))));
   const type = String(params.get('type') || '').trim();
