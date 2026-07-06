@@ -168,7 +168,7 @@ export default function UserAutomxhPage() {
 
   return (
     <AppShell user={user}>
-      <div className="space-y-10 px-1 py-4 pb-20 sm:py-8">
+      <div className="automxh-page space-y-10 px-1 py-4 pb-20 sm:py-8">
         {error ? (
           <div className="error-state rounded-[1rem] border border-rose-500/20 bg-rose-500/10 p-6 text-sm font-bold text-rose-500">
             {error}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { createOrUpdateGameItem, setGameItemState } from '@/lib/game-market-actions';
 import { parseGameMarketImageRefs } from '@/lib/game-market-media';
-import { saveUploadedFileAsDataUrl } from '@/lib/server-upload';
+import { isUploadFileLike, saveUploadedFileAsDataUrl } from '@/lib/server-upload';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +20,7 @@ async function readPayload(req: NextRequest) {
 
   if (contentType.includes('multipart/form-data')) {
     const formData = await req.formData();
-    const uploadedFiles = formData.getAll('images').filter((item): item is File => item instanceof File && item.size > 0);
+    const uploadedFiles = formData.getAll('images').filter(isUploadFileLike);
 
     return {
       action: (getFormString(formData, 'action') || 'create').toLowerCase(),

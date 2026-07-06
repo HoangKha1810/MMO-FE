@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
+import { isUploadFileLike } from '@/lib/server-upload';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -80,7 +81,7 @@ export async function PATCH(req: NextRequest) {
     let nextAvatarPath: string | null | undefined;
     if (removeAvatar) {
       nextAvatarPath = null;
-    } else if (avatarFile instanceof File && avatarFile.size > 0) {
+    } else if (isUploadFileLike(avatarFile)) {
       nextAvatarPath = await saveAvatarFile(avatarFile, userId);
     }
 

@@ -4,14 +4,14 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 const SUSPICIOUS_CLIPBOARD_PATTERNS = [
-  /document\.cookie/i,
-  /localStorage|sessionStorage/i,
-  /fetch\s*\(|XMLHttpRequest|axios\./i,
-  /eval\s*\(|new\s+Function/i,
-  /<script|javascript:/i,
-  /process\.env|__NEXT_DATA__/i,
-  /union\s+select|information_schema|drop\s+table/i,
-  /curl\s+|wget\s+|powershell|cmd\.exe|bash\s+-c/i,
+  { name: 'cookie_access', pattern: /document\.cookie/i },
+  { name: 'browser_storage_access', pattern: /localStorage|sessionStorage/i },
+  { name: 'network_request', pattern: /fetch\s*\(|XMLHttpRequest|axios\./i },
+  { name: 'javascript_eval', pattern: /eval\s*\(|new\s+Function/i },
+  { name: 'script_injection', pattern: /<script|javascript:/i },
+  { name: 'runtime_or_next_data_probe', pattern: /process\.env|__NEXT_DATA__/i },
+  { name: 'sql_payload', pattern: /union\s+select|information_schema|drop\s+table/i },
+  { name: 'shell_command_payload', pattern: /curl\s+|wget\s+|powershell|cmd\.exe|bash\s+-c/i },
 ];
 
 const SUSPICIOUS_RUNTIME_MARKERS = [
@@ -34,8 +34,10 @@ function isEditableTarget(target: EventTarget | null) {
   return tagName === 'input' || tagName === 'textarea' || target.isContentEditable;
 }
 
-function containsSuspiciousCode(value: string) {
-  return SUSPICIOUS_CLIPBOARD_PATTERNS.some((pattern) => pattern.test(value));
+function getSuspiciousCodeFindings(value: string) {
+  return SUSPICIOUS_CLIPBOARD_PATTERNS
+    .filter((item) => item.pattern.test(value))
+    .map((item) => item.name);
 }
 
 export function ClientSecurityObserver() {
@@ -204,7 +206,7 @@ export function ClientSecurityObserver() {
       return originalXhrSend.call(this, body ?? null);
     };
 
-    const report = (eventType: string, payload = '', signal = '') => {
+    const report = (eventType: string, payload = '', signal = '', details: Record<string, unknown> = {}) => {
       const key = `${eventType}:${signal}:${payload.slice(0, 80)}`;
       const now = Date.now();
       if ((lastReportRef.current[key] || 0) + 10_000 > now) {
@@ -219,6 +221,11 @@ export function ClientSecurityObserver() {
         path: window.location.pathname,
         href: window.location.href,
         source: 'client-security-observer',
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+        details,
       });
 
       fetch('/api/security/event', {
@@ -307,9 +314,20 @@ export function ClientSecurityObserver() {
         return;
       }
 
-      if (containsSuspiciousCode(text)) {
+      const findings = getSuspiciousCodeFindings(text);
+      if (findings.length > 0) {
         event.preventDefault();
-        report('CONSOLE_OR_TOOL_PASTE_BLOCKED', text, isEditableTarget(event.target) ? 'editable' : 'document');
+        const target = event.target instanceof HTMLElement ? event.target : null;
+        report('CONSOLE_OR_TOOL_PASTE_BLOCKED', text, isEditableTarget(event.target) ? 'editable' : 'document', {
+          tool_name: 'clipboard-paste',
+          tool_type: 'client_code_or_tool_execution',
+          attempted_code: text.slice(0, 1200),
+          detected_patterns: findings,
+          target_tag: target?.tagName?.toLowerCase() || null,
+          target_id: target?.id || null,
+          target_name: target?.getAttribute('name') || null,
+          target_text: target?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 160) || null,
+        });
       }
     };
 
@@ -321,7 +339,19 @@ export function ClientSecurityObserver() {
         (event.metaKey && event.altKey && ['i', 'j', 'c'].includes(key));
 
       if (devtoolsShortcut) {
-        report('DEVTOOLS_SHORTCUT', key, 'keyboard');
+        const combo = [
+          event.ctrlKey ? 'ctrl' : '',
+          event.metaKey ? 'meta' : '',
+          event.altKey ? 'alt' : '',
+          event.shiftKey ? 'shift' : '',
+          key,
+        ].filter(Boolean).join('+');
+        report('DEVTOOLS_SHORTCUT', combo, 'keyboard', {
+          tool_name: 'devtools-shortcut',
+          tool_type: 'developer_tools',
+          attempted_code: combo,
+          key,
+        });
       }
     };
 
@@ -338,12 +368,20 @@ export function ClientSecurityObserver() {
     const inspectRuntime = () => {
       const win = window as unknown as Window & Record<string, unknown> & { webdriver?: boolean };
       if (navigator.webdriver) {
-        report('AUTOMATION_RUNTIME_DETECTED', 'navigator.webdriver=true', 'webdriver');
+        report('AUTOMATION_RUNTIME_DETECTED', 'navigator.webdriver=true', 'webdriver', {
+          tool_name: 'webdriver',
+          tool_type: 'browser_automation',
+          runtime_marker: 'navigator.webdriver',
+        });
       }
 
       for (const marker of SUSPICIOUS_RUNTIME_MARKERS) {
         if (win[marker] !== undefined) {
-          report('AUTOMATION_RUNTIME_DETECTED', marker, 'runtime-marker');
+          report('AUTOMATION_RUNTIME_DETECTED', marker, 'runtime-marker', {
+            tool_name: marker,
+            tool_type: 'browser_automation',
+            runtime_marker: marker,
+          });
           break;
         }
       }
@@ -351,7 +389,13 @@ export function ClientSecurityObserver() {
       const widthGap = Math.abs(window.outerWidth - window.innerWidth);
       const heightGap = Math.abs(window.outerHeight - window.innerHeight);
       if (widthGap > 220 || heightGap > 220) {
-        report('DEVTOOLS_OPENED', `gap:${widthGap}x${heightGap}`, 'viewport-gap');
+        report('DEVTOOLS_OPENED', `gap:${widthGap}x${heightGap}`, 'viewport-gap', {
+          tool_name: 'devtools-window',
+          tool_type: 'developer_tools',
+          viewport_gap: `${widthGap}x${heightGap}`,
+          inner_size: `${window.innerWidth}x${window.innerHeight}`,
+          outer_size: `${window.outerWidth}x${window.outerHeight}`,
+        });
       }
     };
 

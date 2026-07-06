@@ -10,7 +10,7 @@ import {
   sendSocialMessage,
   setSocialTyping,
 } from '@/lib/social';
-import { saveUploadedFile } from '@/lib/server-upload';
+import { isUploadFileLike, saveUploadedFile } from '@/lib/server-upload';
 
 export const runtime = 'nodejs';
 
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     if (body instanceof FormData) {
       const file = body.get('attachment_file');
-      if (file instanceof File && file.size > 0) {
+      if (isUploadFileLike(file)) {
         attachment = await saveUploadedFile({
           file,
           folder: ['social'],

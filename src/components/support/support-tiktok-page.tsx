@@ -1146,11 +1146,16 @@ export function SupportTiktokPage({ embedded = false }: { embedded?: boolean }) 
           <>
             <button
               type="button"
-              onClick={openOrdersTab}
+              onClick={openUserOrdersTab}
               className="btn-kinetic rounded-full bg-brand-blue px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white"
             >
-              Đơn TikTok
+              {meta?.isSupport ? 'Đơn theo user' : 'Đơn của tôi'}
             </button>
+            {meta?.isSupport ? (
+              <Button type="button" variant="outline" onClick={openOrdersTab}>
+                Tất cả đơn
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" onClick={() => void loadMeta()} loading={loadingMeta} loadingText="Đang tải...">
               <RefreshCw className="mr-2 h-4 w-4" />
               Làm mới

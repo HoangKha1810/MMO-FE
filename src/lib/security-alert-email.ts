@@ -35,6 +35,111 @@ function escapeHtml(value: unknown) {
     .replace(/'/g, '&#039;');
 }
 
+function compactAlertText(value: unknown, limit = 2000) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, limit);
+}
+
+function detailValue(details: Record<string, unknown>, keys: string[], limit = 2000) {
+  for (const key of keys) {
+    const value = details[key];
+    if (value === undefined || value === null || value === '') {
+      continue;
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => compactAlertText(item, 120)).filter(Boolean).join(', ').slice(0, limit);
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value).slice(0, limit);
+    }
+    return compactAlertText(value, limit);
+  }
+  return '';
+}
+
+function detailNumber(details: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = Number(details[key]);
+    if (Number.isFinite(value) && value > 0) {
+      return Math.trunc(value);
+    }
+  }
+  return null;
+}
+
+async function resolveAlertUser(input: {
+  ip: string;
+  userId?: number | null;
+  username?: string | null;
+  email?: string | null;
+}) {
+  const directUserId = Math.trunc(Number(input.userId || 0));
+
+  if (directUserId && (!input.username || !input.email)) {
+    const rows = await db.$queryRawUnsafe<Array<{
+      id: number | bigint;
+      username: string | null;
+      email: string | null;
+      role: string | null;
+      status: string | null;
+    }>>(
+      'SELECT id, username, email, role, status FROM users WHERE id = ? LIMIT 1',
+      directUserId
+    ).catch(() => []);
+    if (rows[0]) {
+      return rows[0];
+    }
+  }
+
+  if (!input.username && !input.email && input.ip && input.ip !== 'unknown') {
+    const byLastIp = await db.$queryRawUnsafe<Array<{
+      id: number | bigint;
+      username: string | null;
+      email: string | null;
+      role: string | null;
+      status: string | null;
+    }>>(
+      `
+        SELECT id, username, email, role, status
+        FROM users
+        WHERE last_ip = ?
+        ORDER BY COALESCE(last_activity, last_login, updated_at, created_at) DESC, id DESC
+        LIMIT 1
+      `,
+      input.ip
+    ).catch(() => []);
+    if (byLastIp[0]) {
+      return byLastIp[0];
+    }
+
+    const byActivity = await db.$queryRawUnsafe<Array<{
+      id: number | bigint;
+      username: string | null;
+      email: string | null;
+      role: string | null;
+      status: string | null;
+    }>>(
+      `
+        SELECT u.id, u.username, u.email, u.role, u.status
+        FROM activity_logs al
+        JOIN users u ON u.id = al.user_id
+        WHERE al.ip_address = ?
+          AND al.user_id IS NOT NULL
+        ORDER BY al.created_at DESC, al.id DESC
+        LIMIT 1
+      `,
+      input.ip
+    ).catch(() => []);
+    if (byActivity[0]) {
+      return byActivity[0];
+    }
+  }
+
+  return null;
+}
+
 function cooldownMinutes() {
   const raw = Number(process.env.SECURITY_ALERT_EMAIL_COOLDOWN_MINUTES || 5);
   return Number.isFinite(raw) ? Math.max(0, Math.min(120, Math.trunc(raw))) : 5;
@@ -98,9 +203,10 @@ export async function sendSecurityAlertEmail(input: {
   force?: boolean;
 }) {
   const event = String(input.event || 'SECURITY_ALERT').trim().slice(0, 80);
-  const ip = String(input.ip || 'unknown').trim() || 'unknown';
+  const details = input.details || {};
+  const ip = String(input.ip || detailValue(details, ['ip', 'ip_address'], 80) || 'unknown').trim() || 'unknown';
   const severity = input.severity || 'HIGH';
-  const reason = String(input.reason || '').trim();
+  const reason = String(input.reason || detailValue(details, ['reason'], 2000) || '').trim();
   const cooldownKey = input.cooldownKey || `${event}:${ip}:${reason.slice(0, 80)}`;
 
   try {
@@ -108,17 +214,47 @@ export async function sendSecurityAlertEmail(input: {
       return { sent: false, skipped: true, reason: 'security-alert-cooldown' };
     }
 
+    const resolvedUser = await resolveAlertUser({
+      ip,
+      userId: input.userId || detailNumber(details, ['user_id', 'userId']),
+      username: input.username || detailValue(details, ['username']),
+      email: input.email || detailValue(details, ['email']),
+    });
+
+    const userId = input.userId || detailNumber(details, ['user_id', 'userId']) || Number(resolvedUser?.id || 0) || '';
+    const username = input.username || detailValue(details, ['username']) || resolvedUser?.username || '';
+    const email = input.email || detailValue(details, ['email']) || resolvedUser?.email || '';
+    const path = input.path || detailValue(details, ['path', 'request_path', 'uri']);
+    const method = input.method || detailValue(details, ['method', 'request_method']);
+    const userAgent = input.userAgent || detailValue(details, ['user_agent', 'userAgent', 'client_user_agent']);
+    const toolName = detailValue(details, ['tool_name', 'toolName', 'detected_tool', 'tool', 'runtime_marker', 'signal'], 500);
+    const toolType = detailValue(details, ['tool_type', 'toolType', 'execution_type', 'source'], 500);
+    const blockedPayload = detailValue(details, [
+      'attempted_code',
+      'attemptedCode',
+      'clipboard_text',
+      'payload',
+      'payload_sample',
+      'code',
+      'command',
+      'snippet',
+      'runtime_marker',
+    ], 2200);
+
     const rows = [
       ['Mức độ', severity],
       ['Sự kiện', event],
       ['IP', ip],
-      ['User ID', input.userId || ''],
-      ['Username', input.username || ''],
-      ['Email', input.email || ''],
+      ['User ID', userId],
+      ['Username', username],
+      ['Email', email],
       ['Lý do', reason],
-      ['Path', input.path || ''],
-      ['Method', input.method || ''],
-      ['User-Agent', input.userAgent || ''],
+      ['Hành vi/tool', toolName],
+      ['Loại tool', toolType],
+      ['Code/payload bị chặn', blockedPayload],
+      ['Path', path],
+      ['Method', method],
+      ['User-Agent', userAgent],
       ['Thời gian', new Date().toISOString()],
     ];
 

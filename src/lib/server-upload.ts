@@ -12,6 +12,17 @@ interface SaveUploadedFileInput {
   allowedExtensions?: string[];
 }
 
+export function isUploadFileLike(value: FormDataEntryValue | null | undefined): value is File {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    'arrayBuffer' in value &&
+    typeof (value as { arrayBuffer?: unknown }).arrayBuffer === 'function' &&
+    'size' in value &&
+    Number((value as { size?: unknown }).size || 0) > 0
+  );
+}
+
 function getSafeExtension(file: File) {
   return path.extname(file.name || '').replace('.', '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }

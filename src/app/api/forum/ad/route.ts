@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { createForumAd, getForumAdDetail, updateForumAd } from '@/lib/forum-actions';
-import { saveUploadedFile } from '@/lib/server-upload';
+import { isUploadFileLike, saveUploadedFile } from '@/lib/server-upload';
 
 export const runtime = 'nodejs';
 
@@ -25,7 +25,7 @@ async function readPayload(req: NextRequest) {
       adId: Number(getFormString(formData, 'ad_id') || 0),
       durationDays: Number(getFormString(formData, 'duration_days') || 30),
       linkUrl: getFormString(formData, 'link_url'),
-      imageFile: imageFile instanceof File && imageFile.size > 0 ? imageFile : null,
+      imageFile: isUploadFileLike(imageFile) ? imageFile : null,
     };
   }
 

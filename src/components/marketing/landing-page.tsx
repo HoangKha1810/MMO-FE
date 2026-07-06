@@ -280,24 +280,24 @@ export function LandingPage() {
         className={`fixed left-0 right-0 top-0 z-50 transition-all duration-500 ${
           scrolled
             ? 'border-b border-slate-200/70 bg-white/80 py-3 backdrop-blur-2xl dark:border-white/[0.06] dark:bg-[#04080f]/80'
-            : 'py-5'
+            : 'py-4'
         }`}
       >
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="flex items-center justify-between">
 
             {/* Logo */}
-            <Link href="/" className="group flex min-w-0 items-center gap-3">
-              <div className="relative flex min-w-0 items-center justify-center rounded-[1.35rem] border border-slate-200/70 bg-white/78 px-2.5 py-2 shadow-[0_18px_44px_-28px_rgba(37,99,235,0.34)] transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-brand-blue/30 group-hover:shadow-[0_26px_60px_-30px_rgba(37,99,235,0.42)] dark:border-white/10 dark:bg-white/[0.04] sm:px-3">
-                <div className="absolute inset-0 rounded-[1.35rem] bg-brand-blue/12 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
+            <Link href="/" className="group flex min-w-0 items-center gap-2.5 self-center">
+              <div className="relative flex min-w-0 items-center justify-center rounded-[1rem] border border-slate-200/70 bg-white/78 px-2 py-1.5 shadow-[0_18px_44px_-30px_rgba(37,99,235,0.34)] transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-brand-blue/30 group-hover:shadow-[0_26px_60px_-32px_rgba(37,99,235,0.42)] dark:border-white/10 dark:bg-white/[0.04] sm:px-2.5">
+                <div className="absolute inset-0 rounded-[1rem] bg-brand-blue/12 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
                 <img
                   src="/logo.gif"
                   alt="TRUNGTAMMMO"
-                  className="relative z-10 h-8 w-auto object-contain sm:h-12"
+                  className="relative z-10 h-7 w-auto object-contain sm:h-8 lg:h-9"
                 />
               </div>
               <div className="hidden min-[440px]:block">
-                <BrandForestWordmark className="text-[0.7rem] text-slate-900 dark:text-white sm:text-[0.84rem]" />
+                <BrandForestWordmark className="text-[0.64rem] text-slate-900 dark:text-white sm:text-[0.72rem]" />
               </div>
             </Link>
 

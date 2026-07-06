@@ -10,6 +10,8 @@ type SecuritySeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 type SecurityUser = {
   id: number;
+  username: string | null;
+  email: string | null;
   role: string | null;
   status: string | null;
 };
@@ -86,6 +88,27 @@ function compactText(value: unknown, limit: number) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, limit);
+}
+
+function detailValue(details: Record<string, unknown> | null | undefined, keys: string[], limit = 1000) {
+  if (!details) {
+    return '';
+  }
+
+  for (const key of keys) {
+    const value = details[key];
+    if (value === undefined || value === null || value === '') {
+      continue;
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => compactText(item, 120)).filter(Boolean).join(', ').slice(0, limit);
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value).slice(0, limit);
+    }
+    return compactText(value, limit);
+  }
+  return '';
 }
 
 function normalizeEventType(value: unknown) {
@@ -191,10 +214,51 @@ async function readSecurityUser(userId: number | null | undefined): Promise<Secu
     where: { id: safeUserId },
     select: {
       id: true,
+      username: true,
+      email: true,
       role: true,
       status: true,
     },
   }).catch(() => null);
+}
+
+async function readSecurityUserByRecentIp(ip: string): Promise<SecurityUser | null> {
+  if (!isTrackableIp(ip)) {
+    return null;
+  }
+
+  const byLastIp = await db.$queryRawUnsafe<SecurityUser[]>(
+    `
+      SELECT id, username, email, role, status
+      FROM users
+      WHERE last_ip = ?
+      ORDER BY COALESCE(last_activity, last_login, updated_at, created_at) DESC, id DESC
+      LIMIT 1
+    `,
+    ip
+  ).catch(() => []);
+  if (byLastIp[0]) {
+    return byLastIp[0];
+  }
+
+  const byActivity = await db.$queryRawUnsafe<SecurityUser[]>(
+    `
+      SELECT u.id, u.username, u.email, u.role, u.status
+      FROM activity_logs al
+      JOIN users u ON u.id = al.user_id
+      WHERE al.ip_address = ?
+        AND al.user_id IS NOT NULL
+      ORDER BY al.created_at DESC, al.id DESC
+      LIMIT 1
+    `,
+    ip
+  ).catch(() => []);
+
+  return byActivity[0] || null;
+}
+
+async function resolveSecurityUser(userId: number | null | undefined, ip: string): Promise<SecurityUser | null> {
+  return await readSecurityUser(userId) || await readSecurityUserByRecentIp(ip);
 }
 
 function isPrivilegedRole(role: unknown) {
@@ -223,6 +287,13 @@ async function banSecuritySubject(input: {
   ip: string;
   user: SecurityUser | null;
   reason: string;
+  eventType: string;
+  path: string;
+  method: string;
+  userAgent: string;
+  field?: string | null;
+  payload?: string | null;
+  details?: Record<string, unknown> | null;
 }) {
   if (isTrackableIp(input.ip)) {
     const updated = await db.$executeRawUnsafe(
@@ -267,10 +338,19 @@ async function banSecuritySubject(input: {
     severity: 'CRITICAL',
     ip: input.ip,
     userId: input.user?.id || null,
+    username: input.user?.username || null,
+    email: input.user?.email || null,
     reason: input.reason,
+    path: input.path,
+    method: input.method,
+    userAgent: input.userAgent,
     details: {
+      event_type: input.eventType,
       role: input.user?.role || null,
       user_status_before: input.user?.status || null,
+      field: input.field || null,
+      payload: input.payload || null,
+      ...input.details,
     },
     cooldownKey: `security-ban:${input.ip}:${input.user?.id || 'ip'}`,
   }).catch(() => undefined);
@@ -283,8 +363,9 @@ export async function recordSecurityEvent(req: NextRequest, input: SecurityEvent
   const userAgent = compactText(req.headers.get('user-agent'), 500);
   const eventType = normalizeEventType(input.eventType);
   const field = compactText(input.field, 100) || null;
-  const payload = compactText(input.payload || JSON.stringify(input.details || {}), 2000);
-  const user = await readSecurityUser(input.userId || null);
+  const rawDetails = input.details || {};
+  const payload = compactText(input.payload || JSON.stringify(rawDetails), 2000);
+  const user = await resolveSecurityUser(input.userId || null, ip);
   const score = scoreSecurityEvent({
     eventType,
     payload,
@@ -295,7 +376,29 @@ export async function recordSecurityEvent(req: NextRequest, input: SecurityEvent
   const riskScore = Math.min(100, score.riskScore + (recentHighRisk >= 2 ? 20 : 0));
   const severity = severityFromScore(riskScore);
   const shouldBan = riskScore >= 95 || (riskScore >= 80 && recentHighRisk >= 2);
-  const reason = `AI security guard blocked suspicious behavior: ${score.reasons.join(', ')}`;
+  const detectedTool = detailValue(rawDetails, ['tool_name', 'toolName', 'runtime_marker', 'signal'], 240);
+  const attemptedCode = detailValue(rawDetails, ['attempted_code', 'attemptedCode', 'payload', 'code', 'command'], 1200) || payload;
+  const reasonParts = [
+    `AI security guard blocked suspicious behavior: ${score.reasons.join(', ')}`,
+    detectedTool ? `tool=${detectedTool}` : '',
+  ].filter(Boolean);
+  const reason = reasonParts.join('; ');
+  const enrichedDetails = {
+    ...rawDetails,
+    event_type: eventType,
+    request_path: req.nextUrl.pathname,
+    request_method: req.method,
+    request_user_agent: userAgent,
+    user_id: user?.id || null,
+    username: user?.username || null,
+    email: user?.email || null,
+    role: user?.role || null,
+    user_status_before: user?.status || null,
+    detected_tool: detectedTool || null,
+    attempted_code: attemptedCode || null,
+    reasons: score.reasons,
+    risk_score: riskScore,
+  };
 
   await logSecurityEvent({
     eventType,
@@ -315,6 +418,13 @@ export async function recordSecurityEvent(req: NextRequest, input: SecurityEvent
       ip,
       user,
       reason,
+      eventType,
+      path: req.nextUrl.pathname,
+      method: req.method,
+      userAgent,
+      field,
+      payload,
+      details: enrichedDetails,
     });
   }
 
