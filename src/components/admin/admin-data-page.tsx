@@ -341,6 +341,12 @@ const COLUMN_LABELS: Record<string, string> = {
   last_seen_at: 'Cập nhật giá vốn',
 };
 const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
+  'vibe-code-packages': {
+    created_at: 'Ngày mua',
+  },
+  'vibe-code-orders': {
+    created_at: 'Ngày mua',
+  },
   'automxh-products': {
     category_id: 'Mục cha',
     name: 'Tên dịch vụ con / tab',

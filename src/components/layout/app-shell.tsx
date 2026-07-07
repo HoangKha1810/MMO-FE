@@ -183,7 +183,6 @@ const utilityLinks = [
 const quickActionLinks = [
   { href: '/rank', label: 'Bảo mật', icon: ShieldCheck },
   { href: '/two_factor_live', label: '2FA', icon: Shield },
-  { href: '/user/support-tiktok', label: 'Chat Support Tiktok', icon: Headset },
   { href: '/api', label: 'API', icon: Cpu },
 ];
 
@@ -515,6 +514,8 @@ export function AppShell({
   const isHome = pathname === '/user/home';
   const isSmmArea = pathname.startsWith('/user/smm');
   const isAutoMxhArea = pathname.startsWith('/user/automxh');
+  const forceDarkShell = !isAdmin && isAutoMxhArea;
+  const effectiveIsDark = forceDarkShell || isDark;
   const activeSmmPlatform = mounted && typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('platform') || ''
     : '';
@@ -601,8 +602,32 @@ export function AppShell({
     }
   }, [activeSmmPlatform, isSmmArea]);
 
+  useEffect(() => {
+    if (!forceDarkShell || typeof document === 'undefined') {
+      return;
+    }
+
+    const root = document.documentElement;
+    const hadDark = root.classList.contains('dark');
+    const hadLight = root.classList.contains('light');
+
+    root.classList.add('dark');
+    root.classList.remove('light');
+
+    return () => {
+      root.classList.toggle('dark', hadDark);
+      root.classList.toggle('light', hadLight);
+    };
+  }, [forceDarkShell]);
+
   function handleThemeToggle(event: React.MouseEvent<HTMLButtonElement>) {
     if (!mounted) {
+      return;
+    }
+
+    if (forceDarkShell) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
       return;
     }
 
@@ -660,7 +685,7 @@ export function AppShell({
   }
 
   return (
-    <div className={cn('site-shell h-dvh overflow-hidden', !isAdmin && 'mmo-app-shell')}>
+    <div className={cn('site-shell h-dvh overflow-hidden', !isAdmin && 'mmo-app-shell', forceDarkShell && 'dark mmo-force-dark')}>
       <div className="flex h-dvh overflow-hidden">
 
         {/* Backdrop overlay */}
@@ -1178,13 +1203,13 @@ export function AppShell({
                 type="button"
                 onClick={handleThemeToggle}
                 className="theme-switch-shell group border border-slate-200/80 bg-white/80 transition-all hover:-translate-y-0.5 dark:border-white/8 dark:bg-white/[0.04]"
-                data-mode={mounted && isDark ? 'dark' : 'light'}
+                data-mode={mounted && effectiveIsDark ? 'dark' : 'light'}
                 aria-label="Toggle theme"
               >
                 <Sun className="theme-switch-icon theme-switch-icon-sun h-3.5 w-3.5 text-amber-500" />
                 <Moon className="theme-switch-icon theme-switch-icon-moon h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
-                <span className={cn('theme-switch-thumb', mounted && isDark ? 'translate-x-[2.5rem]' : 'translate-x-0')}>
-                  {mounted && isDark ? <Moon className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" /> : <Sun className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" />}
+                <span className={cn('theme-switch-thumb', mounted && effectiveIsDark ? 'translate-x-[2.5rem]' : 'translate-x-0')}>
+                  {mounted && effectiveIsDark ? <Moon className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" /> : <Sun className="theme-switch-thumb-icon h-3.5 w-3.5 text-white" />}
                 </span>
               </button>
 

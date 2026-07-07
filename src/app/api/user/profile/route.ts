@@ -1,46 +1,18 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { db } from '@/lib/db';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
-import { isUploadFileLike } from '@/lib/server-upload';
+import { isUploadFileLike, saveUploadedFile } from '@/lib/server-upload';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
-const avatarExtensions = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+const AVATAR_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
 function getFormString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function getSafeExtension(file: File) {
-  const ext = path.extname(file.name || '').replace('.', '').toLowerCase();
-  return ext.replace(/[^a-z0-9]/g, '');
-}
-
-async function saveAvatarFile(file: File, userId: number) {
-  const ext = getSafeExtension(file);
-
-  if (!ext || !avatarExtensions.has(ext)) {
-    throw new Error('Ảnh avatar không hợp lệ. Chỉ hỗ trợ JPG, PNG, WEBP hoặc GIF.');
-  }
-
-  if (file.size > MAX_AVATAR_SIZE) {
-    throw new Error('Avatar quá lớn. Giới hạn tối đa 5MB.');
-  }
-
-  const filename = `avatar_${userId}_${Date.now()}_${randomBytes(4).toString('hex')}.${ext}`;
-  const relativeDir = path.posix.join('uploads', 'avatars');
-  const targetDir = path.join(process.cwd(), 'public', relativeDir);
-  await fs.mkdir(targetDir, { recursive: true });
-  await fs.writeFile(path.join(targetDir, filename), Buffer.from(await file.arrayBuffer()));
-
-  return path.posix.join(relativeDir, filename);
 }
 
 function parseBirthday(value: string) {
@@ -82,7 +54,13 @@ export async function PATCH(req: NextRequest) {
     if (removeAvatar) {
       nextAvatarPath = null;
     } else if (isUploadFileLike(avatarFile)) {
-      nextAvatarPath = await saveAvatarFile(avatarFile, userId);
+      nextAvatarPath = await saveUploadedFile({
+        file: avatarFile,
+        folder: ['avatars'],
+        prefix: `avatar_${userId}`,
+        maxSize: MAX_AVATAR_SIZE,
+        allowedExtensions: AVATAR_EXTENSIONS,
+      });
     }
 
     const updatedUser = await db.users.update({

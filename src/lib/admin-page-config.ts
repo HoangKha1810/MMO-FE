@@ -161,7 +161,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       resource: 'vibe-code-packages',
       title: 'Bảng giá Vibe Code',
       description: 'Chỉnh giá nguồn và giá bán Cursor AI/Codex API. Khách chỉ thấy giá bán, admin giữ giá nguồn để tính lời.',
-      columns: ['id', 'provider', 'package_key', 'title', 'unit_amount', 'unit_label', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status', 'updated_at'],
+      columns: ['id', 'provider', 'package_key', 'title', 'unit_amount', 'unit_label', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status', 'created_at'],
       editableFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
       createFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
       statusOptions: ['active', 'inactive'],

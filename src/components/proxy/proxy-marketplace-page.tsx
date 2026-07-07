@@ -3,17 +3,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  CheckCircle2,
   Cloud,
   Copy,
   KeyRound,
   Loader2,
+  Minus,
+  Plus,
   RefreshCcw,
   Server,
   ShieldCheck,
   ShoppingCart,
   ChevronDown,
-  Wallet,
 } from 'lucide-react';
 import { useSessionUser, type SessionUser } from '@/hooks/use-session-user';
 import { useWalletBalance } from '@/components/layout/wallet-balance-context';
@@ -27,8 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState, MetricCard, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { EmptyState, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
 import { formatDatabaseDateTime } from '@/lib/date-time';
 import { formatCurrency } from '@/lib/utils';
 import type { ProxyMarketplaceOverview, ProxyOwnedItem, ProxyPackageRecord } from '@/types/proxy';
@@ -42,12 +41,130 @@ const locationLabels: Record<string, string> = {
   datacenter: 'Datacenter',
 };
 
+const PROXY_VAT_PERCENT = 8;
+
 function formatLocation(value: string) {
   return locationLabels[value] || value || 'Khác';
 }
 
 function buildProxyLine(item: ProxyOwnedItem) {
   return `${item.ipAddress}:${item.port}:${item.username}:${item.password}`;
+}
+
+function packageSearchText(item: ProxyPackageRecord) {
+  return `${item.name} ${item.location} ${item.type}`.toLowerCase();
+}
+
+function getPackageDisplayName(item: ProxyPackageRecord) {
+  const haystack = packageSearchText(item);
+  const isPrivate = haystack.includes('private');
+  const isShare = haystack.includes('share') || haystack.includes('shared');
+
+  if (haystack.includes('residential') || haystack.includes('resident')) {
+    if (isPrivate) return 'RESIDENT PRIVATE';
+    if (isShare) return 'RESIDENT SHARE';
+  }
+
+  if (haystack.includes('datacenter') || haystack.includes('data center')) {
+    if (isPrivate) return 'DATACENTER PRIVATE';
+    if (isShare) return 'DATACENTER SHARE';
+  }
+
+  return item.name;
+}
+
+function getPackageUsageLabel(item: ProxyPackageRecord) {
+  const haystack = packageSearchText(item);
+
+  if (haystack.includes('private')) {
+    return 'Dùng Riêng Cá Nhân';
+  }
+
+  if (haystack.includes('share') || haystack.includes('shared')) {
+    return 'Dùng Chung Mọi Người';
+  }
+
+  return item.label || formatLocation(item.location);
+}
+
+function getSafeInteger(value: string, min: number, max?: number) {
+  const parsed = Math.trunc(Number(value));
+  const fallback = Number.isFinite(parsed) ? parsed : min;
+  const lowerBounded = Math.max(min, fallback);
+  return typeof max === 'number' ? Math.min(max, lowerBounded) : lowerBounded;
+}
+
+function calculateProxySubtotal(item: ProxyPackageRecord, dayValue: string, quantityValue: string) {
+  const totalDays = getSafeInteger(dayValue, item.minDays);
+  const totalQuantity = getSafeInteger(quantityValue, 1, item.maxQuantity);
+  return item.sellPricePerDay * totalDays * totalQuantity;
+}
+
+function calculateProxyTotal(item: ProxyPackageRecord, dayValue: string, quantityValue: string) {
+  const subtotal = calculateProxySubtotal(item, dayValue, quantityValue);
+  return Math.round(subtotal + (subtotal * PROXY_VAT_PERCENT) / 100);
+}
+
+function NumberStepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+  onInteract,
+}: {
+  label: string;
+  value: string;
+  min: number;
+  max?: number;
+  onChange: (value: string) => void;
+  onInteract?: () => void;
+}) {
+  function commit(nextValue: number) {
+    const clamped = typeof max === 'number' ? Math.min(max, Math.max(min, nextValue)) : Math.max(min, nextValue);
+    onChange(String(clamped));
+  }
+
+  return (
+    <div className="flex h-11 w-full max-w-[11rem] overflow-hidden rounded-[0.75rem] border border-slate-200 bg-white shadow-[0_12px_28px_-24px_rgba(15,23,42,0.42)] dark:border-white/10 dark:bg-white/[0.04]">
+      <button
+        type="button"
+        aria-label={`Giảm ${label}`}
+        className="flex w-11 shrink-0 items-center justify-center border-r border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-brand-blue dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+        onClick={() => {
+          onInteract?.();
+          commit(getSafeInteger(value, min, max) - 1);
+        }}
+      >
+        <Minus className="h-4 w-4" />
+      </button>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        aria-label={label}
+        onFocus={onInteract}
+        onChange={(event) => {
+          onInteract?.();
+          onChange(event.target.value);
+        }}
+        onBlur={() => onChange(String(getSafeInteger(value, min, max)))}
+        className="min-w-0 flex-1 border-0 bg-transparent px-2 text-center text-sm font-black text-slate-950 outline-none dark:text-white"
+      />
+      <button
+        type="button"
+        aria-label={`Tăng ${label}`}
+        className="flex w-11 shrink-0 items-center justify-center border-l border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-brand-blue dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+        onClick={() => {
+          onInteract?.();
+          commit(getSafeInteger(value, min, max) + 1);
+        }}
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
 
 export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps) {
@@ -135,16 +252,6 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
     });
   }, [overview?.settings.defaultProtocol, selectedPackage?.id]);
 
-  const estimatedTotal = useMemo(() => {
-    if (!selectedPackage) {
-      return 0;
-    }
-
-    const totalDays = Math.max(selectedPackage.minDays, Number(days || 0));
-    const totalQuantity = Math.max(1, Number(quantity || 0));
-    return selectedPackage.sellPricePerDay * totalDays * totalQuantity;
-  }, [days, quantity, selectedPackage]);
-
   const selectedProxies = useMemo(
     () => proxies.filter((item) => selectedProxyIds.includes(item.id)),
     [proxies, selectedProxyIds]
@@ -191,15 +298,32 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
     }
   }
 
-  async function handleBuy() {
-    if (!selectedPackage) {
+  function focusPackage(item: ProxyPackageRecord) {
+    if (selectedPackageId === item.id) {
+      return;
+    }
+
+    setSelectedPackageId(item.id);
+    setQuantity('1');
+    setDays(String(item.minDays));
+  }
+
+  async function handleBuy(packageToBuy?: ProxyPackageRecord | null, draft?: { days: string; quantity: string }) {
+    if (!packageToBuy) {
       toast.error('Bạn chưa chọn gói proxy');
       return;
     }
 
+    const totalDays = getSafeInteger(draft?.days ?? days, packageToBuy.minDays);
+    const totalQuantity = getSafeInteger(draft?.quantity ?? quantity, 1, packageToBuy.maxQuantity);
+    const totalPrice = calculateProxyTotal(packageToBuy, String(totalDays), String(totalQuantity));
+    setSelectedPackageId(packageToBuy.id);
+    setDays(String(totalDays));
+    setQuantity(String(totalQuantity));
+
     const confirmed = await confirm({
       title: 'Xác nhận mua proxy',
-      description: `Bạn sắp thanh toán ${formatCurrency(estimatedTotal)} cho gói ${selectedPackage.name} (${Math.max(selectedPackage.minDays, Number(days || 0))} ngày · ${Math.max(1, Number(quantity || 0))} proxy). Hệ thống sẽ trừ tiền ngay khi bạn xác nhận.`,
+      description: `Bạn sắp thanh toán ${formatCurrency(totalPrice)} cho gói ${getPackageDisplayName(packageToBuy)} (${totalDays} ngày · ${totalQuantity} proxy). Hệ thống sẽ trừ tiền ngay khi bạn xác nhận.`,
       confirmText: 'Thanh toán ngay',
       cancelText: 'Kiểm tra lại',
       tone: 'brand',
@@ -212,9 +336,9 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
     const result = await submitAction(
       {
         action: 'buy',
-        packageId: selectedPackage.id,
-        days: Number(days || selectedPackage.minDays),
-        quantity: Number(quantity || 1),
+        packageId: packageToBuy.id,
+        days: totalDays,
+        quantity: totalQuantity,
         protocol,
         username,
         password,
@@ -324,272 +448,231 @@ export function ProxyMarketplacePage({ initialUser }: ProxyMarketplacePageProps)
         ) : null}
       </PageHero>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <SectionPanel className="space-y-5">
-          <SectionHeader
-            eyebrow="Packages"
-            title="Chọn gói proxy phù hợp"
-            description="Danh sách package được lấy trực tiếp từ vendor và áp dụng giá bán / ngày theo cấu hình admin hiện tại."
-            actions={
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { key: 'all', label: 'Tất cả' },
-                  { key: 'residential', label: 'Residential' },
-                  { key: 'datacenter', label: 'Datacenter' },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setLocationFilter(item.key)}
-                    className={`rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] transition-all ${
-                      locationFilter === item.key
-                        ? 'border-brand-blue bg-brand-blue text-white'
-                        : 'border-slate-200/80 bg-white/80 text-slate-500 hover:border-brand-blue/25 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            }
-          />
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-slate-400">
-              <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-              Đang tải gói proxy
+      <SectionPanel className="space-y-5">
+        <SectionHeader
+          eyebrow="Packages"
+          title="Chọn gói proxy phù hợp"
+          description="Mỗi gói có form mua nhanh riêng: chọn số lượng, số ngày, giao thức mạng và thông tin username/password trước khi đăng ký."
+          actions={
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'all', label: 'Tất cả' },
+                { key: 'residential', label: 'Residential' },
+                { key: 'datacenter', label: 'Datacenter' },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setLocationFilter(item.key)}
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] transition-all ${
+                    locationFilter === item.key
+                      ? 'border-brand-blue bg-brand-blue text-white'
+                      : 'border-slate-200/80 bg-white/80 text-slate-500 hover:border-brand-blue/25 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
-          ) : loadError && !overview ? (
-            <EmptyState
-              title="Không tải được dữ liệu proxy"
-              description={loadError}
-              icon={<ShieldCheck className="h-5 w-5" />}
-            />
-          ) : !overview?.settings.envConfigured ? (
-            <EmptyState
-              title="Chưa cấu hình token proxy"
-              description="Admin cần thêm PROXY_VNCLOUD_TOKEN vào env trước khi module proxy có thể hiển thị package và xử lý đơn mua."
-              icon={<ShieldCheck className="h-5 w-5" />}
-            />
-          ) : overview?.vendorError ? (
-            <EmptyState
-              title="Không đọc được package từ vendor"
-              description={overview.vendorError}
-              icon={<Cloud className="h-5 w-5" />}
-            />
-          ) : visiblePackages.length === 0 ? (
-            <EmptyState
-              title="Chưa có package đang mở bán"
-              description="Hiện chưa có gói proxy phù hợp với bộ lọc hoặc admin đang tắt toàn bộ package."
-              icon={<Cloud className="h-5 w-5" />}
-            />
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {visiblePackages.map((item) => {
-                const active = selectedPackage?.id === item.id;
-                return (
-                  <article
-                    key={item.id}
-                    className={`rounded-[1.5rem] border p-5 transition-all ${
-                      active
-                        ? 'border-brand-blue/30 bg-brand-blue/10 shadow-[0_24px_52px_-34px_rgba(37,99,235,0.55)]'
-                        : 'border-slate-200/80 bg-white/78 hover:border-brand-blue/20 hover:bg-white dark:border-white/10 dark:bg-white/[0.035]'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-blue/15 bg-brand-blue/10 text-brand-blue">
-                        {item.location === 'datacenter' ? <Server className="h-5 w-5" /> : <Cloud className="h-5 w-5" />}
-                      </div>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Badge variant="info" className="rounded-full px-3 py-1.5">{formatLocation(item.location)}</Badge>
-                        <Badge variant="muted" className="rounded-full px-3 py-1.5">{item.type}</Badge>
-                      </div>
-                    </div>
+          }
+        />
 
-                    <div className="mt-4">
-                      <h3 className="text-lg font-black uppercase leading-[1.15] tracking-[-0.03em] text-slate-950 dark:text-white">
-                        {item.name}
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-slate-400">
+            <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+            Đang tải gói proxy
+          </div>
+        ) : loadError && !overview ? (
+          <EmptyState
+            title="Không tải được dữ liệu proxy"
+            description={loadError}
+            icon={<ShieldCheck className="h-5 w-5" />}
+          />
+        ) : !overview?.settings.envConfigured ? (
+          <EmptyState
+            title="Chưa cấu hình token proxy"
+            description="Admin cần thêm PROXY_VNCLOUD_TOKEN vào env trước khi module proxy có thể hiển thị package và xử lý đơn mua."
+            icon={<ShieldCheck className="h-5 w-5" />}
+          />
+        ) : overview?.vendorError ? (
+          <EmptyState
+            title="Không đọc được package từ vendor"
+            description={overview.vendorError}
+            icon={<Cloud className="h-5 w-5" />}
+          />
+        ) : visiblePackages.length === 0 ? (
+          <EmptyState
+            title="Chưa có package đang mở bán"
+            description="Hiện chưa có gói proxy phù hợp với bộ lọc hoặc admin đang tắt toàn bộ package."
+            icon={<Cloud className="h-5 w-5" />}
+          />
+        ) : (
+          <div className="grid gap-5 lg:grid-cols-2">
+            {visiblePackages.map((item) => {
+              const active = selectedPackage?.id === item.id;
+              const cardDays = active ? days : String(item.minDays);
+              const cardQuantity = active ? quantity : '1';
+              const basePrice = calculateProxySubtotal(item, String(item.minDays), '1');
+              const cardTotal = calculateProxyTotal(item, cardDays, cardQuantity);
+              const displayName = getPackageDisplayName(item);
+              const usageLabel = getPackageUsageLabel(item);
+
+              return (
+                <article
+                  key={item.id}
+                  onFocusCapture={() => focusPackage(item)}
+                  className={`rounded-[1rem] border p-5 shadow-sm transition-all ${
+                    active
+                      ? 'border-brand-blue/35 bg-white shadow-[0_28px_70px_-50px_rgba(37,99,235,0.55)] dark:bg-white/[0.07]'
+                      : 'border-slate-200/80 bg-white/90 hover:border-brand-blue/25 hover:shadow-[0_24px_60px_-52px_rgba(15,23,42,0.42)] dark:border-white/10 dark:bg-white/[0.035]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <h3 className="break-words text-xl font-black uppercase leading-[1.15] tracking-normal text-slate-950 dark:text-white">
+                        {displayName}
                       </h3>
-                      {item.label ? (
-                        <div className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-500">
-                          {item.label}
-                        </div>
-                      ) : null}
-                      <p className="mt-3 text-sm font-semibold leading-7 text-slate-500 dark:text-slate-400">
-                        {item.note || `Tối thiểu ${item.minDays} ngày, tối đa ${item.maxQuantity} proxy cho mỗi lần mua.`}
+                      <p className="mt-2 text-sm font-semibold leading-6 text-slate-500 dark:text-slate-300">
+                        {usageLabel}
                       </p>
                     </div>
+                    <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.85rem] border border-brand-blue/15 bg-brand-blue/10 text-brand-blue">
+                      {item.location === 'datacenter' ? <Server className="h-5 w-5" /> : <Cloud className="h-5 w-5" />}
+                    </div>
+                  </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-3">
-                      <div className="rounded-[1.15rem] bg-slate-50 px-4 py-3 dark:bg-white/[0.04]">
-                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Giá / ngày</div>
-                        <div className="mt-2 text-base font-black text-brand-blue">{formatCurrency(item.sellPricePerDay)}</div>
-                      </div>
-                      <div className="rounded-[1.15rem] bg-slate-50 px-4 py-3 dark:bg-white/[0.04]">
-                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Gia hạn / ngày</div>
-                        <div className="mt-2 text-base font-black text-slate-950 dark:text-white">{formatCurrency(item.renewPricePerDay)}</div>
-                      </div>
+                  <div className="mt-6 rounded-[0.9rem] border border-slate-100 bg-slate-50/90 px-4 py-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <div className="text-sm font-bold text-slate-500 dark:text-slate-300">Chi phí cơ bản</div>
+                    <div className="mt-1 flex flex-wrap items-end gap-2">
+                      <span className="font-mono text-3xl font-black leading-none tracking-normal text-rose-600 dark:text-rose-400">
+                        {formatCurrency(basePrice)}
+                      </span>
+                      <span className="pb-1 text-sm font-bold text-slate-500 dark:text-slate-300">/ {item.minDays} ngày</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.08em]">
+                      <span className="rounded-md bg-emerald-500 px-2 py-1 text-white">
+                        {item.label || 'Giá cấu hình'}
+                      </span>
+                      <span className="rounded-md bg-white px-2 py-1 text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">
+                        {formatCurrency(item.sellPricePerDay)} / ngày
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Số lượng Proxy</span>
+                      <NumberStepper
+                        label="số lượng proxy"
+                        value={cardQuantity}
+                        min={1}
+                        max={item.maxQuantity}
+                        onInteract={() => focusPackage(item)}
+                        onChange={setQuantity}
+                      />
                     </div>
 
-                    <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
-                      <span>{item.durationDays} ngày chuẩn</span>
-                      <span>•</span>
-                      <span>Vendor: {formatCurrency(item.providerPrice)}</span>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Số ngày duy trì</span>
+                      <NumberStepper
+                        label="số ngày duy trì"
+                        value={cardDays}
+                        min={item.minDays}
+                        onInteract={() => focusPackage(item)}
+                        onChange={setDays}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Giao thức Mạng</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => focusPackage(item)}
+                            className="field-elevated flex h-11 w-full max-w-[11rem] items-center justify-between rounded-[0.75rem] px-4 text-left text-sm font-black text-slate-900 outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
+                          >
+                            <span>{protocol}</span>
+                            <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-slate-400" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-[1rem]">
+                          {(['HTTP', 'SOCKS5'] as const).map((protocolItem) => (
+                            <DropdownMenuItem
+                              key={protocolItem}
+                              className={protocol === protocolItem ? 'bg-brand-blue/10 text-brand-blue' : ''}
+                              onClick={() => {
+                                focusPackage(item);
+                                setProtocol(protocolItem);
+                              }}
+                            >
+                              {protocolItem}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 rounded-[0.9rem] border border-sky-100 bg-sky-50/80 p-4 dark:border-cyan-300/10 dark:bg-cyan-400/[0.06] sm:grid-cols-2">
+                    <label className="space-y-2">
+                      <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">Username</span>
+                      <Input
+                        value={username}
+                        onFocus={() => focusPackage(item)}
+                        onChange={(event) => {
+                          focusPackage(item);
+                          setUsername(event.target.value);
+                        }}
+                        placeholder="random"
+                        className="bg-white/90 dark:bg-white/[0.04]"
+                      />
+                    </label>
+                    <label className="space-y-2">
+                      <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">Password</span>
+                      <Input
+                        value={password}
+                        onFocus={() => focusPackage(item)}
+                        onChange={(event) => {
+                          focusPackage(item);
+                          setPassword(event.target.value);
+                        }}
+                        placeholder="random"
+                        className="bg-white/90 dark:bg-white/[0.04]"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-5 border-t border-slate-100 pt-5 dark:border-white/10">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm font-bold text-slate-500 dark:text-slate-300">Cần thanh toán:</span>
+                      <span className="font-mono text-xl font-black tracking-normal text-rose-600 dark:text-rose-400">
+                        {formatCurrency(cardTotal)}
+                      </span>
                     </div>
 
                     <Button
                       type="button"
-                      className="mt-5 w-full"
-                      variant={active ? 'secondary' : 'default'}
-                      onClick={() => {
-                        setSelectedPackageId(item.id);
-                        setDays(String(item.minDays));
-                      }}
+                      className="mt-4 w-full"
+                      onClick={() => void handleBuy(item, { days: cardDays, quantity: cardQuantity })}
+                      disabled={
+                        submitting ||
+                        !overview?.settings.envConfigured ||
+                        overview?.settings.serviceStatus === 'maintenance'
+                      }
+                      loading={submitting && active}
+                      loadingText="Đang gửi đơn..."
                     >
-                      {active ? 'Đang chọn' : 'Chọn gói này'}
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      Đăng ký ngay
                     </Button>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </SectionPanel>
-
-        <div className="space-y-4">
-          <MetricCard
-            label="Ước tính đơn"
-            value={selectedPackage ? formatCurrency(estimatedTotal) : '—'}
-            hint="Tổng tiền dựa trên giá / ngày và số lượng đang nhập."
-            tone="blue"
-            icon={<Wallet className="h-4 w-4" />}
-          />
-          <MetricCard
-            label="Protocol"
-            value={protocol}
-            hint="HTTP hoặc SOCKS5 theo chuẩn hỗ trợ từ vendor."
-            tone="emerald"
-            icon={<ShieldCheck className="h-4 w-4" />}
-          />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Mua Proxy</CardTitle>
-              <CardDescription>Chọn package, số ngày, số lượng và thông tin bảo mật để tạo đơn mua mới. Hệ thống sẽ hiện popup xác nhận tổng tiền trước khi trừ số dư.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <label className="space-y-2">
-                <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Package</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="field-elevated flex h-11 w-full items-center justify-between rounded-[1rem] px-4 text-left text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
-                    >
-                      <span className="truncate">
-                        {selectedPackage ? `${selectedPackage.name} - ${formatLocation(selectedPackage.location)}` : 'Chọn package'}
-                      </span>
-                      <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-slate-400" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-[1rem]">
-                    {packages.filter((item) => item.enabled).map((item) => (
-                      <DropdownMenuItem
-                        key={item.id}
-                        className={selectedPackage?.id === item.id ? 'bg-brand-blue/10 text-brand-blue' : ''}
-                        onClick={() => setSelectedPackageId(item.id)}
-                      >
-                        {item.name} - {formatLocation(item.location)}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </label>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Số ngày</span>
-                  <Input
-                    type="number"
-                    min={selectedPackage?.minDays || 1}
-                    value={days}
-                    onChange={(event) => setDays(event.target.value)}
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Số lượng</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={selectedPackage?.maxQuantity || 1}
-                    value={quantity}
-                    onChange={(event) => setQuantity(event.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Protocol</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="field-elevated flex h-11 w-full items-center justify-between rounded-[1rem] px-4 text-left text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:text-white"
-                      >
-                        <span>{protocol}</span>
-                        <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-slate-400" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-[1rem]">
-                      {(['HTTP', 'SOCKS5'] as const).map((item) => (
-                        <DropdownMenuItem
-                          key={item}
-                          className={protocol === item ? 'bg-brand-blue/10 text-brand-blue' : ''}
-                          onClick={() => setProtocol(item)}
-                        >
-                          {item}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </label>
-                <div className="rounded-[1.2rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tổng thanh toán</div>
-                  <div className="mt-2 text-lg font-black text-brand-blue">{selectedPackage ? formatCurrency(estimatedTotal) : '—'}</div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Username</span>
-                  <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="random" />
-                </label>
-                <label className="space-y-2">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Password</span>
-                  <Input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="random" />
-                </label>
-              </div>
-
-              <Button
-                type="button"
-                className="w-full"
-                onClick={handleBuy}
-                disabled={
-                  submitting ||
-                  !overview?.settings.envConfigured ||
-                  overview?.settings.serviceStatus === 'maintenance' ||
-                  !selectedPackage
-                }
-                loading={submitting}
-                loadingText="Đang gửi đơn..."
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Mua proxy ngay
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </SectionPanel>
 
       <SectionPanel className="space-y-5">
         <SectionHeader

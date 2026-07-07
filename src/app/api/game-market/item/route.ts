@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { createOrUpdateGameItem, setGameItemState } from '@/lib/game-market-actions';
 import { parseGameMarketImageRefs } from '@/lib/game-market-media';
-import { isUploadFileLike, saveUploadedFileAsDataUrl } from '@/lib/server-upload';
+import { isUploadFileLike, saveUploadedFileAsDataUrl, type UploadedFileLike } from '@/lib/server-upload';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +20,7 @@ async function readPayload(req: NextRequest) {
 
   if (contentType.includes('multipart/form-data')) {
     const formData = await req.formData();
-    const uploadedFiles = formData.getAll('images').filter(isUploadFileLike);
+    const uploadedFiles = formData.getAll('images').filter(isUploadFileLike) as UploadedFileLike[];
 
     return {
       action: (getFormString(formData, 'action') || 'create').toLowerCase(),
@@ -69,7 +69,7 @@ async function readPayload(req: NextRequest) {
     accountDetails: String(body.account_details || ''),
     deliveryMethod: String(body.delivery_method || 'manual'),
     existingImages: parseGameMarketImageRefs(String(body.existing_images || body.images || '')),
-    uploadedFiles: [] as File[],
+    uploadedFiles: [] as UploadedFileLike[],
   };
 }
 

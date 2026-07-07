@@ -3,9 +3,11 @@
 import { type ComponentType, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  BookOpen,
   CheckCircle2,
   Clipboard,
   Copy,
+  ExternalLink,
   Loader2,
   PackageCheck,
   ShieldCheck,
@@ -52,6 +54,11 @@ type VibeCodeOrder = {
 
 type BrandIconProps = {
   className?: string;
+};
+
+const providerGuideLinks: Record<VibeCodeProvider, string> = {
+  cursor: 'https://docs.google.com/document/d/1AaDvqVCtJlUaRSUJKJREdDWxsO39-wvic8cFzO65Uc8/edit?tab=t.0#heading=h.yxvlhbnfy6no',
+  codex: 'https://docs.google.com/document/d/1OAwAPjZ5JH7Ws4CJAXTpFE6rVNPKkNGUtZ4UDuMIBxk/edit?usp=sharing',
 };
 
 function BrandLogoIcon({
@@ -539,6 +546,17 @@ function ProviderPricing({
                     </div>
                   ))}
                 </div>
+
+                <a
+                  href={providerGuideLinks[provider]}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[0.85rem] border border-cyan-400/25 bg-cyan-400/10 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-700 transition hover:border-cyan-400/45 hover:bg-cyan-400/18 dark:text-cyan-200"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Hướng dẫn sử dụng
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
               </div>
 
               <Button

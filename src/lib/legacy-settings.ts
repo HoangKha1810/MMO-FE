@@ -114,7 +114,7 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     color: 'from-cyan-500 to-blue-600',
     textColor: 'text-cyan-500',
     defaultTitle: 'VPS',
-    defaultDesc: 'Hosting & VPS tốc độ cao',
+    defaultDesc: 'VPS tốc độ cao, bảo mật, an toàn',
   },
   {
     key: 'vps_gpu',
@@ -374,7 +374,7 @@ const sidebarServiceDefinitions: ServiceDefinition[] = [
     color: 'from-slate-500 to-slate-700',
     textColor: 'text-slate-500',
     defaultTitle: 'Hosting VPS',
-    defaultDesc: 'Hosting & VPS tốc độ cao',
+    defaultDesc: 'VPS tốc độ cao, bảo mật, an toàn',
   },
   {
     key: '13',

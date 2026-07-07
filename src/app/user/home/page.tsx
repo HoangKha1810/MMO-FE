@@ -35,6 +35,14 @@ function normalizeHomeServiceTitle(service: ReturnType<typeof getHomeServiceGrid
   return service.title;
 }
 
+function normalizeHomeServiceDesc(service: ReturnType<typeof getHomeServiceGrid>[number]) {
+  if (service.href === '/vps' || service.key === '12') {
+    return 'VPS tốc độ cao, bảo mật, an toàn';
+  }
+
+  return service.desc;
+}
+
 async function getUser(userId: number) {
   try {
     const user = await db.users.findUnique({
@@ -134,6 +142,7 @@ export default async function HomePage() {
   const services = getHomeServiceGrid(settings).map((service, index) => ({
     ...service,
     title: normalizeHomeServiceTitle(service),
+    desc: normalizeHomeServiceDesc(service),
     index: index + 1,
   }));
   const sidebarServices = getSidebarServiceCatalog(settings);

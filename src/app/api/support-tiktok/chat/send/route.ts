@@ -6,23 +6,13 @@ import {
   getSupportTiktokContext,
   validateSupportTikTokChatOrder,
 } from '@/lib/support-tiktok';
-import { saveUploadedFile } from '@/lib/server-upload';
+import { isUploadFileLike, saveUploadedFile } from '@/lib/server-upload';
 
 function getClientIp(req: NextRequest) {
   return (
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip')?.trim() ||
     undefined
-  );
-}
-
-function isUploadFile(value: FormDataEntryValue | null): value is File {
-  return Boolean(
-    value &&
-    typeof value === 'object' &&
-    'arrayBuffer' in value &&
-    'size' in value &&
-    Number((value as { size?: unknown }).size || 0) > 0
   );
 }
 
@@ -74,7 +64,7 @@ export async function POST(req: NextRequest) {
     if (body instanceof FormData) {
       for (const key of ['attachment_file', 'image', 'file']) {
         const file = body.get(key);
-        if (isUploadFile(file)) {
+        if (isUploadFileLike(file)) {
           imageUrls.push(await saveUploadedFile({
             file,
             folder: ['support-tiktok', String(context.isSupport ? targetUserId || userId : userId)],

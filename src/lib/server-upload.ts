@@ -4,26 +4,33 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 
+export interface UploadedFileLike {
+  name?: string;
+  type?: string;
+  size: number;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+}
+
 interface SaveUploadedFileInput {
-  file: File;
+  file: UploadedFileLike;
   folder: string[];
   prefix: string;
   maxSize?: number;
   allowedExtensions?: string[];
 }
 
-export function isUploadFileLike(value: FormDataEntryValue | null | undefined): value is File {
+export function isUploadFileLike(value: unknown): value is UploadedFileLike {
+  const candidate = value && typeof value === 'object' ? (value as Partial<UploadedFileLike>) : null;
+
   return Boolean(
-    value &&
-    typeof value === 'object' &&
-    'arrayBuffer' in value &&
-    typeof (value as { arrayBuffer?: unknown }).arrayBuffer === 'function' &&
-    'size' in value &&
-    Number((value as { size?: unknown }).size || 0) > 0
+    candidate &&
+    typeof candidate.arrayBuffer === 'function' &&
+    Number.isFinite(Number(candidate.size)) &&
+    Number(candidate.size) > 0
   );
 }
 
-function getSafeExtension(file: File) {
+function getSafeExtension(file: UploadedFileLike) {
   return path.extname(file.name || '').replace('.', '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
@@ -54,7 +61,7 @@ function normalizeUploadInput(input: SaveUploadedFileInput) {
   };
 }
 
-function inferImageMimeType(file: File, ext: string) {
+function inferImageMimeType(file: UploadedFileLike, ext: string) {
   const rawType = String(file.type || '').trim().toLowerCase();
   if (rawType.startsWith('image/')) {
     return rawType;
