@@ -3461,10 +3461,16 @@ export async function runAdminAction(resource: string, input: Record<string, unk
     }
 
     if (resource === 'smm-services') {
-      const { listSmmServices } = await import('@/lib/smm-provider');
-      const services = await listSmmServices(true);
-      await logAdminAction({ adminId, action: 'sync smm services', target: `${services.length} services`, req });
-      return { success: true, count: services.length };
+      const { syncSmmApiPricesFromProvider } = await import('@/lib/smm-provider');
+      const providerId = Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
+      const result = await syncSmmApiPricesFromProvider(providerId || undefined);
+      await logAdminAction({
+        adminId,
+        action: 'sync smm api prices',
+        target: `${result.providerName} / ${result.fetched} fetched / ${result.changed} changed / keep custom price`,
+        req,
+      });
+      return { success: true, data: normalizeValue(result), count: result.fetched };
     }
 
     if (resource === 'providers') {
@@ -3473,6 +3479,19 @@ export async function runAdminAction(resource: string, input: Record<string, unk
       });
       return { success: true, affected: providers.count };
     }
+  }
+
+  if (resource === 'smm-services' && action === 'sync-api-price') {
+    const { syncSmmApiPricesFromProvider } = await import('@/lib/smm-provider');
+    const providerId = Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
+    const result = await syncSmmApiPricesFromProvider(providerId || undefined);
+    await logAdminAction({
+      adminId,
+      action: 'sync smm api prices',
+      target: `${result.providerName} / ${result.fetched} fetched / ${result.changed} changed / keep custom price`,
+      req,
+    });
+    return { success: true, data: normalizeValue(result), count: result.fetched };
   }
 
   if (action === 'check-new-deposits') {

@@ -75,7 +75,7 @@ interface SmmMarginDialogState {
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-const GLOBAL_ACTION_KEYS = new Set(['sync', 'check-new-deposits']);
+const GLOBAL_ACTION_KEYS = new Set(['sync', 'sync-api-price', 'check-new-deposits']);
 const LONG_TEXT_FIELD_TOKENS = ['description', 'content', 'message', 'payload', 'note', 'reason', 'key'];
 const LEGACY_COMMUNITY_LINKS = [
   { label: 'Nhóm Zalo', href: 'https://zalo.me/g/ejtvpx203' },
@@ -151,6 +151,7 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
 };
 const ACTION_TEXT_LABELS: Record<string, string> = {
   'Sync provider': 'Đồng bộ API',
+  'Đồng bộ giá API': 'Đồng bộ giá API',
   'Mark synced': 'Đánh dấu đã đồng bộ',
   'Check pending': 'Rà pending',
   Refund: 'Hoàn tiền',
@@ -158,6 +159,7 @@ const ACTION_TEXT_LABELS: Record<string, string> = {
 };
 const ACTION_KEY_LABELS: Record<string, string> = {
   sync: 'Đồng bộ',
+  'sync-api-price': 'Đồng bộ giá API',
   'check-new-deposits': 'Rà pending',
   refund: 'Hoàn tiền',
   approve: 'Duyệt',
@@ -871,6 +873,22 @@ function formatPriceValue(value: unknown) {
   return formatCurrency(toNumber(value, 0));
 }
 
+function formatSmmApiRateMeta(row: Record<string, unknown>) {
+  const providerData = parseJsonObject(row.provider_data);
+  const rawRate = providerData.raw_rate;
+  if (rawRate === null || rawRate === undefined || rawRate === '') return '';
+
+  const exchangeRate = toNumber(providerData.exchange_rate, 0);
+  const isPerUnit = isTruthy(providerData.is_per_unit);
+  const currency = String(providerData.raw_currency || '').trim();
+  const parts = [`Raw API ${formatNumber(toNumber(rawRate, 0))}${currency ? ` ${currency}` : ''}`];
+
+  if (isPerUnit) parts.push('x 1000');
+  if (exchangeRate > 0 && exchangeRate !== 1) parts.push(`x tỷ giá ${formatNumber(exchangeRate)}`);
+
+  return parts.join(' ');
+}
+
 function normalizePublicAssetPath(value: unknown) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -1571,10 +1589,15 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
 
     setSaving(true);
     try {
+      const actionPayload: Record<string, unknown> = { action, id, ids: actionIds };
+      if (section.resource === 'smm-services' && (action === 'sync' || action === 'sync-api-price')) {
+        actionPayload.provider_id = providerFilter || undefined;
+      }
+
       const response = await fetch(`/api/admin/${section.resource}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, id, ids: actionIds }),
+        body: JSON.stringify(actionPayload),
       });
       const payload = await readJsonResponse(response, 'Action thất bại');
       if (!payload.success) {
@@ -2065,6 +2088,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       const customPrice = toNumber(row.custom_price, 0);
                       const apiRate = toNumber(row.rate, 0);
                       const hasCustomPrice = customPrice > 0;
+                      const apiRateMeta = formatSmmApiRateMeta(row);
                       const serviceActive = isSmmServiceActive(row);
                       return (
                         <tr key={id} className="align-top transition hover:bg-white/[0.02]">
@@ -2117,6 +2141,11 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                                   <>Giá API {formatPriceValue(apiRate)}</>
                                 )}
                               </div>
+                              {apiRateMeta ? (
+                                <div className="text-[10px] font-semibold text-slate-500">
+                                  {apiRateMeta}
+                                </div>
+                              ) : null}
                               <div className="flex items-center justify-end gap-2">
                                 <span className={cn(
                                   'inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]',

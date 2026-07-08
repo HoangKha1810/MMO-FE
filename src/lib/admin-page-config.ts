@@ -83,7 +83,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       editableFields: ['name', 'custom_price', 'status', 'is_deleted', 'is_auto_margin', 'margin_percent', 'name_color', 'description', 'server_info'],
       statusOptions: ['active', 'inactive'],
       actions: [
-        { key: 'sync', label: 'Sync provider' },
+        { key: 'sync-api-price', label: 'Đồng bộ giá API' },
         { key: 'bulk-delete', label: 'Ẩn/Xóa đã chọn', tone: 'danger' },
       ],
     },

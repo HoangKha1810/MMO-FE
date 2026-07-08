@@ -75,6 +75,9 @@ interface PricingActionInput {
   targetField?: string;
   scope?: 'selected' | 'filtered';
   search?: string;
+  platform?: string;
+  provider?: string;
+  category?: string;
   confirm?: boolean;
 }
 
@@ -849,6 +852,8 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
   const ids = normalizeIds(input.ids);
   const search = String(input.search || '').trim();
   const scope = input.scope || 'selected';
+  const platform = String(input.platform || '').trim();
+  const provider = String(input.provider || '').trim();
   const category = String((input as Record<string, unknown>).category || '').trim();
 
   if (scope === 'selected' && ids.length === 0) {
@@ -861,6 +866,8 @@ export async function runPricingAction(input: PricingActionInput, adminId: numbe
 
   const { whereSql, values: whereValues } = buildWhereSql(config, columns, {
     search,
+    platform,
+    provider,
     category,
     categoryValues: autoMxhCategoryMeta && category
       ? autoMxhCategoryMeta.descendants.get(Number(category))?.map((item) => String(item)) || [category]

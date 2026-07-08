@@ -32,6 +32,7 @@ import { formatDatabaseDateTime } from '@/lib/date-time';
 import { cn, formatCurrency, formatNumber, toNumber } from '@/lib/utils';
 
 type PricingFieldKind = 'money' | 'percent' | 'number';
+type BulkScope = 'filtered' | 'selected';
 
 interface PricingField {
   key: string;
@@ -178,6 +179,7 @@ export function AdminPricingPage() {
   const [bulkPercent, setBulkPercent] = useState('60');
   const [bulkValue, setBulkValue] = useState('');
   const [targetFieldKey, setTargetFieldKey] = useState('');
+  const [bulkScope, setBulkScope] = useState<BulkScope>('filtered');
 
   const activeModule = useMemo(
     () => modules.find((module) => module.key === activeModuleKey) || modules[0] || null,
@@ -328,13 +330,19 @@ export function AdminPricingPage() {
 
   async function runBulk(action: 'bulk-percent' | 'bulk-set') {
     if (!activeModule || !targetFieldKey) return;
-    const hasSelected = selected.length > 0;
-    const applyFiltered = !hasSelected;
+    const useSelectedScope = bulkScope === 'selected';
+    const applyFiltered = bulkScope === 'filtered';
+
+    if (useSelectedScope && selected.length === 0) {
+      toast.error('Chọn ít nhất một dịch vụ hoặc đổi phạm vi sang toàn bộ đang lọc');
+      return;
+    }
 
     if (applyFiltered) {
+      const total = pagination?.total ?? items.length;
       const ok = await confirm({
         title: 'Áp dụng hàng loạt',
-        description: 'Bạn chưa chọn dòng nào. Áp dụng thao tác này cho toàn bộ module hoặc toàn bộ dữ liệu đang lọc?',
+        description: `Áp dụng thao tác này cho ${formatNumber(total)} dịch vụ trong toàn bộ dữ liệu đang lọc?`,
         confirmText: 'Áp dụng',
         cancelText: 'Hủy',
         tone: 'brand',
@@ -351,9 +359,11 @@ export function AdminPricingPage() {
               module: activeModule.key,
               targetField: targetFieldKey,
               percent: Number(bulkPercent),
-              ids: selected,
-              scope: hasSelected ? 'selected' : 'filtered',
+              ids: useSelectedScope ? selected : [],
+              scope: bulkScope,
               search,
+              platform: platformFilter,
+              provider: providerFilter,
               category: categoryFilter,
               confirm: applyFiltered,
             }
@@ -362,9 +372,11 @@ export function AdminPricingPage() {
               module: activeModule.key,
               targetField: targetFieldKey,
               fields: { [targetFieldKey]: bulkValue },
-              ids: selected,
-              scope: hasSelected ? 'selected' : 'filtered',
+              ids: useSelectedScope ? selected : [],
+              scope: bulkScope,
               search,
+              platform: platformFilter,
+              provider: providerFilter,
               category: categoryFilter,
               confirm: applyFiltered,
             };
@@ -379,7 +391,7 @@ export function AdminPricingPage() {
         throw new Error(payload.message || 'Không thể xử lý hàng loạt');
       }
 
-      toast.success(`Đã cập nhật ${formatNumber(Number(payload.affected || 0))} dịch vụ`);
+      toast.success(`Đã cập nhật ${formatNumber(Number(payload.affected || 0))} dịch vụ${applyFiltered ? ' trong toàn bộ dữ liệu đang lọc' : ' đã chọn'}`);
       void loadPricing();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể xử lý hàng loạt');
@@ -565,7 +577,7 @@ export function AdminPricingPage() {
             </>
           ) : null}
 
-          <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-[1fr_1fr_auto]">
+          <div className="grid gap-2 sm:grid-cols-4 xl:grid-cols-[1fr_1fr_1fr_auto]">
             <select
               value={targetFieldKey}
               onChange={(event) => setTargetFieldKey(event.target.value)}
@@ -574,6 +586,14 @@ export function AdminPricingPage() {
               {editableFields.map((field) => (
                 <option key={field.key} value={field.key}>{field.label}</option>
               ))}
+            </select>
+            <select
+              value={bulkScope}
+              onChange={(event) => setBulkScope(event.target.value as BulkScope)}
+              className="field-elevated h-11 rounded-[1rem] px-3 text-xs font-black uppercase tracking-wider outline-none dark:text-white"
+            >
+              <option value="filtered">Toàn bộ đang lọc ({formatNumber(pagination?.total ?? items.length)})</option>
+              <option value="selected">Dòng đã chọn ({formatNumber(selected.length)})</option>
             </select>
             <Input
               value={bulkPercent}

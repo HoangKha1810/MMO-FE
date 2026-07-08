@@ -44,6 +44,21 @@ interface SmmProviderConfig extends SmmProviderMeta {
   fromLegacySettings: boolean;
 }
 
+interface SyncSmmServicesOptions {
+  preserveCustomPrice?: boolean;
+}
+
+interface SyncSmmServicesSummary {
+  providerId: number;
+  providerName: string;
+  fetched: number;
+  created: number;
+  updated: number;
+  changed: number;
+  deactivated: number;
+  preservedCustomPrice: boolean;
+}
+
 export interface SmmServiceRecord {
   id: number;
   provider_id: number;
@@ -208,9 +223,24 @@ function inferRefillSupport(name: string, value: unknown, providerData: Record<s
   return false;
 }
 
-function buildSmmProviderData(rawProviderData: unknown, rawService: RawSmmService, normalizedName: string) {
+function buildSmmProviderData(
+  rawProviderData: unknown,
+  rawService: RawSmmService,
+  normalizedName: string,
+  config?: SmmProviderConfig,
+  normalizedRate?: number
+) {
   const providerData = parseJsonObject(rawProviderData);
   providerData.refill = inferRefillSupport(normalizedName, rawService.refill, providerData);
+  providerData.raw_rate = rawService.rate ?? providerData.raw_rate;
+  providerData.raw_currency = rawService.currency ?? providerData.raw_currency;
+  if (config) {
+    providerData.exchange_rate = config.exchangeRate;
+    providerData.is_per_unit = config.isPerUnit;
+  }
+  if (normalizedRate !== undefined) {
+    providerData.normalized_rate_vnd = normalizedRate;
+  }
   return JSON.stringify(providerData);
 }
 
@@ -610,8 +640,21 @@ function normalizeImportedRate(rawRate: unknown, config: SmmProviderConfig): num
   return Math.min(MAX_SMM_PRICE_DECIMAL_15_4, normalizedRate * Math.max(config.exchangeRate, 1));
 }
 
-async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<void> {
+async function syncSmmServicesFromProvider(
+  config: SmmProviderConfig,
+  options: SyncSmmServicesOptions = {}
+): Promise<SyncSmmServicesSummary> {
   const servicesRaw = await fetchProviderServices(config);
+  const summary: SyncSmmServicesSummary = {
+    providerId: config.providerId,
+    providerName: config.providerName,
+    fetched: servicesRaw.length,
+    created: 0,
+    updated: 0,
+    changed: 0,
+    deactivated: 0,
+    preservedCustomPrice: Boolean(options.preserveCustomPrice),
+  };
 
   const existingRows = await db.smm_services_cache.findMany({
     where: { provider_id: config.providerId },
@@ -645,7 +688,7 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
     const max = Math.max(min, Math.trunc(toNumber(rawService.max, min)));
     const type = normalizeWhitespace(String(rawService.type || 'Default')) || 'Default';
     const description = String(rawService.description || '').trim() || null;
-    const providerData = buildSmmProviderData(rawService.provider_data, rawService, normalizedName);
+    const providerData = buildSmmProviderData(rawService.provider_data, rawService, normalizedName, config, newRate);
 
     syncedIds.push(serviceId);
 
@@ -657,7 +700,7 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
       const marginPercent = toNumber(existing.margin_percent, 0);
       let customPrice = toNumber(existing.custom_price, 0);
 
-      if (changed && isAutoMargin) {
+      if (!options.preserveCustomPrice && changed && isAutoMargin) {
         customPrice = buildSmmPriceFromMargin(newRate, marginPercent);
       }
 
@@ -676,13 +719,15 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
           type,
           description,
           provider_data: providerData,
-          custom_price: customPrice > 0 ? customPrice : null,
+          ...(options.preserveCustomPrice ? {} : { custom_price: customPrice > 0 ? customPrice : null }),
           cached_at: new Date(),
           status: keepDisabled ? 'inactive' : 'active',
           is_deleted: Boolean(existing.is_deleted),
         },
       });
 
+      summary.updated += 1;
+      if (changed) summary.changed += 1;
       continue;
     }
 
@@ -704,10 +749,11 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
         cached_at: new Date(),
       },
     });
+    summary.created += 1;
   }
 
-  if (syncedIds.length > 0) {
-    await db.smm_services_cache.updateMany({
+  if (!options.preserveCustomPrice && syncedIds.length > 0) {
+    const deactivated = await db.smm_services_cache.updateMany({
       where: {
         provider_id: config.providerId,
         is_deleted: false,
@@ -717,9 +763,24 @@ async function syncSmmServicesFromProvider(config: SmmProviderConfig): Promise<v
         status: 'inactive',
       },
     });
+    summary.deactivated = deactivated.count;
+  }
+
+  if (config.providerId > 0) {
+    await db.api_providers.updateMany({
+      where: { id: config.providerId },
+      data: { last_sync: new Date(), health_status: 'online' },
+    }).catch(() => undefined);
   }
 
   servicesCache = null;
+  return summary;
+}
+
+export async function syncSmmApiPricesFromProvider(providerId?: number | null) {
+  const config = await loadProviderConfig(providerId);
+  clearSmmServicesCache();
+  return syncSmmServicesFromProvider(config, { preserveCustomPrice: true });
 }
 
 function normalizeCachedService(
