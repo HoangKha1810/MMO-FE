@@ -42,7 +42,7 @@ interface BlockedIpState {
   message: string;
 }
 
-const SUPPORT_URL = 'https://t.me/admin';
+const SUPPORT_URL = 'https://t.me/kaizxabc';
 
 const authSignals = [
   { icon: DatabaseZap, label: 'Quản lý dữ liệu người dùng' },
