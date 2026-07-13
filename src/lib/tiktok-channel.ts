@@ -5,7 +5,7 @@ import { getLegacySettingsMap, invalidateLegacySettingsCache } from '@/lib/legac
 import { toNumber } from '@/lib/utils';
 
 const DEFAULT_KENHGIARE_API_BASE_URL = 'https://kenhgiare.vn/api/partner/v1';
-const DEFAULT_MARGIN_PERCENT = 20;
+const DEFAULT_MARGIN_PERCENT = 80;
 const DEFAULT_SYNC_PAGE_LIMIT = 100;
 const MAX_SYNC_PAGES = 30;
 
@@ -345,6 +345,16 @@ async function ensureKenhGiaReSettings() {
       );
     }
   }
+
+  await db.$executeRawUnsafe(
+    `
+      UPDATE settings
+      SET setting_value = ?, updated_at = NOW()
+      WHERE setting_key = 'kenhgiare_default_margin_percent'
+        AND (setting_value IS NULL OR setting_value = '' OR setting_value = '20')
+    `,
+    String(DEFAULT_MARGIN_PERCENT)
+  );
 }
 
 export async function ensureTikTokChannelTables() {
@@ -428,9 +438,12 @@ export async function getKenhGiaReConfig() {
       settings.kenhgiare_api_base_url ||
       DEFAULT_KENHGIARE_API_BASE_URL
   ).trim().replace(/\/+$/, '');
-  const defaultMarginPercent = normalizeMarginPercent(
-    process.env.KENHGIARE_DEFAULT_MARGIN_PERCENT || settings.kenhgiare_default_margin_percent,
-    DEFAULT_MARGIN_PERCENT
+  const defaultMarginPercent = Math.max(
+    DEFAULT_MARGIN_PERCENT,
+    normalizeMarginPercent(
+      process.env.KENHGIARE_DEFAULT_MARGIN_PERCENT || settings.kenhgiare_default_margin_percent,
+      DEFAULT_MARGIN_PERCENT
+    )
   );
 
   return {
@@ -526,11 +539,11 @@ async function upsertKenhGiaReProduct(
         api_price_vnd = VALUES(api_price_vnd),
         sale_price_vnd = CASE
           WHEN COALESCE(is_auto_price, 1) = 1 OR COALESCE(sale_price_vnd, 0) <= 0
-            THEN ROUND(VALUES(api_price_vnd) * (1 + (COALESCE(NULLIF(margin_percent, 0), VALUES(margin_percent)) / 100)), 0)
+            THEN ROUND(VALUES(api_price_vnd) * (1 + (VALUES(margin_percent) / 100)), 0)
           ELSE sale_price_vnd
         END,
         margin_percent = CASE
-          WHEN COALESCE(margin_percent, 0) <= 0 THEN VALUES(margin_percent)
+          WHEN COALESCE(is_auto_price, 1) = 1 OR COALESCE(margin_percent, 0) <= 0 THEN VALUES(margin_percent)
           ELSE margin_percent
         END,
         discount_percent = VALUES(discount_percent),
@@ -642,12 +655,27 @@ export async function syncKenhGiaReProducts(options: { maxPages?: number } = {})
     );
   }
 
+  const repriced = await db.$executeRawUnsafe(
+    `
+      UPDATE tiktok_channel_products
+      SET margin_percent = ?,
+          sale_price_vnd = ROUND(COALESCE(api_price_vnd, 0) * (1 + (? / 100)), 0),
+          updated_at = NOW()
+      WHERE COALESCE(is_auto_price, 1) = 1
+        AND status <> 'sold'
+    `,
+    config.defaultMarginPercent,
+    config.defaultMarginPercent
+  );
+
   return {
     fetched,
     upserted,
+    repriced: Number(repriced || 0),
     pages,
     synced_at: syncStartedAt,
-    keep_web_price: true,
+    keep_manual_web_price: true,
+    auto_margin_percent: config.defaultMarginPercent,
   };
 }
 

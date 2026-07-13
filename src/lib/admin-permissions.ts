@@ -12,12 +12,17 @@ export const ORDER_ADMIN_RESOURCES = new Set([
   'press-orders',
   'card-orders',
   'game-orders',
+  'tiktok-channel-orders',
 ]);
 
 export const FORUM_APPROVAL_ADMIN_RESOURCES = new Set([
   'forum-threads',
   'forum-posts',
   'forum-reports',
+]);
+
+export const TIKTOK_CHANNEL_ADMIN_RESOURCES = new Set([
+  'tiktok-channel-products',
 ]);
 
 export const OPERATOR_ADMIN_PATH_PREFIXES = [
@@ -27,6 +32,7 @@ export const OPERATOR_ADMIN_PATH_PREFIXES = [
   '/admin/meta-support',
   '/admin/support-tiktok/orders',
   '/admin/vibe-code',
+  '/admin/kenh-tiktok',
   '/admin/web-service',
   '/admin/press',
   '/admin/card/history',
@@ -79,6 +85,10 @@ export function canOperatorAccessResource(resource: string, action: AdminResourc
   }
 
   if (FORUM_APPROVAL_ADMIN_RESOURCES.has(resource)) {
+    return action === 'list' || action === 'detail' || action === 'update' || action === 'action';
+  }
+
+  if (TIKTOK_CHANNEL_ADMIN_RESOURCES.has(resource)) {
     return action === 'list' || action === 'detail' || action === 'update' || action === 'action';
   }
 

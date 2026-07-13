@@ -3,9 +3,13 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Copy,
+  Eye,
   Heart,
+  ImageIcon,
   KeyRound,
   Loader2,
   Music,
@@ -179,8 +183,19 @@ async function copyText(value: string, message = 'Đã sao chép') {
   }
 }
 
+function productImages(product: TikTokChannelProduct) {
+  const seen = new Set<string>();
+  return [product.thumbnail_url, ...(product.photos || [])]
+    .map((item) => String(item || '').trim())
+    .filter((item) => {
+      if (!item || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+}
+
 function ProductImage({ product }: { product: TikTokChannelProduct }) {
-  const image = product.thumbnail_url || product.photos?.[0] || '';
+  const image = productImages(product)[0] || '';
   if (image) {
     return (
       <img
@@ -203,14 +218,23 @@ function ProductCard({
   product,
   buying,
   onBuy,
+  onDetails,
 }: {
   product: TikTokChannelProduct;
   buying: boolean;
   onBuy: (product: TikTokChannelProduct) => void;
+  onDetails: (product: TikTokChannelProduct) => void;
 }) {
+  const imageCount = productImages(product).length;
+
   return (
     <article className="surface-panel overflow-hidden rounded-[1rem]">
-      <div className="relative aspect-[16/10] overflow-hidden border-b border-slate-200/80 dark:border-white/10">
+      <button
+        type="button"
+        onClick={() => onDetails(product)}
+        className="relative block aspect-[16/10] w-full overflow-hidden border-b border-slate-200/80 text-left dark:border-white/10"
+        aria-label={`Xem chi tiết ${product.title}`}
+      >
         <ProductImage product={product} />
         <div className="absolute left-3 top-3 rounded-full border border-white/70 bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75 dark:text-white/80">
           #{product.provider_product_id}
@@ -220,7 +244,11 @@ function ProductCard({
             -{Math.round(product.discount_percent)}%
           </div>
         ) : null}
-      </div>
+        <div className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/90 px-3 py-1 text-[11px] font-black text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75 dark:text-white/80">
+          <ImageIcon className="h-3.5 w-3.5" />
+          {imageCount || 1}
+        </div>
+      </button>
 
       <div className="space-y-4 p-4">
         <div className="space-y-2">
@@ -253,23 +281,189 @@ function ProductCard({
           </div>
         </div>
 
-        <div className="flex items-end justify-between gap-3 border-t border-slate-200/80 pt-4 dark:border-white/10">
+        <div className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-white/10">
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Giá bán</div>
             <div className="mt-1 text-xl font-black text-brand-blue">{formatCurrency(product.sale_price_vnd)}</div>
           </div>
-          <Button
-            type="button"
-            onClick={() => onBuy(product)}
-            disabled={buying}
-            className="min-w-[8rem] gap-2 rounded-[0.85rem]"
-          >
-            {buying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-            Mua ngay
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onDetails(product)}
+              className="gap-2 rounded-[0.85rem]"
+            >
+              <Eye className="h-4 w-4" />
+              Chi tiết
+            </Button>
+            <Button
+              type="button"
+              onClick={() => onBuy(product)}
+              disabled={buying}
+              className="gap-2 rounded-[0.85rem]"
+            >
+              {buying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+              Mua ngay
+            </Button>
+          </div>
         </div>
       </div>
     </article>
+  );
+}
+
+function ProductDetailModal({
+  product,
+  imageIndex,
+  onImageIndexChange,
+  onClose,
+  onBuy,
+  buying,
+}: {
+  product: TikTokChannelProduct;
+  imageIndex: number;
+  onImageIndexChange: (index: number) => void;
+  onClose: () => void;
+  onBuy: (product: TikTokChannelProduct) => void;
+  buying: boolean;
+}) {
+  const images = productImages(product);
+  const safeImageIndex = images.length > 0 ? Math.min(Math.max(imageIndex, 0), images.length - 1) : 0;
+  const activeImage = images[safeImageIndex] || '';
+  const canStep = images.length > 1;
+
+  function stepImage(direction: -1 | 1) {
+    if (!canStep) return;
+    const nextIndex = (safeImageIndex + direction + images.length) % images.length;
+    onImageIndexChange(nextIndex);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[92] flex items-center justify-center bg-slate-950/78 p-4 backdrop-blur-sm">
+      <div className="max-h-[92dvh] w-full max-w-6xl overflow-hidden rounded-[1rem] border border-white/10 bg-white shadow-2xl dark:bg-slate-950">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 p-4 dark:border-white/10 sm:p-5">
+          <div className="min-w-0">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-blue">Chi tiết kênh</div>
+            <h2 className="mt-2 line-clamp-2 text-xl font-black text-slate-950 dark:text-white sm:text-2xl">{product.title}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white/55">
+              #{product.provider_product_id} · {product.niche || 'TikTok'} · {product.masked_username || 'username ẩn'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/8"
+            aria-label="Đóng chi tiết"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="grid max-h-[calc(92dvh-5.5rem)] overflow-y-auto lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-4 p-4 sm:p-5">
+            <div className="relative overflow-hidden rounded-[1rem] border border-slate-200/80 bg-slate-100 dark:border-white/10 dark:bg-slate-900">
+              <div className="flex aspect-[16/10] items-center justify-center">
+                {activeImage ? (
+                  <img src={activeImage} alt={`${product.title} ảnh ${safeImageIndex + 1}`} className="h-full w-full object-contain" />
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400 dark:text-white/45">
+                    <ImageIcon className="h-12 w-12" />
+                    <span className="text-sm font-black uppercase tracking-[0.14em]">Chưa có ảnh</span>
+                  </div>
+                )}
+              </div>
+
+              {canStep ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => stepImage(-1)}
+                    className="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:text-brand-blue dark:border-white/10 dark:bg-slate-950/75 dark:text-white"
+                    aria-label="Ảnh trước"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stepImage(1)}
+                    className="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:text-brand-blue dark:border-white/10 dark:bg-slate-950/75 dark:text-white"
+                    aria-label="Ảnh sau"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              ) : null}
+
+              <div className="absolute bottom-3 right-3 rounded-full border border-white/70 bg-white/90 px-3 py-1 text-xs font-black text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75 dark:text-white">
+                {images.length > 0 ? `${safeImageIndex + 1}/${images.length}` : '0/0'}
+              </div>
+            </div>
+
+            {images.length > 0 ? (
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+                {images.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    onClick={() => onImageIndexChange(index)}
+                    className={cn(
+                      'aspect-square overflow-hidden rounded-[0.75rem] border bg-slate-100 transition dark:bg-slate-900',
+                      index === safeImageIndex
+                        ? 'border-brand-blue ring-2 ring-brand-blue/25'
+                        : 'border-slate-200/80 hover:border-brand-blue/50 dark:border-white/10'
+                    )}
+                    aria-label={`Xem ảnh ${index + 1}`}
+                  >
+                    <img src={image} alt={`${product.title} thumbnail ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="border-t border-slate-200/80 p-4 dark:border-white/10 lg:border-l lg:border-t-0 sm:p-5">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-[0.85rem] border border-slate-200/80 p-3 dark:border-white/10">
+                  <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Follower</div>
+                  <div className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{formatCompact(product.follower_count)}</div>
+                </div>
+                <div className="rounded-[0.85rem] border border-slate-200/80 p-3 dark:border-white/10">
+                  <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Like</div>
+                  <div className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{formatCompact(product.like_count)}</div>
+                </div>
+              </div>
+
+              {product.description ? (
+                <div className="rounded-[0.85rem] border border-slate-200/80 p-3 text-sm font-semibold leading-6 text-slate-600 dark:border-white/10 dark:text-white/60">
+                  {product.description}
+                </div>
+              ) : null}
+
+              <div className="rounded-[0.85rem] border border-brand-blue/20 bg-brand-blue/8 p-4">
+                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Giá bán</div>
+                <div className="mt-1 text-3xl font-black text-brand-blue">{formatCurrency(product.sale_price_vnd)}</div>
+              </div>
+
+              <div className="grid gap-2">
+                <Button
+                  type="button"
+                  onClick={() => onBuy(product)}
+                  disabled={buying}
+                  className="gap-2 rounded-[0.85rem]"
+                >
+                  {buying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+                  Mua kênh này
+                </Button>
+                <Button type="button" variant="outline" onClick={onClose} className="rounded-[0.85rem]">
+                  Đóng
+                </Button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -378,6 +572,8 @@ export function TikTokChannelPage() {
   const [minFollowers, setMinFollowers] = useState('');
   const [maxFollowers, setMaxFollowers] = useState('');
   const [confirmProduct, setConfirmProduct] = useState<TikTokChannelProduct | null>(null);
+  const [detailProduct, setDetailProduct] = useState<TikTokChannelProduct | null>(null);
+  const [detailImageIndex, setDetailImageIndex] = useState(0);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [lastOrder, setLastOrder] = useState<TikTokChannelOrder | null>(null);
 
@@ -459,6 +655,16 @@ export function TikTokChannelPage() {
     setNiche('');
     setMinFollowers('');
     setMaxFollowers('');
+  }
+
+  function openDetails(product: TikTokChannelProduct) {
+    setDetailProduct(product);
+    setDetailImageIndex(0);
+  }
+
+  function requestBuy(product: TikTokChannelProduct) {
+    setDetailProduct(null);
+    setConfirmProduct(product);
   }
 
   async function buyProduct(product: TikTokChannelProduct) {
@@ -592,7 +798,8 @@ export function TikTokChannelPage() {
                       key={product.id}
                       product={product}
                       buying={purchasingId === product.id}
-                      onBuy={setConfirmProduct}
+                      onBuy={requestBuy}
+                      onDetails={openDetails}
                     />
                   ))}
                 </div>
@@ -642,6 +849,17 @@ export function TikTokChannelPage() {
           </aside>
         </div>
       </div>
+
+      {detailProduct ? (
+        <ProductDetailModal
+          product={detailProduct}
+          imageIndex={detailImageIndex}
+          onImageIndexChange={setDetailImageIndex}
+          onClose={() => setDetailProduct(null)}
+          onBuy={requestBuy}
+          buying={purchasingId === detailProduct.id}
+        />
+      ) : null}
 
       {confirmProduct ? (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">

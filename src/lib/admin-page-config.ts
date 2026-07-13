@@ -180,7 +180,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'kenh-tiktok-settings',
       title: 'Cấu hình Kênh Giá Rẻ',
-      description: 'Nhập API key Kênh Giá Rẻ, base URL và margin mặc định. Có thể dùng biến môi trường KENHGIARE_API_KEY thay cho setting.',
+      description: 'Nhập API key Kênh Giá Rẻ, base URL và margin mặc định. Mặc định margin 80%, có thể dùng biến môi trường KENHGIARE_API_KEY thay cho setting.',
       columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
       editableFields: ['setting_value'],
       createFields: ['setting_key', 'setting_value'],
@@ -188,11 +188,11 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'tiktok-channel-products',
       title: 'Bảng kênh TikTok',
-      description: 'Sản phẩm đồng bộ từ Kênh Giá Rẻ. Giá API chỉ để đối chiếu, giá bán web nằm ở sale_price_vnd và owner có thể chỉnh riêng.',
+      description: 'Sản phẩm đồng bộ từ Kênh Giá Rẻ. Refresh sẽ kéo kênh mới, giá API mới và tự tính giá bán web lời 80% cho các kênh đang bật auto price.',
       columns: ['id', 'provider_product_id', 'title', 'niche', 'follower_count', 'api_price_vnd', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'status', 'synced_at'],
       editableFields: ['title', 'description', 'niche', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'status'],
       statusOptions: ['active', 'inactive', 'unavailable', 'processing', 'sold'],
-      actions: [{ key: 'sync-kenhgiare', label: 'Đồng bộ KGR' }],
+      actions: [{ key: 'sync-kenhgiare', label: 'Refresh kênh' }],
     },
     {
       resource: 'tiktok-channel-orders',

@@ -163,7 +163,7 @@ const ACTION_TEXT_LABELS: Record<string, string> = {
 const ACTION_KEY_LABELS: Record<string, string> = {
   sync: 'Đồng bộ',
   'sync-api-price': 'Đồng bộ giá API',
-  'sync-kenhgiare': 'Đồng bộ KGR',
+  'sync-kenhgiare': 'Refresh kênh',
   'check-new-deposits': 'Rà pending',
   refund: 'Hoàn tiền',
   approve: 'Duyệt',

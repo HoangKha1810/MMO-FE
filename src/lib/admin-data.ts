@@ -3563,7 +3563,7 @@ export async function runAdminAction(resource: string, input: Record<string, unk
     await logAdminAction({
       adminId,
       action: 'sync kenhgiare tiktok channels',
-      target: `${result.fetched} fetched / ${result.upserted} upserted / keep web price`,
+      target: `${result.fetched} fetched / ${result.upserted} upserted / ${result.repriced} auto repriced at ${result.auto_margin_percent}%`,
       req,
     });
     return { success: true, data: normalizeValue(result), count: result.fetched };
