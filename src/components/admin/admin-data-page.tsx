@@ -75,7 +75,7 @@ interface SmmMarginDialogState {
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-const GLOBAL_ACTION_KEYS = new Set(['sync', 'sync-api-price', 'check-new-deposits']);
+const GLOBAL_ACTION_KEYS = new Set(['sync', 'sync-api-price', 'sync-kenhgiare', 'check-new-deposits']);
 const LONG_TEXT_FIELD_TOKENS = ['description', 'content', 'message', 'payload', 'note', 'reason', 'key'];
 const LEGACY_COMMUNITY_LINKS = [
   { label: 'Nhóm Zalo', href: 'https://zalo.me/g/ejtvpx203' },
@@ -141,6 +141,9 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
   'Interface settings': 'Cài đặt giao diện',
   'VPS GPU AI pricing': 'Nâng giá VPS GPU',
   'VPS GPU provider costs': 'Giá vốn nguồn GPU',
+  'Cấu hình Kênh Giá Rẻ': 'Cấu hình Kênh Giá Rẻ',
+  'Bảng kênh TikTok': 'Bảng kênh TikTok',
+  'Đơn Kênh TikTok': 'Đơn Kênh TikTok',
   Settings: 'Cài đặt',
   Providers: 'Provider API',
   'IP blacklist': 'Danh sách đen IP',
@@ -160,6 +163,7 @@ const ACTION_TEXT_LABELS: Record<string, string> = {
 const ACTION_KEY_LABELS: Record<string, string> = {
   sync: 'Đồng bộ',
   'sync-api-price': 'Đồng bộ giá API',
+  'sync-kenhgiare': 'Đồng bộ KGR',
   'check-new-deposits': 'Rà pending',
   refund: 'Hoàn tiền',
   approve: 'Duyệt',
@@ -341,12 +345,47 @@ const COLUMN_LABELS: Record<string, string> = {
   hourly_fee_vnd: 'Phí cộng thêm/giờ',
   usd_to_vnd: 'Tỷ giá USD/VNĐ',
   last_seen_at: 'Cập nhật giá vốn',
+  provider_product_id: 'Mã KGR',
+  provider_order_id: 'Mã đơn KGR',
+  niche: 'Ngách',
+  follower_count: 'Follower',
+  like_count: 'Lượt thích',
+  listed_price_vnd: 'Giá niêm yết KGR',
+  api_price_vnd: 'Giá API',
+  provider_amount_vnd: 'KGR đã trừ',
+  profit_vnd: 'Lợi nhuận',
+  margin_percent: 'Margin %',
+  is_auto_price: 'Tự tính giá',
+  discount_percent: 'Giảm giá %',
+  masked_username: 'Username ẩn',
+  thumbnail_url: 'Ảnh đại diện',
+  has_credentials: 'Có credential',
+  provider_status: 'Trạng thái KGR',
+  shop_status: 'Shop status',
+  live_status: 'Live status',
+  synced_at: 'Đồng bộ lúc',
+  credentials_json: 'Credential',
+  api_response_json: 'Phản hồi API',
 };
 const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
   'vibe-code-packages': {
     created_at: 'Ngày mua',
   },
   'vibe-code-orders': {
+    created_at: 'Ngày mua',
+  },
+  'tiktok-channel-products': {
+    provider_product_id: 'Mã sản phẩm KGR',
+    api_price_vnd: 'Giá API từ KGR',
+    sale_price_vnd: 'Giá bán trên web',
+    is_auto_price: 'Tự tính theo margin',
+    margin_percent: 'Margin cộng thêm (%)',
+  },
+  'tiktok-channel-orders': {
+    provider_product_id: 'Mã sản phẩm KGR',
+    api_price_vnd: 'Giá API lúc mua',
+    provider_amount_vnd: 'Số tiền KGR đã trừ',
+    sale_price_vnd: 'Số tiền thu user',
     created_at: 'Ngày mua',
   },
   'automxh-products': {

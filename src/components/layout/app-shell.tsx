@@ -323,6 +323,7 @@ function formatBreadcrumb(pathname: string) {
     card: 'Đổi Thẻ',
     deposit: 'Nạp Tiền',
     'support-tiktok': 'Support TikTok',
+    'kenh-tiktok': 'Kênh TikTok',
     'meta-support': 'Auto kích nút Meta',
     forum: 'Forum MMO',
     'game-market': 'Trao Đổi Game',

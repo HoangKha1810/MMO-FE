@@ -23,7 +23,7 @@ const SUSPICIOUS_RUNTIME_MARKERS = [
   'callPhantom',
 ];
 
-const SERVICE_PATH_PATTERN = /^\/user\/(smm|automxh|resources|game-accounts|random-game-accounts|game-market|support-tiktok|meta-support|proxy|vps-gpu|vibe-code|web-service|press|card|deposit|cart|orders)(?:\/|$)/;
+const SERVICE_PATH_PATTERN = /^\/user\/(smm|automxh|resources|game-accounts|random-game-accounts|game-market|support-tiktok|kenh-tiktok|meta-support|proxy|vps-gpu|vibe-code|web-service|press|card|deposit|cart|orders)(?:\/|$)/;
 
 function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {

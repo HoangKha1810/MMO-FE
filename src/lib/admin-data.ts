@@ -20,6 +20,14 @@ import { tableExists } from '@/lib/legacy-modules';
 import { ensureVibeCodeTables } from '@/lib/vibe-code';
 import { ensurePressServiceTables } from '@/lib/press-service';
 import { ensureWebServiceTables } from '@/lib/web-service';
+import {
+  ensureTikTokChannelTables,
+  invalidateKenhGiaReSettingsCache,
+  listAdminTikTokChannelOrders,
+  listKenhGiaReSettings,
+  syncKenhGiaReProducts,
+  updateTikTokChannelProductAutoPrice,
+} from '@/lib/tiktok-channel';
 import { buildForumModerationText, containsForumGamblingContent, forumVietnamTimestampSql } from '@/lib/forum';
 import { assertUserEmailAvailable, normalizeUserEmail } from '@/lib/user-email-guard';
 import { isOwnerRole } from '@/lib/admin-permissions';
@@ -459,6 +467,30 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     rawOrder: 'region_slug ASC, display_order ASC, id ASC',
     createFields: ['region_slug', 'name', 'service_key', 'price', 'description', 'display_order', 'status'],
     updateFields: ['region_slug', 'name', 'service_key', 'price', 'description', 'display_order', 'status'],
+  },
+  'kenh-tiktok-settings': {
+    table: 'settings',
+    title: 'Cấu hình Kênh Giá Rẻ',
+    searchFields: ['setting_key', 'setting_value'],
+    rawOrder: 'id ASC',
+    createFields: ['setting_key', 'setting_value'],
+    updateFields: ['setting_value'],
+  },
+  'tiktok-channel-products': {
+    table: 'tiktok_channel_products',
+    title: 'Kênh TikTok',
+    searchFields: ['provider_product_id', 'title', 'niche', 'masked_username', 'status'],
+    statusField: 'status',
+    rawOrder: 'synced_at DESC, id DESC',
+    updateFields: ['title', 'description', 'niche', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'status'],
+  },
+  'tiktok-channel-orders': {
+    table: 'tiktok_channel_orders',
+    title: 'Đơn Kênh TikTok',
+    searchFields: ['order_code', 'provider_product_id', 'product_title', 'status', 'admin_note'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    updateFields: ['status', 'admin_note', 'sale_price_vnd'],
   },
   'admin-private-messages': {
     table: 'admin_private_messages',
@@ -1276,6 +1308,14 @@ export async function listAdminResource(resource: string, params: URLSearchParam
 
   if (resource === 'vibe-code-orders') {
     return listVibeCodeOrders(config, params, page, perPage, skip);
+  }
+
+  if (resource === 'kenh-tiktok-settings') {
+    return listKenhGiaReSettings(params, page, perPage, skip);
+  }
+
+  if (resource === 'tiktok-channel-orders') {
+    return listAdminTikTokChannelOrders(params, page, perPage, skip);
   }
 
   if (resource === 'forum-threads') {
@@ -2451,6 +2491,10 @@ export async function createAdminResource(resource: string, input: Record<string
     invalidateLegacySettingsCache();
   }
 
+  if (resource === 'kenh-tiktok-settings') {
+    await invalidateKenhGiaReSettingsCache();
+  }
+
   if (resource === 'users' && created && typeof created === 'object' && 'id' in (created as Record<string, unknown>)) {
     const userId = Number((created as Record<string, unknown>).id || 0);
     if (userId > 0) {
@@ -2569,6 +2613,22 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   if (resource === 'settings') {
     invalidateLegacySettingsCache();
+  }
+
+  if (resource === 'kenh-tiktok-settings') {
+    await invalidateKenhGiaReSettingsCache();
+  }
+
+  if (
+    resource === 'tiktok-channel-products' &&
+    !Object.prototype.hasOwnProperty.call(data, 'sale_price_vnd') &&
+    (
+      Object.prototype.hasOwnProperty.call(data, 'margin_percent') ||
+      Object.prototype.hasOwnProperty.call(data, 'is_auto_price') ||
+      Object.prototype.hasOwnProperty.call(data, 'api_price_vnd')
+    )
+  ) {
+    updated = await updateTikTokChannelProductAutoPrice(id) || updated;
   }
 
   if (resource === 'smm-services') {
@@ -2897,6 +2957,10 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
 
   if (resource === 'settings') {
     invalidateLegacySettingsCache();
+  }
+
+  if (resource === 'kenh-tiktok-settings') {
+    await invalidateKenhGiaReSettingsCache();
   }
 
   await logAdminAction({ adminId, action: `delete ${resource}`, target: `#${id}`, req });
@@ -3489,6 +3553,17 @@ export async function runAdminAction(resource: string, input: Record<string, unk
       adminId,
       action: 'sync smm api prices',
       target: `${result.providerName} / ${result.fetched} fetched / ${result.changed} changed / keep custom price`,
+      req,
+    });
+    return { success: true, data: normalizeValue(result), count: result.fetched };
+  }
+
+  if (resource === 'tiktok-channel-products' && action === 'sync-kenhgiare') {
+    const result = await syncKenhGiaReProducts();
+    await logAdminAction({
+      adminId,
+      action: 'sync kenhgiare tiktok channels',
+      target: `${result.fetched} fetched / ${result.upserted} upserted / keep web price`,
       req,
     });
     return { success: true, data: normalizeValue(result), count: result.fetched };
@@ -4098,6 +4173,14 @@ async function getActualRawTable(config: ResourceConfig) {
 
   if (config.table === 'web_service_packages' || config.table === 'web_service_orders') {
     await ensureWebServiceTables();
+  }
+
+  if (config.table === 'tiktok_channel_products' || config.table === 'tiktok_channel_orders') {
+    await ensureTikTokChannelTables();
+  }
+
+  if (config.table === 'settings' && config.title === 'Cấu hình Kênh Giá Rẻ') {
+    await ensureTikTokChannelTables();
   }
 
   return config.table!;

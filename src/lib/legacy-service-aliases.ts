@@ -38,6 +38,8 @@ const LEGACY_SERVICE_ALIASES: LegacyServiceAliasEntry[] = [
   { slug: 'random-game-accounts', label: 'Random thuê tài khoản game 99 năm', target: '/user/random-game-accounts', area: 'user', preserveTail: true },
   { slug: 'random-game', label: 'Random thuê tài khoản game 99 năm', target: '/user/random-game-accounts', area: 'user', preserveTail: true },
   { slug: 'support-tiktok', label: 'Support TikTok', target: '/user/support-tiktok', area: 'user', preserveTail: true },
+  { slug: 'kenh-tiktok', label: 'Kênh TikTok', target: '/user/kenh-tiktok', area: 'user', preserveTail: true },
+  { slug: 'tiktok-channel', label: 'Kênh TikTok', target: '/user/kenh-tiktok', area: 'user', preserveTail: true },
   { slug: 'meta-support', label: 'Auto kích nút Meta', target: '/user/meta-support', area: 'user', preserveTail: true },
   { slug: 'web-service', label: 'Web con MMO và Build Website', target: '/user/web-service', area: 'user', preserveTail: true },
   { slug: 'build-website', label: 'Build Website', target: '/user/web-service', area: 'user', preserveTail: true },

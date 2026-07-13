@@ -9,6 +9,12 @@ interface ForumActionRow {
   [key: string]: unknown;
 }
 
+export interface ForumHomepageAd {
+  id: number;
+  image_path: string;
+  link_url: string;
+}
+
 function normalizeRow<T extends ForumActionRow>(row: T): T {
   return Object.fromEntries(
     Object.entries(row).map(([key, value]) => {
@@ -150,6 +156,29 @@ export async function listMyForumAds(userId: number) {
     `,
     userId
   ).then((rows) => rows.map((row) => ({ ...row, image_path: buildLegacyAssetUrl(String(row.image_path || '')) || '' })));
+}
+
+export async function listForumHomepageAds(limit = 1): Promise<ForumHomepageAd[]> {
+  const safeLimit = Math.max(1, Math.min(6, Math.trunc(Number(limit || 1))));
+  const rows = await safeRows<ForumActionRow>(
+    `
+      SELECT id, image_path, link_url
+      FROM forum_ads
+      WHERE status = 'approved'
+        AND COALESCE(image_path, '') <> ''
+        AND (active_from IS NULL OR active_from <= NOW())
+        AND (active_to IS NULL OR active_to >= NOW())
+      ORDER BY COALESCE(approved_at, active_from, created_at) DESC, id DESC
+      LIMIT ?
+    `,
+    safeLimit
+  );
+
+  return rows.map((row) => ({
+    id: Number(row.id || 0),
+    image_path: buildLegacyAssetUrl(String(row.image_path || '')) || '',
+    link_url: String(row.link_url || ''),
+  })).filter((ad) => ad.id > 0 && ad.image_path);
 }
 
 export async function createForumReply(userId: number, threadId: number, content: string) {

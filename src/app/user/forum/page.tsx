@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FolderOpen, PenLine, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumThreadList } from '@/components/forum/forum-thread-list';
+import { listForumHomepageAds } from '@/lib/forum-actions';
 import { getForumOverview } from '@/lib/forum';
 import { formatNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
@@ -10,11 +11,51 @@ export const dynamic = 'force-dynamic';
 
 export default async function UserForumPage() {
   const { shell } = await getCurrentUserForShell();
-  const { categories, threads } = await getForumOverview();
+  const [{ categories, threads }, forumAds] = await Promise.all([
+    getForumOverview(),
+    listForumHomepageAds(1),
+  ]);
+  const heroAd = forumAds[0] || null;
+  const heroAdHref = heroAd?.link_url?.trim() || '/user/forum/ads';
+  const heroAdExternal = /^https?:\/\//i.test(heroAdHref);
 
   return (
     <AppShell user={shell}>
       <div className="space-y-7">
+        <section className="relative overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-950 shadow-sm dark:border-white/10 sm:rounded-[1.5rem]">
+          {heroAd ? (
+            <a
+              href={heroAdHref}
+              target={heroAdExternal ? '_blank' : undefined}
+              rel={heroAdExternal ? 'noreferrer' : undefined}
+              className="group block aspect-[10/1.75] min-h-[92px] w-full overflow-hidden"
+            >
+              <img
+                src={heroAd.image_path}
+                alt="Banner quảng cáo Forum MMO"
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.015]"
+              />
+            </a>
+          ) : (
+            <a
+              href="/user/forum/ads"
+              className="group flex min-h-[96px] items-center justify-between gap-4 bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(6,182,212,0.14)_48%,rgba(15,23,42,0.98))] px-5 py-4 sm:px-7"
+            >
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-[0.32em] text-cyan-200/80">
+                  Banner quảng cáo
+                </div>
+                <div className="mt-2 truncate text-xl font-black uppercase tracking-[-0.03em] text-white sm:text-2xl">
+                  Forum MMO
+                </div>
+              </div>
+              <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition group-hover:bg-white/15">
+                Đặt banner
+              </div>
+            </a>
+          )}
+        </section>
+
         <section className="relative overflow-hidden rounded-[1.25rem] border border-slate-200 bg-[#f7f1e6] p-4 shadow-sm dark:border-white/10 dark:bg-[#0c1422] sm:rounded-[1.5rem] sm:p-6">
           <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-brand-blue/15 blur-3xl" />
           <div className="absolute -bottom-24 left-20 h-56 w-56 rounded-full bg-emerald-400/10 blur-3xl" />

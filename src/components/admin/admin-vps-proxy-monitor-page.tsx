@@ -7,6 +7,7 @@ import {
   Cloud,
   Cpu,
   ExternalLink,
+  LayoutDashboard,
   Loader2,
   RefreshCcw,
   Search,
@@ -137,6 +138,18 @@ export function AdminVpsProxyMonitorPage() {
         ]}
         actions={
           <>
+            <Button asChild type="button" variant="outline">
+              <Link href="/vps/dashboard" target="_blank" rel="noreferrer">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboard VPS
+              </Link>
+            </Button>
+            <Button asChild type="button" variant="outline">
+              <Link href="/vps/admin" target="_blank" rel="noreferrer">
+                <Server className="mr-2 h-4 w-4" />
+                Admin VPS
+              </Link>
+            </Button>
             <Badge variant={error ? 'danger' : refreshing ? 'info' : 'muted'} className="rounded-full px-3 py-1.5">
               {error ? 'Có lỗi tải dữ liệu' : refreshing ? 'Đang cập nhật' : `Cập nhật ${data?.updatedAt ? formatDatabaseDateTime(data.updatedAt) : '—'}`}
             </Badge>

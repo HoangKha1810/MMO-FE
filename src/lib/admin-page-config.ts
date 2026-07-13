@@ -176,6 +176,34 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       actions: [ORDER_BULK_DELETE_ACTION],
     },
   ],
+  'kenh-tiktok': [
+    {
+      resource: 'kenh-tiktok-settings',
+      title: 'Cấu hình Kênh Giá Rẻ',
+      description: 'Nhập API key Kênh Giá Rẻ, base URL và margin mặc định. Có thể dùng biến môi trường KENHGIARE_API_KEY thay cho setting.',
+      columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
+      editableFields: ['setting_value'],
+      createFields: ['setting_key', 'setting_value'],
+    },
+    {
+      resource: 'tiktok-channel-products',
+      title: 'Bảng kênh TikTok',
+      description: 'Sản phẩm đồng bộ từ Kênh Giá Rẻ. Giá API chỉ để đối chiếu, giá bán web nằm ở sale_price_vnd và owner có thể chỉnh riêng.',
+      columns: ['id', 'provider_product_id', 'title', 'niche', 'follower_count', 'api_price_vnd', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'status', 'synced_at'],
+      editableFields: ['title', 'description', 'niche', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'status'],
+      statusOptions: ['active', 'inactive', 'unavailable', 'processing', 'sold'],
+      actions: [{ key: 'sync-kenhgiare', label: 'Đồng bộ KGR' }],
+    },
+    {
+      resource: 'tiktok-channel-orders',
+      title: 'Đơn Kênh TikTok',
+      description: 'Quản lý đơn mua kênh TikTok, đối chiếu giá API, giá bán web và credential trả về từ Kênh Giá Rẻ.',
+      columns: ['id', 'order_code', 'username', 'provider_product_id', 'product_title', 'api_price_vnd', 'sale_price_vnd', 'provider_amount_vnd', 'profit_vnd', 'status', 'created_at'],
+      editableFields: ['status', 'admin_note', 'sale_price_vnd'],
+      statusOptions: ['processing', 'completed', 'failed', 'refunded', 'canceled'],
+      actions: [ORDER_BULK_DELETE_ACTION],
+    },
+  ],
   'web-service': [
     {
       resource: 'web-service-packages',
