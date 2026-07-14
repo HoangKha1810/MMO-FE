@@ -25,6 +25,7 @@ import {
   invalidateKenhGiaReSettingsCache,
   listAdminTikTokChannelOrders,
   listKenhGiaReSettings,
+  repriceTikTokChannelAutoProducts,
   syncKenhGiaReProducts,
   updateTikTokChannelProductAutoPrice,
 } from '@/lib/tiktok-channel';
@@ -51,6 +52,14 @@ interface ResourceConfig {
 
 const commonOrder = { id: 'desc' as const };
 const rawTableColumnCache = new Map<string, Set<string>>();
+
+function isKenhGiaReDefaultMarginSetting(row: unknown) {
+  return Boolean(
+    row &&
+      typeof row === 'object' &&
+      String((row as Record<string, unknown>).setting_key || '') === 'kenhgiare_default_margin_percent'
+  );
+}
 
 export const adminResourceConfig: Record<string, ResourceConfig> = {
   users: {
@@ -2493,6 +2502,13 @@ export async function createAdminResource(resource: string, input: Record<string
 
   if (resource === 'kenh-tiktok-settings') {
     await invalidateKenhGiaReSettingsCache();
+    if (isKenhGiaReDefaultMarginSetting(created)) {
+      const repriceResult = await repriceTikTokChannelAutoProducts();
+      created = {
+        ...(created && typeof created === 'object' ? created as Record<string, unknown> : {}),
+        ...repriceResult,
+      };
+    }
   }
 
   if (resource === 'users' && created && typeof created === 'object' && 'id' in (created as Record<string, unknown>)) {
@@ -2617,6 +2633,13 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   if (resource === 'kenh-tiktok-settings') {
     await invalidateKenhGiaReSettingsCache();
+    if (isKenhGiaReDefaultMarginSetting(updated)) {
+      const repriceResult = await repriceTikTokChannelAutoProducts();
+      updated = {
+        ...(updated && typeof updated === 'object' ? updated as Record<string, unknown> : {}),
+        ...repriceResult,
+      };
+    }
   }
 
   if (

@@ -57,8 +57,8 @@ type BrandIconProps = {
 };
 
 const providerGuideLinks: Record<VibeCodeProvider, string> = {
-  cursor: 'https://docs.google.com/document/d/1AaDvqVCtJlUaRSUJKJREdDWxsO39-wvic8cFzO65Uc8/edit?tab=t.0#heading=h.yxvlhbnfy6no',
-  codex: 'https://docs.google.com/document/d/1OAwAPjZ5JH7Ws4CJAXTpFE6rVNPKkNGUtZ4UDuMIBxk/edit?usp=sharing',
+  cursor: 'https://docs.google.com/document/d/1AaDvqVCtJlUaRSIJKJREdDWxsO39-wvic8cFzO65Uc8/edit?tab=t.0#heading=h.yxvlhbnfy6no',
+  codex: 'https://docs.google.com/document/d/1OAwAPjZ5JH7Ws4CJAXTpfE6rVNPkkNGUtZ4UDuMIBxk/edit?tab=t.0',
 };
 
 function BrandLogoIcon({

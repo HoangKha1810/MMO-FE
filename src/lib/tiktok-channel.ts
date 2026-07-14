@@ -372,7 +372,7 @@ export async function ensureTikTokChannelTables() {
         listed_price_vnd DECIMAL(15, 2) NOT NULL DEFAULT 0,
         api_price_vnd DECIMAL(15, 2) NOT NULL DEFAULT 0,
         sale_price_vnd DECIMAL(15, 2) NOT NULL DEFAULT 0,
-        margin_percent DECIMAL(8, 2) NOT NULL DEFAULT 20,
+        margin_percent DECIMAL(8, 2) NOT NULL DEFAULT 80,
         is_auto_price TINYINT(1) NOT NULL DEFAULT 1,
         discount_percent DECIMAL(8, 2) NOT NULL DEFAULT 0,
         masked_username VARCHAR(191) NULL,
@@ -438,12 +438,11 @@ export async function getKenhGiaReConfig() {
       settings.kenhgiare_api_base_url ||
       DEFAULT_KENHGIARE_API_BASE_URL
   ).trim().replace(/\/+$/, '');
-  const defaultMarginPercent = Math.max(
-    DEFAULT_MARGIN_PERCENT,
-    normalizeMarginPercent(
-      process.env.KENHGIARE_DEFAULT_MARGIN_PERCENT || settings.kenhgiare_default_margin_percent,
-      DEFAULT_MARGIN_PERCENT
-    )
+  const configuredMargin = String(settings.kenhgiare_default_margin_percent ?? '').trim();
+  const envMargin = String(process.env.KENHGIARE_DEFAULT_MARGIN_PERCENT ?? '').trim();
+  const defaultMarginPercent = normalizeMarginPercent(
+    configuredMargin || envMargin,
+    DEFAULT_MARGIN_PERCENT
   );
 
   return {
@@ -1232,6 +1231,28 @@ export async function updateTikTokChannelProductAutoPrice(id: number) {
     id
   );
   return nextRows[0] ? normalizeProductRow(nextRows[0]) : null;
+}
+
+export async function repriceTikTokChannelAutoProducts() {
+  await ensureTikTokChannelTables();
+  const config = await getKenhGiaReConfig();
+  const repriced = await db.$executeRawUnsafe(
+    `
+      UPDATE tiktok_channel_products
+      SET margin_percent = ?,
+          sale_price_vnd = ROUND(COALESCE(api_price_vnd, 0) * (1 + (? / 100)), 0),
+          updated_at = NOW()
+      WHERE COALESCE(is_auto_price, 1) = 1
+        AND status <> 'sold'
+    `,
+    config.defaultMarginPercent,
+    config.defaultMarginPercent
+  );
+
+  return {
+    repriced: Number(repriced || 0),
+    auto_margin_percent: config.defaultMarginPercent,
+  };
 }
 
 export async function invalidateKenhGiaReSettingsCache() {

@@ -1,8 +1,7 @@
 'use client';
 
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import {
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -10,12 +9,10 @@ import {
   Eye,
   Heart,
   ImageIcon,
-  KeyRound,
   Loader2,
   Music,
   RefreshCw,
   Search,
-  ShieldCheck,
   ShoppingCart,
   Users,
   X,
@@ -24,7 +21,7 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/app-shell';
 import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 import { Button } from '@/components/ui/button';
-import { EmptyState, PageHero, SectionHeader } from '@/components/ui/page-layout';
+import { EmptyState, PageHero } from '@/components/ui/page-layout';
 import { useSessionUser } from '@/hooks/use-session-user';
 import { readJsonResponse } from '@/lib/client-api';
 import { cn, formatCurrency, toNumber } from '@/lib/utils';
@@ -467,93 +464,106 @@ function ProductDetailModal({
   );
 }
 
-function CredentialsPanel({ order }: { order?: TikTokChannelOrder | null }) {
-  const entries = credentialEntries(order);
-
+function PurchasedOrdersModal({
+  orders,
+  loading,
+  onClose,
+}: {
+  orders: TikTokChannelOrder[];
+  loading: boolean;
+  onClose: () => void;
+}) {
   return (
-    <section className="surface-panel rounded-[1rem] p-5">
-      <SectionHeader
-        eyebrow="Credential"
-        title="Kênh đã mua"
-        description={order ? order.order_code : 'Đơn hoàn tất sẽ hiện ở đây.'}
-      />
-
-      {!order ? (
-        <div className="mt-5 rounded-[0.9rem] border border-dashed border-slate-300 p-5 text-sm font-semibold text-slate-500 dark:border-white/12 dark:text-white/55">
-          Chưa có đơn hoàn tất trong phiên này.
-        </div>
-      ) : entries.length === 0 ? (
-        <div className="mt-5 rounded-[0.9rem] border border-amber-500/25 bg-amber-500/10 p-4 text-sm font-semibold text-amber-700 dark:text-amber-200">
-          Đơn đã ghi nhận, credential chưa có dữ liệu hiển thị.
-        </div>
-      ) : (
-        <div className="mt-5 space-y-3">
-          {entries.map((item) => (
-            <div key={item.key} className="rounded-[0.85rem] border border-slate-200/80 p-3 dark:border-white/10">
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <span className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</span>
-                <button
-                  type="button"
-                  onClick={() => copyText(item.value, `Đã copy ${item.label}`)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-blue dark:hover:bg-white/8"
-                  aria-label={`Copy ${item.label}`}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="break-all font-mono text-sm font-bold text-slate-950 dark:text-white">{item.value}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function OrdersPanel({ orders, loading }: { orders: TikTokChannelOrder[]; loading: boolean }) {
-  return (
-    <section className="surface-panel rounded-[1rem] p-5">
-      <SectionHeader eyebrow="Lịch sử" title="Đơn Kênh TikTok" description={`${orders.length} đơn gần nhất`} />
-
-      <div className="mt-5 space-y-3">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-white/55">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Đang tải đơn
+    <div className="fixed inset-0 z-[91] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[88dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[1rem] border border-white/10 bg-white shadow-2xl dark:bg-slate-950">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 dark:border-white/10">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-blue">Đơn đã mua</div>
+            <h2 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">Đơn Kênh TikTok</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white/55">{orders.length} đơn gần nhất</p>
           </div>
-        ) : orders.length === 0 ? (
-          <div className="rounded-[0.9rem] border border-dashed border-slate-300 p-5 text-sm font-semibold text-slate-500 dark:border-white/12 dark:text-white/55">
-            Chưa có đơn Kênh TikTok.
-          </div>
-        ) : orders.slice(0, 8).map((order) => (
-          <div key={order.order_code} className="rounded-[0.9rem] border border-slate-200/80 p-3 dark:border-white/10">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-black text-slate-950 dark:text-white">{order.product_title}</div>
-                <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-white/50">{order.order_code} · {formatDateTime(order.created_at)}</div>
-              </div>
-              <span className={cn('shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black', statusClass(order.status))}>
-                {statusLabel(order.status)}
-              </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-white/8 dark:hover:text-white"
+            aria-label="Đóng"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-4 sm:p-5">
+          {loading ? (
+            <div className="flex items-center gap-2 rounded-[0.9rem] border border-slate-200 p-5 text-sm font-semibold text-slate-500 dark:border-white/10 dark:text-white/55">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Đang tải đơn
             </div>
-            <div className="mt-3 flex items-center justify-between gap-3 text-sm">
-              <span className="font-semibold text-slate-500 dark:text-white/55">{formatCompact(order.follower_count)} followers</span>
-              <span className="font-black text-brand-blue">{formatCurrency(order.sale_price_vnd)}</span>
+          ) : orders.length === 0 ? (
+            <div className="rounded-[0.9rem] border border-dashed border-slate-300 p-5 text-sm font-semibold text-slate-500 dark:border-white/12 dark:text-white/55">
+              Chưa có đơn Kênh TikTok.
             </div>
-            {credentialEntries(order).length > 0 ? (
-              <button
-                type="button"
-                onClick={() => copyText(JSON.stringify(order.credentials, null, 2), 'Đã copy credential')}
-                className="mt-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-blue"
-              >
-                <KeyRound className="h-3.5 w-3.5" />
-                Copy credential
-              </button>
-            ) : null}
-          </div>
-        ))}
+          ) : (
+            <div className="space-y-3">
+              {orders.map((order) => {
+                const entries = credentialEntries(order);
+
+                return (
+                  <div key={order.order_code} className="rounded-[0.9rem] border border-slate-200/80 p-4 dark:border-white/10">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="max-w-xl truncate text-sm font-black text-slate-950 dark:text-white">{order.product_title}</div>
+                        <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-white/50">
+                          {order.order_code} · {formatDateTime(order.created_at)}
+                        </div>
+                      </div>
+                      <span className={cn('shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black', statusClass(order.status))}>
+                        {statusLabel(order.status)}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+                      <span className="font-semibold text-slate-500 dark:text-white/55">{formatCompact(order.follower_count)} followers</span>
+                      <span className="font-black text-brand-blue">{formatCurrency(order.sale_price_vnd)}</span>
+                    </div>
+                    {entries.length > 0 ? (
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        {entries.map((item) => (
+                          <div key={`${order.order_code}-${item.key}`} className="rounded-[0.8rem] border border-slate-200/80 p-3 dark:border-white/10">
+                            <div className="mb-1 flex items-center justify-between gap-3">
+                              <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</span>
+                              <button
+                                type="button"
+                                onClick={() => copyText(item.value, `Đã copy ${item.label}`)}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-blue dark:hover:bg-white/8"
+                                aria-label={`Copy ${item.label}`}
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <div className="break-all font-mono text-sm font-bold text-slate-950 dark:text-white">{item.value}</div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => copyText(JSON.stringify(order.credentials, null, 2), 'Đã copy toàn bộ credential')}
+                          className="inline-flex min-h-16 items-center justify-center gap-2 rounded-[0.8rem] border border-brand-blue/25 bg-brand-blue/8 px-3 text-xs font-black uppercase tracking-[0.12em] text-brand-blue transition hover:bg-brand-blue/12 sm:col-span-2"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Copy toàn bộ credential
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-[0.8rem] border border-amber-500/25 bg-amber-500/10 p-3 text-sm font-semibold text-amber-700 dark:text-amber-200">
+                        Đơn đã ghi nhận, credential chưa có dữ liệu hiển thị.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -575,12 +585,7 @@ export function TikTokChannelPage() {
   const [detailProduct, setDetailProduct] = useState<TikTokChannelProduct | null>(null);
   const [detailImageIndex, setDetailImageIndex] = useState(0);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
-  const [lastOrder, setLastOrder] = useState<TikTokChannelOrder | null>(null);
-
-  const completedOrder = useMemo(
-    () => lastOrder || orders.find((order) => order.status.toLowerCase() === 'completed') || null,
-    [lastOrder, orders]
-  );
+  const [ordersOpen, setOrdersOpen] = useState(false);
 
   async function loadProducts(page = 1) {
     setLoading(true);
@@ -688,10 +693,11 @@ export function TikTokChannelPage() {
 
       const order = payload.data?.order ? normalizeOrder(payload.data.order) : null;
       if (order) {
-        setLastOrder(order);
         setOrders((current) => [order, ...current.filter((item) => item.order_code !== order.order_code)]);
+        setOrdersOpen(true);
       } else {
         await loadOrders();
+        setOrdersOpen(true);
       }
 
       setConfirmProduct(null);
@@ -711,144 +717,131 @@ export function TikTokChannelPage() {
           eyebrow="Kênh TikTok"
           title="Kênh TikTok"
           description="Danh sách kênh đồng bộ từ Kênh Giá Rẻ, thanh toán bằng ví chính và nhận credential ngay khi đơn hoàn tất."
-          stats={[
-            { label: 'Đang bán', value: `${pagination.total} kênh`, hint: 'Có credential', tone: 'blue' },
-            { label: 'Ngách', value: `${niches.length}`, hint: 'Đang có hàng', tone: 'emerald' },
-            { label: 'Đơn của bạn', value: `${orders.length}`, hint: 'Gần nhất', tone: 'amber' },
-          ]}
+          actions={
+            <Button type="button" variant="outline" onClick={() => setOrdersOpen(true)} className="gap-2 rounded-full">
+              {loadingOrders ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+              Đơn đã mua
+              <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[11px] font-black text-brand-blue">
+                {orders.length}
+              </span>
+            </Button>
+          }
         />
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-5">
-            <section className="surface-panel rounded-[1rem] p-4">
-              <form onSubmit={applySearch} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_150px_150px_auto]">
-                <label className="relative block">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={searchInput}
-                    onChange={(event) => setSearchInput(event.target.value)}
-                    placeholder="Tìm tên kênh, ngách..."
-                    className="h-12 w-full rounded-[0.9rem] border border-slate-200 bg-white pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
-                  />
-                </label>
-
-                <select
-                  value={niche}
-                  onChange={(event) => setNiche(event.target.value)}
-                  className="h-12 rounded-[0.9rem] border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 outline-none focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
-                >
-                  <option value="">Tất cả ngách</option>
-                  {niches.map((item) => (
-                    <option key={item.value} value={item.value}>{item.label} ({item.total})</option>
-                  ))}
-                </select>
-
+        <div className="space-y-5">
+          <section className="surface-panel rounded-[1rem] p-4">
+            <form onSubmit={applySearch} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_150px_150px_auto]">
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
-                  value={minFollowers}
-                  onChange={(event) => setMinFollowers(event.target.value)}
-                  inputMode="numeric"
-                  placeholder="Min follow"
-                  className="h-12 rounded-[0.9rem] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder="Tìm tên kênh, ngách..."
+                  className="h-12 w-full rounded-[0.9rem] border border-slate-200 bg-white pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
                 />
+              </label>
 
-                <input
-                  value={maxFollowers}
-                  onChange={(event) => setMaxFollowers(event.target.value)}
-                  inputMode="numeric"
-                  placeholder="Max follow"
-                  className="h-12 rounded-[0.9rem] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
-                />
+              <select
+                value={niche}
+                onChange={(event) => setNiche(event.target.value)}
+                className="h-12 rounded-[0.9rem] border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 outline-none focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
+              >
+                <option value="">Tất cả ngách</option>
+                {niches.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label} ({item.total})</option>
+                ))}
+              </select>
 
-                <div className="flex gap-2">
-                  <Button type="submit" className="h-12 rounded-[0.9rem] px-4">
-                    <Search className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="outline" onClick={clearFilters} className="h-12 rounded-[0.9rem] px-4">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </form>
-            </section>
+              <input
+                value={minFollowers}
+                onChange={(event) => setMinFollowers(event.target.value)}
+                inputMode="numeric"
+                placeholder="Min follow"
+                className="h-12 rounded-[0.9rem] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
+              />
 
-            {loading ? (
+              <input
+                value={maxFollowers}
+                onChange={(event) => setMaxFollowers(event.target.value)}
+                inputMode="numeric"
+                placeholder="Max follow"
+                className="h-12 rounded-[0.9rem] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-blue dark:border-white/10 dark:bg-slate-950/60 dark:text-white"
+              />
+
+              <div className="flex gap-2">
+                <Button type="submit" className="h-12 rounded-[0.9rem] px-4">
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="outline" onClick={clearFilters} className="h-12 rounded-[0.9rem] px-4">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          </section>
+
+          {loading ? (
+            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="surface-panel h-[25rem] animate-pulse rounded-[1rem]" />
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="space-y-4">
+              <EmptyState
+                icon={<Music className="h-5 w-5" />}
+                title="Chưa có kênh TikTok"
+                description="Owner cần cấu hình API Kênh Giá Rẻ và bấm đồng bộ trong admin."
+              />
+              <div className="flex justify-center">
+                <Button type="button" variant="outline" onClick={() => loadProducts(1)} className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Tải lại
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
               <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="surface-panel h-[25rem] animate-pulse rounded-[1rem]" />
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    buying={purchasingId === product.id}
+                    onBuy={requestBuy}
+                    onDetails={openDetails}
+                  />
                 ))}
               </div>
-            ) : products.length === 0 ? (
-              <div className="space-y-4">
-                <EmptyState
-                  icon={<Music className="h-5 w-5" />}
-                  title="Chưa có kênh TikTok"
-                  description="Owner cần cấu hình API Kênh Giá Rẻ và bấm đồng bộ trong admin."
-                />
-                <div className="flex justify-center">
-                  <Button type="button" variant="outline" onClick={() => loadProducts(1)} className="gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Tải lại
-                  </Button>
+
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pagination.page <= 1 || loading}
+                  onClick={() => loadProducts(pagination.page - 1)}
+                >
+                  Trang trước
+                </Button>
+                <div className="text-sm font-black text-slate-500 dark:text-white/55">
+                  Trang {pagination.page}/{pagination.total_pages}
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pagination.page >= pagination.total_pages || loading}
+                  onClick={() => loadProducts(pagination.page + 1)}
+                >
+                  Trang sau
+                </Button>
               </div>
-            ) : (
-              <>
-                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                  {products.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      buying={purchasingId === product.id}
-                      onBuy={requestBuy}
-                      onDetails={openDetails}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={pagination.page <= 1 || loading}
-                    onClick={() => loadProducts(pagination.page - 1)}
-                  >
-                    Trang trước
-                  </Button>
-                  <div className="text-sm font-black text-slate-500 dark:text-white/55">
-                    Trang {pagination.page}/{pagination.total_pages}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={pagination.page >= pagination.total_pages || loading}
-                    onClick={() => loadProducts(pagination.page + 1)}
-                  >
-                    Trang sau
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-
-          <aside className="space-y-4">
-            <section className="surface-panel rounded-[1rem] p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] bg-brand-blue/10 text-brand-blue">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-black text-slate-950 dark:text-white">Nguồn Kênh Giá Rẻ</div>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-slate-500 dark:text-white/55">
-                    Giá bán lấy từ cấu hình web. Giá API chỉ dùng để owner đối chiếu lợi nhuận.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <CredentialsPanel order={completedOrder} />
-            <OrdersPanel orders={orders} loading={loadingOrders} />
-          </aside>
+            </>
+          )}
         </div>
       </div>
+
+      {ordersOpen ? (
+        <PurchasedOrdersModal orders={orders} loading={loadingOrders} onClose={() => setOrdersOpen(false)} />
+      ) : null}
 
       {detailProduct ? (
         <ProductDetailModal
@@ -888,11 +881,6 @@ export function TikTokChannelPage() {
                 <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" /> {formatCompact(confirmProduct.follower_count)} followers</span>
                 <span className="inline-flex items-center gap-2"><Heart className="h-4 w-4" /> {formatCompact(confirmProduct.like_count)} likes</span>
               </div>
-            </div>
-
-            <div className="mt-4 flex items-start gap-2 rounded-[0.9rem] border border-amber-500/20 bg-amber-500/10 p-3 text-sm font-semibold text-amber-700 dark:text-amber-200">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              Hệ thống sẽ gọi API Kênh Giá Rẻ để nhận credential và lưu vào lịch sử đơn.
             </div>
 
             <div className="mt-5 flex justify-end gap-3">
