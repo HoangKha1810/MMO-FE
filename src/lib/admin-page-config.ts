@@ -188,8 +188,8 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'tiktok-channel-products',
       title: 'Bảng kênh TikTok',
-      description: 'Sản phẩm đồng bộ từ Kênh Giá Rẻ. Refresh sẽ kéo kênh mới, giá API mới và tự tính giá bán web lời 80% cho các kênh đang bật auto price.',
-      columns: ['id', 'provider_product_id', 'title', 'niche', 'follower_count', 'api_price_vnd', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'status', 'synced_at'],
+      description: 'Sản phẩm đồng bộ từ Kênh Giá Rẻ. Refresh sẽ kéo kênh mới, giá API mới, shopStatus, liveStatus và tự tính giá bán web theo margin cho các kênh đang bật auto price.',
+      columns: ['id', 'provider_product_id', 'title', 'niche', 'follower_count', 'api_price_vnd', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'shop_status', 'live_status', 'status', 'synced_at'],
       editableFields: ['title', 'description', 'niche', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'status'],
       statusOptions: ['active', 'inactive', 'unavailable', 'processing', 'sold'],
       actions: [{ key: 'sync-kenhgiare', label: 'Refresh kênh' }],

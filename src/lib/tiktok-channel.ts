@@ -155,6 +155,24 @@ class KenhGiaReApiError extends Error {
 
 let ensurePromise: Promise<void> | null = null;
 
+async function ensureTableColumn(table: string, column: string, definition: string, afterColumn?: string) {
+  const rows = await db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+    `
+      SELECT COUNT(*) AS total
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND COLUMN_NAME = ?
+    `,
+    table,
+    column
+  );
+  if (Number(rows[0]?.total || 0) > 0) return;
+
+  const afterSql = afterColumn ? ` AFTER \`${afterColumn}\`` : '';
+  await db.$executeRawUnsafe(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}${afterSql}`);
+}
+
 function normalizeBoolean(value: unknown) {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number') return value !== 0;
@@ -422,6 +440,10 @@ export async function ensureTikTokChannelTables() {
         INDEX idx_tiktok_channel_orders_created (created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    await ensureTableColumn('tiktok_channel_products', 'provider_status', 'VARCHAR(80) NULL', 'photos_json');
+    await ensureTableColumn('tiktok_channel_products', 'shop_status', 'VARCHAR(80) NULL', 'provider_status');
+    await ensureTableColumn('tiktok_channel_products', 'live_status', 'VARCHAR(80) NULL', 'shop_status');
 
     await ensureKenhGiaReSettings();
   })();

@@ -40,6 +40,9 @@ type TikTokChannelProduct = {
   masked_username?: string | null;
   thumbnail_url?: string | null;
   photos?: string[];
+  provider_status?: string | null;
+  shop_status?: string | null;
+  live_status?: string | null;
   status: string;
 };
 
@@ -96,6 +99,9 @@ function normalizeProduct(input: Record<string, unknown>): TikTokChannelProduct 
     masked_username: input.masked_username == null ? null : String(input.masked_username),
     thumbnail_url: input.thumbnail_url == null ? null : String(input.thumbnail_url),
     photos: Array.isArray(input.photos) ? input.photos.map(String).filter(Boolean) : [],
+    provider_status: input.provider_status == null ? null : String(input.provider_status),
+    shop_status: input.shop_status == null ? null : String(input.shop_status),
+    live_status: input.live_status == null ? null : String(input.live_status),
     status: String(input.status || 'active'),
   };
 }
@@ -158,6 +164,121 @@ function statusClass(status: string) {
     return 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-300';
   }
   return 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300';
+}
+
+type ExternalStatusMeta = {
+  value: string;
+  label: string;
+  description: string;
+  className: string;
+};
+
+function normalizeExternalStatus(value?: string | null) {
+  return String(value || 'UNKNOWN').trim().toUpperCase() || 'UNKNOWN';
+}
+
+function getShopStatusMeta(status?: string | null): ExternalStatusMeta {
+  const value = normalizeExternalStatus(status);
+  if (value === 'OPEN') {
+    return {
+      value,
+      label: 'Mở',
+      description: 'Shop đang mở, hoạt động bình thường.',
+      className: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
+    };
+  }
+  if (value === 'ERROR') {
+    return {
+      value,
+      label: 'Lỗi',
+      description: 'Shop đang gặp lỗi.',
+      className: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300',
+    };
+  }
+  if (value === 'BANNED') {
+    return {
+      value,
+      label: 'Bị khóa',
+      description: 'Shop đã bị khóa.',
+      className: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-300',
+    };
+  }
+  return {
+    value,
+    label: 'Chưa kiểm tra',
+    description: 'Chưa xác định hoặc chưa kiểm tra.',
+    className: 'border-slate-300 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/8 dark:text-white/65',
+  };
+}
+
+function getLiveStatusMeta(status?: string | null): ExternalStatusMeta {
+  const value = normalizeExternalStatus(status);
+  if (value === 'AVAILABLE') {
+    return {
+      value,
+      label: 'Bình thường',
+      description: 'Kênh phát LIVE bình thường.',
+      className: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
+    };
+  }
+  if (value === 'BANNED') {
+    return {
+      value,
+      label: 'Bị khóa',
+      description: 'Kênh bị khóa tính năng LIVE.',
+      className: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-300',
+    };
+  }
+  return {
+    value,
+    label: 'Chưa kiểm tra',
+    description: 'Chưa xác định hoặc chưa kiểm tra.',
+    className: 'border-slate-300 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/8 dark:text-white/65',
+  };
+}
+
+function ChannelStatusBadge({ title, meta }: { title: string; meta: ExternalStatusMeta }) {
+  return (
+    <span
+      title={`${meta.value}: ${meta.description}`}
+      className={cn('inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]', meta.className)}
+    >
+      {title}: {meta.label}
+    </span>
+  );
+}
+
+function ChannelStatusBadges({ product }: { product: TikTokChannelProduct }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <ChannelStatusBadge title="Shop" meta={getShopStatusMeta(product.shop_status)} />
+      <ChannelStatusBadge title="Live" meta={getLiveStatusMeta(product.live_status)} />
+    </div>
+  );
+}
+
+function ChannelStatusSummary({ product }: { product: TikTokChannelProduct }) {
+  const statuses = [
+    { title: 'TikTok Shop', meta: getShopStatusMeta(product.shop_status) },
+    { title: 'Live', meta: getLiveStatusMeta(product.live_status) },
+  ];
+
+  return (
+    <div className="grid gap-2">
+      {statuses.map((item) => (
+        <div key={item.title} className="rounded-[0.85rem] border border-slate-200/80 p-3 dark:border-white/10">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.title}</div>
+            <span className={cn('rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]', item.meta.className)}>
+              {item.meta.value}
+            </span>
+          </div>
+          <div className="text-sm font-black text-slate-950 dark:text-white">{item.meta.label}</div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500 dark:text-white/55">{item.meta.description}</p>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function credentialEntries(order?: TikTokChannelOrder | null) {
@@ -259,6 +380,7 @@ function ProductCard({
           {product.masked_username ? (
             <p className="text-xs font-semibold text-slate-500 dark:text-white/55">{product.masked_username}</p>
           ) : null}
+          <ChannelStatusBadges product={product} />
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -430,6 +552,8 @@ function ProductDetailModal({
                   <div className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{formatCompact(product.like_count)}</div>
                 </div>
               </div>
+
+              <ChannelStatusSummary product={product} />
 
               {product.description ? (
                 <div className="rounded-[0.85rem] border border-slate-200/80 p-3 text-sm font-semibold leading-6 text-slate-600 dark:border-white/10 dark:text-white/60">
