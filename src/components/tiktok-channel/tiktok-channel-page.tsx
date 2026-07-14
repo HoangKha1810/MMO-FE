@@ -312,6 +312,37 @@ function productImages(product: TikTokChannelProduct) {
     });
 }
 
+function buildPageItems(currentPage: number, totalPages: number) {
+  const safeTotalPages = Math.max(1, Math.trunc(totalPages || 1));
+  const safeCurrentPage = Math.min(Math.max(1, Math.trunc(currentPage || 1)), safeTotalPages);
+
+  if (safeTotalPages <= 7) {
+    return Array.from({ length: safeTotalPages }, (_, index) => index + 1);
+  }
+
+  const pages = new Set<number>([
+    1,
+    safeTotalPages,
+    safeCurrentPage - 1,
+    safeCurrentPage,
+    safeCurrentPage + 1,
+  ]);
+  const sortedPages = Array.from(pages)
+    .filter((page) => page >= 1 && page <= safeTotalPages)
+    .sort((a, b) => a - b);
+  const items: Array<number | 'ellipsis'> = [];
+
+  sortedPages.forEach((page, index) => {
+    const previousPage = sortedPages[index - 1];
+    if (previousPage && page - previousPage > 1) {
+      items.push('ellipsis');
+    }
+    items.push(page);
+  });
+
+  return items;
+}
+
 function ProductImage({ product }: { product: TikTokChannelProduct }) {
   const image = productImages(product)[0] || '';
   if (image) {
@@ -710,6 +741,7 @@ export function TikTokChannelPage() {
   const [detailImageIndex, setDetailImageIndex] = useState(0);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const pageItems = buildPageItems(pagination.page, pagination.total_pages);
 
   async function loadProducts(page = 1) {
     setLoading(true);
@@ -937,26 +969,59 @@ export function TikTokChannelPage() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={pagination.page <= 1 || loading}
-                  onClick={() => loadProducts(pagination.page - 1)}
-                >
-                  Trang trước
-                </Button>
-                <div className="text-sm font-black text-slate-500 dark:text-white/55">
-                  Trang {pagination.page}/{pagination.total_pages}
+              <div className="pb-24 sm:pb-10 xl:pr-28">
+                <div className="surface-panel flex flex-col gap-3 rounded-[1rem] p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pagination.page <= 1 || loading}
+                    onClick={() => loadProducts(pagination.page - 1)}
+                    className="min-h-11 gap-2 rounded-[0.85rem] sm:min-w-36"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Trang trước
+                  </Button>
+
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {pageItems.map((item, index) => (
+                      item === 'ellipsis' ? (
+                        <span
+                          key={`ellipsis-${index}`}
+                          className="inline-flex h-11 min-w-11 items-center justify-center rounded-[0.85rem] border border-slate-200/70 px-3 text-sm font-black text-slate-400 dark:border-white/10 dark:text-white/45"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={loading || item === pagination.page}
+                          onClick={() => loadProducts(item)}
+                          aria-current={item === pagination.page ? 'page' : undefined}
+                          className={cn(
+                            'inline-flex h-11 min-w-11 items-center justify-center rounded-[0.85rem] border px-3 text-sm font-black transition',
+                            item === pagination.page
+                              ? 'border-brand-blue bg-brand-blue text-white shadow-[0_18px_42px_-28px_rgba(37,99,235,0.8)]'
+                              : 'border-slate-200/80 bg-white/90 text-slate-700 hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:bg-white/[0.04] dark:text-white/78 dark:hover:bg-white/[0.08]'
+                          )}
+                        >
+                          {item}
+                        </button>
+                      )
+                    ))}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pagination.page >= pagination.total_pages || loading}
+                    onClick={() => loadProducts(pagination.page + 1)}
+                    className="min-h-11 gap-2 rounded-[0.85rem] sm:min-w-36"
+                  >
+                    Trang sau
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={pagination.page >= pagination.total_pages || loading}
-                  onClick={() => loadProducts(pagination.page + 1)}
-                >
-                  Trang sau
-                </Button>
               </div>
             </>
           )}
