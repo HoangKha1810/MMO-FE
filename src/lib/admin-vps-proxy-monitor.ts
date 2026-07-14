@@ -66,11 +66,12 @@ function normalizeRow<T extends Row>(row: T): T {
 
 function buildStats(orders: MonitorOrder[]): MonitorStats {
   const completedStatuses = new Set(['completed', 'complete', 'success', 'done', 'hoàn thành']);
-  const pendingStatuses = new Set(['pending', 'processing', 'creating', 'deletion_pending', 'đang xử lý']);
+  const activeStatuses = new Set(['active', 'running', 'on', 'creating', 'processing', 'progressing', 'deletion_pending']);
+  const pendingStatuses = new Set(['pending', 'processing', 'creating', 'progressing', 'deletion_pending', 'đang xử lý']);
 
   return {
     total: orders.length,
-    active: orders.filter((order) => ['active', 'running', 'creating', 'processing', 'deletion_pending'].includes(order.status.toLowerCase())).length,
+    active: orders.filter((order) => activeStatuses.has(order.status.toLowerCase())).length,
     pending: orders.filter((order) => pendingStatuses.has(order.status.toLowerCase())).length,
     completed: orders.filter((order) => completedStatuses.has(order.status.toLowerCase())).length,
     revenue: orders.reduce((sum, order) => sum + Math.max(0, toNumber(order.amount, 0)), 0),
@@ -267,15 +268,163 @@ async function fetchPortalJson(path: string, token: string) {
   return payload as Record<string, unknown>;
 }
 
+function getVnCloudAgencyConfig() {
+  const username = String(
+    process.env.VNCLOUD_AGENCY_API_USERNAME ||
+      process.env.VNCLOUD_API_USERNAME ||
+      process.env.api_username ||
+      ''
+  ).trim();
+  const app = String(
+    process.env.VNCLOUD_AGENCY_API_APP ||
+      process.env.VNCLOUD_API_APP ||
+      process.env.VNCLOUD_API_PASSWORD ||
+      process.env.api_password ||
+      ''
+  ).trim();
+  const secret = String(
+    process.env.VNCLOUD_AGENCY_API_SECRET ||
+      process.env.VNCLOUD_API_SECRET ||
+      process.env.VNCLOUD_API_TOKEN ||
+      process.env.api_token ||
+      ''
+  ).trim();
+  const baseUrl = String(process.env.VNCLOUD_AGENCY_API_BASE_URL || 'https://portal.vncloud.net')
+    .trim()
+    .replace(/\/+$/, '');
+
+  return { username, app, secret, baseUrl };
+}
+
+function hasVnCloudAgencyConfig() {
+  const config = getVnCloudAgencyConfig();
+  return Boolean(config.username && config.app && config.secret);
+}
+
+async function fetchVnCloudAgencyJson(path: string, init: RequestInit = {}) {
+  const config = getVnCloudAgencyConfig();
+  if (!config.username || !config.app || !config.secret) {
+    throw new Error('Thiếu VNCLOUD_AGENCY_API_USERNAME, VNCLOUD_AGENCY_API_APP hoặc VNCLOUD_AGENCY_API_SECRET');
+  }
+
+  const tokenResponse = await fetch(`${config.baseUrl}/api/agency/get-token`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      'api-username': config.username,
+      'api-app': config.app,
+      'api-secret': config.secret,
+    }),
+    cache: 'no-store',
+  });
+  const tokenPayload = await tokenResponse.json().catch(() => ({})) as Record<string, unknown>;
+  const authToken = String(tokenPayload['auth-token'] || '').trim();
+  if (!tokenResponse.ok || Number(tokenPayload.error || 0) !== 0 || !authToken) {
+    throw new Error(String(tokenPayload.message || `VNCLOUD get-token trả HTTP ${tokenResponse.status}`));
+  }
+
+  const response = await fetch(`${config.baseUrl}${path}`, {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'api-username': config.username,
+      'api-app': config.app,
+      'api-secret': config.secret,
+      'auth-token': authToken,
+      ...(init.headers || {}),
+    },
+    cache: 'no-store',
+  });
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok || Number(payload.error || 0) !== 0) {
+    throw new Error(String(payload.message || `VNCLOUD trả HTTP ${response.status}`));
+  }
+  return payload;
+}
+
+function normalizeVnCloudMoney(value: unknown) {
+  if (typeof value === 'number') return Math.max(0, value);
+  const normalized = String(value || '').replace(/[^\d]/g, '');
+  return Math.max(0, Number(normalized || 0));
+}
+
+function normalizeVnCloudList(value: unknown): Row[] {
+  if (Array.isArray(value)) return value.filter((item): item is Row => Boolean(item && typeof item === 'object')) as Row[];
+  if (value && typeof value === 'object') {
+    return Object.values(value).filter((item): item is Row => Boolean(item && typeof item === 'object')) as Row[];
+  }
+  return [];
+}
+
+async function getCloudVpsFromVnCloudAgencySection(): Promise<MonitorSection> {
+  try {
+    const payload = await fetchVnCloudAgencyJson('/api/agency/vps/get-list-vps?type=all&qtt=300&page=0');
+    const rows = normalizeVnCloudList(payload['list-service'] || payload.list_service || payload.data);
+    const orders = rows.slice(0, 80).map((row) => {
+      const id = Math.trunc(toNumber(row['vps-id'] || row.vps_id || row.id, 0));
+      const status = String(row['vps-status'] || row.status || '').trim() || 'unknown';
+      const ip = String(row.ip || '').trim();
+      const os = String(row.os_name || row.os || '').trim();
+      const configText = String(row['text-config'] || '').trim();
+      const dayLeft = String(row['day-left'] || '').trim();
+      const nextDueDate = String(row.next_due_date || row.next_due_date_vps || '').trim();
+
+      return {
+        id: `cloud-vps-vncloud-${id}`,
+        numericId: id,
+        type: 'cloud-vps' as const,
+        code: id > 0 ? `VNCLOUD-${id}` : 'VNCLOUD',
+        username: String(row.username || 'VNCLOUD'),
+        userId: null,
+        title: [String(row['type-vps'] || 'Cloud VPS'), configText].filter(Boolean).join(' · '),
+        quantity: 1,
+        amount: normalizeVnCloudMoney(row.amount),
+        status,
+        createdAt: String(row.date_create_vps || row.date_create || ''),
+        updatedAt: nextDueDate || String(row.date_create_vps || row.date_create || ''),
+        detail: [ip, os, dayLeft].filter(Boolean).join(' · '),
+        note: nextDueDate ? `Hết hạn: ${nextDueDate}` : String(row.description || ''),
+        href: '/admin/vps-proxy-monitor',
+      };
+    });
+
+    return {
+      key: 'cloud-vps',
+      title: 'Cloud VPS',
+      description: 'VPS thường đọc trực tiếp từ VNCLOUD Agency API.',
+      warning: null,
+      stats: buildStats(orders),
+      orders,
+    };
+  } catch (error) {
+    return {
+      key: 'cloud-vps',
+      title: 'Cloud VPS',
+      description: 'VPS thường đọc trực tiếp từ VNCLOUD Agency API.',
+      warning: error instanceof Error ? error.message : 'Không tải được VNCLOUD Agency API',
+      stats: buildStats([]),
+      orders: [],
+    };
+  }
+}
+
 async function getCloudVpsSection(): Promise<MonitorSection> {
   const token = String(process.env.VPS_PORTAL_ADMIN_TOKEN || process.env.INTEGRATED_VPS_ADMIN_TOKEN || '').trim();
 
   if (!token) {
+    if (hasVnCloudAgencyConfig()) {
+      return getCloudVpsFromVnCloudAgencySection();
+    }
+
     return {
       key: 'cloud-vps',
       title: 'Cloud VPS Portal',
-      description: 'Đơn VPS thường từ portal tích hợp. Cần VPS_PORTAL_ADMIN_TOKEN để đọc trực tiếp từ API portal.',
-      warning: 'Chưa cấu hình VPS_PORTAL_ADMIN_TOKEN nên chỉ hiển thị Proxy và VPS GPU local.',
+      description: 'Đơn VPS thường từ portal tích hợp. Cần VPS_PORTAL_ADMIN_TOKEN để đọc API portal hoặc VNCLOUD_AGENCY_API_* để đọc trực tiếp VNCLOUD.',
+      warning: 'Chưa cấu hình VPS_PORTAL_ADMIN_TOKEN hoặc VNCLOUD_AGENCY_API_* nên chỉ hiển thị Proxy và VPS GPU local.',
       stats: buildStats([]),
       orders: [],
     };

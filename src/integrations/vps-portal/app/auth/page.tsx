@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -43,7 +50,9 @@ export default function AuthPage() {
   );
   const [tab, setTab] = useState<"login" | "register">("login");
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     if (session) {
@@ -118,12 +127,22 @@ export default function AuthPage() {
   }, [session, tab]);
 
   function switchTab(nextTab: "login" | "register") {
+    if (submitLockRef.current) {
+      return;
+    }
+
     setTab(nextTab);
     setMessage("");
   }
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setIsSubmitting(true);
     const form = new FormData(event.currentTarget);
     setMessage("");
 
@@ -137,12 +156,21 @@ export default function AuthPage() {
         router.push(result.user.role === "admin" ? "/admin" : "/vps/dashboard");
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Đăng nhập thất bại.");
+      } finally {
+        submitLockRef.current = false;
+        setIsSubmitting(false);
       }
     });
   }
 
   async function handleRegisterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setIsSubmitting(true);
     const form = new FormData(event.currentTarget);
     setMessage("");
 
@@ -159,6 +187,9 @@ export default function AuthPage() {
         router.push("/vps/dashboard");
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Đăng ký thất bại.");
+      } finally {
+        submitLockRef.current = false;
+        setIsSubmitting(false);
       }
     });
   }
@@ -168,6 +199,7 @@ export default function AuthPage() {
   }
 
   const isRegister = tab === "register";
+  const authBusy = isPending || isSubmitting;
 
   return (
     <div className="min-h-screen">
@@ -273,8 +305,13 @@ export default function AuthPage() {
                   </span>
                 </div>
 
-                <button type="submit" className="auth-slider-submit auth-form-enter">
-                  {isPending ? "Đang tạo tài khoản..." : "Tạo tài khoản VPS"}
+                <button
+                  type="submit"
+                  className="auth-slider-submit auth-form-enter"
+                  disabled={authBusy}
+                  aria-busy={authBusy}
+                >
+                  {authBusy ? "Đang tạo tài khoản..." : "Tạo tài khoản VPS"}
                   <ArrowRight className="h-4 w-4" />
                 </button>
 
@@ -342,8 +379,13 @@ export default function AuthPage() {
                   </span>
                 </div>
 
-                <button type="submit" className="auth-slider-submit auth-form-enter">
-                  {isPending ? "Đang đăng nhập..." : "Vào bảng điều khiển"}
+                <button
+                  type="submit"
+                  className="auth-slider-submit auth-form-enter"
+                  disabled={authBusy}
+                  aria-busy={authBusy}
+                >
+                  {authBusy ? "Đang đăng nhập..." : "Vào bảng điều khiển"}
                   <ArrowRight className="h-4 w-4" />
                 </button>
 
