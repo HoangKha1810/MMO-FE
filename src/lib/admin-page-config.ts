@@ -160,7 +160,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'vibe-code-packages',
       title: 'Bảng giá Vibe Code',
-      description: 'Chỉnh giá nguồn và giá bán Cursor AI/Codex API. Khách chỉ thấy giá bán, admin giữ giá nguồn để tính lời.',
+      description: 'Chỉnh giá nguồn và giá bán Cursor AI/Codex API/Claude. Khách chỉ thấy giá bán, admin giữ giá nguồn để tính lời.',
       columns: ['id', 'provider', 'package_key', 'title', 'unit_amount', 'unit_label', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status', 'created_at'],
       editableFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
       createFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
@@ -370,6 +370,13 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
         { key: 'bulk-reject', label: 'Từ chối hàng loạt', tone: 'danger' },
         { key: 'bulk-delete', label: 'Xóa đã chọn', tone: 'danger' },
       ],
+    },
+    {
+      resource: 'forum-banner-settings',
+      title: 'Banner quảng cáo Forum',
+      description: 'Owner chỉnh banner đầu trang /user/forum: bật/tắt, ảnh banner, link click, tiêu đề, phụ đề và nút CTA.',
+      columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
+      editableFields: ['setting_value'],
     },
     {
       resource: 'forum-ads',
@@ -674,7 +681,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
     {
       resource: 'vibe-code-orders',
       title: 'Đơn Vibe Code',
-      description: 'Đơn Cursor AI/Codex API và trạng thái cấp gói.',
+      description: 'Đơn Cursor AI/Codex API/Claude và trạng thái cấp gói.',
       columns: ['id', 'order_code', 'username', 'provider', 'package_title', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'status', 'admin_note', 'created_at'],
       editableFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
       statusOptions: ['pending', 'processing', 'completed', 'canceled', 'refunded'],

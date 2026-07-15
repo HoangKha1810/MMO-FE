@@ -29,6 +29,7 @@ import {
   syncKenhGiaReProducts,
   updateTikTokChannelProductAutoPrice,
 } from '@/lib/tiktok-channel';
+import { listForumBannerSettings } from '@/lib/forum-actions';
 import { buildForumModerationText, containsForumGamblingContent, forumVietnamTimestampSql } from '@/lib/forum';
 import { assertUserEmailAvailable, normalizeUserEmail } from '@/lib/user-email-guard';
 import { isOwnerRole } from '@/lib/admin-permissions';
@@ -301,6 +302,13 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     statusField: 'status',
     rawOrder: 'created_at DESC, id DESC',
     updateFields: ['content', 'status', 'is_deleted'],
+  },
+  'forum-banner-settings': {
+    table: 'settings',
+    title: 'Banner quảng cáo Forum',
+    searchFields: ['setting_key', 'setting_value'],
+    rawOrder: 'id ASC',
+    updateFields: ['setting_value'],
   },
   'forum-ads': {
     table: 'forum_ads',
@@ -1321,6 +1329,10 @@ export async function listAdminResource(resource: string, params: URLSearchParam
 
   if (resource === 'kenh-tiktok-settings') {
     return listKenhGiaReSettings(params, page, perPage, skip);
+  }
+
+  if (resource === 'forum-banner-settings') {
+    return listForumBannerSettings(params, page, perPage, skip);
   }
 
   if (resource === 'tiktok-channel-orders') {

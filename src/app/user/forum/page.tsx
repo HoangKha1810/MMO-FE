@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { FolderOpen, PenLine, Zap } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumThreadList } from '@/components/forum/forum-thread-list';
-import { listForumHomepageAds } from '@/lib/forum-actions';
+import { getForumOwnerBanner, listForumHomepageAds } from '@/lib/forum-actions';
 import { getForumOverview } from '@/lib/forum';
 import { formatNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
@@ -11,46 +11,67 @@ export const dynamic = 'force-dynamic';
 
 export default async function UserForumPage() {
   const { shell } = await getCurrentUserForShell();
-  const [{ categories, threads }, forumAds] = await Promise.all([
+  const [{ categories, threads }, forumAds, ownerBanner] = await Promise.all([
     getForumOverview(),
     listForumHomepageAds(1),
+    getForumOwnerBanner(),
   ]);
-  const heroAd = forumAds[0] || null;
+  const heroAd = ownerBanner?.is_custom ? ownerBanner : forumAds[0] || ownerBanner || null;
   const heroAdHref = heroAd?.link_url?.trim() || '/user/forum/ads';
   const heroAdExternal = /^https?:\/\//i.test(heroAdHref);
+  const heroAdTitle = heroAd?.title || 'Banner quảng cáo';
+  const heroAdSubtitle = heroAd?.subtitle || 'Forum MMO';
+  const heroAdCta = heroAd?.cta || 'Đặt banner';
 
   return (
     <AppShell user={shell}>
       <div className="space-y-7">
         <section className="relative overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-950 shadow-sm dark:border-white/10 sm:rounded-[1.5rem]">
-          {heroAd ? (
+          {heroAd?.image_path ? (
             <a
               href={heroAdHref}
               target={heroAdExternal ? '_blank' : undefined}
               rel={heroAdExternal ? 'noreferrer' : undefined}
-              className="group block aspect-[10/1.75] min-h-[92px] w-full overflow-hidden"
+              className="group relative block aspect-[10/1.75] min-h-[96px] w-full overflow-hidden"
             >
               <img
                 src={heroAd.image_path}
                 alt="Banner quảng cáo Forum MMO"
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.015]"
               />
+              {heroAd.source === 'owner' ? (
+                <div className="pointer-events-none absolute inset-0 flex items-end justify-between gap-4 bg-gradient-to-r from-slate-950/60 via-slate-950/10 to-slate-950/45 p-5 sm:p-7">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-black uppercase tracking-[0.32em] text-cyan-100/85">
+                      {heroAdTitle}
+                    </div>
+                    <div className="mt-2 max-w-3xl truncate text-xl font-black uppercase tracking-[-0.03em] text-white sm:text-2xl">
+                      {heroAdSubtitle}
+                    </div>
+                  </div>
+                  <div className="hidden shrink-0 rounded-full border border-white/20 bg-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur sm:block">
+                    {heroAdCta}
+                  </div>
+                </div>
+              ) : null}
             </a>
           ) : (
             <a
-              href="/user/forum/ads"
+              href={heroAdHref}
+              target={heroAdExternal ? '_blank' : undefined}
+              rel={heroAdExternal ? 'noreferrer' : undefined}
               className="group flex min-h-[96px] items-center justify-between gap-4 bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(6,182,212,0.14)_48%,rgba(15,23,42,0.98))] px-5 py-4 sm:px-7"
             >
               <div className="min-w-0">
                 <div className="text-[10px] font-black uppercase tracking-[0.32em] text-cyan-200/80">
-                  Banner quảng cáo
+                  {heroAdTitle}
                 </div>
                 <div className="mt-2 truncate text-xl font-black uppercase tracking-[-0.03em] text-white sm:text-2xl">
-                  Forum MMO
+                  {heroAdSubtitle}
                 </div>
               </div>
               <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition group-hover:bg-white/15">
-                Đặt banner
+                {heroAdCta}
               </div>
             </a>
           )}

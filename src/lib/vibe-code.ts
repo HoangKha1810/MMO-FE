@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getVietnamDatabaseDateTime } from '@/lib/date-time';
 import { toNumber } from '@/lib/utils';
 
-export type VibeCodeProvider = 'cursor' | 'codex';
+export type VibeCodeProvider = 'cursor' | 'codex' | 'claude';
 
 export type VibeCodePackageRow = {
   id: number;
@@ -85,18 +85,60 @@ const codexPackages: DefaultVibeCodePackage[] = [10, 50, 100, 200, 400].map((usd
   };
 });
 
+const claudeCreditDescription =
+  'Trí thông minh 1:1, Gateway và Proxy, nạp bao nhiêu dùng bấy nhiêu, Model Opus 4.7, 4.8.';
+const claudeMonthlyDescription =
+  'Trí thông minh 1:1, Gateway và Proxy, Opus 4.8, Opus 4.7, Model Max Sonnet 5, Opus 4.8.';
+
+const claudeCreditPackages: DefaultVibeCodePackage[] = ([
+  [10, 50_000],
+  [50, 130_000],
+  [100, 220_000],
+  [200, 350_000],
+  [500, 750_000],
+] satisfies Array<[number, number]>).map(([usd, salePrice], index) => ({
+  provider: 'claude' as const,
+  packageKey: `claude_pro_${usd}_usd_credit`,
+  title: `Api Claude Pro ${usd}$ Credit`,
+  description: claudeCreditDescription,
+  unitLabel: 'Credit',
+  unitAmount: usd,
+  sourcePriceVnd: salePrice,
+  salePriceVnd: salePrice,
+  displayOrder: (index + 1) * 10,
+}));
+
+const claudeMonthlyPackages: DefaultVibeCodePackage[] = ([
+  [150, 1_300_000],
+  [300, 2_200_000],
+] satisfies Array<[number, number]>).map(([dailyCredit, salePrice], index) => ({
+  provider: 'claude' as const,
+  packageKey: `claude_pro_1_month_${dailyCredit}_usd_daily`,
+  title: `Api Claude Pro 1 Tháng ${dailyCredit}$ credit/ngày, reset 7h sáng`,
+  description: claudeMonthlyDescription,
+  unitLabel: 'credit/ngày, reset 7h sáng',
+  unitAmount: dailyCredit,
+  sourcePriceVnd: salePrice,
+  salePriceVnd: salePrice,
+  displayOrder: 60 + (index + 1) * 10,
+}));
+
 const DEFAULT_VIBE_CODE_PACKAGES = [
   ...cursorPackages,
   ...cursorProPackages,
   ...codexPackages,
+  ...claudeCreditPackages,
+  ...claudeMonthlyPackages,
 ];
 
 let ensurePromise: Promise<void> | null = null;
 
 function normalizePackage(row: Record<string, unknown>): VibeCodePackageRow {
+  const provider = String(row.provider || 'cursor');
+
   return {
     id: Math.trunc(toNumber(row.id, 0)),
-    provider: String(row.provider || 'cursor') === 'codex' ? 'codex' : 'cursor',
+    provider: provider === 'codex' || provider === 'claude' ? provider : 'cursor',
     package_key: String(row.package_key || ''),
     title: String(row.title || ''),
     description: row.description == null ? null : String(row.description),

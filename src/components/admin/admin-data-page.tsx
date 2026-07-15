@@ -78,7 +78,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const GLOBAL_ACTION_KEYS = new Set(['sync', 'sync-api-price', 'sync-kenhgiare', 'check-new-deposits']);
 const LONG_TEXT_FIELD_TOKENS = ['description', 'content', 'message', 'payload', 'note', 'reason', 'key'];
 const LEGACY_COMMUNITY_LINKS = [
-  { label: 'Nhóm Zalo', href: 'https://zalo.me/g/ejtvpx203' },
+  { label: 'Nhóm Zalo', href: 'https://zalo.me/g/nqxe5e0xxuxjtkbwncnf' },
   { label: 'Nhóm Telegram', href: 'https://t.me/+XdGxk8YFEE2NmE1' },
   { label: 'Kênh Tiktok', href: 'http://www.tiktok.com/@haokimedia' },
 ] as const;

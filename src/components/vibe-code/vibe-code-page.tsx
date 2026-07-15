@@ -23,7 +23,7 @@ import { useSessionUser } from '@/hooks/use-session-user';
 import { readJsonResponse } from '@/lib/client-api';
 import { cn, formatCurrency, toNumber } from '@/lib/utils';
 
-type VibeCodeProvider = 'cursor' | 'codex';
+type VibeCodeProvider = 'cursor' | 'codex' | 'claude';
 
 type VibeCodePackage = {
   id: number;
@@ -56,7 +56,7 @@ type BrandIconProps = {
   className?: string;
 };
 
-const providerGuideLinks: Record<VibeCodeProvider, string> = {
+const providerGuideLinks: Partial<Record<VibeCodeProvider, string>> = {
   cursor: 'https://docs.google.com/document/d/1AaDvqVCtJlUaRSIJKJREdDWxsO39-wvic8cFzO65Uc8/edit?tab=t.0#heading=h.yxvlhbnfy6no',
   codex: 'https://docs.google.com/document/d/1OAwAPjZ5JH7Ws4CJAXTpfE6rVNPkkNGUtZ4UDuMIBxk/edit?tab=t.0',
 };
@@ -89,6 +89,10 @@ function CodexBrandIcon({ className }: BrandIconProps) {
   return <BrandLogoIcon className={className} src="/brand/codex-ai-logo.svg" alt="Codex AI" />;
 }
 
+function ClaudeBrandIcon({ className }: BrandIconProps) {
+  return <BrandLogoIcon className={className} src="/brand/claude-ai-logo.svg" alt="Claude" />;
+}
+
 const providerMeta: Record<VibeCodeProvider, {
   title: string;
   eyebrow: string;
@@ -110,12 +114,21 @@ const providerMeta: Record<VibeCodeProvider, {
     icon: CodexBrandIcon,
     accent: 'from-emerald-400 via-cyan-500 to-blue-500',
   },
+  claude: {
+    title: 'Claude',
+    eyebrow: 'Claude Pro',
+    description: 'Gói Claude Pro credit và gói 1 tháng credit/ngày, reset 7h sáng theo danh mục Claude.',
+    icon: ClaudeBrandIcon,
+    accent: 'from-orange-400 via-amber-500 to-rose-500',
+  },
 };
 
 function normalizePackage(input: Record<string, unknown>): VibeCodePackage {
+  const provider = String(input.provider || 'cursor');
+
   return {
     id: Math.trunc(toNumber(input.id, 0)),
-    provider: String(input.provider || 'cursor') === 'codex' ? 'codex' : 'cursor',
+    provider: provider === 'codex' || provider === 'claude' ? provider : 'cursor',
     package_key: String(input.package_key || ''),
     title: String(input.title || ''),
     description: input.description == null ? null : String(input.description),
@@ -128,11 +141,13 @@ function normalizePackage(input: Record<string, unknown>): VibeCodePackage {
 }
 
 function normalizeOrder(input: Record<string, unknown>): VibeCodeOrder {
+  const provider = String(input.provider || 'cursor');
+
   return {
     id: input.id == null ? undefined : Math.trunc(toNumber(input.id, 0)),
     order_code: String(input.order_code || ''),
     package_id: input.package_id == null ? undefined : Math.trunc(toNumber(input.package_id, 0)),
-    provider: String(input.provider || 'cursor') === 'codex' ? 'codex' : 'cursor',
+    provider: provider === 'codex' || provider === 'claude' ? provider : 'cursor',
     package_key: input.package_key == null ? undefined : String(input.package_key),
     package_title: String(input.package_title || input.title || ''),
     unit_amount: input.unit_amount == null ? undefined : toNumber(input.unit_amount, 0),
@@ -165,6 +180,10 @@ function statusClass(status: string) {
 function formatAmount(pack: VibeCodePackage) {
   const amount = toNumber(pack.unit_amount, 0);
   if (pack.provider === 'codex') return `${new Intl.NumberFormat('vi-VN').format(amount)}$`;
+  if (pack.provider === 'claude') {
+    const suffix = String(pack.unit_label || 'Credit').trim();
+    return `${new Intl.NumberFormat('vi-VN').format(amount)}$ ${suffix}`;
+  }
   if (pack.unit_label?.toLowerCase().includes('ngày')) {
     return `${new Intl.NumberFormat('vi-VN').format(amount)} ngày`;
   }
@@ -173,6 +192,7 @@ function formatAmount(pack: VibeCodePackage) {
 
 function packageDiscount(pack: VibeCodePackage, index: number) {
   if (pack.provider === 'codex') return [10, 18, 24, 32, 40][index % 5];
+  if (pack.provider === 'claude') return [0, 0, 0, 0, 0, 0, 0][index % 7];
   if (pack.unit_label?.toLowerCase().includes('ngày')) return [9, 14, 25, 29][index % 4];
   return [9, 25, 18, 16, 27][index % 5];
 }
@@ -204,6 +224,7 @@ export function VibeCodePage() {
   const grouped = useMemo(() => ({
     cursor: packages.filter((item) => item.provider === 'cursor'),
     codex: packages.filter((item) => item.provider === 'codex'),
+    claude: packages.filter((item) => item.provider === 'claude'),
   }), [packages]);
 
   async function loadPackages() {
@@ -301,16 +322,17 @@ export function VibeCodePage() {
         <PageHero
           eyebrow="Vibe Code"
           title="Vibe Code"
-          description="Bảng giá Cursor AI và Codex API. Mua xong hệ thống sinh mã đơn riêng để gửi admin hướng dẫn kích hoạt."
+          description="Bảng giá Cursor AI, Codex API và Claude. Mua xong hệ thống sinh mã đơn riêng để gửi admin hướng dẫn kích hoạt."
           stats={[
             { label: 'Cursor AI', value: `${grouped.cursor.length} gói`, hint: 'Request và Pro', tone: 'blue' },
             { label: 'Codex API', value: `${grouped.codex.length} gói`, hint: 'Credit theo USD', tone: 'emerald' },
+            { label: 'Claude', value: `${grouped.claude.length} gói`, hint: 'Credit và Pro tháng', tone: 'amber' },
           ]}
         />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
-            {(['cursor', 'codex'] as VibeCodeProvider[]).map((provider) => (
+            {(['cursor', 'codex', 'claude'] as VibeCodeProvider[]).map((provider) => (
               <ProviderPricing
                 key={provider}
                 provider={provider}
@@ -482,6 +504,7 @@ function ProviderPricing({
 }) {
   const meta = providerMeta[provider];
   const Icon = meta.icon;
+  const guideLink = providerGuideLinks[provider];
 
   return (
     <section className="space-y-4">
@@ -496,7 +519,7 @@ function ProviderPricing({
 
       {loading ? (
         <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
-          {Array.from({ length: provider === 'cursor' ? 6 : 5 }).map((_, index) => (
+          {Array.from({ length: provider === 'cursor' ? 6 : provider === 'claude' ? 7 : 5 }).map((_, index) => (
             <div
               key={index}
               className="h-80 animate-pulse rounded-[1.35rem] border border-brand-blue/15 bg-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.84)] dark:bg-slate-950/50 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
@@ -512,10 +535,12 @@ function ProviderPricing({
             >
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(37,99,235,0.16),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(20,184,166,0.14),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.5),transparent_42%)] dark:bg-[radial-gradient(circle_at_18%_14%,rgba(37,99,235,0.28),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(20,184,166,0.22),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),transparent_40%)]" />
               <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-500/35 to-transparent dark:via-cyan-300/45" />
-              <div className="absolute left-0 top-0 z-10 overflow-hidden rounded-br-[1rem] border-b border-r border-white/10 text-[11px] font-black">
-                <div className="bg-amber-100 px-3 py-1 text-amber-700 dark:bg-amber-400/20 dark:text-amber-100">Hot!</div>
-                <div className="bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-100">-{packageDiscount(pack, index)}%</div>
-              </div>
+              {packageDiscount(pack, index) > 0 ? (
+                <div className="absolute left-0 top-0 z-10 overflow-hidden rounded-br-[1rem] border-b border-r border-white/10 text-[11px] font-black">
+                  <div className="bg-amber-100 px-3 py-1 text-amber-700 dark:bg-amber-400/20 dark:text-amber-100">Hot!</div>
+                  <div className="bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-100">-{packageDiscount(pack, index)}%</div>
+                </div>
+              ) : null}
               <div className="absolute right-4 top-4 z-10 rounded-full border border-brand-blue/15 bg-white/82 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-[0_14px_32px_-28px_rgba(37,99,235,0.38)] backdrop-blur dark:border-cyan-300/20 dark:bg-slate-950/70 dark:text-cyan-100 dark:shadow-[0_14px_32px_-24px_rgba(34,211,238,0.85)]">
                 {meta.title}
               </div>
@@ -536,7 +561,11 @@ function ProviderPricing({
                 <div className="mt-5 space-y-2 rounded-[1rem] border border-slate-200/80 bg-white/72 p-4 text-left text-xs font-semibold text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)] dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-200 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                   {[
                     'Tốc độ cao',
-                    provider === 'codex' ? 'Nhận mã Codex API' : 'Sử dụng AI model và Max',
+                    provider === 'codex'
+                      ? 'Nhận mã Codex API'
+                      : provider === 'claude'
+                        ? 'Gateway, Proxy và Claude Opus'
+                        : 'Sử dụng AI model và Max',
                     'Có giới hạn theo gói',
                     'Admin hướng dẫn sau khi nhận mã đơn',
                   ].map((feature) => (
@@ -547,16 +576,18 @@ function ProviderPricing({
                   ))}
                 </div>
 
-                <a
-                  href={providerGuideLinks[provider]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[0.85rem] border border-cyan-400/25 bg-cyan-400/10 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-700 transition hover:border-cyan-400/45 hover:bg-cyan-400/18 dark:text-cyan-200"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Hướng dẫn sử dụng
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                {guideLink ? (
+                  <a
+                    href={guideLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[0.85rem] border border-cyan-400/25 bg-cyan-400/10 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-700 transition hover:border-cyan-400/45 hover:bg-cyan-400/18 dark:text-cyan-200"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Hướng dẫn sử dụng
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : null}
               </div>
 
               <Button

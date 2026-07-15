@@ -13,7 +13,29 @@ export interface ForumHomepageAd {
   id: number;
   image_path: string;
   link_url: string;
+  title?: string;
+  subtitle?: string;
+  cta?: string;
+  source?: 'owner' | 'ad';
+  is_custom?: boolean;
 }
+
+const FORUM_BANNER_SETTING_DEFAULTS = [
+  ['forum_home_banner_enabled', '1'],
+  ['forum_home_banner_image_url', ''],
+  ['forum_home_banner_link_url', '/user/forum/ads'],
+  ['forum_home_banner_title', 'Banner quảng cáo'],
+  ['forum_home_banner_subtitle', 'Forum MMO'],
+  ['forum_home_banner_cta', 'Đặt banner'],
+] as const;
+
+const FORUM_BANNER_SETTING_KEYS = FORUM_BANNER_SETTING_DEFAULTS.map(([key]) => key);
+const FORUM_BANNER_DEFAULT_MAP = Object.fromEntries(FORUM_BANNER_SETTING_DEFAULTS) as Record<
+  (typeof FORUM_BANNER_SETTING_DEFAULTS)[number][0],
+  string
+>;
+
+let ensureForumBannerSettingsPromise: Promise<void> | null = null;
 
 function normalizeRow<T extends ForumActionRow>(row: T): T {
   return Object.fromEntries(
@@ -178,7 +200,129 @@ export async function listForumHomepageAds(limit = 1): Promise<ForumHomepageAd[]
     id: Number(row.id || 0),
     image_path: buildLegacyAssetUrl(String(row.image_path || '')) || '',
     link_url: String(row.link_url || ''),
+    source: 'ad' as const,
   })).filter((ad) => ad.id > 0 && ad.image_path);
+}
+
+export async function ensureForumBannerSettings() {
+  if (!ensureForumBannerSettingsPromise) {
+    ensureForumBannerSettingsPromise = (async () => {
+      for (const [key, value] of FORUM_BANNER_SETTING_DEFAULTS) {
+        await db.$executeRawUnsafe(
+          `
+            INSERT INTO settings (setting_key, setting_value, updated_at)
+            SELECT ?, ?, NOW()
+            WHERE NOT EXISTS (
+              SELECT 1 FROM settings WHERE setting_key = ? LIMIT 1
+            )
+          `,
+          key,
+          value,
+          key
+        ).catch(() => undefined);
+      }
+    })();
+  }
+
+  await ensureForumBannerSettingsPromise.catch(() => undefined);
+}
+
+export async function getForumOwnerBanner(): Promise<ForumHomepageAd | null> {
+  await ensureForumBannerSettings();
+  const placeholders = FORUM_BANNER_SETTING_KEYS.map(() => '?').join(', ');
+  const rows = await safeRows<ForumActionRow>(
+    `
+      SELECT setting_key, setting_value
+      FROM settings
+      WHERE setting_key IN (${placeholders})
+      ORDER BY FIELD(setting_key, ${placeholders}), id ASC
+    `,
+    ...FORUM_BANNER_SETTING_KEYS,
+    ...FORUM_BANNER_SETTING_KEYS
+  );
+
+  const settings = new Map(rows.map((row) => [String(row.setting_key || ''), String(row.setting_value || '')]));
+  const enabled = String(settings.get('forum_home_banner_enabled') || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_enabled).trim();
+  if (['0', 'false', 'off', 'no', 'disabled'].includes(enabled.toLowerCase())) {
+    return null;
+  }
+
+  const imageUrl = settings.get('forum_home_banner_image_url')?.trim() || '';
+  const linkUrl = settings.get('forum_home_banner_link_url')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_link_url;
+  const title = settings.get('forum_home_banner_title')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_title;
+  const subtitle = settings.get('forum_home_banner_subtitle')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_subtitle;
+  const cta = settings.get('forum_home_banner_cta')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_cta;
+  const isCustom =
+    Boolean(imageUrl) ||
+    linkUrl !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_link_url ||
+    title !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_title ||
+    subtitle !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_subtitle ||
+    cta !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_cta;
+
+  return {
+    id: 0,
+    image_path: buildLegacyAssetUrl(imageUrl) || '',
+    link_url: linkUrl,
+    title,
+    subtitle,
+    cta,
+    source: 'owner',
+    is_custom: isCustom,
+  };
+}
+
+export async function listForumBannerSettings(params: URLSearchParams, page: number, perPage: number, skip: number) {
+  await ensureForumBannerSettings();
+  const search = (params.get('search') || '').trim();
+  const placeholders = FORUM_BANNER_SETTING_KEYS.map(() => '?').join(', ');
+  const values: unknown[] = [...FORUM_BANNER_SETTING_KEYS];
+  const conditions = [`setting_key IN (${placeholders})`];
+
+  if (search) {
+    conditions.push('(setting_key LIKE ? OR COALESCE(setting_value, \'\') LIKE ?)');
+    values.push(`%${search}%`, `%${search}%`);
+  }
+
+  const whereSql = `WHERE ${conditions.join(' AND ')}`;
+  const [rows, countRows] = await Promise.all([
+    db.$queryRawUnsafe<ForumActionRow[]>(
+      `
+        SELECT id, setting_key, setting_value, updated_at
+        FROM settings
+        ${whereSql}
+        ORDER BY FIELD(setting_key, ${placeholders}), id ASC
+        LIMIT ? OFFSET ?
+      `,
+      ...values,
+      ...FORUM_BANNER_SETTING_KEYS,
+      perPage,
+      skip
+    ),
+    db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+      `SELECT COUNT(*) AS total FROM settings ${whereSql}`,
+      ...values
+    ),
+  ]);
+
+  const total = Number(countRows[0]?.total || 0);
+  return {
+    success: true,
+    title: 'Banner quảng cáo Forum',
+    data: normalizeRows(rows).map((row) => ({
+      ...row,
+      id: Number(row.id || 0),
+      updated_at: row.updated_at == null ? null : serializeDatabaseDateTime(row.updated_at),
+    })),
+    pagination: {
+      page,
+      per_page: perPage,
+      total,
+      total_pages: Math.max(1, Math.ceil(total / perPage)),
+    },
+    readonly: false,
+    create_fields: [],
+    update_fields: ['setting_value'],
+  };
 }
 
 export async function createForumReply(userId: number, threadId: number, content: string) {

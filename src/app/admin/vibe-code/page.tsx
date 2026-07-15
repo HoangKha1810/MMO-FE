@@ -12,7 +12,7 @@ export default async function AdminVibeCodePage() {
   return (
     <AdminDataPage
       title="Vibe Code"
-      description="Chỉnh giá Cursor AI, Codex API và theo dõi mã đơn khách gửi admin."
+      description="Chỉnh giá Cursor AI, Codex API, Claude và theo dõi mã đơn khách gửi admin."
       sections={sections}
     />
   );

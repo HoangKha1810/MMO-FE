@@ -1,0 +1,9 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Claude</title>
+  <desc id="desc">Claude brand-style orange mark</desc>
+  <rect width="128" height="128" rx="28" fill="#FFF4E8"/>
+  <g fill="#D97825">
+    <path d="M61.9 15.2h4.2l4.9 31.1 24.4-19.7 3 3-19.6 24.5 31 4.8v4.2l-31 4.8 19.6 24.5-3 3-24.4-19.7-4.9 31.1h-4.2L57 75.7 32.6 95.4l-3-3 19.6-24.5-31-4.8v-4.2l31-4.8-19.6-24.5 3-3L57 46.3l4.9-31.1Z"/>
+    <circle cx="64" cy="61" r="13.6" fill="#F6A64A"/>
+  </g>
+</svg>
