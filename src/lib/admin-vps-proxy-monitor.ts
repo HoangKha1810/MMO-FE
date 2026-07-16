@@ -5,6 +5,7 @@ import { serializeDatabaseDateTime } from '@/lib/date-time';
 import { toNumber } from '@/lib/utils';
 import { ensureProxyTables } from '@/lib/proxy-service';
 import { ensureVpsGpuInstancesTable } from '@/lib/vps-gpu-billing';
+import { tableExists } from '@/lib/legacy-modules';
 
 type Row = Record<string, unknown>;
 
@@ -360,34 +361,95 @@ function normalizeVnCloudList(value: unknown): Row[] {
   return [];
 }
 
+async function getLocalCloudVpsOwnerMap() {
+  try {
+    if (!(await tableExists('vps_instances')) || !(await tableExists('vps_orders'))) {
+      return new Map<number, Row>();
+    }
+
+    const rows = await db.$queryRawUnsafe<Row[]>(`
+      SELECT
+        vi.vncloud_vps_id,
+        vi.user_id,
+        vi.username AS server_username,
+        vi.status AS local_instance_status,
+        vi.next_due_date,
+        vo.order_code,
+        vo.total_price,
+        vo.status AS local_order_status,
+        NULLIF(u.username, '') AS web_username,
+        NULLIF(u.fullname, '') AS web_fullname,
+        u.email AS web_email
+      FROM vps_instances vi
+      LEFT JOIN vps_orders vo ON vo.id = vi.order_id
+      LEFT JOIN users u ON u.id = vi.user_id
+      WHERE vi.vncloud_vps_id IS NOT NULL
+      ORDER BY vi.updated_at DESC, vi.id DESC
+      LIMIT 1500
+    `);
+
+    const map = new Map<number, Row>();
+    for (const row of rows.map(normalizeRow)) {
+      const providerId = Math.trunc(toNumber(row.vncloud_vps_id, 0));
+      if (providerId > 0 && !map.has(providerId)) {
+        map.set(providerId, row);
+      }
+    }
+    return map;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[admin-vps-proxy-monitor] local Cloud VPS owner lookup failed', error);
+    }
+    return new Map<number, Row>();
+  }
+}
+
 async function getCloudVpsFromVnCloudAgencySection(): Promise<MonitorSection> {
   try {
     const payload = await fetchVnCloudAgencyJson('/api/agency/vps/get-list-vps?type=all&qtt=300&page=0');
     const rows = normalizeVnCloudList(payload['list-service'] || payload.list_service || payload.data);
+    const localOwners = await getLocalCloudVpsOwnerMap();
     const orders = rows.slice(0, 80).map((row) => {
       const id = Math.trunc(toNumber(row['vps-id'] || row.vps_id || row.id, 0));
+      const localOwner = id > 0 ? localOwners.get(id) : null;
       const status = String(row['vps-status'] || row.status || '').trim() || 'unknown';
       const ip = String(row.ip || '').trim();
       const os = String(row.os_name || row.os || '').trim();
       const configText = String(row['text-config'] || '').trim();
       const dayLeft = String(row['day-left'] || '').trim();
       const nextDueDate = String(row.next_due_date || row.next_due_date_vps || '').trim();
+      const serverUsername = String(row.username || localOwner?.server_username || '').trim();
+      const webUsername = String(localOwner?.web_username || '').trim();
+      const webFullname = String(localOwner?.web_fullname || '').trim();
+      const webUserId = Math.trunc(toNumber(localOwner?.user_id, 0));
+      const webOrderCode = String(localOwner?.order_code || '').trim();
+      const webTotalPrice = toNumber(localOwner?.total_price, 0);
 
       return {
         id: `cloud-vps-vncloud-${id}`,
         numericId: id,
         type: 'cloud-vps' as const,
-        code: id > 0 ? `VNCLOUD-${id}` : 'VNCLOUD',
-        username: String(row.username || 'VNCLOUD'),
-        userId: null,
+        code: webOrderCode || (id > 0 ? `VNCLOUD-${id}` : 'VNCLOUD'),
+        username: webUsername || (webUserId ? `User #${webUserId}` : id > 0 ? `Chưa map user web #${id}` : 'Không rõ user'),
+        userId: webUserId || null,
         title: [String(row['type-vps'] || 'Cloud VPS'), configText].filter(Boolean).join(' · '),
         quantity: 1,
-        amount: normalizeVnCloudMoney(row.amount),
+        amount: webTotalPrice || normalizeVnCloudMoney(row.amount),
         status,
         createdAt: String(row.date_create_vps || row.date_create || ''),
         updatedAt: nextDueDate || String(row.date_create_vps || row.date_create || ''),
-        detail: [ip, os, dayLeft].filter(Boolean).join(' · '),
-        note: nextDueDate ? `Hết hạn: ${nextDueDate}` : String(row.description || ''),
+        detail: [
+          id > 0 ? `VNCLOUD #${id}` : '',
+          ip,
+          os,
+          dayLeft,
+          serverUsername ? `Login: ${serverUsername}` : '',
+        ].filter(Boolean).join(' · '),
+        note: [
+          nextDueDate ? `Hết hạn: ${nextDueDate}` : String(row.description || ''),
+          webFullname && webFullname !== webUsername ? `Khách: ${webFullname}` : '',
+          localOwner?.local_order_status ? `Đơn web: ${String(localOwner.local_order_status)}` : '',
+        ].filter(Boolean).join(' · '),
         href: '/admin/vps-proxy-monitor',
       };
     });
@@ -458,7 +520,7 @@ async function getCloudVpsSection(): Promise<MonitorSection> {
         numericId: id,
         type: 'cloud-vps' as const,
         code: orderCode,
-        username: String(row.username || row.email || 'Khách VPS'),
+        username: String(row.owner_username || row.username || row.email || 'Khách VPS'),
         userId: null,
         title: String(row.title || 'Cloud VPS'),
         quantity: Math.max(1, Math.trunc(toNumber(row.quantity, 1))),

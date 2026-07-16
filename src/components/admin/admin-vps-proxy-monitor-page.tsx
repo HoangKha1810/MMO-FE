@@ -177,7 +177,7 @@ export function AdminVpsProxyMonitorPage() {
         <SectionHeader
           eyebrow="Filters"
           title="Danh sách đơn"
-          description="Lọc theo loại đơn hoặc tìm theo username, mã đơn, trạng thái và ghi chú."
+          description="Lọc theo loại đơn hoặc tìm theo user web, mã đơn, trạng thái và ghi chú."
           actions={
             <div className="relative min-w-[280px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -228,7 +228,7 @@ export function AdminVpsProxyMonitorPage() {
               <tr className="border-b border-slate-200 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 dark:border-white/10">
                 <th className="px-3 py-3">Loại</th>
                 <th className="px-3 py-3">Mã đơn</th>
-                <th className="px-3 py-3">Username</th>
+                <th className="px-3 py-3">User web</th>
                 <th className="px-3 py-3">Dịch vụ</th>
                 <th className="px-3 py-3">SL</th>
                 <th className="px-3 py-3">Tổng tiền</th>

@@ -700,6 +700,60 @@ export async function syncKenhGiaReProducts(options: { maxPages?: number } = {})
   };
 }
 
+export async function syncKenhGiaReProductsIfStale(options: {
+  intervalHours?: number;
+  maxPages?: number;
+  force?: boolean;
+} = {}) {
+  await ensureTikTokChannelTables();
+  const intervalHours = Math.max(1, Math.trunc(toNumber(options.intervalHours, 24)));
+  const staleAfterSeconds = intervalHours * 60 * 60;
+  const [state] = await db.$queryRawUnsafe<Array<{
+    total: number | bigint;
+    active_total: number | bigint | null;
+    last_synced_at: Date | string | null;
+    age_seconds: number | bigint | null;
+  }>>(
+    `
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_total,
+        MAX(synced_at) AS last_synced_at,
+        TIMESTAMPDIFF(SECOND, MAX(synced_at), NOW()) AS age_seconds
+      FROM tiktok_channel_products
+    `
+  );
+
+  const total = Math.trunc(toNumber(state?.total, 0));
+  const activeTotal = Math.trunc(toNumber(state?.active_total, 0));
+  const ageSeconds = state?.age_seconds == null ? Number.POSITIVE_INFINITY : toNumber(state.age_seconds, Number.POSITIVE_INFINITY);
+  const lastSyncedAt = state?.last_synced_at ? serializeDatabaseDateTime(state.last_synced_at) : null;
+  const shouldSync = Boolean(options.force) || total === 0 || activeTotal === 0 || ageSeconds >= staleAfterSeconds;
+
+  if (!shouldSync) {
+    return {
+      synced: false,
+      skipped: true,
+      reason: `Dữ liệu Kênh TikTok chưa quá ${intervalHours}h`,
+      total,
+      active_total: activeTotal,
+      last_synced_at: lastSyncedAt,
+      next_sync_after_seconds: Math.max(0, staleAfterSeconds - Math.max(0, ageSeconds)),
+    };
+  }
+
+  const result = await syncKenhGiaReProducts({ maxPages: options.maxPages });
+  return {
+    synced: true,
+    skipped: false,
+    reason: options.force ? 'Force refresh Kênh TikTok' : `Auto refresh vì dữ liệu quá ${intervalHours}h hoặc chưa có kênh active`,
+    previous_total: total,
+    previous_active_total: activeTotal,
+    previous_last_synced_at: lastSyncedAt,
+    ...result,
+  };
+}
+
 export async function listTikTokChannelProducts(params: {
   page?: number;
   perPage?: number;
@@ -710,12 +764,7 @@ export async function listTikTokChannelProducts(params: {
 } = {}) {
   await ensureTikTokChannelTables();
 
-  const activeCountRows = await db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
-    "SELECT COUNT(*) AS total FROM tiktok_channel_products WHERE status = 'active'"
-  );
-  if (Number(activeCountRows[0]?.total || 0) === 0) {
-    await syncKenhGiaReProducts({ maxPages: 3 }).catch(() => undefined);
-  }
+  await syncKenhGiaReProductsIfStale({ intervalHours: 24, maxPages: 3 }).catch(() => undefined);
 
   const page = Math.max(1, Math.trunc(toNumber(params.page, 1)));
   const perPage = Math.min(48, Math.max(8, Math.trunc(toNumber(params.perPage, 16))));

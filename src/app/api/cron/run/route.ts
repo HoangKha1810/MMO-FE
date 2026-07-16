@@ -382,6 +382,13 @@ async function runTask(task: string, options: { force?: boolean } = {}): Promise
   else if (shouldRun('mmo-resources')) summary.mmo_resources_sync = await runMmoResourceSync();
   if (shouldRun('find-job')) summary.find_job = await runFindJobMaintenance();
   if (shouldRun('support-tiktok')) summary.support_tiktok = await runSupportTikTokMaintenance();
+  if (shouldRun('kenh-tiktok')) {
+    const { syncKenhGiaReProductsIfStale } = await import('@/lib/tiktok-channel');
+    summary.kenh_tiktok = await syncKenhGiaReProductsIfStale({
+      intervalHours: 24,
+      force: options.force,
+    });
+  }
   if (shouldRun('forum-ads')) summary.forum_ads = { expired: Number(await runForumAdsExpiry() || 0) };
   if (shouldRun('card')) summary.card = await runCardMaintenance();
   if (shouldRun('deposits')) summary.deposits = await runDepositMaintenance();

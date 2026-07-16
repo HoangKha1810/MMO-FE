@@ -2697,6 +2697,11 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       {resolveActionLabel(action)}
                     </Button>
                   ))}
+                  {section.resource === 'tiktok-channel-products' ? (
+                    <Badge variant="info" className="rounded-full px-3 py-2 text-[10px] tracking-widest">
+                      Auto refresh 24h
+                    </Badge>
+                  ) : null}
                   <Button
                     type="button"
                     size="sm"

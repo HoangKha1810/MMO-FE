@@ -27,6 +27,7 @@ import {
   listKenhGiaReSettings,
   repriceTikTokChannelAutoProducts,
   syncKenhGiaReProducts,
+  syncKenhGiaReProductsIfStale,
   updateTikTokChannelProductAutoPrice,
 } from '@/lib/tiktok-channel';
 import { listForumBannerSettings } from '@/lib/forum-actions';
@@ -1337,6 +1338,14 @@ export async function listAdminResource(resource: string, params: URLSearchParam
 
   if (resource === 'tiktok-channel-orders') {
     return listAdminTikTokChannelOrders(params, page, perPage, skip);
+  }
+
+  if (resource === 'tiktok-channel-products') {
+    await syncKenhGiaReProductsIfStale({ intervalHours: 24 }).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[admin-data] kenhgiare stale sync failed', error);
+      }
+    });
   }
 
   if (resource === 'forum-threads') {
