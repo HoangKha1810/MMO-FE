@@ -148,7 +148,7 @@ export function AdminGameApiDocsPage({ baseUrl }: AdminGameApiDocsPageProps) {
         <SectionHeader
           eyebrow="Auth"
           title="Cách Xác Thực Và Nguyên Tắc Kết Nối"
-          description="Mỗi account trên web có một API key riêng. Key này chỉ admin nhìn thấy và chỉ dùng trong luồng game API."
+          description="Mỗi account trên web có một apikey riêng. User tự xem được key của mình; admin dùng trang này để đối soát, rotate và hỗ trợ tích hợp."
         />
 
         <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">

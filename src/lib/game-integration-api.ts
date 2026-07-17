@@ -118,7 +118,7 @@ function isDuplicateError(error: unknown) {
 }
 
 function buildGameApiKey() {
-  return `ttmmo_game_${randomBytes(24).toString('hex')}`;
+  return `ttmmo_apikey_${randomBytes(24).toString('hex')}`;
 }
 
 function normalizeGameApiKeyStatus(value: unknown): GameApiKeyStatus {
@@ -463,7 +463,8 @@ function extractGameApiKey(req: NextRequest, body?: Record<string, unknown>) {
   }
 
   const queryKey = String(
-    req.nextUrl.searchParams.get('api_key')
+    req.nextUrl.searchParams.get('apikey')
+    || req.nextUrl.searchParams.get('api_key')
     || req.nextUrl.searchParams.get('key')
     || ''
   ).trim();
@@ -471,7 +472,7 @@ function extractGameApiKey(req: NextRequest, body?: Record<string, unknown>) {
     return queryKey;
   }
 
-  const bodyKey = String(body?.api_key || body?.key || '').trim();
+  const bodyKey = String(body?.apikey || body?.api_key || body?.key || '').trim();
   return bodyKey;
 }
 
@@ -710,6 +711,7 @@ export async function getGameApiAccountSummary(userId: number) {
     role: String(account.role || 'member'),
     game_balance: toNumber(account.game_balance, 0),
     api_status: normalizeGameApiKeyStatus(account.api_status),
+    apikey: String(account.api_key || ''),
     api_key_last_used_at: account.last_used_at || null,
     api_key_created_at: account.created_at || null,
   };

@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MetricCard, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
+import { UserApikeyCard } from '@/components/user/user-apikey-card';
 import {
   buildAutoMxhApiDocs,
   type AutoMxhApiDocsRuntimeMeta,
@@ -30,6 +31,8 @@ interface AdminAutoMxhApiDocsPageProps {
   runtimeMeta: AutoMxhApiDocsRuntimeMeta;
   loadedAt: string;
   loadError?: string;
+  audience?: 'admin' | 'user';
+  showUserApikey?: boolean;
 }
 
 async function copyText(value: string, successMessage: string) {
@@ -190,10 +193,13 @@ export function AdminAutoMxhApiDocsPage({
   runtimeMeta,
   loadedAt,
   loadError,
+  audience = 'admin',
+  showUserApikey = false,
 }: AdminAutoMxhApiDocsPageProps) {
   const [query, setQuery] = useState('');
   const [activeEndpointId, setActiveEndpointId] = useState('services');
   const docs = useMemo(() => buildAutoMxhApiDocs(baseUrl, sections, runtimeMeta), [baseUrl, sections, runtimeMeta]);
+  const isUserDocs = audience === 'user';
   const activeEndpoint = useMemo(
     () => docs.endpoints.find((endpoint) => endpoint.id === activeEndpointId) || docs.endpoints[0],
     [activeEndpointId, docs.endpoints]
@@ -244,9 +250,13 @@ export function AdminAutoMxhApiDocsPage({
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Admin AutoMXH API Docs"
-        title="Tài Liệu API AutoMXH Và Bảng Giá Web"
-        description="Trang docs dành cho vận hành và đối tác: lấy catalog, lấy gói dịch vụ, tính giá, tạo đơn trừ ví chính, kiểm tra trạng thái và xem lịch sử AutoMXH bằng API key admin cấp."
+        eyebrow={isUserDocs ? 'AutoMXH API' : 'Admin AutoMXH API Docs'}
+        title={isUserDocs ? 'Tài Liệu Public API AutoMXH' : 'Tài Liệu API AutoMXH Và Bảng Giá Web'}
+        description={
+          isUserDocs
+            ? 'Dành cho đại lý đấu API: lấy catalog, lấy bảng giá, tính giá, tạo đơn trừ ví chính, kiểm tra trạng thái và xem lịch sử bằng apikey riêng của tài khoản.'
+            : 'Trang docs dành cho vận hành và đối tác: lấy catalog, lấy gói dịch vụ, tính giá, tạo đơn trừ ví chính, kiểm tra trạng thái và xem lịch sử AutoMXH bằng apikey theo từng user.'
+        }
         stats={[
           {
             label: 'Base URL',
@@ -275,18 +285,29 @@ export function AdminAutoMxhApiDocsPage({
         ]}
         actions={
           <>
-            <Button asChild variant="outline">
-              <Link href="/admin/automxh/products">
-                <Layers className="h-4 w-4" />
-                Dịch vụ cha
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/admin/automxh/variants">
-                <Server className="h-4 w-4" />
-                Gói / máy chủ
-              </Link>
-            </Button>
+            {isUserDocs ? (
+              <Button asChild variant="outline">
+                <Link href="/user/home">
+                  <Wallet className="h-4 w-4" />
+                  Về màn chính
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="outline">
+                  <Link href="/admin/automxh/products">
+                    <Layers className="h-4 w-4" />
+                    Dịch vụ cha
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/admin/automxh/variants">
+                    <Server className="h-4 w-4" />
+                    Gói / máy chủ
+                  </Link>
+                </Button>
+              </>
+            )}
             <Button onClick={() => void copyText(`${docs.baseUrl}/api/external/automxh/services`, 'Đã copy endpoint bảng giá AutoMXH')}>
               <Copy className="h-4 w-4" />
               Copy bảng giá
@@ -300,6 +321,14 @@ export function AdminAutoMxhApiDocsPage({
           <div className="text-sm font-black uppercase tracking-[0.18em]">Cảnh báo tải dữ liệu</div>
           <p className="mt-2 text-sm font-semibold leading-7">{loadError}</p>
         </SectionPanel>
+      ) : null}
+
+      {showUserApikey ? (
+        <UserApikeyCard
+          showDocsButton={false}
+          title="apikey"
+          description="Mỗi tài khoản có một apikey riêng. Dùng key này trong header x-api-key, Authorization Bearer hoặc field apikey khi gọi API AutoMXH."
+        />
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -339,7 +368,11 @@ export function AdminAutoMxhApiDocsPage({
         <SectionHeader
           eyebrow="Auth & Pricing"
           title="Nguyên Tắc Kết Nối Và Tính Giá"
-          description="Các ghi chú này bám theo code đang chạy: dịch vụ lấy từ AutoMXH active, external API dùng API key do admin cấp và tạo đơn trừ ví chính."
+          description={
+            isUserDocs
+              ? 'Các ghi chú này bám theo code đang chạy: dịch vụ lấy từ AutoMXH active, external API dùng apikey riêng của user và tạo đơn trừ ví chính.'
+              : 'Các ghi chú này bám theo code đang chạy: dịch vụ lấy từ AutoMXH active, external API dùng apikey theo từng user và tạo đơn trừ ví chính.'
+          }
         />
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -400,10 +433,17 @@ export function AdminAutoMxhApiDocsPage({
                 className="h-11 w-[min(380px,75vw)] rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
               />
               <Button asChild variant="outline">
-                <Link href="/admin/automxh/variants">
-                  <RefreshCcw className="h-4 w-4" />
-                  Chỉnh giá / map API
-                </Link>
+                {isUserDocs ? (
+                  <Link href="/user/home">
+                    <RefreshCcw className="h-4 w-4" />
+                    Về màn chính
+                  </Link>
+                ) : (
+                  <Link href="/admin/automxh/variants">
+                    <RefreshCcw className="h-4 w-4" />
+                    Chỉnh giá / map API
+                  </Link>
+                )}
               </Button>
             </div>
           }
@@ -441,7 +481,7 @@ export function AdminAutoMxhApiDocsPage({
         <SectionHeader
           eyebrow="Endpoints"
           title="Tài Liệu Kiểu SMM Panel"
-          description="Chọn từng mục bên trái để xem tham số, request mẫu và response. Endpoint tạo đơn sẽ trừ ví chính của user gắn với API key."
+          description="Chọn từng mục bên trái để xem tham số, request mẫu và response. Endpoint tạo đơn sẽ trừ ví chính của user gắn với apikey."
         />
 
         <div className="grid gap-5 lg:grid-cols-[270px_minmax(0,1fr)]">

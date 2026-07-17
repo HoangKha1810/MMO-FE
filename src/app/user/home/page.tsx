@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { HomeServiceCard } from '@/components/modules/home-service-card';
+import { UserApikeyCard } from '@/components/user/user-apikey-card';
 import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
 import {
@@ -246,6 +247,8 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+
+        <UserApikeyCard />
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="dashboard-quick-strip p-4 md:p-5">

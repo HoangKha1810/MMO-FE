@@ -175,7 +175,7 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
       <PageHero
         eyebrow="Admin Only"
         title="Game API, Random Và Chợ Game"
-        description="Module này cấp API cho web đối tác đấu trực tiếp vào kho tài khoản game, random game và chợ game của hệ thống. Mỗi account có một API key riêng, chỉ admin xem/copy/rotate được."
+        description="Module này cấp API cho web đối tác đấu trực tiếp vào kho tài khoản game, random game và chợ game của hệ thống. Mỗi account có một apikey riêng; user tự xem key của mình, admin quản lý và rotate khi cần."
         stats={[
           {
             label: 'Users',
@@ -184,7 +184,7 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
             tone: 'blue',
           },
           {
-            label: 'API Key ON',
+            label: 'apikey ON',
             value: String(toNumber(stats.active_keys, 0)),
             hint: 'Key đang hoạt động',
             tone: 'emerald',
@@ -224,7 +224,7 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="API Key OFF"
+          label="apikey OFF"
           value={String(toNumber(stats.inactive_keys, 0))}
           hint="Có thể bật lại từng account"
           tone="slate"
@@ -254,13 +254,13 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
       <SectionPanel className="space-y-5">
         <SectionHeader
           eyebrow="Accounts"
-          title="Quản lý API Key Theo Tài Khoản"
+          title="Quản lý apikey theo tài khoản"
           description="Toàn bộ key được neo theo account của web bạn. Web đối tác dùng chính key này để đọc giá, tạo đơn và poll trạng thái."
           actions={
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
-                onClick={() => runAction({ action: 'provision-missing' }, 'Đã provision API key còn thiếu')}
+                onClick={() => runAction({ action: 'provision-missing' }, 'Đã provision apikey còn thiếu')}
                 loading={actionKey === 'provision-missing:'}
               >
                 <RefreshCw className="h-4 w-4" />
@@ -326,7 +326,7 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
             <table className="w-full min-w-[1180px] text-left text-sm">
               <thead className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                 <tr>
-                  {['User', 'Ví game', 'API key', 'Trạng thái', 'Last used', 'Thao tác'].map((label) => (
+                  {['User', 'Ví game', 'apikey', 'Trạng thái', 'Last used', 'Thao tác'].map((label) => (
                     <th key={label} className="border-b border-slate-100 px-3 py-3 dark:border-white/5">{label}</th>
                   ))}
                 </tr>
@@ -364,7 +364,7 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => runAction({ action: 'rotate', user_id: userId }, `Đã rotate API key cho user #${userId}`)}
+                            onClick={() => runAction({ action: 'rotate', user_id: userId }, `Đã rotate apikey cho user #${userId}`)}
                             loading={actionKey === `rotate:${userId}`}
                           >
                             <RotateCw className="h-4 w-4" />
@@ -394,7 +394,7 @@ export function AdminGameApiPage({ baseUrl }: AdminGameApiPageProps) {
                           variant="outline"
                           onClick={() => runAction(
                             { action: 'set-status', user_id: userId, status: status === 'active' ? 'inactive' : 'active' },
-                            `${status === 'active' ? 'Đã tắt' : 'Đã bật'} API key cho user #${userId}`
+                            `${status === 'active' ? 'Đã tắt' : 'Đã bật'} apikey cho user #${userId}`
                           )}
                           loading={actionKey === `set-status:${userId}`}
                         >

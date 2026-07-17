@@ -81,6 +81,18 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     defaultDesc: 'Tự động hoá - Tối ưu thu nhập',
   },
   {
+    key: 'automxh_api',
+    nameKey: 'service_automxh_api_name',
+    descKey: 'service_automxh_api_desc',
+    statusKey: 'service_automxh_api_status',
+    href: '/user/automxh-api',
+    iconKey: 'code-2',
+    color: 'from-blue-600 via-cyan-500 to-emerald-500',
+    textColor: 'text-cyan-500',
+    defaultTitle: 'API AutoMXH',
+    defaultDesc: 'Public API cho đại lý đấu dịch vụ AutoMXH',
+  },
+  {
     key: '3',
     nameKey: 'service_3_name',
     descKey: 'service_3_desc',
@@ -550,6 +562,7 @@ function normalizeLegacyServiceTitle(key: string, title: string) {
 const prioritizedServiceKeys = [
   '1',
   '2',
+  'automxh_api',
   '12',
   'proxy',
   'chat_support_tiktok',

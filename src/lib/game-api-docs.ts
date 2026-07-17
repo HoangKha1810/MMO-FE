@@ -65,7 +65,7 @@ function normalizeBaseUrl(baseUrl: string) {
 
 export function buildGameApiDocs(baseUrl: string): GameApiDocsContent {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-  const apiKeyPlaceholder = 'ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+  const apiKeyPlaceholder = 'ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
   const origin = normalizedBaseUrl.replace(/\/api\/external\/game$/i, '');
   const deployDomain = 'api.trungtammmo.vn';
   const serverIp = '160.191.237.249';
@@ -75,10 +75,11 @@ export function buildGameApiDocs(baseUrl: string): GameApiDocsContent {
     baseUrl: normalizedBaseUrl,
     apiKeyPlaceholder,
     authNotes: [
-      'Mọi request phải gửi API key theo 1 trong 3 cách: x-api-key, Authorization: Bearer, hoặc query api_key.',
-      'Tất cả lệnh mua game/random/game-market đều trừ đúng ví game của account gắn với API key.',
+      'Mọi request phải gửi apikey theo 1 trong các cách: x-api-key, Authorization: Bearer, query apikey hoặc body apikey.',
+      'Hệ thống vẫn nhận api_key/key cũ để tương thích các tool đã đấu trước đó.',
+      'Tất cả lệnh mua game/random/game-market đều trừ đúng ví game của account gắn với apikey.',
       'Giá trả về là giá đang bán trên web, đã tính đúng VAT/phí đang hiển thị của hệ thống.',
-      'Tài liệu này chỉ hiển thị trong admin; API key không xuất hiện ở khu vực public.',
+      'Mỗi user có một apikey riêng và user tự xem được apikey của chính mình ở màn người dùng.',
     ],
     deployment: {
       serverIp,
@@ -272,7 +273,7 @@ console.log(payload);`,
         title: 'Kết nối bằng PHP cURL',
         description: 'Phù hợp khi web đối tác đang chạy PHP và cần tạo đơn mua game/random hoặc game market.',
         language: 'php',
-        code: `$payload = 'id=RES-123&amount=1&api_key=${apiKeyPlaceholder}';
+        code: `$payload = 'id=RES-123&amount=1&apikey=${apiKeyPlaceholder}';
 
 $ch = curl_init('${normalizedBaseUrl}/buy_product');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -301,10 +302,10 @@ echo $result;`,
         title: 'Profile.php - lấy ví game của account',
         method: 'GET',
         endpoint: `${normalizedBaseUrl}/profile.php`,
-        description: 'Endpoint tương thích kiểu random1k/shopreg để bên đối tác lấy username và số dư ví game của chính account đã được cấp API key.',
+        description: 'Endpoint tương thích kiểu random1k/shopreg để bên đối tác lấy username và số dư ví game của chính account đang sở hữu apikey.',
         requestPayloadTitle: 'Dữ liệu gửi',
-        requestPayload: 'Không cần body. Gửi api_key trong query/header. Có thể gọi bằng x-api-key, Authorization Bearer hoặc ?api_key=...',
-        requestExample: `curl --request GET '${normalizedBaseUrl}/profile.php?api_key=${apiKeyPlaceholder}'`,
+        requestPayload: 'Không cần body. Gửi apikey trong query/header. Có thể gọi bằng x-api-key, Authorization Bearer hoặc ?apikey=...',
+        requestExample: `curl --request GET '${normalizedBaseUrl}/profile.php?apikey=${apiKeyPlaceholder}'`,
         responseExample: prettyJson({
           status: 'success',
           msg: 'Lấy thông tin tài khoản thành công',
@@ -323,7 +324,7 @@ echo $result;`,
         }),
         errorExample: prettyJson({
           status: 'error',
-          msg: 'API key không hợp lệ',
+          msg: 'apikey không hợp lệ',
         }),
         notes: [
           'Đây là route tương thích provider, nên shape trả về là status/msg/data.',
@@ -338,7 +339,7 @@ echo $result;`,
         endpoint: `${normalizedBaseUrl}/products.php`,
         description: 'Catalog chính tương thích random1k/shopreg. Trả về categories có products bên trong. Bao gồm tài khoản game, random game và cả game market.',
         requestPayloadTitle: 'Dữ liệu gửi',
-        requestPayload: 'Không cần body. Gọi GET và gửi api_key. Product ID của hệ thống dùng prefix: RES-123 cho tài khoản game/random, GM-789 cho game market.',
+        requestPayload: 'Không cần body. Gọi GET và gửi apikey. Product ID của hệ thống dùng prefix: RES-123 cho tài khoản game/random, GM-789 cho game market.',
         requestExample: `curl --request GET '${normalizedBaseUrl}/products.php' \\
   --header 'x-api-key: ${apiKeyPlaceholder}'`,
         responseExample: prettyJson({
@@ -433,7 +434,7 @@ echo $result;`,
         }),
         errorExample: prettyJson({
           status: 'error',
-          msg: 'Thiếu API key',
+          msg: 'Thiếu apikey',
         }),
         notes: [
           'ID product có prefix để bên đấu API phân biệt rõ resource/game-market.',
@@ -486,21 +487,21 @@ echo $result;`,
         title: 'Buy_product - mua acc game hoặc game market',
         method: 'POST',
         endpoint: `${normalizedBaseUrl}/buy_product`,
-        description: 'Endpoint mua hàng tương thích provider. Nếu ID là RES-* thì mua tài khoản game/random. Nếu ID là GM-* thì mua game market bằng chính ví game của account đang giữ API key.',
+        description: 'Endpoint mua hàng tương thích provider. Nếu ID là RES-* thì mua tài khoản game/random. Nếu ID là GM-* thì mua game market bằng chính ví game của account đang giữ apikey.',
         requestPayloadTitle: 'Dữ liệu gửi',
         requestPayload: `POST application/x-www-form-urlencoded
 
 id=RES-123
 amount=1
-api_key=${apiKeyPlaceholder}
+apikey=${apiKeyPlaceholder}
 
 Hoặc:
 id=GM-789
 amount=1
-api_key=${apiKeyPlaceholder}`,
+apikey=${apiKeyPlaceholder}`,
         requestExample: `curl --request POST '${normalizedBaseUrl}/buy_product' \\
   --header 'Content-Type: application/x-www-form-urlencoded' \\
-  --data 'id=RES-123&amount=1&api_key=${apiKeyPlaceholder}'`,
+  --data 'id=RES-123&amount=1&apikey=${apiKeyPlaceholder}'`,
         responseExample: prettyJson({
           status: 'success',
           msg: 'Lấy trạng thái đơn thành công',

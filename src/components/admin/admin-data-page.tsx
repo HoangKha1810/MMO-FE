@@ -377,9 +377,9 @@ const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
   'tiktok-channel-products': {
     provider_product_id: 'Mã sản phẩm KGR',
     api_price_vnd: 'Giá API từ KGR',
-    sale_price_vnd: 'Giá bán trên web',
+    sale_price_vnd: 'Giá tay chưa VAT',
     is_auto_price: 'Tự tính theo margin',
-    margin_percent: 'Margin cộng thêm (%)',
+    margin_percent: 'Margin auto (%)',
   },
   'tiktok-channel-orders': {
     provider_product_id: 'Mã sản phẩm KGR',

@@ -2619,6 +2619,14 @@ export async function updateAdminResource(resource: string, id: number, input: R
 
   data = normalizePrismaPayload(config, data);
 
+  if (resource === 'tiktok-channel-products' && Object.prototype.hasOwnProperty.call(data, 'sale_price_vnd')) {
+    const manualSalePrice = Math.round(toNumber(data.sale_price_vnd, 0));
+    if (manualSalePrice > 0) {
+      data.sale_price_vnd = manualSalePrice;
+      data.is_auto_price = false;
+    }
+  }
+
   if (resource === 'smm-orders' && typeof data.status === 'string') {
     const requestedStatus = String(data.status || '').trim().toLowerCase();
     if (['refunded', 'refund'].includes(requestedStatus)) {

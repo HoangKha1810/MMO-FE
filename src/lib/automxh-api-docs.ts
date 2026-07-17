@@ -197,9 +197,9 @@ export function buildAutoMxhApiDocs(
   return {
     baseUrl: normalizedBaseUrl,
     authNotes: [
-      'External AutoMXH API bắt buộc gửi API key do admin cấp theo 1 trong 3 cách: x-api-key, Authorization: Bearer, hoặc query api_key/key.',
-      'API key dùng chung hệ cấp key với Game API/SMM để admin quản lý tập trung theo từng user.',
-      'API tạo đơn AutoMXH sẽ trừ ví chính users.balance của user gắn với API key, không trừ game_balance.',
+      'External AutoMXH API bắt buộc gửi apikey riêng của user theo 1 trong các cách: x-api-key, Authorization: Bearer, query/body apikey hoặc api_key/key cũ.',
+      'apikey dùng chung hệ key với Game API/SMM để user tự copy key của mình và admin quản lý tập trung khi cần.',
+      'API tạo đơn AutoMXH sẽ trừ ví chính users.balance của user gắn với apikey, không trừ game_balance.',
       'User thường chỉ xem và kiểm tra được đơn AutoMXH của chính mình; admin được kiểm tra để vận hành.',
       'Endpoint services trả đúng các gói variant đang active trên web, kèm product/category để đối tác map giao diện dễ hơn.',
     ],
@@ -221,12 +221,12 @@ export function buildAutoMxhApiDocs(
       {
         id: 'services',
         title: 'Lấy bảng giá AutoMXH bằng fetch',
-        description: 'Dùng cho đối tác hoặc tool nội bộ cần lấy toàn bộ gói AutoMXH đang bán bằng API key.',
+        description: 'Dùng cho đối tác hoặc tool nội bộ cần lấy toàn bộ gói AutoMXH đang bán bằng apikey.',
         language: 'ts',
         code: `const response = await fetch('${externalBaseUrl}/services', {
   cache: 'no-store',
   headers: {
-    'x-api-key': 'ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    'x-api-key': 'ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
   }
 });
 
@@ -235,14 +235,14 @@ console.log(payload.data[0].total_to_pay);`,
       },
       {
         id: 'quote',
-        title: 'Tính giá đơn bằng API key',
+        title: 'Tính giá đơn bằng apikey',
         description: 'Dùng để kiểm tra tổng tiền trước khi tạo đơn hoặc đối soát giá hiển thị trên web.',
         language: 'ts',
         code: `const response = await fetch('${externalBaseUrl}/quote', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-api-key': 'ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    'x-api-key': 'ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
   },
   body: JSON.stringify({
     variant_id: ${sampleService.variant_id},
@@ -259,7 +259,7 @@ console.log(payload.checkout.total_to_pay);`,
         description: 'Dùng cho đối tác đấu API web: user nạp tiền vào web, gọi API tạo đơn, hệ thống trừ ví chính rồi xử lý provider.',
         language: 'bash',
         code: `curl --request POST '${externalBaseUrl}/order' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
   --header 'Content-Type: application/json' \\
   --data '${JSON.stringify({
     variant_id: sampleService.variant_id,
@@ -273,15 +273,15 @@ console.log(payload.checkout.total_to_pay);`,
         description: 'Dùng để check trạng thái một đơn AutoMXH đã tạo trên web.',
         language: 'bash',
         code: `curl '${externalBaseUrl}/status?order=${sampleOrderId}' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
       },
       {
         id: 'deposit',
-        title: 'Nạp tiền nguồn bằng API key',
-        description: 'Dùng cho web con hoặc webhook ngân hàng cần cộng tiền vào tài khoản đang sở hữu API key trước khi tạo đơn.',
+        title: 'Nạp tiền nguồn bằng apikey',
+        description: 'Dùng cho web con hoặc webhook ngân hàng cần cộng tiền vào tài khoản đang sở hữu apikey trước khi tạo đơn.',
         language: 'bash',
         code: `curl --request POST '${externalBaseUrl}/deposit' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
   --header 'Content-Type: application/json' \\
   --data '${JSON.stringify({
     amount: 100000,
@@ -298,7 +298,7 @@ console.log(payload.checkout.total_to_pay);`,
         endpoint: `${externalBaseUrl}/services`,
         description: 'Trả về toàn bộ variant AutoMXH đang active, kèm product/category, giá bán, VAT preview và mapping provider nếu có.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'action', description: '"services" nếu gọi endpoint tổng /api/external/automxh' },
           { name: 'category', description: 'Slug category cần lọc, ví dụ facebook' },
           { name: 'search', description: 'Từ khóa tìm trong tên gói/product/category' },
@@ -309,7 +309,7 @@ console.log(payload.checkout.total_to_pay);`,
           search: 'keyword - optional',
         }),
         requestExample: `curl '${externalBaseUrl}/services?category=${sampleService.category_slug}' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
         responseExample: prettyJson({
           success: true,
           summary: {
@@ -320,7 +320,7 @@ console.log(payload.checkout.total_to_pay);`,
         }),
         errorExample: prettyJson({
           success: false,
-          message: 'API key không hợp lệ',
+          message: 'apikey không hợp lệ',
         }),
         notes: [
           'Đây là endpoint chính để lấy giá AutoMXH hiện tại.',
@@ -335,7 +335,7 @@ console.log(payload.checkout.total_to_pay);`,
         endpoint: `${externalBaseUrl}/catalog`,
         description: 'Trả về cấu trúc category và product như màn hình AutoMXH trên web.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'action', description: '"catalog" nếu gọi endpoint tổng /api/external/automxh' },
           { name: 'search', description: 'Từ khóa tìm trong product/category' },
         ],
@@ -344,7 +344,7 @@ console.log(payload.checkout.total_to_pay);`,
           search: 'facebook - optional',
         }),
         requestExample: `curl '${externalBaseUrl}/catalog?search=facebook' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
         responseExample: prettyJson({
           success: true,
           summary: {
@@ -379,7 +379,7 @@ console.log(payload.checkout.total_to_pay);`,
         endpoint: `${externalBaseUrl}/category/${sampleService.category_slug}`,
         description: 'Trả về product trong một category kèm toàn bộ variant/gói con đang active.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'slug', description: 'Slug category trên URL path', required: true },
         ],
         requestPayloadTitle: 'Path Param',
@@ -387,7 +387,7 @@ console.log(payload.checkout.total_to_pay);`,
           slug: sampleService.category_slug,
         }),
         requestExample: `curl '${externalBaseUrl}/category/${sampleService.category_slug}' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
         responseExample: prettyJson({
           success: true,
           category: {
@@ -425,7 +425,7 @@ console.log(payload.checkout.total_to_pay);`,
         endpoint: `${externalBaseUrl}/quote`,
         description: 'Tính subtotal, VAT và tổng tiền phải trả cho một gói AutoMXH bằng đúng công thức tạo đơn trên web.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'variant_id hoặc variant', description: 'ID gói/variant từ endpoint services', required: true },
           { name: 'product_id', description: 'Optional, dùng để khóa variant đúng product' },
         ],
@@ -435,7 +435,7 @@ console.log(payload.checkout.total_to_pay);`,
           product_id: sampleService.product_id,
         }),
         requestExample: `curl --request POST '${externalBaseUrl}/quote' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
   --header 'Content-Type: application/json' \\
   --data '${JSON.stringify({
     variant_id: sampleService.variant_id,
@@ -468,9 +468,9 @@ console.log(payload.checkout.total_to_pay);`,
         title: 'Tạo đơn AutoMXH và trừ tiền',
         method: 'POST',
         endpoint: `${externalBaseUrl}/order`,
-        description: 'Tạo đơn thật trên web, trừ ví chính của user gắn với API key, sau đó đẩy provider nếu gói đã map API.',
+        description: 'Tạo đơn thật trên web, trừ ví chính của user gắn với apikey, sau đó đẩy provider nếu gói đã map API.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'action', description: '"add" nếu gọi endpoint tổng /api/external/automxh' },
           { name: 'variant_id hoặc service', description: 'ID gói/variant từ endpoint services', required: true },
           { name: 'product_id', description: 'Optional, dùng để khóa variant đúng product' },
@@ -487,7 +487,7 @@ console.log(payload.checkout.total_to_pay);`,
           custom_value: 'Ghi chú / username - optional',
         }),
         requestExample: `curl --request POST '${externalBaseUrl}/order' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
   --header 'Content-Type: application/json' \\
   --data '${JSON.stringify({
     service: sampleService.variant_id,
@@ -534,7 +534,7 @@ console.log(payload.checkout.total_to_pay);`,
         endpoint: `${externalBaseUrl}/status?order=${sampleOrderId}`,
         description: 'Lấy trạng thái một đơn AutoMXH. Nếu đơn có provider order id, hệ thống có thể đồng bộ trạng thái provider về đơn nội bộ.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'action', description: '"status" nếu gọi endpoint tổng /api/external/automxh' },
           { name: 'order hoặc id', description: 'ID đơn AutoMXH trên web', required: true },
         ],
@@ -543,7 +543,7 @@ console.log(payload.checkout.total_to_pay);`,
           order: sampleOrderId,
         }),
         requestExample: `curl '${externalBaseUrl}/status?order=${sampleOrderId}' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
         responseExample: prettyJson({
           success: true,
           data: {
@@ -571,9 +571,9 @@ console.log(payload.checkout.total_to_pay);`,
         title: 'Lấy lịch sử đơn AutoMXH',
         method: 'GET',
         endpoint: `${externalBaseUrl}/orders`,
-        description: 'Trả về các đơn AutoMXH gần nhất của user gắn với API key.',
+        description: 'Trả về các đơn AutoMXH gần nhất của user gắn với apikey.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'limit', description: 'Số dòng cần lấy, tối đa 100' },
           { name: 'product_ids', description: 'Lọc theo product_id, cách nhau bằng dấu phẩy' },
         ],
@@ -583,7 +583,7 @@ console.log(payload.checkout.total_to_pay);`,
           product_ids: `${sampleService.product_id} - optional`,
         }),
         requestExample: `curl '${externalBaseUrl}/orders?limit=20' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
         responseExample: prettyJson({
           success: true,
           data: [
@@ -602,10 +602,10 @@ console.log(payload.checkout.total_to_pay);`,
         }),
         errorExample: prettyJson({
           success: false,
-          message: 'API key không hợp lệ',
+          message: 'apikey không hợp lệ',
         }),
         notes: [
-          'Endpoint này phục vụ tool/đối tác xem lịch sử đơn của chính API key.',
+          'Endpoint này phục vụ tool/đối tác xem lịch sử đơn của chính apikey.',
           'Dữ liệu trả về đã giải mã buyer_info/custom_value nếu có.',
           'Nên dùng status để đồng bộ provider cho từng đơn quan trọng.',
         ],
@@ -615,9 +615,9 @@ console.log(payload.checkout.total_to_pay);`,
         title: 'Kiểm tra số dư ví chính',
         method: 'GET',
         endpoint: `${externalBaseUrl}/balance`,
-        description: 'Trả số dư ví chính của user gắn với API key. Đây là số dư dùng để tạo đơn AutoMXH.',
+        description: 'Trả số dư ví chính của user gắn với apikey. Đây là số dư dùng để tạo đơn AutoMXH.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'action', description: '"balance" nếu gọi endpoint tổng /api/external/automxh' },
         ],
         requestPayloadTitle: 'Query Params',
@@ -625,7 +625,7 @@ console.log(payload.checkout.total_to_pay);`,
           action: 'balance',
         }),
         requestExample: `curl '${externalBaseUrl}/balance' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'`,
         responseExample: prettyJson({
           success: true,
           balance: 343423,
@@ -640,7 +640,7 @@ console.log(payload.checkout.total_to_pay);`,
         }),
         errorExample: prettyJson({
           success: false,
-          message: 'API key không hợp lệ',
+          message: 'apikey không hợp lệ',
         }),
         notes: [
           'Số dư này là users.balance.',
@@ -650,12 +650,12 @@ console.log(payload.checkout.total_to_pay);`,
       },
       {
         id: 'deposit',
-        title: 'Nạp tiền vào ví nguồn API key',
+        title: 'Nạp tiền vào ví nguồn apikey',
         method: 'POST',
         endpoint: `${externalBaseUrl}/deposit`,
-        description: 'Cộng tiền vào ví chính của user đang sở hữu API key. SMM và AutoMXH dùng chung ví chính này.',
+        description: 'Cộng tiền vào ví chính của user đang sở hữu apikey. SMM và AutoMXH dùng chung ví chính này.',
         parameters: [
-          { name: 'x-api-key / key / api_key', description: 'API key do admin cấp', required: true },
+          { name: 'x-api-key / apikey / api_key / key', description: 'apikey riêng của user', required: true },
           { name: 'action', description: '"deposit" nếu gọi endpoint tổng /api/external/automxh' },
           { name: 'amount', description: 'Số tiền VND cần cộng vào ví nguồn', required: true },
           { name: 'external_ref', description: 'Mã giao dịch bên ngoài để chống cộng trùng' },
@@ -668,7 +668,7 @@ console.log(payload.checkout.total_to_pay);`,
           note: 'Nap tien tu web con',
         }),
         requestExample: `curl --request POST '${externalBaseUrl}/deposit' \\
-  --header 'x-api-key: ttmmo_game_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
+  --header 'x-api-key: ttmmo_apikey_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \\
   --header 'Content-Type: application/json' \\
   --data '${JSON.stringify({
     amount: 100000,
@@ -677,7 +677,7 @@ console.log(payload.checkout.total_to_pay);`,
   })}'`,
         responseExample: prettyJson({
           success: true,
-          message: 'Đã nạp tiền vào tài khoản nguồn API key',
+          message: 'Đã nạp tiền vào tài khoản nguồn apikey',
           amount: 100000,
           balance: 443423,
           currency: 'VND',
@@ -697,7 +697,7 @@ console.log(payload.checkout.total_to_pay);`,
           message: 'Thiếu amount hoặc amount không hợp lệ',
         }),
         notes: [
-          'Endpoint này cộng users.balance của tài khoản gắn với API key.',
+          'Endpoint này cộng users.balance của tài khoản gắn với apikey.',
           'external_ref nên là mã giao dịch ngân hàng/webhook; nếu gửi lại cùng mã, hệ thống trả already_processed để tránh cộng trùng.',
           'Có thể gọi endpoint tổng /api/external/automxh với action=deposit.',
         ],

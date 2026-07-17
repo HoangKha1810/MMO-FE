@@ -245,6 +245,25 @@ function calculateSalePrice(apiPrice: number, marginPercent: number) {
   return Math.max(0, Math.round(apiPrice * (1 + marginPercent / 100) * (1 + TIKTOK_CHANNEL_TAX_PERCENT / 100)));
 }
 
+function calculateManualSalePrice(salePrice: unknown) {
+  return Math.max(0, Math.round(normalizeMoney(salePrice) * (1 + TIKTOK_CHANNEL_TAX_PERCENT / 100)));
+}
+
+function hasManualSalePriceOverride(row: Pick<TikTokChannelProductRow, 'api_price_vnd' | 'sale_price_vnd' | 'margin_percent' | 'is_auto_price'>) {
+  const manualPrice = normalizeMoney(row.sale_price_vnd);
+  if (manualPrice <= 0) return false;
+  if (!row.is_auto_price) return true;
+
+  const autoPrice = calculateSalePrice(row.api_price_vnd, row.margin_percent);
+  return Math.abs(manualPrice - autoPrice) > 1;
+}
+
+function resolveTikTokChannelSalePrice(row: Pick<TikTokChannelProductRow, 'api_price_vnd' | 'sale_price_vnd' | 'margin_percent' | 'is_auto_price'>) {
+  return hasManualSalePriceOverride(row)
+    ? calculateManualSalePrice(row.sale_price_vnd)
+    : calculateSalePrice(row.api_price_vnd, row.margin_percent);
+}
+
 function isApiProductAvailable(product: KenhGiaReProduct) {
   const statusText = [product.status, product.shopStatus, product.liveStatus]
     .map((item) => String(item || '').toLowerCase())
@@ -332,7 +351,7 @@ function toPublicProduct(row: TikTokChannelProductRow): PublicTikTokChannelProdu
   } = row;
   return {
     ...publicRow,
-    sale_price_vnd: row.is_auto_price ? calculateSalePrice(row.api_price_vnd, row.margin_percent) : row.sale_price_vnd,
+    sale_price_vnd: resolveTikTokChannelSalePrice(row),
     photos: parseJsonStringArray(photosJson),
   };
 }
@@ -582,6 +601,21 @@ async function upsertKenhGiaReProduct(
 
   const syncedAt = getVietnamDatabaseDateTime();
   const nextStatus = normalized.hasCredentials ? 'active' : 'unavailable';
+  const existingRows = await db.$queryRawUnsafe<Record<string, unknown>[]>(
+    `
+      SELECT api_price_vnd, sale_price_vnd, margin_percent, is_auto_price
+      FROM tiktok_channel_products
+      WHERE provider_product_id = ?
+      LIMIT 1
+    `,
+    normalized.providerProductId
+  );
+  const keepManualPrice = existingRows[0] ? hasManualSalePriceOverride({
+    api_price_vnd: normalizeMoney(existingRows[0].api_price_vnd),
+    sale_price_vnd: normalizeMoney(existingRows[0].sale_price_vnd),
+    margin_percent: normalizeMarginPercent(existingRows[0].margin_percent, normalized.marginPercent),
+    is_auto_price: normalizeBoolean(existingRows[0].is_auto_price),
+  }) : false;
 
   await db.$executeRawUnsafe(
     `
@@ -601,13 +635,19 @@ async function upsertKenhGiaReProduct(
         listed_price_vnd = VALUES(listed_price_vnd),
         api_price_vnd = VALUES(api_price_vnd),
         sale_price_vnd = CASE
+          WHEN ? = 1 THEN sale_price_vnd
           WHEN COALESCE(is_auto_price, 1) = 1 OR COALESCE(sale_price_vnd, 0) <= 0
             THEN ROUND(VALUES(api_price_vnd) * (1 + (VALUES(margin_percent) / 100)) * (1 + (? / 100)), 0)
           ELSE sale_price_vnd
         END,
         margin_percent = CASE
+          WHEN ? = 1 THEN margin_percent
           WHEN COALESCE(is_auto_price, 1) = 1 OR COALESCE(margin_percent, 0) <= 0 THEN VALUES(margin_percent)
           ELSE margin_percent
+        END,
+        is_auto_price = CASE
+          WHEN ? = 1 THEN 0
+          ELSE is_auto_price
         END,
         discount_percent = VALUES(discount_percent),
         masked_username = VALUES(masked_username),
@@ -647,7 +687,10 @@ async function upsertKenhGiaReProduct(
     normalized.providerData,
     nextStatus,
     syncedAt,
-    TIKTOK_CHANNEL_TAX_PERCENT
+    keepManualPrice ? 1 : 0,
+    TIKTOK_CHANNEL_TAX_PERCENT,
+    keepManualPrice ? 1 : 0,
+    keepManualPrice ? 1 : 0
   );
 
   return { skipped: false };
@@ -1061,9 +1104,7 @@ async function reserveTikTokChannelOrder(userId: number, productId: number) {
       throw new Error('Kênh TikTok không tồn tại hoặc đã hết hàng.');
     }
 
-    const salePrice = product.is_auto_price
-      ? calculateSalePrice(product.api_price_vnd, product.margin_percent)
-      : normalizeMoney(product.sale_price_vnd);
+    const salePrice = resolveTikTokChannelSalePrice(product);
     if (salePrice <= 0) {
       throw new Error('Kênh TikTok chưa có giá bán hợp lệ.');
     }
