@@ -89,8 +89,8 @@ const homeServiceDefinitions: ServiceDefinition[] = [
     iconKey: 'code-2',
     color: 'from-blue-600 via-cyan-500 to-emerald-500',
     textColor: 'text-cyan-500',
-    defaultTitle: 'API AutoMXH',
-    defaultDesc: 'Public API cho đại lý đấu dịch vụ AutoMXH',
+    defaultTitle: 'Đấu API',
+    defaultDesc: 'Public API cho đại lý đấu AutoMXH, SMM và Game',
   },
   {
     key: '3',

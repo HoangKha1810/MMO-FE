@@ -33,12 +33,20 @@ function normalizeHomeServiceTitle(service: ReturnType<typeof getHomeServiceGrid
     return 'AUTO MẠNG XÃ HỘI';
   }
 
+  if (service.href === '/user/automxh-api' || service.key === 'automxh_api') {
+    return 'ĐẤU API';
+  }
+
   return service.title;
 }
 
 function normalizeHomeServiceDesc(service: ReturnType<typeof getHomeServiceGrid>[number]) {
   if (service.href === '/vps' || service.key === '12') {
     return 'VPS tốc độ cao, bảo mật, an toàn';
+  }
+
+  if (service.href === '/user/automxh-api' || service.key === 'automxh_api') {
+    return 'Tích hợp API AutoMXH, SMM và Game';
   }
 
   return service.desc;

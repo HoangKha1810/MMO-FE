@@ -1,9 +1,11 @@
 import { AppShell } from '@/components/layout/app-shell';
-import { AdminAutoMxhApiDocsPage } from '@/components/admin/admin-automxh-api-docs-page';
+import { UserApiHubPage } from '@/components/user/user-api-hub-page';
 import { getAutoMxhProductsForCategory, listAutoMxhCatalog } from '@/lib/automxh';
 import type { AutoMxhDocsCatalogSection } from '@/lib/automxh-api-docs';
+import { getGameApiPublicBaseUrl } from '@/lib/game-api-public-url';
 import { getLegacySettingsMap, getVatPercent } from '@/lib/legacy-settings';
 import { siteUrl } from '@/lib/seo';
+import { getSmmProviderMeta, listSmmServices, type SmmProviderMeta, type SmmServiceRecord } from '@/lib/smm-provider';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +28,16 @@ function getAutoMxhApiPublicBaseUrl() {
   );
 }
 
+function getSmmApiPublicBaseUrl() {
+  return normalizeOrigin(
+    process.env.SMM_API_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_SMM_API_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.SITE_URL ||
+    siteUrl
+  );
+}
+
 function formatLoadedAt() {
   return new Intl.DateTimeFormat('vi-VN', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -40,37 +52,62 @@ function formatLoadedAt() {
 
 export default async function UserAutoMxhApiPage() {
   const { shell } = await getCurrentUserForShell();
-  let sections: AutoMxhDocsCatalogSection[] = [];
+  let automxhSections: AutoMxhDocsCatalogSection[] = [];
+  let smmServices: SmmServiceRecord[] = [];
+  let smmProviderMeta: SmmProviderMeta | null = null;
   let vatPercent = 0;
-  let loadError = '';
+  const loadErrors: { automxh?: string; smm?: string } = {};
 
   try {
-    const [catalog, settings] = await Promise.all([
-      listAutoMxhCatalog(),
-      getLegacySettingsMap(),
-    ]);
-
+    const settings = await getLegacySettingsMap();
     vatPercent = getVatPercent(settings);
-    sections = await Promise.all(
+  } catch {
+    vatPercent = 0;
+  }
+
+  try {
+    const catalog = await listAutoMxhCatalog();
+    automxhSections = await Promise.all(
       catalog.map(async (section) => ({
         category: section.category,
         products: await getAutoMxhProductsForCategory(section.category.id),
       }))
     );
   } catch (error) {
-    loadError = error instanceof Error ? error.message : 'Không thể tải dữ liệu AutoMXH từ DB';
+    loadErrors.automxh = error instanceof Error ? error.message : 'Không thể tải dữ liệu AutoMXH từ DB';
+  }
+
+  try {
+    const [loadedServices, loadedProviderMeta] = await Promise.all([
+      listSmmServices(false),
+      getSmmProviderMeta(),
+    ]);
+
+    smmServices = loadedServices;
+    smmProviderMeta = loadedProviderMeta;
+  } catch (error) {
+    loadErrors.smm = error instanceof Error ? error.message : 'Không thể tải dữ liệu SMM từ DB';
   }
 
   return (
     <AppShell user={shell}>
-      <AdminAutoMxhApiDocsPage
-        baseUrl={getAutoMxhApiPublicBaseUrl()}
-        sections={sections}
-        runtimeMeta={{ vatPercent }}
+      <UserApiHubPage
+        baseUrls={{
+          automxh: getAutoMxhApiPublicBaseUrl(),
+          smm: getSmmApiPublicBaseUrl(),
+          game: getGameApiPublicBaseUrl(),
+        }}
+        automxhSections={automxhSections}
+        smmServices={smmServices}
+        automxhRuntimeMeta={{ vatPercent }}
+        smmRuntimeMeta={{
+          providerName: smmProviderMeta?.providerName,
+          exchangeRate: smmProviderMeta?.exchangeRate,
+          marginPercent: smmProviderMeta?.marginPercent,
+          vatPercent,
+        }}
         loadedAt={formatLoadedAt()}
-        loadError={loadError || undefined}
-        audience="user"
-        showUserApikey
+        loadErrors={loadErrors}
       />
     </AppShell>
   );
