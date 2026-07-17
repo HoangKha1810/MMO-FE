@@ -16,6 +16,14 @@ async function getUserId() {
   return getVerifiedSessionUserId();
 }
 
+function toPublicTikTokMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  if (/KGR|KenhGiaRe|Kênh Giá Rẻ|kenhgiare|api key|provider|nhà cung cấp/i.test(message)) {
+    return fallback;
+  }
+  return message;
+}
+
 export async function GET() {
   const userId = await getUserId();
   if (!userId) {
@@ -26,7 +34,7 @@ export async function GET() {
     const orders = await listUserTikTokChannelOrders(userId);
     return NextResponse.json({ success: true, data: orders }, { headers: noStoreHeaders });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Không tải được đơn Kênh TikTok';
+    const message = toPublicTikTokMessage(error, 'Không tải được đơn Kênh TikTok');
     return NextResponse.json({ success: false, message }, { status: 500, headers: noStoreHeaders });
   }
 }
@@ -57,7 +65,7 @@ export async function POST(req: Request) {
       data: result,
     }, { headers: noStoreHeaders });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Không mua được kênh TikTok';
+    const message = toPublicTikTokMessage(error, 'Không mua được kênh TikTok. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.');
     return NextResponse.json({ success: false, message }, { status: 400, headers: noStoreHeaders });
   }
 }

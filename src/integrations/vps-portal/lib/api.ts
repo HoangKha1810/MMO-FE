@@ -31,7 +31,7 @@ function normalizeApiBaseUrl(rawValue: string | undefined) {
 }
 
 const API_BASE_URL = normalizeApiBaseUrl(
-  process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL
+  process.env.NEXT_PUBLIC_VPS_PORTAL_CLIENT_API_BASE_URL
 );
 const SESSION_KEY = "vncloud-vps-independent-session";
 const LEGACY_SESSION_KEYS = ["vncloud-vps-session"];

@@ -28,7 +28,6 @@ import { cn, formatCurrency, toNumber } from '@/lib/utils';
 
 type TikTokChannelProduct = {
   id: number;
-  provider_product_id: string;
   title: string;
   description?: string | null;
   niche?: string | null;
@@ -40,7 +39,6 @@ type TikTokChannelProduct = {
   masked_username?: string | null;
   thumbnail_url?: string | null;
   photos?: string[];
-  provider_status?: string | null;
   shop_status?: string | null;
   live_status?: string | null;
   status: string;
@@ -49,16 +47,12 @@ type TikTokChannelProduct = {
 type TikTokChannelOrder = {
   id: number;
   order_code: string;
-  product_id: number;
-  provider_product_id: string;
-  provider_order_id?: string | null;
   product_title: string;
   niche?: string | null;
   follower_count: number;
   sale_price_vnd: number;
   status: string;
   credentials?: Record<string, unknown>;
-  admin_note?: string | null;
   created_at?: string | null;
 };
 
@@ -87,7 +81,6 @@ const credentialLabels: Record<string, string> = {
 function normalizeProduct(input: Record<string, unknown>): TikTokChannelProduct {
   return {
     id: Math.trunc(toNumber(input.id, 0)),
-    provider_product_id: String(input.provider_product_id || ''),
     title: String(input.title || ''),
     description: input.description == null ? null : String(input.description),
     niche: input.niche == null ? null : String(input.niche),
@@ -99,7 +92,6 @@ function normalizeProduct(input: Record<string, unknown>): TikTokChannelProduct 
     masked_username: input.masked_username == null ? null : String(input.masked_username),
     thumbnail_url: input.thumbnail_url == null ? null : String(input.thumbnail_url),
     photos: Array.isArray(input.photos) ? input.photos.map(String).filter(Boolean) : [],
-    provider_status: input.provider_status == null ? null : String(input.provider_status),
     shop_status: input.shop_status == null ? null : String(input.shop_status),
     live_status: input.live_status == null ? null : String(input.live_status),
     status: String(input.status || 'active'),
@@ -114,16 +106,12 @@ function normalizeOrder(input: Record<string, unknown>): TikTokChannelOrder {
   return {
     id: Math.trunc(toNumber(input.id, 0)),
     order_code: String(input.order_code || ''),
-    product_id: Math.trunc(toNumber(input.product_id, 0)),
-    provider_product_id: String(input.provider_product_id || ''),
-    provider_order_id: input.provider_order_id == null ? null : String(input.provider_order_id),
     product_title: String(input.product_title || ''),
     niche: input.niche == null ? null : String(input.niche),
     follower_count: Math.trunc(toNumber(input.follower_count, 0)),
     sale_price_vnd: Math.round(toNumber(input.sale_price_vnd, 0)),
     status: String(input.status || 'pending'),
     credentials,
-    admin_note: input.admin_note == null ? null : String(input.admin_note),
     created_at: input.created_at == null ? null : String(input.created_at),
   };
 }
@@ -385,9 +373,6 @@ function ProductCard({
         aria-label={`Xem chi tiết ${product.title}`}
       >
         <ProductImage product={product} />
-        <div className="absolute left-3 top-3 rounded-full border border-white/70 bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75 dark:text-white/80">
-          #{product.provider_product_id}
-        </div>
         {product.discount_percent > 0 ? (
           <div className="absolute right-3 top-3 rounded-full bg-rose-500 px-3 py-1 text-[11px] font-black text-white">
             -{Math.round(product.discount_percent)}%
@@ -496,7 +481,7 @@ function ProductDetailModal({
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-blue">Chi tiết kênh</div>
             <h2 className="mt-2 line-clamp-2 text-xl font-black text-slate-950 dark:text-white sm:text-2xl">{product.title}</h2>
             <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white/55">
-              #{product.provider_product_id} · {product.niche || 'TikTok'} · {product.masked_username || 'username ẩn'}
+              {product.niche || 'TikTok'} · {product.masked_username || 'username ẩn'}
             </p>
           </div>
           <button
@@ -872,7 +857,7 @@ export function TikTokChannelPage() {
         <PageHero
           eyebrow="Kênh TikTok"
           title="Kênh TikTok"
-          description="Danh sách kênh đồng bộ từ Kênh Giá Rẻ, thanh toán bằng ví chính và nhận credential ngay khi đơn hoàn tất."
+          description="Danh sách kênh có sẵn, thanh toán bằng ví chính và nhận credential ngay khi đơn hoàn tất."
           actions={
             <Button type="button" variant="outline" onClick={() => setOrdersOpen(true)} className="gap-2 rounded-full">
               {loadingOrders ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
@@ -946,7 +931,7 @@ export function TikTokChannelPage() {
               <EmptyState
                 icon={<Music className="h-5 w-5" />}
                 title="Chưa có kênh TikTok"
-                description="Owner cần cấu hình API Kênh Giá Rẻ và bấm đồng bộ trong admin."
+                description="Owner cần cấu hình dịch vụ và bấm đồng bộ trong admin."
               />
               <div className="flex justify-center">
                 <Button type="button" variant="outline" onClick={() => loadProducts(1)} className="gap-2">

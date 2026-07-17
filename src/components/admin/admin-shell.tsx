@@ -33,7 +33,6 @@ import {
   Megaphone,
   Moon,
   Music,
-  Package,
   Percent,
   Search,
   Server,
@@ -120,15 +119,6 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/automxh/docs', label: 'AutoMXH API Docs', icon: FileText, accent: 'blue' },
       { href: '/admin/automxh/orders', label: 'Quản Lý Đơn Hàng Auto MXH', icon: ShoppingCart },
       { href: '/admin/meta-support', label: 'Đơn kích nút Meta', icon: Headset },
-    ],
-  },
-  {
-    title: 'Tài nguyên MMO',
-    accent: 'blue',
-    items: [
-      { href: '/admin/resources/products', label: 'Quản lý Sản phẩm MMO', icon: Package },
-      { href: '/admin/resources/categories', label: 'Quản lý Danh mục', icon: LayoutGrid },
-      { href: '/admin/resources/mmo-api', label: 'Quản lí API', icon: Terminal },
     ],
   },
   {

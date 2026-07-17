@@ -6,17 +6,15 @@ export const runtime = 'nodejs';
 
 function buildTargetUrl(request: NextRequest, path: string[]) {
   const targetBase = String(
-    process.env.VPS_PORTAL_API_BASE_URL ||
-      process.env.NEXT_PUBLIC_VPS_PORTAL_API_BASE_URL ||
-      process.env.INTEGRATED_VPS_API_BASE_URL ||
-      ''
+    process.env.INTEGRATED_VPS_API_BASE_URL ||
+      process.env.VPS_PORTAL_PROXY_TARGET ||
+      'https://api.trungtammmo.vn/api/vps'
   ).trim().replace(/\/+$/, '');
-  if (!targetBase) {
-    throw new Error('Thiếu VPS_PORTAL_API_BASE_URL');
-  }
 
-  const normalizedBase = targetBase.replace(/\/api\/?$/, '');
-  const upstreamUrl = new URL(`${normalizedBase}/api/${path.join('/')}`);
+  const apiBase = /\/api\/vps$/i.test(targetBase)
+    ? targetBase
+    : `${targetBase.replace(/\/api\/?$/i, '')}/api`;
+  const upstreamUrl = new URL(`${apiBase}/${path.join('/')}`);
   request.nextUrl.searchParams.forEach((value, key) => {
     upstreamUrl.searchParams.set(key, value);
   });

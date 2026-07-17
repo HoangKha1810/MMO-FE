@@ -254,8 +254,8 @@ async function fetchPortalJson(path: string, token: string) {
   const base = getVpsPortalBaseUrl();
   if (!base) throw new Error('Thiếu VPS_PORTAL_API_BASE_URL');
 
-  const normalizedBase = base.replace(/\/api\/?$/i, '');
-  const response = await fetch(`${normalizedBase}/api${path}`, {
+  const apiBase = /\/api(?:\/vps)?$/i.test(base) ? base : `${base}/api`;
+  const response = await fetch(`${apiBase}${path}`, {
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${token}`,

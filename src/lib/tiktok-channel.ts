@@ -6,6 +6,7 @@ import { toNumber } from '@/lib/utils';
 
 const DEFAULT_KENHGIARE_API_BASE_URL = 'https://kenhgiare.vn/api/partner/v1';
 const DEFAULT_MARGIN_PERCENT = 80;
+const TIKTOK_CHANNEL_TAX_PERCENT = 8;
 const DEFAULT_SYNC_PAGE_LIMIT = 100;
 const MAX_SYNC_PAGES = 30;
 
@@ -112,7 +113,19 @@ export type TikTokChannelProductRow = {
   updated_at?: string | Date | null;
 };
 
-export type PublicTikTokChannelProduct = Omit<TikTokChannelProductRow, 'api_price_vnd' | 'photos_json'> & {
+export type PublicTikTokChannelProduct = Omit<
+  TikTokChannelProductRow,
+  | 'api_price_vnd'
+  | 'photos_json'
+  | 'provider_product_id'
+  | 'provider_status'
+  | 'margin_percent'
+  | 'is_auto_price'
+  | 'has_credentials'
+  | 'synced_at'
+  | 'created_at'
+  | 'updated_at'
+> & {
   photos: string[];
 };
 
@@ -229,7 +242,7 @@ function normalizeMarginPercent(value: unknown, fallback = DEFAULT_MARGIN_PERCEN
 }
 
 function calculateSalePrice(apiPrice: number, marginPercent: number) {
-  return Math.max(0, Math.round(apiPrice * (1 + marginPercent / 100)));
+  return Math.max(0, Math.round(apiPrice * (1 + marginPercent / 100) * (1 + TIKTOK_CHANNEL_TAX_PERCENT / 100)));
 }
 
 function isApiProductAvailable(product: KenhGiaReProduct) {
@@ -304,9 +317,22 @@ function normalizeProductRow(row: Record<string, unknown>): TikTokChannelProduct
 }
 
 function toPublicProduct(row: TikTokChannelProductRow): PublicTikTokChannelProduct {
-  const { api_price_vnd: _apiPrice, photos_json: photosJson, ...publicRow } = row;
+  const {
+    api_price_vnd: _apiPrice,
+    photos_json: photosJson,
+    provider_product_id: _providerProductId,
+    provider_status: _providerStatus,
+    margin_percent: _marginPercent,
+    is_auto_price: _isAutoPrice,
+    has_credentials: _hasCredentials,
+    synced_at: _syncedAt,
+    created_at: _createdAt,
+    updated_at: _updatedAt,
+    ...publicRow
+  } = row;
   return {
     ...publicRow,
+    sale_price_vnd: row.is_auto_price ? calculateSalePrice(row.api_price_vnd, row.margin_percent) : row.sale_price_vnd,
     photos: parseJsonStringArray(photosJson),
   };
 }
@@ -335,6 +361,22 @@ function normalizeOrderRow(row: Record<string, unknown>) {
     created_at: row.created_at == null ? null : serializeDatabaseDateTime(row.created_at),
     updated_at: row.updated_at == null ? null : serializeDatabaseDateTime(row.updated_at),
   };
+}
+
+function toPublicOrder(row: ReturnType<typeof normalizeOrderRow>) {
+  const {
+    provider_product_id: _providerProductId,
+    provider_order_id: _providerOrderId,
+    api_price_vnd: _apiPrice,
+    provider_amount_vnd: _providerAmount,
+    profit_vnd: _profit,
+    api_response_json: _apiResponse,
+    user_id: _userId,
+    product_id: _productId,
+    admin_note: _adminNote,
+    ...publicRow
+  } = row;
+  return publicRow;
 }
 
 function generateOrderCode() {
@@ -560,7 +602,7 @@ async function upsertKenhGiaReProduct(
         api_price_vnd = VALUES(api_price_vnd),
         sale_price_vnd = CASE
           WHEN COALESCE(is_auto_price, 1) = 1 OR COALESCE(sale_price_vnd, 0) <= 0
-            THEN ROUND(VALUES(api_price_vnd) * (1 + (VALUES(margin_percent) / 100)), 0)
+            THEN ROUND(VALUES(api_price_vnd) * (1 + (VALUES(margin_percent) / 100)) * (1 + (? / 100)), 0)
           ELSE sale_price_vnd
         END,
         margin_percent = CASE
@@ -604,7 +646,8 @@ async function upsertKenhGiaReProduct(
     normalized.hasCredentials ? 1 : 0,
     normalized.providerData,
     nextStatus,
-    syncedAt
+    syncedAt,
+    TIKTOK_CHANNEL_TAX_PERCENT
   );
 
   return { skipped: false };
@@ -680,13 +723,14 @@ export async function syncKenhGiaReProducts(options: { maxPages?: number } = {})
     `
       UPDATE tiktok_channel_products
       SET margin_percent = ?,
-          sale_price_vnd = ROUND(COALESCE(api_price_vnd, 0) * (1 + (? / 100)), 0),
+          sale_price_vnd = ROUND(COALESCE(api_price_vnd, 0) * (1 + (? / 100)) * (1 + (? / 100)), 0),
           updated_at = NOW()
       WHERE COALESCE(is_auto_price, 1) = 1
         AND status <> 'sold'
     `,
     config.defaultMarginPercent,
-    config.defaultMarginPercent
+    config.defaultMarginPercent,
+    TIKTOK_CHANNEL_TAX_PERCENT
   );
 
   return {
@@ -697,6 +741,7 @@ export async function syncKenhGiaReProducts(options: { maxPages?: number } = {})
     synced_at: syncStartedAt,
     keep_manual_web_price: true,
     auto_margin_percent: config.defaultMarginPercent,
+    tax_percent: TIKTOK_CHANNEL_TAX_PERCENT,
   };
 }
 
@@ -858,7 +903,7 @@ export async function listUserTikTokChannelOrders(userId: number) {
     userId
   );
 
-  return rows.map(normalizeOrderRow);
+  return rows.map(normalizeOrderRow).map(toPublicOrder);
 }
 
 export async function listAdminTikTokChannelOrders(params: URLSearchParams, page: number, perPage: number, skip: number) {
@@ -991,7 +1036,7 @@ async function refreshProductBeforeCheckout(product: TikTokChannelProductRow, co
   const liveProduct = await fetchKenhGiaReProduct(product.provider_product_id, config);
   if (!isApiProductAvailable(liveProduct)) {
     await upsertKenhGiaReProduct(liveProduct, config).catch(() => undefined);
-    throw new Error('Kênh này hiện không còn khả dụng trên Kênh Giá Rẻ.');
+    throw new Error('Kênh này hiện không còn khả dụng. Vui lòng chọn kênh khác.');
   }
 
   await upsertKenhGiaReProduct(liveProduct, config);
@@ -1016,7 +1061,9 @@ async function reserveTikTokChannelOrder(userId: number, productId: number) {
       throw new Error('Kênh TikTok không tồn tại hoặc đã hết hàng.');
     }
 
-    const salePrice = normalizeMoney(product.sale_price_vnd);
+    const salePrice = product.is_auto_price
+      ? calculateSalePrice(product.api_price_vnd, product.margin_percent)
+      : normalizeMoney(product.sale_price_vnd);
     if (salePrice <= 0) {
       throw new Error('Kênh TikTok chưa có giá bán hợp lệ.');
     }
@@ -1244,7 +1291,7 @@ export async function createTikTokChannelOrder(userId: number, productId: number
   await ensureTikTokChannelTables();
   const config = await getKenhGiaReConfig();
   if (!config.apiKey) {
-    throw new Error('Chưa cấu hình API key Kênh Giá Rẻ. Owner cần nhập kenhgiare_api_key trong admin.');
+    throw new Error('Dịch vụ Kênh TikTok chưa được cấu hình. Vui lòng liên hệ hỗ trợ.');
   }
 
   const localProduct = await getProductForCheckout(productId);
@@ -1257,26 +1304,30 @@ export async function createTikTokChannelOrder(userId: number, productId: number
 
   try {
     const apiResult = await createKenhGiaReOrder(reserved.product.provider_product_id, config);
-    return completeTikTokChannelOrder(
+    const result = await completeTikTokChannelOrder(
       reserved.order.id,
       reserved.product.id,
       apiResult,
       normalizeMoney(reserved.product.api_price_vnd)
     );
+    return {
+      ...result,
+      order: toPublicOrder(result.order),
+    };
   } catch (error) {
     const apiError = error instanceof KenhGiaReApiError ? error : null;
     const unavailable = apiError && ['PRODUCT_UNAVAILABLE', 'NOT_FOUND'].includes(apiError.code);
-    const message = error instanceof Error ? error.message : 'Kênh Giá Rẻ không tạo được đơn.';
+    const publicReason = 'Hệ thống chưa thể hoàn tất đơn. Hệ thống đã hoàn tiền.';
     await refundReservedTikTokChannelOrder({
       orderId: reserved.order.id,
       productId: reserved.product.id,
       userId,
       amount: normalizeMoney(reserved.order.sale_price_vnd),
-      reason: `KGR lỗi: ${message}. Hệ thống đã hoàn tiền.`,
+      reason: publicReason,
       productStatus: unavailable ? 'unavailable' : 'active',
       apiResponse: apiError?.payload,
     });
-    throw new Error(`KGR lỗi: ${message}. Hệ thống đã hoàn tiền vào ví chính.`);
+    throw new Error('Hệ thống chưa thể hoàn tất đơn. Hệ thống đã hoàn tiền vào ví chính.');
   }
 }
 
@@ -1311,18 +1362,20 @@ export async function repriceTikTokChannelAutoProducts() {
     `
       UPDATE tiktok_channel_products
       SET margin_percent = ?,
-          sale_price_vnd = ROUND(COALESCE(api_price_vnd, 0) * (1 + (? / 100)), 0),
+          sale_price_vnd = ROUND(COALESCE(api_price_vnd, 0) * (1 + (? / 100)) * (1 + (? / 100)), 0),
           updated_at = NOW()
       WHERE COALESCE(is_auto_price, 1) = 1
         AND status <> 'sold'
     `,
     config.defaultMarginPercent,
-    config.defaultMarginPercent
+    config.defaultMarginPercent,
+    TIKTOK_CHANNEL_TAX_PERCENT
   );
 
   return {
     repriced: Number(repriced || 0),
     auto_margin_percent: config.defaultMarginPercent,
+    tax_percent: TIKTOK_CHANNEL_TAX_PERCENT,
   };
 }
 

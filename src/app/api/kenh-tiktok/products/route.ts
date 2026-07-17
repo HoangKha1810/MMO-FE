@@ -11,6 +11,14 @@ const noStoreHeaders = {
   Expires: '0',
 };
 
+function toPublicTikTokMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  if (/KGR|KenhGiaRe|Kênh Giá Rẻ|kenhgiare|api key|provider|nhà cung cấp/i.test(message)) {
+    return fallback;
+  }
+  return message;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const params = req.nextUrl.searchParams;
@@ -25,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, ...result }, { headers: noStoreHeaders });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Không tải được danh sách kênh TikTok';
+    const message = toPublicTikTokMessage(error, 'Không tải được danh sách kênh TikTok');
     return NextResponse.json({ success: false, message }, { status: 500, headers: noStoreHeaders });
   }
 }
