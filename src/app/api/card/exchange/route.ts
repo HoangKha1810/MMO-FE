@@ -92,7 +92,11 @@ export async function POST(req: NextRequest) {
   try {
     if (!(await tableExists('card_orders'))) {
       return NextResponse.json(
-        { success: false, message: 'Module thẻ cào chưa được cấu hình trong cơ sở dữ liệu hiện tại' },
+        {
+          success: false,
+          code: 'CARD_TABLE_MISSING',
+          message: 'Module thẻ cào chưa được cấu hình trong cơ sở dữ liệu hiện tại',
+        },
         { status: 503 }
       );
     }
@@ -124,6 +128,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
+            code: !config.buyConfigured
+              ? 'CARD_BUY_TOKEN_MISSING'
+              : 'CARD_BUY_DISABLED',
             message: !config.buyConfigured
               ? 'Chưa cấu hình token mua thẻ.'
               : 'Chưa bật tự động mua thẻ.',

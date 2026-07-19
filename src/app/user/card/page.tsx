@@ -37,6 +37,46 @@ type CardSubmitResult = {
   };
 };
 
+function cleanResponseText(text: string) {
+  return text
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function fallbackSubmitMessage(status: number, text: string) {
+  const cleaned = cleanResponseText(text);
+  if (cleaned && cleaned.length <= 180 && !/^<!doctype/i.test(text.trim())) {
+    return cleaned;
+  }
+  if (status === 401) return 'Vui lòng đăng nhập để tiếp tục.';
+  if (status === 403) return 'Bạn không có quyền thực hiện thao tác này.';
+  if (status === 503) return 'Dịch vụ mua thẻ chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
+  if (status >= 500) return 'Máy chủ đang lỗi khi xử lý giao dịch thẻ. Vui lòng thử lại sau.';
+  return `Không thể xử lý giao dịch thẻ (${status}).`;
+}
+
+async function readCardSubmitResponse(res: Response): Promise<CardSubmitResult> {
+  const text = await res.text();
+  try {
+    const payload = JSON.parse(text || '{}') as Partial<CardSubmitResult>;
+    return {
+      success: payload.success === true,
+      message: typeof payload.message === 'string' && payload.message.trim()
+        ? payload.message
+        : fallbackSubmitMessage(res.status, text),
+      data: payload.data,
+    };
+  } catch {
+    return {
+      success: false,
+      message: fallbackSubmitMessage(res.status, text),
+    };
+  }
+}
+
 export default function CardPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
@@ -84,13 +124,13 @@ export default function CardPage() {
           type: activeTab,
         }),
       });
-      const data = await res.json() as CardSubmitResult;
+      const data = await readCardSubmitResponse(res);
       if (typeof data.data?.balance_after === 'number') {
         setBalances({ balance: data.data.balance_after });
       }
       setResult(data);
     } catch {
-      setResult({ success: false, message: 'Có lỗi xảy ra' });
+      setResult({ success: false, message: 'Không kết nối được máy chủ. Vui lòng thử lại.' });
     } finally {
       setLoading(false);
     }
