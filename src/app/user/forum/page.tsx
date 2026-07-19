@@ -94,12 +94,7 @@ export default async function UserForumPage() {
               <div className="mt-5 flex flex-wrap gap-3">
                 {[
                   ['/user/forum/create-thread', 'Tạo thread'],
-                  ['/user/forum/search', 'Tìm kiếm'],
-                  ['/user/forum/members', 'Thành viên'],
-                  ['/user/forum/my-threads', 'Bài của tôi'],
                   ['/user/forum/posts', 'Bài viết của tôi'],
-                  ['/user/forum/notifications', 'Thông báo'],
-                  ['/user/forum/activity', 'Hoạt động'],
                   ['/user/forum/ads', 'Quảng cáo'],
                   ['/user/forum/rules', 'Nội quy'],
                 ].map(([href, label]) => (

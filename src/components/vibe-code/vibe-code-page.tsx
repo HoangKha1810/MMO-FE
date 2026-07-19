@@ -56,9 +56,34 @@ type BrandIconProps = {
   className?: string;
 };
 
-const providerGuideLinks: Partial<Record<VibeCodeProvider, string>> = {
-  cursor: 'https://docs.google.com/document/d/1AaDvqVCtJlUaRSIJKJREdDWxsO39-wvic8cFzO65Uc8/edit?tab=t.0#heading=h.yxvlhbnfy6no',
-  codex: 'https://docs.google.com/document/d/1OAwAPjZ5JH7Ws4CJAXTpfE6rVNPkkNGUtZ4UDuMIBxk/edit?tab=t.0',
+type ProviderGuideLink = {
+  label: string;
+  href: string;
+};
+
+const providerGuideLinks: Partial<Record<VibeCodeProvider, ProviderGuideLink[]>> = {
+  cursor: [
+    {
+      label: 'Hướng dẫn Cursor',
+      href: 'https://docs.google.com/document/d/1AaDvqVCtJlUaRSIJKJREdDWxsO39-wvic8cFzO65Uc8/edit?tab=t.0#heading=h.yxvlhbnfy6no',
+    },
+  ],
+  codex: [
+    {
+      label: 'Hướng dẫn Codex',
+      href: 'https://docs.google.com/document/d/1OAwAPjZ5JH7Ws4CJAXTpfE6rVNPkkNGUtZ4UDuMIBxk/edit?tab=t.0',
+    },
+  ],
+  claude: [
+    {
+      label: 'Claude cho code',
+      href: 'https://docs.google.com/document/d/1Usw9mD-yTL7guK7MV0gQFExk4YATRCIdkYdfjk7LdnY/edit?tab=t.0#heading=h.1i9q7r68ayps',
+    },
+    {
+      label: 'Claude báo cáo nghiên cứu',
+      href: 'https://docs.google.com/document/d/1szS7dGYVjs3IPCCDPwUb37Rd9fp9byK4FEaZN7mK8_c/edit?tab=t.0#heading=h.uiut173x9y0e',
+    },
+  ],
 };
 
 function BrandLogoIcon({
@@ -210,6 +235,42 @@ function formatDateTime(value?: string) {
   }).format(date);
 }
 
+function ProviderQuickNav({
+  grouped,
+}: {
+  grouped: Record<VibeCodeProvider, VibeCodePackage[]>;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      {(['cursor', 'codex', 'claude'] as VibeCodeProvider[]).map((provider) => {
+        const meta = providerMeta[provider];
+        const Icon = meta.icon;
+
+        return (
+          <a
+            key={provider}
+            href={`#vibe-provider-${provider}`}
+            className="group flex min-h-[84px] items-center gap-4 rounded-[1.15rem] border border-brand-blue/15 bg-white/75 p-4 text-left shadow-[0_24px_70px_-52px_rgba(37,99,235,0.48)] transition hover:-translate-y-0.5 hover:border-cyan-400/35 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-cyan-300/35 dark:hover:bg-white/[0.07]"
+          >
+            <Icon className="h-12 w-12 shrink-0 rounded-[1rem]" />
+            <span className="min-w-0">
+              <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                {grouped[provider].length} gói
+              </span>
+              <span className="mt-1 block text-lg font-black uppercase text-slate-950 group-hover:text-brand-blue dark:text-white dark:group-hover:text-cyan-200">
+                {meta.title}
+              </span>
+              <span className="mt-1 block truncate text-xs font-bold text-slate-500 dark:text-slate-400">
+                Bấm để xem nhanh bảng giá
+              </span>
+            </span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 export function VibeCodePage() {
   const { data: user } = useSessionUser();
   const { setBalances } = useWalletBalance();
@@ -329,6 +390,8 @@ export function VibeCodePage() {
             { label: 'Claude', value: `${grouped.claude.length} gói`, hint: 'Credit và Pro tháng', tone: 'amber' },
           ]}
         />
+
+        <ProviderQuickNav grouped={grouped} />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
@@ -504,10 +567,10 @@ function ProviderPricing({
 }) {
   const meta = providerMeta[provider];
   const Icon = meta.icon;
-  const guideLink = providerGuideLinks[provider];
+  const guideLinks = providerGuideLinks[provider] || [];
 
   return (
-    <section className="space-y-4">
+    <section id={`vibe-provider-${provider}`} className="scroll-mt-28 space-y-4">
       <SectionHeader
         eyebrow={meta.eyebrow}
         title={meta.title}
@@ -576,17 +639,22 @@ function ProviderPricing({
                   ))}
                 </div>
 
-                {guideLink ? (
-                  <a
-                    href={guideLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[0.85rem] border border-cyan-400/25 bg-cyan-400/10 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-700 transition hover:border-cyan-400/45 hover:bg-cyan-400/18 dark:text-cyan-200"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    Hướng dẫn sử dụng
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
+                {guideLinks.length > 0 ? (
+                  <div className="mt-4 grid gap-2">
+                    {guideLinks.map((guide) => (
+                      <a
+                        key={guide.href}
+                        href={guide.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[0.85rem] border border-cyan-400/25 bg-cyan-400/10 px-4 text-center text-[11px] font-black uppercase tracking-[0.12em] text-cyan-700 transition hover:border-cyan-400/45 hover:bg-cyan-400/18 dark:text-cyan-200"
+                      >
+                        <BookOpen className="h-4 w-4 shrink-0" />
+                        <span className="min-w-0 truncate">{guide.label}</span>
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      </a>
+                    ))}
+                  </div>
                 ) : null}
               </div>
 

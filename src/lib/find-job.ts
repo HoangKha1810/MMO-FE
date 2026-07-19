@@ -76,9 +76,40 @@ export async function hasFindJobApprovalStatusColumn(tableName?: 'find_job_jobs'
   return Boolean(ensuredFindJobColumns[table]?.hasApprovalStatus);
 }
 
-export async function listOpenFindJobs(limit = 50) {
+function findJobPublicWhereSql(alias = 'j', hasApprovalStatus = true) {
+  const prefix = alias ? `${alias}.` : '';
+  const approvalCondition = hasApprovalStatus
+    ? `COALESCE(${prefix}approval_status, 'pending') = 'approved' OR ${prefix}status = 'approved'`
+    : `${prefix}status IN ('open', 'approved')`;
+
+  return `
+    (${approvalCondition})
+    AND ${prefix}status NOT IN ('closed', 'filled', 'rejected', 'deleted')
+  `;
+}
+
+export async function countOpenFindJobs() {
+  const table = await resolveFindJobTable();
+  await ensureFindJobPinColumn(table);
+  const hasApprovalStatus = await hasFindJobApprovalStatusColumn(table);
+
+  const rows = await db.$queryRawUnsafe<Array<{ total: bigint | number }>>(
+    `
+      SELECT COUNT(*) AS total
+      FROM \`${table}\` j
+      WHERE ${findJobPublicWhereSql('j', hasApprovalStatus)}
+    `
+  );
+
+  return Number(rows[0]?.total || 0);
+}
+
+export async function listOpenFindJobs(limit = 20, offset = 0) {
   const table = await resolveFindJobTable();
   const hasPinColumn = await ensureFindJobPinColumn(table);
+  const hasApprovalStatus = await hasFindJobApprovalStatusColumn(table);
+  const safeLimit = Math.max(1, Math.min(Math.trunc(limit), 100));
+  const safeOffset = Math.max(0, Math.trunc(offset));
 
   if (table === 'find_job_jobs') {
     return db.$queryRawUnsafe<FindJobRow[]>(
@@ -99,19 +130,12 @@ export async function listOpenFindJobs(limit = 50) {
           u.username AS user_username
         FROM find_job_jobs j
         LEFT JOIN users u ON u.id = j.posted_by
-        WHERE (
-            j.status IN ('open', 'approved')
-            OR COALESCE(j.approval_status, 'pending') = 'approved'
-          )
-          AND j.status NOT IN ('closed', 'filled', 'rejected', 'deleted')
-          AND (
-            COALESCE(j.approval_status, 'approved') = 'approved'
-            OR j.status = 'approved'
-          )
+        WHERE ${findJobPublicWhereSql('j', hasApprovalStatus)}
         ORDER BY ${hasPinColumn ? 'j.is_pinned DESC,' : ''} j.posted_at DESC, j.id DESC
-        LIMIT ?
+        LIMIT ? OFFSET ?
       `,
-      limit
+      safeLimit,
+      safeOffset
     );
   }
 
@@ -120,19 +144,12 @@ export async function listOpenFindJobs(limit = 50) {
       SELECT ${hasPinColumn ? 'j.*' : 'j.*, 0 AS is_pinned'}, u.username AS user_username
       FROM find_jobs j
       LEFT JOIN users u ON u.id = j.user_id
-      WHERE (
-          j.status IN ('open', 'approved')
-          OR COALESCE(j.approval_status, 'pending') = 'approved'
-        )
-        AND j.status NOT IN ('closed', 'filled', 'rejected', 'deleted')
-        AND (
-          COALESCE(j.approval_status, 'approved') = 'approved'
-          OR j.status = 'approved'
-        )
+      WHERE ${findJobPublicWhereSql('j', hasApprovalStatus)}
       ORDER BY ${hasPinColumn ? 'j.is_pinned DESC,' : ''} j.updated_at DESC, j.created_at DESC
-      LIMIT ?
+      LIMIT ? OFFSET ?
     `,
-    limit
+    safeLimit,
+    safeOffset
   );
 }
 

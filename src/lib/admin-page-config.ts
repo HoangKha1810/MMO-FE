@@ -414,6 +414,14 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
   ],
   card: [
     {
+      resource: 'card-api-settings',
+      title: 'Cấu hình TheCaoSieuToc',
+      description: 'Nhập Partner ID, Partner Key, base URL và bật/tắt tự gửi API đổi thẻ. Callback URL: https://trungtammmo.vn/api/card/thecaosieutoc/callback',
+      columns: ['id', 'setting_key', 'setting_value', 'updated_at'],
+      editableFields: ['setting_value'],
+      createFields: ['setting_key', 'setting_value'],
+    },
+    {
       resource: 'card-rates',
       title: 'Card rates',
       description: 'Tỉ lệ đổi/mua/topup thẻ theo telco và mệnh giá.',

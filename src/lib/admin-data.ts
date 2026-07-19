@@ -34,6 +34,11 @@ import { listForumBannerSettings } from '@/lib/forum-actions';
 import { buildForumModerationText, containsForumGamblingContent, forumVietnamTimestampSql } from '@/lib/forum';
 import { assertUserEmailAvailable, normalizeUserEmail } from '@/lib/user-email-guard';
 import { isOwnerRole } from '@/lib/admin-permissions';
+import {
+  ensureTheCaoSieuTocSettings,
+  invalidateTheCaoSieuTocSettingsCache,
+  listTheCaoSieuTocSettings,
+} from '@/lib/thecaosieutoc-card';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -261,6 +266,14 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     statusField: 'status',
     rawOrder: 'created_at DESC, id DESC',
     updateFields: ['status', 'note', 'amount', 'api_order_id'],
+  },
+  'card-api-settings': {
+    table: 'settings',
+    title: 'Cấu hình TheCaoSieuToc',
+    searchFields: ['setting_key', 'setting_value'],
+    rawOrder: 'id ASC',
+    createFields: ['setting_key', 'setting_value'],
+    updateFields: ['setting_value'],
   },
   'card-rates': {
     table: 'card_rates',
@@ -1192,6 +1205,13 @@ async function normalizeRawTablePayload(table: string, data: Record<string, unkn
     return output;
   }
 
+  if (table === 'settings') {
+    if (columnTypes.has('updated_at')) {
+      output.updated_at = getVietnamDatabaseDateTime();
+    }
+    return output;
+  }
+
   return output;
 }
 
@@ -1334,6 +1354,10 @@ export async function listAdminResource(resource: string, params: URLSearchParam
 
   if (resource === 'forum-banner-settings') {
     return listForumBannerSettings(params, page, perPage, skip);
+  }
+
+  if (resource === 'card-api-settings') {
+    return listTheCaoSieuTocSettings(params, page, perPage, skip);
   }
 
   if (resource === 'tiktok-channel-orders') {
@@ -2517,8 +2541,12 @@ export async function createAdminResource(resource: string, input: Record<string
     created = await delegate.create({ data: normalizedData });
   }
 
-  if (resource === 'settings') {
+  if (resource === 'settings' || resource === 'card-api-settings') {
     invalidateLegacySettingsCache();
+  }
+
+  if (resource === 'card-api-settings') {
+    invalidateTheCaoSieuTocSettingsCache();
   }
 
   if (resource === 'kenh-tiktok-settings') {
@@ -2656,8 +2684,12 @@ export async function updateAdminResource(resource: string, id: number, input: R
     updated = await delegate.update({ where: { id }, data });
   }
 
-  if (resource === 'settings') {
+  if (resource === 'settings' || resource === 'card-api-settings') {
     invalidateLegacySettingsCache();
+  }
+
+  if (resource === 'card-api-settings') {
+    invalidateTheCaoSieuTocSettingsCache();
   }
 
   if (resource === 'kenh-tiktok-settings') {
@@ -4233,6 +4265,10 @@ async function getActualRawTable(config: ResourceConfig) {
 
   if (config.table === 'settings' && config.title === 'Cấu hình Kênh Giá Rẻ') {
     await ensureTikTokChannelTables();
+  }
+
+  if (config.table === 'settings' && config.title === 'Cấu hình TheCaoSieuToc') {
+    await ensureTheCaoSieuTocSettings();
   }
 
   return config.table!;

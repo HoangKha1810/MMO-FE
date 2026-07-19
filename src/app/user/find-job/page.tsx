@@ -1,19 +1,48 @@
 import { AppShell } from '@/components/layout/app-shell';
 import Link from 'next/link';
-import { BriefcaseBusiness, Pin, UserRound, WalletCards } from 'lucide-react';
-import { listOpenFindJobs, listUserFindJobs } from '@/lib/find-job';
+import { BriefcaseBusiness, ChevronLeft, ChevronRight, Pin, UserRound, WalletCards } from 'lucide-react';
+import { countOpenFindJobs, listOpenFindJobs, listUserFindJobs } from '@/lib/find-job';
 import { formatCurrency } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UserFindJobPage() {
+const FIND_JOB_PAGE_SIZE = 20;
+
+function parsePage(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const page = Math.trunc(Number(raw || 1));
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function pageHref(page: number) {
+  return page <= 1 ? '/user/find-job' : `/user/find-job?page=${page}`;
+}
+
+function getPaginationPages(currentPage: number, totalPages: number) {
+  const pages = new Set<number>([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  return Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((left, right) => left - right);
+}
+
+export default async function UserFindJobPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { raw, shell } = await getCurrentUserForShell();
-  const [jobs, myJobs] = await Promise.all([
-    listOpenFindJobs(50),
+  const resolvedSearchParams = await searchParams;
+  const requestedPage = parsePage(resolvedSearchParams?.page);
+  const [totalJobs, myJobs] = await Promise.all([
+    countOpenFindJobs(),
     listUserFindJobs(raw.id, 20),
   ]);
+  const totalPages = Math.max(1, Math.ceil(totalJobs / FIND_JOB_PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const jobs = await listOpenFindJobs(FIND_JOB_PAGE_SIZE, (currentPage - 1) * FIND_JOB_PAGE_SIZE);
   const pinnedCount = jobs.filter((job) => job.is_pinned).length;
+  const paginationPages = getPaginationPages(currentPage, totalPages);
 
   return (
     <AppShell user={shell}>
@@ -37,7 +66,7 @@ export default async function UserFindJobPage() {
             </div>
             <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
               {[
-                { label: 'Đang mở', value: jobs.length, icon: BriefcaseBusiness },
+                { label: 'Đã duyệt', value: totalJobs, icon: BriefcaseBusiness },
                 { label: 'Đang ghim', value: pinnedCount, icon: Pin },
                 { label: 'Tin của bạn', value: myJobs.length, icon: UserRound },
               ].map((stat) => (
@@ -55,7 +84,7 @@ export default async function UserFindJobPage() {
           <section className="space-y-4">
             {jobs.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm font-bold text-slate-400 dark:border-white/10">
-                Chưa có việc đang mở.
+                Chưa có việc đã duyệt.
               </div>
             ) : jobs.map((job) => (
               <Link
@@ -103,6 +132,59 @@ export default async function UserFindJobPage() {
                 </div>
               </Link>
             ))}
+
+            {totalPages > 1 ? (
+              <nav className="flex flex-col gap-3 rounded-[1.25rem] border border-slate-200 bg-white/70 p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between" aria-label="Phân trang Find Job">
+                <Link
+                  href={pageHref(Math.max(1, currentPage - 1))}
+                  aria-disabled={currentPage <= 1}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest transition ${
+                    currentPage <= 1
+                      ? 'pointer-events-none border border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/[0.04]'
+                      : 'border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-orange-400/20 dark:bg-orange-500/10 dark:text-orange-200'
+                  }`}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Trang trước
+                </Link>
+
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {paginationPages.map((page, index) => {
+                    const previous = paginationPages[index - 1];
+                    const showGap = previous && page - previous > 1;
+                    return (
+                      <span key={page} className="inline-flex items-center gap-2">
+                        {showGap ? <span className="px-1 text-xs font-black text-slate-400">...</span> : null}
+                        <Link
+                          href={pageHref(page)}
+                          aria-current={page === currentPage ? 'page' : undefined}
+                          className={`grid h-11 min-w-11 place-items-center rounded-xl px-3 text-sm font-black transition ${
+                            page === currentPage
+                              ? 'bg-orange-500 text-white shadow-[0_12px_30px_-18px_rgba(249,115,22,0.9)]'
+                              : 'border border-slate-200 bg-white/80 text-slate-600 hover:border-orange-300 hover:text-orange-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:text-orange-200'
+                          }`}
+                        >
+                          {page}
+                        </Link>
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <Link
+                  href={pageHref(Math.min(totalPages, currentPage + 1))}
+                  aria-disabled={currentPage >= totalPages}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest transition ${
+                    currentPage >= totalPages
+                      ? 'pointer-events-none border border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/[0.04]'
+                      : 'border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-orange-400/20 dark:bg-orange-500/10 dark:text-orange-200'
+                  }`}
+                >
+                  Trang sau
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </nav>
+            ) : null}
           </section>
 
           <aside className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
