@@ -2,7 +2,7 @@
 
 import { AppShell } from '@/components/layout/app-shell';
 import { useSessionUser } from '@/hooks/use-session-user';
-import { Badge } from '@/components/ui/badge';
+import { useWalletBalance } from '@/components/layout/wallet-balance-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState, MetricCard, PageHero, SectionHeader, SectionPanel } from '@/components/ui/page-layout';
@@ -21,22 +21,53 @@ const telcos = [
 
 const denominations = [10000, 20000, 30000, 50000, 100000, 200000, 300000, 500000];
 
+type PurchasedCard = {
+  type?: string;
+  amount?: number;
+  code?: string;
+  serial?: string;
+};
+
+type CardSubmitResult = {
+  success: boolean;
+  message: string;
+  data?: {
+    cards?: PurchasedCard[];
+    balance_after?: number;
+  };
+};
+
 export default function CardPage() {
   const currentUser = useSessionUser();
   const user = currentUser.data;
+  const { setBalances } = useWalletBalance();
   const [activeTab, setActiveTab] = useState<'exchange' | 'buy'>('exchange');
   const [selectedTelco, setSelectedTelco] = useState('');
   const [amount, setAmount] = useState('');
   const [serial, setSerial] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<CardSubmitResult | null>(null);
 
   const selectedAmount = amount ? Number(amount) : 0;
+  const requiresCardCredential = activeTab === 'exchange';
+  const canSubmit = Boolean(selectedTelco && amount && (!requiresCardCredential || (serial.trim() && pin.trim())));
+  const purchasedCards = result?.data?.cards || [];
+  const guidelineItems = activeTab === 'exchange'
+    ? [
+      'Kiểm tra đúng nhà mạng trước khi nhập serial và mã PIN.',
+      'Ưu tiên chọn đúng mệnh giá để hệ thống xử lý nhanh hơn.',
+      'Theo dõi phản hồi sau khi gửi để biết trạng thái giao dịch ngay.',
+    ]
+    : [
+      'Mua mã thẻ chỉ cần chọn đúng nhà mạng và mệnh giá.',
+      'Hệ thống trừ ví chính, không trừ ví game.',
+      'Mã thẻ và serial sẽ hiển thị ngay khi nhà cung cấp trả thành công.',
+    ];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedTelco || !amount || !serial || !pin) return;
+    if (!canSubmit) return;
 
     setLoading(true);
     setResult(null);
@@ -48,12 +79,15 @@ export default function CardPage() {
         body: JSON.stringify({
           telco: selectedTelco,
           amount: parseInt(amount),
-          serial,
-          pin,
+          serial: requiresCardCredential ? serial.trim() : undefined,
+          pin: requiresCardCredential ? pin.trim() : undefined,
           type: activeTab,
         }),
       });
-      const data = await res.json();
+      const data = await res.json() as CardSubmitResult;
+      if (typeof data.data?.balance_after === 'number') {
+        setBalances({ balance: data.data.balance_after });
+      }
       setResult(data);
     } catch {
       setResult({ success: false, message: 'Có lỗi xảy ra' });
@@ -91,6 +125,10 @@ export default function CardPage() {
                   onClick={() => {
                     setActiveTab(tab.id as 'exchange' | 'buy');
                     setResult(null);
+                    if (tab.id === 'buy') {
+                      setSerial('');
+                      setPin('');
+                    }
                   }}
                   className={`flex items-center justify-center gap-2 rounded-[1rem] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-all sm:px-5 sm:tracking-[0.18em] ${
                     activeTab === tab.id
@@ -179,38 +217,60 @@ export default function CardPage() {
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
-                    Serial thẻ
-                  </span>
-                  <Input
-                    type="text"
-                    value={serial}
-                    onChange={(event) => setSerial(event.target.value)}
-                    placeholder="Nhập serial thẻ"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
-                    Mã thẻ PIN
-                  </span>
-                  <Input
-                    type="text"
-                    value={pin}
-                    onChange={(event) => setPin(event.target.value)}
-                    placeholder="Nhập mã PIN"
-                  />
-                </label>
-              </div>
+              {requiresCardCredential ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
+                      Serial thẻ
+                    </span>
+                    <Input
+                      type="text"
+                      value={serial}
+                      onChange={(event) => setSerial(event.target.value)}
+                      placeholder="Nhập serial thẻ"
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
+                      Mã thẻ PIN
+                    </span>
+                    <Input
+                      type="text"
+                      value={pin}
+                      onChange={(event) => setPin(event.target.value)}
+                      placeholder="Nhập mã PIN"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="rounded-[1.35rem] border border-brand-blue/20 bg-brand-blue/10 px-4 py-4 text-sm font-bold leading-7 text-brand-blue dark:border-brand-blue/30 dark:bg-brand-blue/10 dark:text-blue-200">
+                  Mua mã thẻ không cần nhập serial/PIN. Hệ thống sẽ dùng ví chính để thanh toán và trả mã thẻ sau khi API xử lý thành công.
+                </div>
+              )}
 
               {result ? (
-                <div className={`rounded-[1.35rem] border px-4 py-4 text-sm font-bold ${
+                <div className={`space-y-3 rounded-[1.35rem] border px-4 py-4 text-sm font-bold ${
                   result.success
                     ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                     : 'border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400'
                 }`}>
-                  {result.message}
+                  <p>{result.message}</p>
+                  {purchasedCards.length ? (
+                    <div className="space-y-2 text-slate-700 dark:text-slate-100">
+                      {purchasedCards.map((card, index) => (
+                        <div
+                          key={`${card.serial || card.code || index}`}
+                          className="rounded-[1rem] border border-white/50 bg-white/80 p-3 text-xs leading-6 shadow-sm dark:border-white/10 dark:bg-slate-950/50"
+                        >
+                          <div className="font-black uppercase tracking-[0.16em] text-brand-blue">
+                            Thẻ #{index + 1} {card.type ? `- ${card.type}` : ''}
+                          </div>
+                          <div>Serial: <span className="font-mono">{card.serial || '—'}</span></div>
+                          <div>Mã thẻ: <span className="font-mono">{card.code || '—'}</span></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -218,7 +278,7 @@ export default function CardPage() {
                 type="submit"
                 size="xl"
                 className="w-full"
-                disabled={loading || !selectedTelco || !amount || !serial || !pin}
+                disabled={loading || !canSubmit}
                 loading={loading}
                 loadingText="Đang xử lý..."
               >
@@ -251,11 +311,7 @@ export default function CardPage() {
                 description="Những lưu ý dưới đây giúp bạn thao tác chính xác, hạn chế sai sót khi gửi yêu cầu đổi hoặc mua thẻ."
               />
               <div className="space-y-3">
-                {[
-                  'Kiểm tra đúng nhà mạng trước khi nhập serial và mã PIN.',
-                  'Ưu tiên chọn đúng mệnh giá để hệ thống xử lý nhanh hơn.',
-                  'Theo dõi phản hồi sau khi gửi để biết trạng thái giao dịch ngay.',
-                ].map((item) => (
+                {guidelineItems.map((item) => (
                   <div key={item} className="flex gap-3 rounded-[1.25rem] border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
                     <span className="mt-0.5 text-emerald-500">
                       <CheckCircle2 className="h-4 w-4" />

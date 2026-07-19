@@ -9,6 +9,8 @@ const SETTING_DEFAULTS = [
   ['thecaosieutoc_partner_id', ''],
   ['thecaosieutoc_partner_key', ''],
   ['thecaosieutoc_auto_submit', '1'],
+  ['thecaosieutoc_buy_token', ''],
+  ['thecaosieutoc_buy_auto_submit', '1'],
 ] as const;
 
 const SETTING_KEYS = SETTING_DEFAULTS.map(([key]) => key);
@@ -19,9 +21,19 @@ export interface TheCaoSieuTocConfig {
   partnerKey: string;
   autoSubmit: boolean;
   configured: boolean;
+  buyToken: string;
+  buyAutoSubmit: boolean;
+  buyConfigured: boolean;
 }
 
 type CardPayload = Record<string, unknown>;
+
+export type TheCaoSieuTocPurchasedCard = {
+  type: string;
+  amount: number;
+  code: string;
+  serial: string;
+};
 
 function normalizeBoolean(value: unknown, fallback = false) {
   const normalized = String(value ?? '').trim().toLowerCase();
@@ -132,6 +144,14 @@ export async function getTheCaoSieuTocCardConfig(forceRefresh = false): Promise<
     settingValue(settings, 'thecaosieutoc_auto_submit', 'THECAOSIEUTOC_AUTO_SUBMIT', '1'),
     true
   );
+  const buyToken = settingValue(settings, 'thecaosieutoc_buy_token', 'THECAOSIEUTOC_CARD_BUY_TOKEN')
+    || String(process.env.THECAOSIEUTOC_BUY_POST_TOKEN || '').trim()
+    || String(process.env.THECAOSIEUTOC_BUY_TOKEN || '').trim()
+    || String(process.env.THECAOSIEUTOC_BUY_POST_PARTNER_KEY || '').trim();
+  const buyAutoSubmit = normalizeBoolean(
+    settingValue(settings, 'thecaosieutoc_buy_auto_submit', 'THECAOSIEUTOC_BUY_AUTO_SUBMIT', '1'),
+    true
+  );
 
   return {
     baseUrl: baseUrl || 'https://thecaosieutoc.vn',
@@ -139,6 +159,9 @@ export async function getTheCaoSieuTocCardConfig(forceRefresh = false): Promise<
     partnerKey,
     autoSubmit,
     configured: Boolean(partnerId && partnerKey),
+    buyToken,
+    buyAutoSubmit,
+    buyConfigured: Boolean(buyToken),
   };
 }
 
@@ -178,6 +201,42 @@ function parseJsonMaybe(text: string) {
   } catch {
     return { raw: text };
   }
+}
+
+function asRecord(value: unknown): CardPayload {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as CardPayload : {};
+}
+
+function stringValue(value: unknown) {
+  return value === null || value === undefined ? '' : String(value).trim();
+}
+
+function cardArrayFromPayload(payload: CardPayload) {
+  const data = asRecord(payload.data);
+  const candidates = [payload.cards, data.cards, payload.card, data.card, payload.result, data.result];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+    if (candidate && typeof candidate === 'object') return [candidate];
+  }
+  if (payload.code || payload.serial) return [payload];
+  return [];
+}
+
+export function extractTheCaoSieuTocPurchasedCards(payload: CardPayload): TheCaoSieuTocPurchasedCard[] {
+  return cardArrayFromPayload(payload)
+    .map((item) => {
+      const record = asRecord(item);
+      const code = stringValue(record.code || record.pin || record.card_code);
+      const serial = stringValue(record.serial || record.seri || record.card_serial);
+      if (!code && !serial) return null;
+      return {
+        type: stringValue(record.type || record.type_card || record.telco),
+        amount: Math.round(toNumber(record.amount || record.value || record.card_amount, 0)),
+        code,
+        serial,
+      };
+    })
+    .filter((card): card is TheCaoSieuTocPurchasedCard => Boolean(card));
 }
 
 export async function submitTheCaoSieuTocCard(input: {
@@ -222,6 +281,53 @@ export async function submitTheCaoSieuTocCard(input: {
       ok: res.ok,
       httpStatus: res.status,
       payload,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function buyTheCaoSieuTocCard(input: {
+  telco: string;
+  amount: number;
+  quantity?: number;
+}) {
+  const config = await getTheCaoSieuTocCardConfig(true);
+  if (!config.buyConfigured) {
+    throw new Error('Chưa cấu hình token mua thẻ.');
+  }
+  if (!config.buyAutoSubmit) {
+    throw new Error('Chưa bật tự động mua thẻ.');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25_000);
+  const body = {
+    token: config.buyToken,
+    type_card: normalizeTheCaoSieuTocTelco(input.telco),
+    amount: Math.trunc(input.amount),
+    quantity: Math.max(1, Math.min(50, Math.trunc(Number(input.quantity || 1)) || 1)),
+  };
+
+  try {
+    const res = await fetch(`${config.baseUrl}/api/card/buy`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    const text = await res.text();
+    const payload = parseJsonMaybe(text);
+    return {
+      ok: res.ok,
+      httpStatus: res.status,
+      payload,
+      cards: extractTheCaoSieuTocPurchasedCards(payload),
+      orderCode: stringValue(payload.order_code || payload.order_id || payload.trans_id),
     };
   } finally {
     clearTimeout(timeout);
