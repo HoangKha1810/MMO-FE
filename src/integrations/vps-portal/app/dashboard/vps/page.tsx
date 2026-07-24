@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
+  CalendarClock,
   CheckSquare,
   Copy,
   Filter,
@@ -25,8 +26,9 @@ import {
   isRebuildingInstanceStatus,
   isRunningInstanceStatus,
   isStoppedInstanceStatus,
+  normalizeInstanceStatusKey,
 } from "@vps/lib/instance-status";
-import { getUserOperatingSystems, runInstanceAction } from "@vps/lib/api";
+import { formatCurrency, getUserOperatingSystems, runInstanceAction } from "@vps/lib/api";
 import {
   describeInstanceStatus,
   formatBillingCycle,
@@ -36,7 +38,7 @@ import {
 } from "@vps/lib/portal";
 import { MyInstance, RemoteOs } from "@vps/lib/types";
 
-type InstanceAction = "on" | "off" | "restart";
+type InstanceAction = "on" | "off" | "restart" | "renew-vps";
 
 type ActionFeedback = {
   title: string;
@@ -88,9 +90,18 @@ const ACTION_META: Record<
     acceptedTitle: "Đã ghi nhận lệnh khởi động lại",
     queuedHint: "VPS sẽ reboot lại trong thời gian ngắn và dashboard sẽ tự đồng bộ trạng thái mới.",
   },
+  "renew-vps": {
+    buttonLabel: "Gia hạn",
+    confirmTitle: "Xác nhận gia hạn VPS",
+    confirmLabel: "Gia hạn ngay",
+    confirmVariant: "warning",
+    acceptedTitle: "Đã ghi nhận lệnh gia hạn VPS",
+    queuedHint:
+      "Hệ thống sẽ trừ ví theo giá gói đang cấu hình trên web và đồng bộ lại hạn dùng sau khi nhà cung cấp xử lý xong.",
+  },
 };
 
-const MANUAL_ACTIONS: InstanceAction[] = ["on", "off", "restart"];
+const MANUAL_ACTIONS: InstanceAction[] = ["on", "off", "restart", "renew-vps"];
 
 function getToneClassName(status: string | null | undefined) {
   const tone = resolveStatusTone(status);
@@ -111,15 +122,24 @@ function getToneClassName(status: string | null | undefined) {
 }
 
 function getAvailableActions(status: string | null | undefined): InstanceAction[] {
+  const actions: InstanceAction[] = [];
+
   if (isStoppedInstanceStatus(status)) {
-    return ["on"];
+    actions.push("on");
   }
 
   if (isRunningInstanceStatus(status)) {
-    return ["off", "restart"];
+    actions.push("off", "restart");
   }
 
-  return [];
+  if (
+    !isProcessingInstanceStatus(status) &&
+    normalizeInstanceStatusKey(status) !== "delete_vps"
+  ) {
+    actions.push("renew-vps");
+  }
+
+  return actions;
 }
 
 function canRunAction(status: string | null | undefined, action: InstanceAction) {
@@ -135,7 +155,11 @@ function getActionRequirement(action: InstanceAction) {
     return "Lệnh tắt chỉ áp dụng cho VPS đang ở trạng thái đang chạy.";
   }
 
-  return "Lệnh khởi động lại chỉ áp dụng cho VPS đang ở trạng thái đang chạy.";
+  if (action === "restart") {
+    return "Lệnh khởi động lại chỉ áp dụng cho VPS đang ở trạng thái đang chạy.";
+  }
+
+  return "Gia hạn chỉ áp dụng cho VPS đã tạo xong và chưa bị hủy hoặc xóa.";
 }
 
 function summarizeStatuses(instances: MyInstance[]) {
@@ -211,6 +235,23 @@ export default function VpsPage() {
     () => allInstances.filter((instance) => selectedIds.has(instance.id)),
     [allInstances, selectedIds],
   );
+  const pendingActionInstances = useMemo(
+    () =>
+      pendingAction
+        ? allInstances.filter((instance) => pendingAction.ids.includes(instance.id))
+        : [],
+    [allInstances, pendingAction],
+  );
+  const pendingRenewTotal = useMemo(
+    () =>
+      pendingAction?.action === "renew-vps"
+        ? pendingActionInstances.reduce(
+            (sum, instance) => sum + Math.max(0, Number(instance.unit_price ?? 0)),
+            0,
+          )
+        : 0,
+    [pendingAction?.action, pendingActionInstances],
+  );
   const eligibleSelectedIds = useMemo(
     () => ({
       on: selectedInstances.filter((instance) => canRunAction(instance.status, "on")).map((instance) => instance.id),
@@ -219,6 +260,9 @@ export default function VpsPage() {
         .map((instance) => instance.id),
       restart: selectedInstances
         .filter((instance) => canRunAction(instance.status, "restart"))
+        .map((instance) => instance.id),
+      "renew-vps": selectedInstances
+        .filter((instance) => canRunAction(instance.status, "renew-vps"))
         .map((instance) => instance.id),
     }),
     [selectedInstances],
@@ -323,8 +367,14 @@ export default function VpsPage() {
     setPendingAction(null);
 
     try {
+      const targetInstances = allInstances.filter((instance) => ids.includes(instance.id));
       const results = await Promise.allSettled(
-        ids.map((id) => runInstanceAction(token, id, action)),
+        targetInstances.map((instance) =>
+          runInstanceAction(token, instance.id, action, {
+            billingCycleCode:
+              action === "renew-vps" ? instance.billing_cycle_code : undefined,
+          }),
+        ),
       );
       const successful = results.filter(
         (
@@ -338,7 +388,6 @@ export default function VpsPage() {
       const firstSuccessMessage = successful.find((result) => result.value.message)?.value.message;
       const actionMeta = ACTION_META[action];
       const targetText = ids.length === 1 ? "1 VPS" : `${ids.length} VPS`;
-      const targetInstances = allInstances.filter((instance) => ids.includes(instance.id));
 
       if (successCount > 0) {
         setFeedback({
@@ -547,14 +596,15 @@ export default function VpsPage() {
                 {key === "on" ? <Power className="h-3.5 w-3.5" /> : null}
                 {key === "off" ? <PowerOff className="h-3.5 w-3.5" /> : null}
                 {key === "restart" ? <RefreshCw className="h-3.5 w-3.5" /> : null}
+                {key === "renew-vps" ? <CalendarClock className="h-3.5 w-3.5" /> : null}
                 {ACTION_META[key].buttonLabel}
               </button>
             ))}
             {rebuildButton}
           </div>
           <span className="text-xs leading-6 text-[var(--muted)]">
-            Trạng thái hiện tại chưa phù hợp để bật, tắt hoặc khởi động lại. Anh vẫn có thể bấm để xem
-            hệ thống giải thích rõ lý do.
+            Trạng thái hiện tại chưa phù hợp để bật, tắt, khởi động lại hoặc gia hạn. Anh vẫn có thể
+            bấm để xem hệ thống giải thích rõ lý do.
           </span>
         </div>
       );
@@ -578,6 +628,7 @@ export default function VpsPage() {
             {key === "on" ? <Power className="h-3.5 w-3.5" /> : null}
             {key === "off" ? <PowerOff className="h-3.5 w-3.5" /> : null}
             {key === "restart" ? <RefreshCw className="h-3.5 w-3.5" /> : null}
+            {key === "renew-vps" ? <CalendarClock className="h-3.5 w-3.5" /> : null}
             {ACTION_META[key].buttonLabel}
           </button>
         ))}
@@ -771,6 +822,23 @@ export default function VpsPage() {
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   Khởi động lại ({eligibleSelectedIds.restart.length})
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading || rebuildLoading || rebuildSystemsLoading}
+                  title={
+                    eligibleSelectedIds["renew-vps"].length === 0
+                      ? getActionRequirement("renew-vps")
+                      : undefined
+                  }
+                  className={clsx(
+                    "portal-mini-button",
+                    eligibleSelectedIds["renew-vps"].length === 0 && "opacity-60",
+                  )}
+                  onClick={() => queueAction(Array.from(selectedIds), "renew-vps")}
+                >
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Gia hạn ({eligibleSelectedIds["renew-vps"].length})
                 </button>
                 <button
                   type="button"
@@ -1034,13 +1102,20 @@ export default function VpsPage() {
         <ConfirmModal
           open={Boolean(pendingAction)}
           title={ACTION_META[pendingAction.action].confirmTitle}
-          message={`Anh sắp gửi lệnh cho ${pendingAction.ids.length} VPS. Hệ thống sẽ tiếp nhận lệnh và đồng bộ trạng thái lại ngay sau đó.`}
+          message={
+            pendingAction.action === "renew-vps"
+              ? `Anh sắp gia hạn ${pendingAction.ids.length} VPS. Hệ thống sẽ trừ ví theo giá đang cấu hình trên web rồi đồng bộ lại hạn dùng sau đó.`
+              : `Anh sắp gửi lệnh cho ${pendingAction.ids.length} VPS. Hệ thống sẽ tiếp nhận lệnh và đồng bộ trạng thái lại ngay sau đó.`
+          }
           confirmLabel={ACTION_META[pendingAction.action].confirmLabel}
           variant={ACTION_META[pendingAction.action].confirmVariant}
           highlights={[
             pendingAction.skippedCount > 0
               ? `Có ${pendingAction.skippedCount} VPS đã chọn chưa đúng trạng thái nên hệ thống sẽ bỏ qua trong lượt này.`
               : "Tất cả VPS đã chọn đều đang ở trạng thái phù hợp để nhận lệnh.",
+            ...(pendingAction.action === "renew-vps" && pendingRenewTotal > 0
+              ? [`Tổng phí dự kiến: ${formatCurrency(pendingRenewTotal)}.`]
+              : []),
             "Nếu popup sau đó báo đã ghi nhận lệnh, anh không cần bấm thao tác lại thêm lần nữa.",
             ACTION_META[pendingAction.action].queuedHint,
           ]}

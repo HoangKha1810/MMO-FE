@@ -487,6 +487,7 @@ export async function runInstanceAction(
   action: string,
   options: {
     osId?: number;
+    billingCycleCode?: string | null;
   } = {},
 ) {
   return apiRequest<{ message: string }>(
@@ -497,6 +498,9 @@ export async function runInstanceAction(
       body: {
         action,
         ...(typeof options.osId === "number" ? { osId: options.osId } : {}),
+        ...(options.billingCycleCode
+          ? { billingCycleCode: options.billingCycleCode }
+          : {}),
       },
     },
   );
