@@ -12,6 +12,7 @@ import {
   OPERATOR_ADMIN_LANDING,
   type AdminResourceAction,
 } from '@/lib/admin-permissions';
+import { ensureBlueTickTables, isBlueTickEntitlementActive } from '@/lib/blue-tick';
 import { db } from '@/lib/db';
 import { getVerifiedPendingTwoFactorUserId, getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { logOwnerSecurityEvent, verifyOwnerActionSecurity } from '@/lib/owner-security';
@@ -50,6 +51,8 @@ export async function getSessionUser(): Promise<AdminSessionUser | null> {
     return null;
   }
 
+  await ensureBlueTickTables();
+
   const user = await db.users.findUnique({
     where: { id: userId },
     select: {
@@ -60,6 +63,7 @@ export async function getSessionUser(): Promise<AdminSessionUser | null> {
       status: true,
       avatar: true,
       is_blue_tick: true,
+      blue_tick_expiry: true,
     },
   });
 
@@ -73,7 +77,7 @@ export async function getSessionUser(): Promise<AdminSessionUser | null> {
     email: user.email,
     role: String(user.role || 'member'),
     avatar: user.avatar,
-    isBlueTick: Boolean(user.is_blue_tick),
+    isBlueTick: isBlueTickEntitlementActive(user.is_blue_tick, user.blue_tick_expiry),
   };
 }
 

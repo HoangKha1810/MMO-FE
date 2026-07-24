@@ -39,7 +39,7 @@ export default async function UserForumPage() {
                 alt="Banner quảng cáo Forum MMO"
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.015]"
               />
-              {heroAd.source === 'owner' ? (
+              {heroAd.source === 'owner' && heroAd.is_custom ? (
                 <div className="pointer-events-none absolute inset-0 flex items-end justify-between gap-4 bg-gradient-to-r from-slate-950/60 via-slate-950/10 to-slate-950/45 p-5 sm:p-7">
                   <div className="min-w-0">
                     <div className="text-[10px] font-black uppercase tracking-[0.32em] text-cyan-100/85">

@@ -23,7 +23,7 @@ import { useSessionUser } from '@/hooks/use-session-user';
 import { readJsonResponse } from '@/lib/client-api';
 import { cn, formatCurrency, toNumber } from '@/lib/utils';
 
-type VibeCodeProvider = 'cursor' | 'codex' | 'claude';
+type VibeCodeProvider = 'cursor' | 'codex' | 'claude' | 'chatgpt' | 'kiro' | 'other';
 
 type VibeCodePackage = {
   id: number;
@@ -34,6 +34,8 @@ type VibeCodePackage = {
   unit_label?: string | null;
   unit_amount: number;
   sale_price_vnd: number;
+  stock_available?: number;
+  image_url?: string | null;
   display_order: number;
   status: string;
 };
@@ -49,6 +51,7 @@ type VibeCodeOrder = {
   sale_price_vnd: number;
   status: string;
   admin_note?: string | null;
+  credentials?: string | null;
   created_at?: string;
 };
 
@@ -118,6 +121,23 @@ function ClaudeBrandIcon({ className }: BrandIconProps) {
   return <BrandLogoIcon className={className} src="/brand/claude-ai-logo.svg" alt="Claude" />;
 }
 
+function ChatGptBrandIcon({ className }: BrandIconProps) {
+  return <BrandLogoIcon className={className} src="/ai-assets/openai.png" alt="ChatGPT" />;
+}
+
+function GenericBrandIcon({ className }: BrandIconProps) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center justify-center rounded-[1.05rem] border border-slate-200/80 bg-white text-brand-blue shadow-[0_18px_42px_-26px_rgba(15,23,42,0.28)] ring-1 ring-brand-blue/10 dark:border-white/10 dark:bg-slate-950/70 dark:text-cyan-200 dark:shadow-[0_18px_42px_-22px_rgba(15,23,42,0.9)] dark:ring-cyan-200/10',
+        className
+      )}
+    >
+      <Sparkles className="h-1/2 w-1/2" />
+    </span>
+  );
+}
+
 const providerMeta: Record<VibeCodeProvider, {
   title: string;
   eyebrow: string;
@@ -146,39 +166,71 @@ const providerMeta: Record<VibeCodeProvider, {
     icon: ClaudeBrandIcon,
     accent: 'from-orange-400 via-amber-500 to-rose-500',
   },
+  chatgpt: {
+    title: 'ChatGPT',
+    eyebrow: 'Tài khoản AI',
+    description: 'Gói ChatGPT và tài khoản AI đồng bộ từ GenZ Shop, nhận credential tự động sau thanh toán.',
+    icon: ChatGptBrandIcon,
+    accent: 'from-emerald-400 via-teal-500 to-cyan-500',
+  },
+  kiro: {
+    title: 'Kiro',
+    eyebrow: 'Kiro Pro',
+    description: 'Gói Kiro Pro đồng bộ từ GenZ Shop, giữ kho và giá API mới nhất.',
+    icon: GenericBrandIcon,
+    accent: 'from-fuchsia-500 via-violet-500 to-blue-500',
+  },
+  other: {
+    title: 'Khác',
+    eyebrow: 'GenZ Shop',
+    description: 'Các gói AI Premium khác được đồng bộ tự động từ GenZ Shop.',
+    icon: GenericBrandIcon,
+    accent: 'from-slate-500 via-blue-500 to-cyan-500',
+  },
 };
 
-function normalizePackage(input: Record<string, unknown>): VibeCodePackage {
-  const provider = String(input.provider || 'cursor');
+const PROVIDER_ORDER: VibeCodeProvider[] = ['cursor', 'codex', 'claude', 'chatgpt', 'kiro', 'other'];
 
+function normalizeProvider(value: unknown): VibeCodeProvider {
+  const provider = String(value || '').toLowerCase();
+  if (provider === 'codex') return 'codex';
+  if (provider === 'claude') return 'claude';
+  if (provider === 'chatgpt') return 'chatgpt';
+  if (provider === 'kiro') return 'kiro';
+  if (provider === 'other') return 'other';
+  return 'cursor';
+}
+
+function normalizePackage(input: Record<string, unknown>): VibeCodePackage {
   return {
     id: Math.trunc(toNumber(input.id, 0)),
-    provider: provider === 'codex' || provider === 'claude' ? provider : 'cursor',
+    provider: normalizeProvider(input.provider),
     package_key: String(input.package_key || ''),
     title: String(input.title || ''),
     description: input.description == null ? null : String(input.description),
     unit_label: input.unit_label == null ? null : String(input.unit_label),
     unit_amount: toNumber(input.unit_amount, 0),
     sale_price_vnd: toNumber(input.sale_price_vnd, 0),
+    stock_available: input.stock_available == null ? undefined : Math.trunc(toNumber(input.stock_available, 0)),
+    image_url: input.image_url == null ? null : String(input.image_url),
     display_order: Math.trunc(toNumber(input.display_order, 0)),
     status: String(input.status || 'active'),
   };
 }
 
 function normalizeOrder(input: Record<string, unknown>): VibeCodeOrder {
-  const provider = String(input.provider || 'cursor');
-
   return {
     id: input.id == null ? undefined : Math.trunc(toNumber(input.id, 0)),
     order_code: String(input.order_code || ''),
     package_id: input.package_id == null ? undefined : Math.trunc(toNumber(input.package_id, 0)),
-    provider: provider === 'codex' || provider === 'claude' ? provider : 'cursor',
+    provider: normalizeProvider(input.provider),
     package_key: input.package_key == null ? undefined : String(input.package_key),
     package_title: String(input.package_title || input.title || ''),
     unit_amount: input.unit_amount == null ? undefined : toNumber(input.unit_amount, 0),
     sale_price_vnd: toNumber(input.sale_price_vnd, 0),
     status: String(input.status || 'pending'),
     admin_note: input.admin_note == null ? null : String(input.admin_note),
+    credentials: input.credentials == null ? null : String(input.credentials),
     created_at: input.created_at == null ? undefined : String(input.created_at),
   };
 }
@@ -187,6 +239,7 @@ function statusLabel(status: string) {
   const normalized = String(status || '').toLowerCase();
   if (normalized === 'completed') return 'Hoàn tất';
   if (normalized === 'processing') return 'Đang xử lý';
+  if (normalized === 'failed') return 'Lỗi';
   if (normalized === 'canceled' || normalized === 'cancelled') return 'Đã hủy';
   if (normalized === 'refunded') return 'Đã hoàn tiền';
   return 'Chờ admin';
@@ -196,7 +249,7 @@ function statusClass(status: string) {
   const normalized = String(status || '').toLowerCase();
   if (normalized === 'completed') return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/25 dark:text-emerald-300';
   if (normalized === 'processing') return 'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:border-sky-400/25 dark:text-sky-300';
-  if (normalized === 'canceled' || normalized === 'cancelled' || normalized === 'refunded') {
+  if (normalized === 'failed' || normalized === 'canceled' || normalized === 'cancelled' || normalized === 'refunded') {
     return 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:border-rose-400/25 dark:text-rose-300';
   }
   return 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:border-amber-400/25 dark:text-amber-300';
@@ -211,6 +264,9 @@ function formatAmount(pack: VibeCodePackage) {
   }
   if (pack.unit_label?.toLowerCase().includes('ngày')) {
     return `${new Intl.NumberFormat('vi-VN').format(amount)} ngày`;
+  }
+  if (pack.unit_label?.toLowerCase().includes('gói')) {
+    return `${new Intl.NumberFormat('vi-VN').format(Math.max(1, amount || 1))} gói`;
   }
   return `${new Intl.NumberFormat('vi-VN').format(amount)} request`;
 }
@@ -235,14 +291,45 @@ function formatDateTime(value?: string) {
   }).format(date);
 }
 
+function parseCredentials(value?: string | null) {
+  if (!value) return [];
+  const trimmed = String(value).trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [trimmed];
+  }
+}
+
+function credentialToLines(value: unknown, index: number) {
+  if (typeof value === 'string') return [`#${index + 1}`, value];
+  if (!value || typeof value !== 'object') return [`#${index + 1}`, String(value ?? '')];
+  const record = value as Record<string, unknown>;
+  const preferredKeys = ['user', 'username', 'email', 'password', 'pass', 'verifyEmail', 'verify_email', 'backupCode', 'note'];
+  const lines = preferredKeys
+    .filter((key) => record[key] != null && String(record[key]).trim())
+    .map((key) => `${key}: ${String(record[key])}`);
+  return [`#${index + 1}`, ...(lines.length ? lines : Object.entries(record).map(([key, item]) => `${key}: ${String(item)}`))];
+}
+
+function formatCredentialsForCopy(value?: string | null) {
+  return parseCredentials(value)
+    .map((item, index) => credentialToLines(item, index).join('\n'))
+    .join('\n\n');
+}
+
 function ProviderQuickNav({
   grouped,
+  providers,
 }: {
   grouped: Record<VibeCodeProvider, VibeCodePackage[]>;
+  providers: VibeCodeProvider[];
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-3">
-      {(['cursor', 'codex', 'claude'] as VibeCodeProvider[]).map((provider) => {
+    <div className="grid gap-3 md:grid-cols-3 2xl:grid-cols-6">
+      {providers.map((provider) => {
         const meta = providerMeta[provider];
         const Icon = meta.icon;
 
@@ -271,6 +358,41 @@ function ProviderQuickNav({
   );
 }
 
+function CredentialBlock({
+  credentials,
+  onCopy,
+}: {
+  credentials?: string | null;
+  onCopy: (text: string) => void;
+}) {
+  const items = parseCredentials(credentials);
+  if (items.length < 1) return null;
+  const copyText = formatCredentialsForCopy(credentials);
+
+  return (
+    <div className="space-y-3 rounded-[1rem] border border-emerald-400/25 bg-emerald-500/10 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-300">Credential</div>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-2 rounded-[0.8rem] border border-emerald-300/25 bg-emerald-400/10 px-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200 transition hover:bg-emerald-400/20"
+          onClick={() => onCopy(copyText)}
+        >
+          <Copy className="h-3.5 w-3.5" />
+          Copy
+        </button>
+      </div>
+      <div className="max-h-72 overflow-auto rounded-[0.9rem] border border-white/10 bg-slate-950/70 p-3 font-mono text-xs font-semibold leading-6 text-slate-100">
+        {items.map((item, index) => (
+          <pre key={index} className="whitespace-pre-wrap break-words">
+            {credentialToLines(item, index).join('\n')}
+          </pre>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function VibeCodePage() {
   const { data: user } = useSessionUser();
   const { setBalances } = useWalletBalance();
@@ -282,11 +404,15 @@ export function VibeCodePage() {
   const [lastOrder, setLastOrder] = useState<VibeCodeOrder | null>(null);
   const [confirmPackage, setConfirmPackage] = useState<VibeCodePackage | null>(null);
 
-  const grouped = useMemo(() => ({
-    cursor: packages.filter((item) => item.provider === 'cursor'),
-    codex: packages.filter((item) => item.provider === 'codex'),
-    claude: packages.filter((item) => item.provider === 'claude'),
-  }), [packages]);
+  const grouped = useMemo(() => PROVIDER_ORDER.reduce((acc, provider) => {
+    acc[provider] = packages.filter((item) => item.provider === provider);
+    return acc;
+  }, {} as Record<VibeCodeProvider, VibeCodePackage[]>), [packages]);
+
+  const visibleProviders = useMemo(() => {
+    const providers = PROVIDER_ORDER.filter((provider) => grouped[provider].length > 0);
+    return providers.length > 0 ? providers : (['cursor', 'codex', 'claude'] as VibeCodeProvider[]);
+  }, [grouped]);
 
   async function loadPackages() {
     setLoading(true);
@@ -333,12 +459,12 @@ export function VibeCodePage() {
     void loadOrders();
   }, []);
 
-  async function copyCode(code: string) {
+  async function copyText(text: string, successMessage = 'Đã copy') {
     try {
-      await navigator.clipboard.writeText(code);
-      toast.success('Đã copy mã đơn');
+      await navigator.clipboard.writeText(text);
+      toast.success(successMessage);
     } catch {
-      toast.error('Không copy được mã, hãy bôi đen mã để sao chép');
+      toast.error('Không copy được, hãy bôi đen nội dung để sao chép');
     }
   }
 
@@ -351,11 +477,17 @@ export function VibeCodePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ package_id: pack.id, confirm: true }),
       });
-      const payload = await readJsonResponse<{
+      const payload = await response.json().catch(() => null) as {
         success: boolean;
         message?: string;
         data?: { order?: Record<string, unknown>; balance_after?: number };
-      }>(response, 'Không mua được gói Vibe Code');
+      } | null;
+      if (!response.ok || !payload?.success) {
+        if (typeof payload?.data?.balance_after === 'number') {
+          setBalances({ balance: payload.data.balance_after });
+        }
+        throw new Error(payload?.message || 'Không mua được gói Vibe Code');
+      }
 
       if (typeof payload.data?.balance_after === 'number') {
         setBalances({ balance: payload.data.balance_after });
@@ -383,19 +515,19 @@ export function VibeCodePage() {
         <PageHero
           eyebrow="Vibe Code"
           title="Vibe Code"
-          description="Bảng giá Cursor AI, Codex API và Claude. Mua xong hệ thống sinh mã đơn riêng để gửi admin hướng dẫn kích hoạt."
+          description="Bảng giá tài khoản AI Premium đồng bộ từ GenZ Shop. Thanh toán xong hệ thống tự cấp credential và lưu đơn để admin đối chiếu."
           stats={[
             { label: 'Cursor AI', value: `${grouped.cursor.length} gói`, hint: 'Request và Pro', tone: 'blue' },
-            { label: 'Codex API', value: `${grouped.codex.length} gói`, hint: 'Credit theo USD', tone: 'emerald' },
             { label: 'Claude', value: `${grouped.claude.length} gói`, hint: 'Credit và Pro tháng', tone: 'amber' },
+            { label: 'GenZ Shop', value: `${packages.length} gói`, hint: 'Đồng bộ API', tone: 'emerald' },
           ]}
         />
 
-        <ProviderQuickNav grouped={grouped} />
+        <ProviderQuickNav grouped={grouped} providers={visibleProviders} />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
-            {(['cursor', 'codex', 'claude'] as VibeCodeProvider[]).map((provider) => (
+            {visibleProviders.map((provider) => (
               <ProviderPricing
                 key={provider}
                 provider={provider}
@@ -411,8 +543,8 @@ export function VibeCodePage() {
             <section className="surface-panel rounded-[1rem] p-5">
               <SectionHeader
                 eyebrow="Mã vừa mua"
-                title="Gửi admin"
-                description="Mã đơn dùng để admin đối chiếu và hướng dẫn cấp gói."
+                title="Credential"
+                description="Credential sẽ hiện ngay khi GenZ Shop cấp hàng thành công. Mã đơn vẫn dùng để admin đối chiếu."
               />
               {lastOrder ? (
                 <div className="mt-5 space-y-4">
@@ -421,10 +553,14 @@ export function VibeCodePage() {
                     <div className="mt-2 break-all font-mono text-xl font-black text-slate-950 dark:text-white">{lastOrder.order_code}</div>
                     <div className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">{lastOrder.package_title}</div>
                   </div>
-                  <Button className="w-full" onClick={() => copyCode(lastOrder.order_code)}>
+                  <Button className="w-full" onClick={() => copyText(lastOrder.order_code, 'Đã copy mã đơn')}>
                     <Copy className="h-4 w-4" />
                     Copy mã
                   </Button>
+                  <CredentialBlock
+                    credentials={lastOrder.credentials}
+                    onCopy={(text) => copyText(text, 'Đã copy credential')}
+                  />
                 </div>
               ) : (
                 <EmptyState
@@ -453,7 +589,7 @@ export function VibeCodePage() {
                           <button
                             type="button"
                             className="mt-1 break-all font-mono text-xs font-black text-brand-blue hover:text-blue-300"
-                            onClick={() => copyCode(order.order_code)}
+                            onClick={() => copyText(order.order_code, 'Đã copy mã đơn')}
                           >
                             {order.order_code}
                           </button>
@@ -466,6 +602,10 @@ export function VibeCodePage() {
                         <span>{formatCurrency(toNumber(order.sale_price_vnd, 0))}</span>
                         <span>{formatDateTime(order.created_at)}</span>
                       </div>
+                      <CredentialBlock
+                        credentials={order.credentials}
+                        onCopy={(text) => copyText(text, 'Đã copy credential')}
+                      />
                     </div>
                   ))
                 ) : (
@@ -582,7 +722,7 @@ function ProviderPricing({
 
       {loading ? (
         <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
-          {Array.from({ length: provider === 'cursor' ? 6 : provider === 'claude' ? 7 : 5 }).map((_, index) => (
+          {Array.from({ length: provider === 'claude' ? 7 : 5 }).map((_, index) => (
             <div
               key={index}
               className="h-80 animate-pulse rounded-[1.35rem] border border-brand-blue/15 bg-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.84)] dark:bg-slate-950/50 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
@@ -610,13 +750,27 @@ function ProviderPricing({
 
               <div className="relative pt-8 text-center">
                 <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[1.4rem] border border-slate-200/80 bg-white/90 p-2 shadow-[0_22px_54px_-36px_rgba(37,99,235,0.55)] ring-1 ring-brand-blue/10 dark:border-white/10 dark:bg-slate-950/65 dark:shadow-[0_22px_54px_-28px_rgba(14,165,233,0.8)] dark:ring-cyan-200/10">
-                  <Icon className="h-20 w-20 rounded-[1.15rem]" />
+                  {pack.image_url ? (
+                    <img
+                      src={pack.image_url}
+                      alt={pack.title}
+                      className="h-20 w-20 rounded-[1.15rem] object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <Icon className="h-20 w-20 rounded-[1.15rem]" />
+                  )}
                 </div>
 
                 <h3 className="mt-5 min-h-[3.1rem] text-balance text-lg font-black leading-tight text-slate-950 dark:text-white">
                   {pack.title}
                 </h3>
                 <div className="mt-1 text-sm font-black text-slate-600 dark:text-cyan-100">{formatAmount(pack)}</div>
+                {typeof pack.stock_available === 'number' ? (
+                  <div className="mt-2 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">
+                    Kho còn {pack.stock_available}
+                  </div>
+                ) : null}
                 <div className="mt-4 font-mono text-2xl font-black text-emerald-600 dark:text-emerald-300">
                   {formatCurrency(pack.sale_price_vnd)}
                 </div>
@@ -628,9 +782,9 @@ function ProviderPricing({
                       ? 'Nhận mã Codex API'
                       : provider === 'claude'
                         ? 'Gateway, Proxy và Claude Opus'
-                        : 'Sử dụng AI model và Max',
+                        : 'Tài khoản AI Premium',
                     'Có giới hạn theo gói',
-                    'Admin hướng dẫn sau khi nhận mã đơn',
+                    'Tự cấp credential sau thanh toán',
                   ].map((feature) => (
                     <div key={feature} className="flex items-start gap-2">
                       <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-300" />
@@ -665,7 +819,7 @@ function ProviderPricing({
                 onClick={() => onBuy(pack)}
               >
                 <Sparkles className="h-4 w-4" />
-                Xem sản phẩm
+                Mua ngay
               </Button>
             </article>
           ))}

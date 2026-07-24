@@ -75,7 +75,7 @@ interface SmmMarginDialogState {
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-const GLOBAL_ACTION_KEYS = new Set(['sync', 'sync-api-price', 'sync-kenhgiare', 'check-new-deposits']);
+const GLOBAL_ACTION_KEYS = new Set(['sync', 'sync-api-price', 'sync-kenhgiare', 'sync-vibe-code', 'check-new-deposits']);
 const LONG_TEXT_FIELD_TOKENS = ['description', 'content', 'message', 'payload', 'note', 'reason', 'key'];
 const LEGACY_COMMUNITY_LINKS = [
   { label: 'Nhóm Zalo', href: 'https://zalo.me/g/nqxe5e0xxuxjtkbwncnf' },
@@ -164,6 +164,7 @@ const ACTION_KEY_LABELS: Record<string, string> = {
   sync: 'Đồng bộ',
   'sync-api-price': 'Đồng bộ giá API',
   'sync-kenhgiare': 'Refresh kênh',
+  'sync-vibe-code': 'Đồng bộ GenZ',
   'check-new-deposits': 'Rà pending',
   refund: 'Hoàn tiền',
   approve: 'Duyệt',
@@ -220,14 +221,24 @@ const COLUMN_LABELS: Record<string, string> = {
   service_name: 'Tên dịch vụ',
   service_key: 'Mã dịch vụ',
   provider: 'Nguồn',
+  vendor: 'Nguồn',
+  vendor_product_id: 'Mã GenZ',
   package_key: 'Mã gói',
   package_id: 'Gói ID',
   package_title: 'Tên gói',
   order_code: 'Mã đơn',
+  vendor_order_code: 'Mã đơn nguồn',
   unit_amount: 'Dung lượng gói',
   unit_label: 'Đơn vị',
   source_price_vnd: 'Giá nguồn',
   sale_price_vnd: 'Giá bán',
+  provider_amount_vnd: 'Giá API đã trừ',
+  profit_vnd: 'Lợi nhuận',
+  stock_available: 'Kho còn',
+  stock_total: 'Tổng kho',
+  image_url: 'Ảnh',
+  credentials: 'Credential',
+  failure_reason: 'Lỗi nguồn',
   publication_key: 'Mã đầu báo',
   publication_id: 'Đầu báo ID',
   publication_name: 'Đầu báo',
@@ -240,6 +251,7 @@ const COLUMN_LABELS: Record<string, string> = {
   contact: 'Thông tin liên hệ',
   gmail: 'Gmail cần kích nút',
   admin_note: 'Ghi chú admin',
+  months: 'Số tháng',
   region: 'Khu vực',
   product_id: 'Dịch vụ cha',
   variant_id: 'Biến thể ID',
@@ -253,6 +265,7 @@ const COLUMN_LABELS: Record<string, string> = {
   created_at: 'Tạo lúc',
   updated_at: 'Cập nhật lúc',
   posted_at: 'Đăng lúc',
+  start_at: 'Bắt đầu',
   active_from: 'Bắt đầu',
   active_to: 'Kết thúc',
   expire_at: 'Hết hạn',
@@ -284,6 +297,8 @@ const COLUMN_LABELS: Record<string, string> = {
   telegram_2fa_enabled: '2FA Telegram',
   fa_type: 'Loại 2FA',
   is_locked: 'Đã khóa',
+  is_blue_tick: 'Tick xanh',
+  blue_tick_expiry: 'Hạn tick xanh',
   is_first_post: 'Bài mở đầu',
   is_exported: 'Đã xuất',
   auto_banned: 'Tự chặn',
@@ -352,8 +367,6 @@ const COLUMN_LABELS: Record<string, string> = {
   like_count: 'Lượt thích',
   listed_price_vnd: 'Giá niêm yết KGR',
   api_price_vnd: 'Giá API',
-  provider_amount_vnd: 'KGR đã trừ',
-  profit_vnd: 'Lợi nhuận',
   margin_percent: 'Margin %',
   is_auto_price: 'Tự tính giá',
   discount_percent: 'Giảm giá %',
@@ -369,9 +382,21 @@ const COLUMN_LABELS: Record<string, string> = {
 };
 const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
   'vibe-code-packages': {
-    created_at: 'Ngày mua',
+    vendor_product_id: 'Mã sản phẩm GenZ',
+    source_price_vnd: 'Giá API từ GenZ',
+    sale_price_vnd: 'Giá bán web',
+    margin_percent: 'Margin auto (%)',
+    is_auto_price: 'Tự tính theo margin',
+    stock_available: 'Kho còn GenZ',
+    synced_at: 'Đồng bộ lúc',
+    created_at: 'Ngày tạo',
   },
   'vibe-code-orders': {
+    vendor_order_code: 'Mã đơn GenZ',
+    provider_amount_vnd: 'Số tiền GenZ đã trừ',
+    sale_price_vnd: 'Số tiền thu user',
+    credentials: 'Credential giao cho user',
+    failure_reason: 'Lỗi nguồn lưu nội bộ',
     created_at: 'Ngày mua',
   },
   'tiktok-channel-products': {
@@ -386,6 +411,14 @@ const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
     api_price_vnd: 'Giá API lúc mua',
     provider_amount_vnd: 'Số tiền KGR đã trừ',
     sale_price_vnd: 'Số tiền thu user',
+    created_at: 'Ngày mua',
+  },
+  'blue-tick-orders': {
+    order_code: 'Mã đơn tick',
+    price_vnd: 'Số tiền thu user',
+    balance_after: 'Số dư sau',
+    start_at: 'Bắt đầu tick',
+    expires_at: 'Hết hạn tick',
     created_at: 'Ngày mua',
   },
   'automxh-products': {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createVibeCodeOrder, listUserVibeCodeOrders } from '@/lib/vibe-code';
+import { createVibeCodeOrder, isVibeCodeCheckoutError, listUserVibeCodeOrders } from '@/lib/vibe-code';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
 
@@ -53,10 +53,23 @@ export async function POST(req: Request) {
     const result = await createVibeCodeOrder(userId, packageId);
     return NextResponse.json({
       success: true,
-      message: 'Đã mua gói Vibe Code, hãy gửi mã đơn cho admin để được hướng dẫn',
+      message: 'Đã mua gói Vibe Code, thông tin cấp gói đã được lưu trong đơn',
       data: result,
     }, { headers: noStoreHeaders });
   } catch (error) {
+    if (isVibeCodeCheckoutError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+          data: {
+            balance_after: error.balanceAfter,
+            order_code: error.orderCode,
+          },
+        },
+        { status: 400, headers: noStoreHeaders }
+      );
+    }
     const message = error instanceof Error ? error.message : 'Không tạo được đơn Vibe Code';
     return NextResponse.json({ success: false, message }, { status: 400, headers: noStoreHeaders });
   }

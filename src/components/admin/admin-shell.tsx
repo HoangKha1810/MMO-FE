@@ -93,6 +93,7 @@ const adminNavSections: NavSection[] = [
     items: [
       { href: '/admin/users', label: 'Quản lý thành viên', icon: Users },
       { href: '/admin/users/passwords', label: 'Đổi mật khẩu user', icon: KeyRound, accent: 'amber' },
+      { href: '/admin/blue-tick', label: 'Đơn tick xanh', icon: Award, accent: 'blue' },
       { href: '/admin/security/check-ip', label: 'Kiểm tra IP', icon: Search },
       { href: '/admin/security', label: 'Bảo mật & IP Ban', icon: ShieldAlert, accent: 'red' },
       { href: '/admin/security/owner-devices', label: 'Thiết bị owner', icon: UnlockKeyhole, accent: 'amber' },

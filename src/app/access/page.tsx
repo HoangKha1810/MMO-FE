@@ -5,7 +5,6 @@ import {
   Home,
   LayoutDashboard,
   LockKeyhole,
-  LogIn,
   ShieldAlert,
   UserRound,
 } from 'lucide-react';
@@ -206,15 +205,7 @@ export default async function AccessPage({
                     label={scenario.area === 'admin' ? 'Đổi sang admin khác' : 'Đổi tài khoản'}
                     className="surface-chip rounded-full px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-700 transition hover:-translate-y-0.5 dark:text-slate-100"
                   />
-                ) : (
-                  <Link
-                    href={scenario.area === 'admin' ? '/auth/admin-login' : '/auth/login'}
-                    className="surface-chip inline-flex items-center gap-2 rounded-full px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-700 transition hover:-translate-y-0.5 dark:text-slate-100"
-                  >
-                    <LogIn className="h-4 w-4" />
-                    {scenario.area === 'admin' ? 'Vào cổng admin' : 'Đăng nhập'}
-                  </Link>
-                )}
+                ) : null}
 
                 <Link
                   href="/"

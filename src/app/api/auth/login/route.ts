@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { shouldRequireEmailVerificationForUser } from '@/lib/auth-email-verification';
+import { ensureBlueTickTables, isBlueTickEntitlementActive } from '@/lib/blue-tick';
 import { buildBlockedIpPayload, getIpBlock, getRequestIp, logSecurityEvent } from '@/lib/ip-security';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import {
@@ -18,6 +19,8 @@ import { assertUserEmailUniqueForLogin, countUsersByEmail } from '@/lib/user-ema
 import { toNumber } from '@/lib/utils';
 
 async function findLoginUser(identifier: string) {
+  await ensureBlueTickTables();
+
   const isEmailLike = identifier.includes('@');
   const select = {
     id: true,
@@ -31,6 +34,7 @@ async function findLoginUser(identifier: string) {
     status: true,
     avatar: true,
     is_blue_tick: true,
+    blue_tick_expiry: true,
     fa_enabled: true,
     email_verified: true,
     created_at: true,
@@ -291,7 +295,8 @@ export async function POST(req: NextRequest) {
         rank: user.rank || 'Member',
         role: String(user.role || 'member'),
         avatar: buildLegacyAssetUrl(user.avatar) || undefined,
-        is_blue_tick: Boolean(user.is_blue_tick),
+        is_blue_tick: isBlueTickEntitlementActive(user.is_blue_tick, user.blue_tick_expiry),
+        blue_tick_expiry: user.blue_tick_expiry ? user.blue_tick_expiry.toISOString() : null,
       },
       redirect: redirectPath,
     });

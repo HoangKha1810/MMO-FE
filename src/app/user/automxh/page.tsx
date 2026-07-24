@@ -196,7 +196,7 @@ export default function UserAutomxhPage() {
           </div>
         ) : (
           <>
-          <div className="automxh-platform-tabs sticky top-3 z-10 flex gap-2 overflow-x-auto rounded-[0.95rem] border border-cyan-300/12 bg-[#050f1e]/92 p-2 shadow-[0_20px_48px_-34px_rgba(14,165,233,0.65)] backdrop-blur-xl">
+          <div className="automxh-platform-tabs sticky top-3 z-10 flex gap-2 overflow-x-auto rounded-[0.95rem] border border-slate-200/80 bg-white/90 p-2 shadow-[0_20px_48px_-34px_rgba(37,99,235,0.24)] backdrop-blur-xl dark:border-cyan-300/12 dark:bg-[#050f1e]/92 dark:shadow-[0_20px_48px_-34px_rgba(14,165,233,0.65)]">
             {platformTabs.map((tab) => {
               const active = activePlatform === tab.key || (!activePlatform && tab.key === '');
               const Icon = tab.icon;
@@ -207,7 +207,7 @@ export default function UserAutomxhPage() {
                   className={`group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[0.8rem] border px-3 text-[10px] font-black uppercase tracking-[0.13em] transition-all ${
                     active
                       ? 'border-cyan-300/55 bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_14px_34px_-22px_rgba(34,211,238,0.95)]'
-                      : 'border-cyan-300/10 bg-[#07182c]/88 text-slate-300 hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:text-white'
+                      : 'border-slate-200/85 bg-white/80 text-slate-600 hover:border-brand-blue/35 hover:bg-brand-blue/8 hover:text-brand-blue dark:border-cyan-300/10 dark:bg-[#07182c]/88 dark:text-slate-300 dark:hover:border-cyan-300/35 dark:hover:bg-cyan-400/10 dark:hover:text-white'
                   }`}
                 >
                   <span
@@ -277,7 +277,7 @@ export default function UserAutomxhPage() {
                               HOT
                             </div>
                           ) : product.badge ? (
-                            <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-cyan-300/35 bg-cyan-500/14 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200 shadow-[0_12px_30px_-18px_rgba(34,211,238,0.8)]">
+                            <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-cyan-300/35 bg-cyan-500/14 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-700 shadow-[0_12px_30px_-18px_rgba(34,211,238,0.38)] dark:text-cyan-200 dark:shadow-[0_12px_30px_-18px_rgba(34,211,238,0.8)]">
                               {product.badge}
                             </div>
                           ) : null}
@@ -289,17 +289,17 @@ export default function UserAutomxhPage() {
                               <Zap className="h-5 w-5 text-orange-500" />
                             </div>
 
-                            <h3 className="mb-2 text-[12px] font-black uppercase leading-tight text-white">
+                            <h3 className="mb-2 text-[12px] font-black uppercase leading-tight text-slate-950 dark:text-white">
                               {product.name}
                             </h3>
 
                             <div className="mb-4">
-                              <p className="line-clamp-2 text-[10px] italic text-slate-400">
+                              <p className="line-clamp-2 text-[10px] italic text-slate-500 dark:text-slate-400">
                                 {product.description || 'Cung cấp đa dạng các gói dịch vụ chất lượng cao.'}
                               </p>
                             </div>
 
-                            <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
+                            <div className="mt-auto flex items-center justify-between border-t border-slate-200/80 pt-2 dark:border-white/5">
                               <div className="smm-service-card-arrow flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue transition-all duration-300 group-hover/link:bg-brand-blue group-hover/link:text-white">
                                 <ArrowRight className="h-3 w-3" />
                               </div>

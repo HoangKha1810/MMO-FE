@@ -66,6 +66,7 @@ import {
 import { startPageTransition } from '@/components/layout/navigation-effects';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { clearSessionUserCache, useSessionUser, type SessionUser } from '@/hooks/use-session-user';
+import { BLUE_TICK_BADGE_SRC } from '@/lib/blue-tick-constants';
 import { readJsonResponse } from '@/lib/client-api';
 import type { LegacyServiceItem } from '@/lib/legacy-settings';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
@@ -93,6 +94,7 @@ const supportLinks = [
 
 const connectionLinks = [
   { href: '/rank', label: 'Cấp Bậc Thành Viên' },
+  { href: '/user/blue-tick', label: 'Tick Xanh' },
   { href: '/api', label: 'Tài Liệu API' },
 ];
 
@@ -302,6 +304,17 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat('vi-VN').format(Math.floor(amount || 0));
 }
 
+function BlueTickBadge({ className }: { className?: string }) {
+  return (
+    <img
+      src={BLUE_TICK_BADGE_SRC}
+      alt="Tick xanh"
+      className={cn('pointer-events-none select-none object-contain drop-shadow-[0_8px_16px_rgba(56,189,248,0.42)]', className)}
+      draggable={false}
+    />
+  );
+}
+
 function isPathActive(pathname: string, href: string) {
   if (href === '/') {
     return pathname === '/';
@@ -336,6 +349,7 @@ function formatBreadcrumb(pathname: string) {
     history: 'Lịch Sử',
     statistics: 'Thông Tin Tài Khoản',
     profile: 'Hồ Sơ',
+    'blue-tick': 'Tick Xanh',
     cart: 'Giỏ Hàng',
     terms: 'Chính Sách Dịch Vụ',
     privacy: 'Chính Sách Hệ Thống',
@@ -435,7 +449,7 @@ export function AppShell({
     pathname === '/terms' || pathname === '/privacy' || pathname === '/'
   );
   const [connectionOpen, setConnectionOpen] = useState(
-    pathname === '/user/statistics' || pathname === '/user/smm'
+    pathname === '/user/statistics' || pathname === '/user/smm' || pathname === '/user/blue-tick'
   );
 
   useEffect(() => {
@@ -515,7 +529,7 @@ export function AppShell({
   const isHome = pathname === '/user/home';
   const isSmmArea = pathname.startsWith('/user/smm');
   const isAutoMxhArea = pathname.startsWith('/user/automxh');
-  const forceDarkShell = !isAdmin && isAutoMxhArea;
+  const forceDarkShell = false;
   const effectiveIsDark = forceDarkShell || isDark;
   const activeSmmPlatform = mounted && typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('platform') || ''
@@ -1022,15 +1036,22 @@ export function AppShell({
               {currentUser.data ? (
                 <div className="surface-panel rounded-[1.45rem] p-3">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-11 w-11 rounded-2xl border border-slate-200 dark:border-white/10">
-                      <AvatarImage src={currentUser.data.avatar} />
-                      <AvatarFallback className="rounded-2xl bg-gradient-to-br from-brand-blue to-indigo-500 text-[11px] font-black text-white">
-                        {currentUser.data.username.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative h-11 w-11 shrink-0">
+                      <Avatar className="h-11 w-11 rounded-2xl border border-slate-200 dark:border-white/10">
+                        <AvatarImage src={currentUser.data.avatar} />
+                        <AvatarFallback className="rounded-2xl bg-gradient-to-br from-brand-blue to-indigo-500 text-[11px] font-black text-white">
+                          {currentUser.data.username.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {currentUser.data.is_blue_tick ? (
+                        <BlueTickBadge className="absolute -right-1 -top-1 h-5 w-5" />
+                      ) : null}
+                    </div>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-black uppercase tracking-[-0.03em] text-slate-900 dark:text-white">
+                      <div className="flex min-w-0 items-center gap-1.5 text-sm font-black uppercase tracking-[-0.03em] text-slate-900 dark:text-white">
+                        <span className="truncate">
                         {currentUser.data.username}
+                        </span>
                       </div>
                       <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                         {currentUser.data.rank || 'Member'}
@@ -1217,16 +1238,19 @@ export function AppShell({
               {/* User avatar / dropdown */}
               {currentUser.data ? (
                 <div className="relative">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="relative flex items-center rounded-xl border border-slate-200/80 bg-white/80 p-1 transition-all hover:-translate-y-0.5 dark:border-white/8 dark:bg-white/[0.04]">
-                        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-brand-blue to-indigo-500 shadow-md shadow-brand-blue/25">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="relative flex items-center rounded-xl border border-slate-200/80 bg-white/80 p-1 transition-all hover:-translate-y-0.5 dark:border-white/8 dark:bg-white/[0.04]">
+                        <div className="relative rounded-xl bg-gradient-to-br from-brand-blue to-indigo-500 shadow-md shadow-brand-blue/25">
                           <Avatar className="h-8 w-8 rounded-xl">
                             <AvatarImage src={currentUser.data.avatar} />
                             <AvatarFallback className="rounded-xl bg-transparent text-[11px] font-black text-white">
                               {currentUser.data.username.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
+                          {currentUser.data.is_blue_tick ? (
+                            <BlueTickBadge className="absolute -right-1.5 -top-1.5 h-[18px] w-[18px] min-h-4 min-w-4" />
+                          ) : null}
                         </div>
                       </button>
                     </DropdownMenuTrigger>
@@ -1235,8 +1259,11 @@ export function AppShell({
                         <div className="mb-0.5 text-[8px] font-black uppercase tracking-widest text-slate-400">
                           Signed in as
                         </div>
-                        <div className="truncate text-sm font-black text-brand-blue">
-                          {currentUser.data.username}
+                        <div className="flex min-w-0 items-center gap-1.5 text-sm font-black text-brand-blue">
+                          <span className="truncate">{currentUser.data.username}</span>
+                          {currentUser.data.is_blue_tick ? (
+                            <BlueTickBadge className="h-4 w-4 shrink-0" />
+                          ) : null}
                         </div>
                         <div className="mt-1 text-[10px] font-bold text-slate-500">
                           Số dư:{' '}
@@ -1270,6 +1297,12 @@ export function AppShell({
                         <Link href="/user/statistics" className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-slate-600 dark:text-slate-400">
                           <BarChart3 className="h-4 w-4" />
                           <span className="text-xs font-black uppercase">Thống kê</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/user/blue-tick" className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-slate-600 dark:text-slate-400">
+                          <Award className="h-4 w-4" />
+                          <span className="text-xs font-black uppercase">Tick xanh</span>
                         </Link>
                       </DropdownMenuItem>
                       {currentUser.data.role === 'admin' ? (

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminRole, isOwnerRole } from '@/lib/admin-permissions';
+import { ensureBlueTickTables } from '@/lib/blue-tick';
 import { db } from '@/lib/db';
 import { getIpBlock, getRequestIp, logSecurityEvent } from '@/lib/ip-security';
 import { findOAuthAccount, upsertOAuthAccount } from '@/lib/oauth-accounts';
@@ -49,6 +50,7 @@ const userSelect = {
   status: true,
   avatar: true,
   is_blue_tick: true,
+  blue_tick_expiry: true,
   fa_enabled: true,
   email_verified: true,
   requires_email_setup: true,
@@ -283,6 +285,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    await ensureBlueTickTables();
+
     const token = await exchangeCodeForToken(req, code);
     const profile = await loadGoogleProfile(token.access_token || '');
     const normalizedEmail = normalizeUserEmail(profile.email);

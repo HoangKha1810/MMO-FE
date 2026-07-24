@@ -306,7 +306,7 @@ export function LandingPage() {
               {[
                 { href: '#features', label: 'Hệ sinh thái' },
                 { href: '#services', label: 'Dịch vụ' },
-                { href: '#stats', label: 'Tài nguyên' },
+                { href: '#stats', label: 'Nền tảng' },
               ].map((item) => (
                 <a
                   key={item.href}
@@ -399,10 +399,12 @@ export function LandingPage() {
               className="animate-fade-in-up text-[clamp(42px,7vw,88px)] font-black uppercase leading-[1.05] text-slate-950 sm:leading-[1] dark:text-white"
               style={{ animationDelay: '0.12s' }}
             >
-              Nền tảng MMO{' '}
-              <br className="hidden sm:block" />
-              <span className="block pt-[0.12em] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))] sm:pt-[0.1em]">
-                uy tín hàng đầu Việt Nam
+              <span className="block whitespace-nowrap">Nền tảng MMO</span>
+              <span className="block whitespace-nowrap pt-[0.12em] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))] sm:pt-[0.1em]">
+                uy tín hàng đầu
+              </span>
+              <span className="block whitespace-nowrap bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))]">
+                Việt Nam
               </span>
             </h1>
 

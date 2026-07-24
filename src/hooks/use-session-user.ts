@@ -14,6 +14,7 @@ export interface SessionUser {
   role: string;
   avatar?: string;
   is_blue_tick: boolean;
+  blue_tick_expiry?: string | null;
 }
 
 interface SessionUserState {
@@ -24,6 +25,7 @@ interface SessionUserState {
 const POLL_INTERVAL_WITH_INITIAL_USER_MS = 60 * 1000;
 const POLL_INTERVAL_WITHOUT_INITIAL_USER_MS = 15 * 1000;
 const SESSION_USER_CACHE_KEY = 'session_user_v1';
+const SESSION_USER_REFRESH_EVENT = 'session-user-refresh';
 
 export function clearSessionUserCache() {
   if (typeof window === 'undefined') {
@@ -33,6 +35,16 @@ export function clearSessionUserCache() {
   try {
     window.sessionStorage.removeItem(SESSION_USER_CACHE_KEY);
   } catch {}
+}
+
+export function requestSessionUserRefresh() {
+  clearSessionUserCache();
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(new Event(SESSION_USER_REFRESH_EVENT));
 }
 
 export function useSessionUser(initialUser?: SessionUser): SessionUserState {
@@ -98,9 +110,11 @@ export function useSessionUser(initialUser?: SessionUser): SessionUserState {
         void loadUser();
       }
     }, initialUser ? POLL_INTERVAL_WITH_INITIAL_USER_MS : POLL_INTERVAL_WITHOUT_INITIAL_USER_MS);
+    window.addEventListener(SESSION_USER_REFRESH_EVENT, loadUser);
 
     return () => {
       active = false;
+      window.removeEventListener(SESSION_USER_REFRESH_EVENT, loadUser);
       window.clearInterval(timer);
     };
   }, [initialUser, setBalances]);

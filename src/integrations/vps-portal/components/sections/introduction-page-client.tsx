@@ -218,7 +218,9 @@ export function IntroductionPageClient() {
         ...storefront.items
           .map((item) => item.operating_system_name)
           .filter((item): item is string => Boolean(item)),
-      ].map((item) => item.replace(/\s+/g, " ").trim()),
+      ]
+        .map((item) => item.replace(/\s+/g, " ").trim())
+        .filter((item) => !/proxy/i.test(item)),
     ),
   ).slice(0, 18);
   const introCustomerCount = Number.parseInt(

@@ -5090,81 +5090,12 @@ html.theme-switching .nav-link-shell {
     background: rgba(255, 255, 255, 0.74);
   }
 
-  :root:not(.dark) .mmo-app-shell.site-shell:has(.automxh-page) {
-    --mmo-bg: #061225;
-    --mmo-panel: rgba(6, 16, 31, 0.92);
-    --mmo-panel-strong: rgba(8, 24, 44, 0.94);
-    --mmo-line: rgba(34, 211, 238, 0.18);
-    color-scheme: dark;
-    background:
-      linear-gradient(rgba(34, 211, 238, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(34, 211, 238, 0.04) 1px, transparent 1px),
-      radial-gradient(circle at 82% 12%, rgba(20, 184, 166, 0.14), transparent 28%),
-      linear-gradient(180deg, #061225 0%, #030a16 100%) !important;
-    background-size: 38px 38px, 38px 38px, auto, auto;
-    color: #e5edf7;
-  }
-
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .shell-sidebar-frame,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .shell-brand-card,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .shell-topbar,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .shell-breadcrumb,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .mmo-status-strip,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .mmo-shortcuts,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .shell-toolbar-cluster,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .mmo-command-surface,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .mmo-section-title-row {
-    border-color: rgba(34, 211, 238, 0.14) !important;
-    background:
-      radial-gradient(circle at top right, rgba(34, 211, 238, 0.08), transparent 32%),
-      linear-gradient(180deg, rgba(6, 18, 35, 0.95), rgba(3, 10, 22, 0.9)) !important;
-    color: #e5edf7 !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.05),
-      0 22px 58px -42px rgba(14, 165, 233, 0.28) !important;
-  }
-
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .nav-link-idle,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .mmo-status-token,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .mmo-shortcut-btn,
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .mmo-chip {
-    border-color: rgba(34, 211, 238, 0.12) !important;
-    background: rgba(7, 24, 44, 0.88) !important;
-    color: rgba(203, 213, 225, 0.86) !important;
-  }
-
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .nav-link-active {
-    color: #dff7ff !important;
-    border-color: rgba(34, 211, 238, 0.28) !important;
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(14, 165, 233, 0.2)) !important;
-    box-shadow: inset 3px 0 0 #22d3ee, 0 18px 34px -28px rgba(34, 211, 238, 0.48) !important;
-  }
-
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .automxh-platform-tabs {
-    border-color: rgba(34, 211, 238, 0.18) !important;
-    background: rgba(5, 15, 30, 0.94) !important;
-  }
-
   :root:not(.dark) .mmo-app-shell:has(.automxh-page) .smm-service-card-3d {
-    border-color: rgba(34, 211, 238, 0.12) !important;
+    border-color: rgba(37, 99, 235, 0.14) !important;
     background:
-      radial-gradient(circle at 18% 0%, rgba(22, 119, 255, 0.2), transparent 32%),
-      linear-gradient(180deg, rgba(8, 22, 40, 0.96), rgba(4, 14, 27, 0.94)) !important;
-    color: #e5edf7 !important;
-    box-shadow: 0 22px 55px -42px rgba(14, 165, 233, 0.7);
-  }
-
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) :where(.text-white, h1, h2, h3),
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .smm-service-card-3d .text-white {
-    color: #ffffff !important;
-  }
-
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) :where(.text-slate-300, .text-slate-400, .text-slate-500),
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .smm-service-card-3d .text-slate-400 {
-    color: rgba(203, 213, 225, 0.78) !important;
-  }
-
-  :root:not(.dark) .mmo-app-shell:has(.automxh-page) .smm-service-card-3d .border-slate-100 {
-    border-color: rgba(255, 255, 255, 0.08) !important;
+      radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.12), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(239, 246, 255, 0.86)) !important;
+    color: #0f172a !important;
+    box-shadow: 0 22px 55px -42px rgba(37, 99, 235, 0.42);
   }
 }

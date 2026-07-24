@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { buildAccessPageUrl } from '@/lib/access-page';
 import { db } from '@/lib/db';
+import { ensureBlueTickTables, isBlueTickEntitlementActive } from '@/lib/blue-tick';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { getVerifiedSessionUserId } from '@/lib/session-cookie';
 import { toNumber } from '@/lib/utils';
@@ -16,6 +17,8 @@ export async function getCurrentUserForShell() {
     }));
   }
 
+  await ensureBlueTickTables();
+
   const user = await db.users.findUnique({
     where: { id: userId },
     select: {
@@ -30,6 +33,7 @@ export async function getCurrentUserForShell() {
       role: true,
       status: true,
       is_blue_tick: true,
+      blue_tick_expiry: true,
       created_at: true,
       last_login: true,
       bio: true,
@@ -62,7 +66,8 @@ export async function getCurrentUserForShell() {
       rank: user.rank || 'Member',
       role: String(user.role || 'member'),
       avatar: buildLegacyAssetUrl(user.avatar) || undefined,
-      is_blue_tick: Boolean(user.is_blue_tick),
+      is_blue_tick: isBlueTickEntitlementActive(user.is_blue_tick, user.blue_tick_expiry),
+      blue_tick_expiry: user.blue_tick_expiry ? user.blue_tick_expiry.toISOString() : null,
     },
   };
 }

@@ -13,6 +13,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { HomeServiceCard } from '@/components/modules/home-service-card';
 import { UserApikeyCard } from '@/components/user/user-apikey-card';
 import { buildAccessPageUrl } from '@/lib/access-page';
+import { ensureBlueTickTables, isBlueTickEntitlementActive } from '@/lib/blue-tick';
 import { db } from '@/lib/db';
 import {
   buildLegacyAssetUrl,
@@ -54,6 +55,8 @@ function normalizeHomeServiceDesc(service: ReturnType<typeof getHomeServiceGrid>
 
 async function getUser(userId: number) {
   try {
+    await ensureBlueTickTables();
+
     const user = await db.users.findUnique({
       where: { id: userId },
       select: {
@@ -67,6 +70,7 @@ async function getUser(userId: number) {
         rank: true,
         role: true,
         is_blue_tick: true,
+        blue_tick_expiry: true,
       },
     });
 
@@ -163,6 +167,7 @@ export default async function HomePage() {
   return (
     <AppShell
       user={{
+        id: user.id,
         username: user.username,
         email: user.email,
         balance: user.balance,
@@ -170,7 +175,8 @@ export default async function HomePage() {
         rank: user.rank || 'Member',
         role: String(user.role || 'member'),
         avatar: user.avatar || undefined,
-        is_blue_tick: Boolean(user.is_blue_tick),
+        is_blue_tick: isBlueTickEntitlementActive(user.is_blue_tick, user.blue_tick_expiry),
+        blue_tick_expiry: user.blue_tick_expiry ? user.blue_tick_expiry.toISOString() : null,
       }}
       sidebarServices={sidebarServices}
     >

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin-auth';
+import { ensureBlueTickTables } from '@/lib/blue-tick';
 import { getUtcDatabaseDateTime, getVietnamDatabaseDateTime, serializeDatabaseDateTime } from '@/lib/date-time';
 import { ensureFindJobPinColumn, resolveFindJobTable } from '@/lib/find-job';
 import { getGameMarketRejectedLikeStatus } from '@/lib/game-market-schema';
@@ -17,7 +18,11 @@ import { normalizeSmmOrderStatus } from '@/lib/smm-status';
 import { clearSmmServicesCache } from '@/lib/smm-provider';
 import { toNumber } from '@/lib/utils';
 import { tableExists } from '@/lib/legacy-modules';
-import { ensureVibeCodeTables } from '@/lib/vibe-code';
+import {
+  ensureVibeCodeTables,
+  syncGenzShopVibeCodeProducts,
+  updateVibeCodePackageAutoPrice,
+} from '@/lib/vibe-code';
 import { ensurePressServiceTables } from '@/lib/press-service';
 import { ensureWebServiceTables } from '@/lib/web-service';
 import {
@@ -91,10 +96,21 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
       last_ip: true,
       last_login: true,
       lock_reason: true,
+      locked_until: true,
+      is_blue_tick: true,
+      blue_tick_expiry: true,
       created_at: true,
     },
     createFields: ['username', 'email', 'password', 'fullname', 'role', 'status', 'balance', 'game_balance', 'rank'],
-    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick'],
+    updateFields: ['fullname', 'email', 'role', 'status', 'balance', 'game_balance', 'rank', 'fa_enabled', 'telegram_2fa_enabled', 'fa_type', 'lock_reason', 'locked_until', 'is_blue_tick', 'blue_tick_expiry'],
+  },
+  'blue-tick-orders': {
+    table: 'blue_tick_orders',
+    title: 'Đơn tick xanh',
+    searchFields: ['order_code', 'username', 'email', 'status', 'admin_note'],
+    statusField: 'status',
+    rawOrder: 'created_at DESC, id DESC',
+    updateFields: ['status', 'admin_note', 'price_vnd', 'months', 'start_at', 'expires_at'],
   },
   deposits: {
     delegate: 'transactions',
@@ -193,19 +209,19 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
   'vibe-code-packages': {
     table: 'vibe_code_packages',
     title: 'Vibe Code packages',
-    searchFields: ['provider', 'package_key', 'title', 'description', 'status'],
+    searchFields: ['vendor', 'vendor_product_id', 'provider', 'package_key', 'title', 'description', 'status'],
     statusField: 'status',
     rawOrder: 'provider ASC, display_order ASC, id ASC',
-    createFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
-    updateFields: ['provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'display_order', 'status'],
+    createFields: ['vendor', 'vendor_product_id', 'provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'stock_available', 'stock_total', 'sold_count', 'image_url', 'display_order', 'status'],
+    updateFields: ['vendor', 'vendor_product_id', 'provider', 'package_key', 'title', 'description', 'unit_label', 'unit_amount', 'source_price_vnd', 'sale_price_vnd', 'margin_percent', 'is_auto_price', 'stock_available', 'stock_total', 'sold_count', 'image_url', 'display_order', 'status'],
   },
   'vibe-code-orders': {
     table: 'vibe_code_orders',
     title: 'Vibe Code orders',
-    searchFields: ['order_code', 'provider', 'package_key', 'package_title', 'status', 'admin_note'],
+    searchFields: ['order_code', 'vendor_order_code', 'provider', 'package_key', 'package_title', 'credentials', 'status', 'admin_note', 'failure_reason'],
     statusField: 'status',
     rawOrder: 'created_at DESC, id DESC',
-    updateFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd'],
+    updateFields: ['status', 'admin_note', 'sale_price_vnd', 'source_price_vnd', 'provider_amount_vnd', 'profit_vnd', 'credentials', 'failure_reason'],
   },
   'web-service-packages': {
     table: 'web_service_packages',
@@ -1316,6 +1332,10 @@ export async function listAdminResource(resource: string, params: URLSearchParam
   const perPage = Math.min(100, Math.max(5, Number(params.get('per_page') || 25)));
   const skip = (page - 1) * perPage;
 
+  if (resource === 'vibe-code-packages' || resource === 'vibe-code-orders') {
+    await ensureVibeCodeTables();
+  }
+
   if (resource === 'registration-ips') {
     return listRegistrationIps(config, params, page, perPage, skip);
   }
@@ -1701,15 +1721,18 @@ async function listVibeCodeOrders(config: ResourceConfig, params: URLSearchParam
       CAST(o.id AS CHAR) LIKE ?
       OR CAST(o.user_id AS CHAR) LIKE ?
       OR COALESCE(o.order_code, '') LIKE ?
+      OR COALESCE(o.vendor_order_code, '') LIKE ?
       OR COALESCE(o.provider, '') LIKE ?
       OR COALESCE(o.package_key, '') LIKE ?
       OR COALESCE(o.package_title, '') LIKE ?
+      OR COALESCE(o.credentials, '') LIKE ?
       OR COALESCE(o.status, '') LIKE ?
       OR COALESCE(o.admin_note, '') LIKE ?
+      OR COALESCE(o.failure_reason, '') LIKE ?
       OR COALESCE(u.username, '') LIKE ?
       OR COALESCE(u.fullname, '') LIKE ?
     )`);
-    values.push(like, like, like, like, like, like, like, like, like, like);
+    values.push(like, like, like, like, like, like, like, like, like, like, like, like, like);
   }
 
   if (status && config.statusField) {
@@ -2510,6 +2533,10 @@ export async function createAdminResource(resource: string, input: Record<string
     throw new Error('Resource chỉ đọc');
   }
 
+  if (resource === 'vibe-code-packages' || resource === 'vibe-code-orders') {
+    await ensureVibeCodeTables();
+  }
+
   const data = sanitizeData(input, config.createFields);
   if (Object.keys(data).length === 0) {
     throw new Error('Không có dữ liệu tạo mới hợp lệ');
@@ -2575,6 +2602,10 @@ export async function updateAdminResource(resource: string, id: number, input: R
   const config = getConfig(resource);
   if (config.readonly) {
     throw new Error('Resource chỉ đọc');
+  }
+
+  if (resource === 'vibe-code-packages' || resource === 'vibe-code-orders') {
+    await ensureVibeCodeTables();
   }
 
   let data = sanitizeData(input, config.updateFields);
@@ -2655,6 +2686,14 @@ export async function updateAdminResource(resource: string, id: number, input: R
     }
   }
 
+  if (resource === 'vibe-code-packages' && Object.prototype.hasOwnProperty.call(data, 'sale_price_vnd')) {
+    const manualSalePrice = Math.round(toNumber(data.sale_price_vnd, 0));
+    if (manualSalePrice > 0) {
+      data.sale_price_vnd = manualSalePrice;
+      data.is_auto_price = false;
+    }
+  }
+
   if (resource === 'smm-orders' && typeof data.status === 'string') {
     const requestedStatus = String(data.status || '').trim().toLowerCase();
     if (['refunded', 'refund'].includes(requestedStatus)) {
@@ -2713,6 +2752,18 @@ export async function updateAdminResource(resource: string, id: number, input: R
     )
   ) {
     updated = await updateTikTokChannelProductAutoPrice(id) || updated;
+  }
+
+  if (
+    resource === 'vibe-code-packages' &&
+    !Object.prototype.hasOwnProperty.call(data, 'sale_price_vnd') &&
+    (
+      Object.prototype.hasOwnProperty.call(data, 'margin_percent') ||
+      Object.prototype.hasOwnProperty.call(data, 'is_auto_price') ||
+      Object.prototype.hasOwnProperty.call(data, 'source_price_vnd')
+    )
+  ) {
+    updated = await updateVibeCodePackageAutoPrice(id) || updated;
   }
 
   if (resource === 'smm-services') {
@@ -2969,6 +3020,10 @@ export async function deleteAdminResource(resource: string, id: number, adminId:
   const config = getConfig(resource);
   if (config.readonly) {
     throw new Error('Resource chỉ đọc');
+  }
+
+  if (resource === 'vibe-code-packages' || resource === 'vibe-code-orders') {
+    await ensureVibeCodeTables();
   }
 
   if (resource === 'users') {
@@ -3653,6 +3708,17 @@ export async function runAdminAction(resource: string, input: Record<string, unk
     return { success: true, data: normalizeValue(result), count: result.fetched };
   }
 
+  if (resource === 'vibe-code-packages' && action === 'sync-vibe-code') {
+    const result = await syncGenzShopVibeCodeProducts();
+    await logAdminAction({
+      adminId,
+      action: 'sync genzshop vibe code products',
+      target: `${result.fetched} fetched / ${result.upserted} upserted / keep manual web price`,
+      req,
+    });
+    return { success: true, data: normalizeValue(result), count: result.fetched };
+  }
+
   if (action === 'check-new-deposits') {
     const sepay = await reconcilePendingSePayDeposits({ limit: 20 }).catch((error) => ({
       checked: 0,
@@ -4261,6 +4327,10 @@ async function getActualRawTable(config: ResourceConfig) {
 
   if (config.table === 'tiktok_channel_products' || config.table === 'tiktok_channel_orders') {
     await ensureTikTokChannelTables();
+  }
+
+  if (config.table === 'blue_tick_orders') {
+    await ensureBlueTickTables();
   }
 
   if (config.table === 'settings' && config.title === 'Cấu hình Kênh Giá Rẻ') {

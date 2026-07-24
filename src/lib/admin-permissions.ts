@@ -13,6 +13,7 @@ export const ORDER_ADMIN_RESOURCES = new Set([
   'card-orders',
   'game-orders',
   'tiktok-channel-orders',
+  'blue-tick-orders',
 ]);
 
 export const FORUM_APPROVAL_ADMIN_RESOURCES = new Set([
@@ -33,6 +34,7 @@ export const OPERATOR_ADMIN_PATH_PREFIXES = [
   '/admin/support-tiktok/orders',
   '/admin/vibe-code',
   '/admin/kenh-tiktok',
+  '/admin/blue-tick',
   '/admin/web-service',
   '/admin/press',
   '/admin/card/history',

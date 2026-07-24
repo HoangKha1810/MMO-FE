@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { ensureBlueTickTables, isBlueTickEntitlementActive } from '@/lib/blue-tick';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { getOwnerCurrentDeviceRevocation, isOwnerRole } from '@/lib/owner-security';
 import {
@@ -27,6 +28,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    await ensureBlueTickTables();
+
     const user = await db.users.findUnique({
       where: { id: userId },
       select: {
@@ -40,6 +43,7 @@ export async function GET(req: NextRequest) {
         role: true,
         status: true,
         is_blue_tick: true,
+        blue_tick_expiry: true,
       },
     });
 
@@ -92,6 +96,8 @@ export async function GET(req: NextRequest) {
         avatar: buildLegacyAssetUrl(user.avatar) || undefined,
         balance: toNumber(user.balance, 0),
         game_balance: toNumber(user.game_balance, 0),
+        is_blue_tick: isBlueTickEntitlementActive(user.is_blue_tick, user.blue_tick_expiry),
+        blue_tick_expiry: user.blue_tick_expiry ? user.blue_tick_expiry.toISOString() : null,
       },
     }, { headers: noStoreHeaders });
 

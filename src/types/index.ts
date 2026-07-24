@@ -13,6 +13,7 @@ export interface User {
   role: string;
   status: string;
   is_blue_tick: boolean;
+  blue_tick_expiry?: string | null;
   twofa_enabled: boolean;
   telegram_id?: string;
   created_at: string;

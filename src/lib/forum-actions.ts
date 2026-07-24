@@ -22,7 +22,7 @@ export interface ForumHomepageAd {
 
 const FORUM_BANNER_SETTING_DEFAULTS = [
   ['forum_home_banner_enabled', '1'],
-  ['forum_home_banner_image_url', ''],
+  ['forum_home_banner_image_url', '/assets/uploads/forum_ads/hotieubao-forum-banner.png'],
   ['forum_home_banner_link_url', '/user/forum/ads'],
   ['forum_home_banner_title', 'Banner quảng cáo'],
   ['forum_home_banner_subtitle', 'Forum MMO'],
@@ -247,17 +247,20 @@ export async function getForumOwnerBanner(): Promise<ForumHomepageAd | null> {
     return null;
   }
 
-  const imageUrl = settings.get('forum_home_banner_image_url')?.trim() || '';
+  const configuredImageUrl = settings.get('forum_home_banner_image_url')?.trim() || '';
+  const imageUrl = configuredImageUrl || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_image_url;
   const linkUrl = settings.get('forum_home_banner_link_url')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_link_url;
   const title = settings.get('forum_home_banner_title')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_title;
   const subtitle = settings.get('forum_home_banner_subtitle')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_subtitle;
   const cta = settings.get('forum_home_banner_cta')?.trim() || FORUM_BANNER_DEFAULT_MAP.forum_home_banner_cta;
+  const isDefaultImage = !configuredImageUrl && imageUrl === FORUM_BANNER_DEFAULT_MAP.forum_home_banner_image_url;
   const isCustom =
-    Boolean(imageUrl) ||
-    linkUrl !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_link_url ||
-    title !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_title ||
-    subtitle !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_subtitle ||
-    cta !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_cta;
+    !isDefaultImage &&
+    (Boolean(configuredImageUrl) ||
+      linkUrl !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_link_url ||
+      title !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_title ||
+      subtitle !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_subtitle ||
+      cta !== FORUM_BANNER_DEFAULT_MAP.forum_home_banner_cta);
 
   return {
     id: 0,
