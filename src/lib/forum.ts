@@ -28,6 +28,8 @@ export interface ForumThreadSummary {
   category_name: string | null;
   username: string | null;
   avatar: string | null;
+  is_blue_tick: number | boolean | null;
+  blue_tick_expiry: Date | string | null;
 }
 
 export interface ForumFolderSummary {
@@ -163,7 +165,9 @@ export async function getForumOverview() {
           f.slug AS forum_slug,
           c.name AS category_name,
           u.username,
-          u.avatar
+          u.avatar,
+          u.is_blue_tick,
+          u.blue_tick_expiry
         FROM forum_threads t
         LEFT JOIN forums f ON f.id = t.forum_id
         LEFT JOIN forum_categories c ON c.id = f.category_id
@@ -393,7 +397,9 @@ const threadSelectSql = `
     f.slug AS forum_slug,
     c.name AS category_name,
     u.username,
-    u.avatar
+    u.avatar,
+    u.is_blue_tick,
+    u.blue_tick_expiry
   FROM forum_threads t
   LEFT JOIN forums f ON f.id = t.forum_id
   LEFT JOIN forum_categories c ON c.id = f.category_id

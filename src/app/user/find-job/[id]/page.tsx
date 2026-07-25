@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, BriefcaseBusiness, UserRound, WalletCards } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { FindJobDetailActions } from '@/components/find-job/find-job-detail-actions';
+import { BlueTickBadge } from '@/components/ui/blue-tick-badge';
 import { getFindJobDetail } from '@/lib/legacy-modules';
 import { formatCurrency, toNumber } from '@/lib/utils';
 import { getCurrentUserForShell } from '@/lib/user-session';
@@ -42,7 +43,10 @@ export default async function FindJobDetailPage({ params }: { params: Promise<{ 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
                 <UserRound className="h-4 w-4 text-orange-500" />
-                <div className="mt-2 text-sm font-black text-slate-950 dark:text-white">{String(job.username || `User #${ownerId}`)}</div>
+                <div className="mt-2 inline-flex min-w-0 items-center gap-1.5 text-sm font-black text-slate-950 dark:text-white">
+                  <span className="truncate">{String(job.username || `User #${ownerId}`)}</span>
+                  <BlueTickBadge active={job.user_is_blue_tick} expiry={job.user_blue_tick_expiry} className="h-4 w-4" />
+                </div>
                 <div className="text-[10px] font-black uppercase text-slate-400">Người đăng</div>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">

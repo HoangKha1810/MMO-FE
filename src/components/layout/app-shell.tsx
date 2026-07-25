@@ -66,7 +66,7 @@ import {
 import { startPageTransition } from '@/components/layout/navigation-effects';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { clearSessionUserCache, useSessionUser, type SessionUser } from '@/hooks/use-session-user';
-import { BLUE_TICK_BADGE_SRC } from '@/lib/blue-tick-constants';
+import { BlueTickBadge } from '@/components/ui/blue-tick-badge';
 import { readJsonResponse } from '@/lib/client-api';
 import type { LegacyServiceItem } from '@/lib/legacy-settings';
 import { startThemeSwitchAnimation } from '@/lib/theme-switch-animation';
@@ -302,17 +302,6 @@ function setCachedSmmSidebarSections(data: SidebarSmmSection[]) {
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('vi-VN').format(Math.floor(amount || 0));
-}
-
-function BlueTickBadge({ className }: { className?: string }) {
-  return (
-    <img
-      src={BLUE_TICK_BADGE_SRC}
-      alt="Tick xanh"
-      className={cn('pointer-events-none select-none object-contain drop-shadow-[0_8px_16px_rgba(56,189,248,0.42)]', className)}
-      draggable={false}
-    />
-  );
 }
 
 function isPathActive(pathname: string, href: string) {

@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, Clock, Eye, Lock, MessageSquare, Pin, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Clock, Eye, Lock, MessageSquare, Pin } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ForumPostActions, ForumThreadInteractions } from '@/components/forum/forum-thread-interactions';
+import { BlueTickBadge, isBlueTickActiveValue } from '@/components/ui/blue-tick-badge';
 import { formatDatabaseDateTime } from '@/lib/date-time';
 import { buildLegacyAssetUrl } from '@/lib/legacy-settings';
 import { getForumThreadDetails, isActiveForumStatus } from '@/lib/forum';
@@ -13,18 +14,6 @@ export const dynamic = 'force-dynamic';
 
 function formatDate(value: Date | string) {
   return formatDatabaseDateTime(value) || '...';
-}
-
-function isBlueTickActive(isBlueTick: unknown, expiry: Date | string | null) {
-  if (!isBlueTick) {
-    return false;
-  }
-
-  if (!expiry) {
-    return true;
-  }
-
-  return new Date(expiry).getTime() > Date.now();
 }
 
 function roleClass(role: string | null) {
@@ -117,7 +106,7 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
             ) : posts.map((post, index) => {
               const avatar = buildLegacyAssetUrl(post.avatar);
               const username = post.username || `User #${post.user_id}`;
-              const hasTick = isBlueTickActive(post.is_blue_tick, post.blue_tick_expiry);
+              const hasTick = isBlueTickActiveValue(post.is_blue_tick, post.blue_tick_expiry);
 
               return (
                 <article
@@ -143,7 +132,7 @@ export default async function ForumThreadPage({ params }: { params: Promise<{ id
                         <div className="min-w-0 md:mt-4">
                           <div className="flex items-center gap-1.5 truncate text-sm font-black text-slate-950 dark:text-white">
                             {username}
-                            {hasTick ? <ShieldCheck className="h-4 w-4 shrink-0 text-brand-blue" /> : null}
+                            {hasTick ? <BlueTickBadge className="h-4 w-4" /> : null}
                           </div>
                           <span className={cn('mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest', roleClass(post.role))}>
                             {String(post.role || 'member')}

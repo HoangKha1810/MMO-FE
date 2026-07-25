@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { BlueTickBadge } from '@/components/ui/blue-tick-badge';
 import Link from 'next/link';
 import { BriefcaseBusiness, ChevronLeft, ChevronRight, Pin, UserRound, WalletCards } from 'lucide-react';
 import { countOpenFindJobs, listOpenFindJobs, listUserFindJobs } from '@/lib/find-job';
@@ -116,7 +117,10 @@ export default async function UserFindJobPage({
                 <div className="mt-5 grid gap-2 border-t border-slate-100 pt-4 text-xs font-bold text-slate-400 dark:border-white/5 sm:grid-cols-2">
                   <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-slate-50/80 px-3 py-2 dark:bg-white/[0.04]">
                     <UserRound className="h-4 w-4 shrink-0" />
-                    <span className="truncate">Đăng bởi {job.user_username || `User #${job.user_id}`}</span>
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <span className="truncate">Đăng bởi {job.user_username || `User #${job.user_id}`}</span>
+                      <BlueTickBadge active={job.user_is_blue_tick} expiry={job.user_blue_tick_expiry} className="h-4 w-4" />
+                    </span>
                   </span>
                   <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-slate-50/80 px-3 py-2 dark:bg-white/[0.04]">
                     <WalletCards className="h-4 w-4" />

@@ -13,6 +13,8 @@ export interface FindJobRow {
   created_at: Date;
   updated_at: Date;
   user_username?: string | null;
+  user_is_blue_tick?: number | boolean | null;
+  user_blue_tick_expiry?: Date | string | null;
   application_count?: number | null;
 }
 
@@ -127,7 +129,9 @@ export async function listOpenFindJobs(limit = 20, offset = 0) {
           j.posted_at AS created_at,
           j.updated_at,
           j.application_count,
-          u.username AS user_username
+          u.username AS user_username,
+          u.is_blue_tick AS user_is_blue_tick,
+          u.blue_tick_expiry AS user_blue_tick_expiry
         FROM find_job_jobs j
         LEFT JOIN users u ON u.id = j.posted_by
         WHERE ${findJobPublicWhereSql('j', hasApprovalStatus)}
@@ -141,7 +145,11 @@ export async function listOpenFindJobs(limit = 20, offset = 0) {
 
   return db.$queryRawUnsafe<FindJobRow[]>(
     `
-      SELECT ${hasPinColumn ? 'j.*' : 'j.*, 0 AS is_pinned'}, u.username AS user_username
+      SELECT
+        ${hasPinColumn ? 'j.*' : 'j.*, 0 AS is_pinned'},
+        u.username AS user_username,
+        u.is_blue_tick AS user_is_blue_tick,
+        u.blue_tick_expiry AS user_blue_tick_expiry
       FROM find_jobs j
       LEFT JOIN users u ON u.id = j.user_id
       WHERE ${findJobPublicWhereSql('j', hasApprovalStatus)}

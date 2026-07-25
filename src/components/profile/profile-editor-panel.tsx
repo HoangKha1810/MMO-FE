@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { requestSessionUserRefresh } from '@/hooks/use-session-user';
 
 interface EditableProfile {
   username: string;
@@ -30,6 +31,14 @@ interface ProfileEditorPanelProps {
 
 const textAreaClassName =
   'field-elevated min-h-[126px] w-full rounded-[1rem] px-4 py-3 text-sm font-semibold text-slate-900 placeholder:text-slate-400 transition-all focus:border-brand-blue focus:outline-none focus:ring-4 focus:ring-brand-blue/10 dark:text-white';
+
+function withImageVersion(url: string) {
+  if (!url || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+
+  return `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+}
 
 export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) {
   const router = useRouter();
@@ -114,10 +123,24 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
         throw new Error(result.message || 'Không thể cập nhật hồ sơ');
       }
 
-      toast.success(result.message || 'Đã lưu hồ sơ');
+      const returnedAvatar = typeof result.user?.avatar === 'string' ? result.user.avatar : '';
+      const nextAvatarUrl = removeAvatar ? '' : withImageVersion(returnedAvatar || avatarPreviewUrl);
+
+      if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+
+      setAvatarPreviewUrl(nextAvatarUrl);
+      setForm((current) => ({
+        ...current,
+        avatar: nextAvatarUrl || undefined,
+        fullname: typeof result.user?.fullname === 'string' ? result.user.fullname : current.fullname,
+      }));
       setAvatarFile(null);
       setRemoveAvatar(false);
+      requestSessionUserRefresh();
       router.refresh();
+      toast.success(result.message || 'Đã lưu hồ sơ');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ');
     } finally {

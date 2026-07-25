@@ -25,7 +25,7 @@ export function FloatingSupportButtons() {
     <div
       className={cn(
         "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))]",
-        "z-[80] flex flex-col items-end gap-2 sm:bottom-5 sm:right-5 sm:gap-2.5"
+        "z-[80] flex max-w-[calc(100vw-2rem)] flex-col-reverse items-end gap-2 sm:bottom-5 sm:right-5 sm:gap-2.5"
       )}
       aria-label="Liên hệ hỗ trợ nhanh"
     >
@@ -48,7 +48,7 @@ export function FloatingSupportButtons() {
       <div
         className={cn(
           "flex flex-col gap-3 transition-all duration-300 ease-out origin-bottom-right",
-          collapsed ? "pointer-events-none scale-90 opacity-0 translate-y-2 max-h-0 overflow-hidden" : "scale-100 opacity-100 translate-y-0"
+          collapsed ? "pointer-events-none max-h-0 translate-y-2 scale-90 overflow-hidden opacity-0" : "max-h-[22rem] translate-y-0 scale-100 opacity-100"
         )}
         aria-hidden={collapsed}
       >

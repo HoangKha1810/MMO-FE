@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Eye, MessageCircle, MessageSquare, Pin } from 'lucide-react';
 import type { ForumThreadSummary } from '@/lib/forum';
+import { BlueTickBadge } from '@/components/ui/blue-tick-badge';
 import { formatDatabaseDateTime } from '@/lib/date-time';
 import { formatNumber } from '@/lib/utils';
 
@@ -48,7 +49,10 @@ export function ForumThreadList({ threads, emptyText = 'Chưa có bài viết.' 
               </h3>
               <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{thread.content}</p>
               <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <span>By {thread.username || `User #${thread.user_id}`}</span>
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <span className="truncate">By {thread.username || `User #${thread.user_id}`}</span>
+                  <BlueTickBadge active={thread.is_blue_tick} expiry={thread.blue_tick_expiry} className="h-4 w-4" />
+                </span>
                 <span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> {formatNumber(thread.views)} views</span>
                 <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {formatNumber(thread.replies)} replies</span>
               </div>

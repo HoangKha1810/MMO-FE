@@ -385,8 +385,8 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
 
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" />
 
-      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[92rem] flex-col px-4 py-4 sm:px-5 md:px-6 xl:px-8">
-        <header className="auth-header-shell mb-4 flex flex-col gap-3 rounded-[1.5rem] border border-sky-400/20 bg-[#071629]/88 px-4 py-4 shadow-[0_24px_60px_rgba(0,102,255,0.12)] backdrop-blur-2xl md:flex-row md:items-center md:justify-between">
+      <main className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[92rem] flex-col px-4 py-5 sm:px-5 sm:py-6 md:px-6 xl:px-8">
+        <header className="auth-header-shell relative z-20 mb-5 flex flex-col gap-3 rounded-[1.5rem] border border-sky-400/20 bg-[#071629]/88 px-4 py-4 shadow-[0_24px_60px_rgba(0,102,255,0.12)] backdrop-blur-2xl md:flex-row md:items-center md:justify-between">
           <Link href="/" className="flex min-w-0 items-center gap-4">
             <div className="surface-card rounded-[1.5rem] px-4 py-3">
               <Image src="/logo.gif" alt={siteName} width={180} height={52} unoptimized className="h-10 w-auto object-contain sm:h-12" />
@@ -432,7 +432,7 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
           </div>
         </header>
 
-        <section className="auth-page-shell flex-1 py-2 md:py-4 xl:py-6">
+        <section className="auth-page-shell relative z-10 flex-1 py-2 md:py-4 xl:py-6">
           <div className={`auth-slider-shell ${tab === 'register' ? 'right-panel-active' : ''}`}>
             <div className="auth-orb auth-orb-a" />
             <div className="auth-orb auth-orb-b" />

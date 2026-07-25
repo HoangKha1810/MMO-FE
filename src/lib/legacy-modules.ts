@@ -258,7 +258,14 @@ export async function getFindJobDetail(id: number, viewerId?: number, viewerRole
 
   if (table === 'find_job_jobs') {
     const job = await safeOne<LegacyRow>(`
-      SELECT j.*, j.posted_by AS user_id, u.username, u.avatar, u.rank
+      SELECT
+        j.*,
+        j.posted_by AS user_id,
+        u.username,
+        u.avatar,
+        u.rank,
+        u.is_blue_tick AS user_is_blue_tick,
+        u.blue_tick_expiry AS user_blue_tick_expiry
       FROM find_job_jobs j
       LEFT JOIN users u ON u.id = j.posted_by
       WHERE j.id = ?
@@ -278,7 +285,14 @@ export async function getFindJobDetail(id: number, viewerId?: number, viewerRole
   }
 
   const job = await safeOne<LegacyRow>(`
-    SELECT j.*, j.user_id, u.username, u.avatar, u.rank
+    SELECT
+      j.*,
+      j.user_id,
+      u.username,
+      u.avatar,
+      u.rank,
+      u.is_blue_tick AS user_is_blue_tick,
+      u.blue_tick_expiry AS user_blue_tick_expiry
     FROM find_jobs j
     LEFT JOIN users u ON u.id = j.user_id
     WHERE j.id = ?
