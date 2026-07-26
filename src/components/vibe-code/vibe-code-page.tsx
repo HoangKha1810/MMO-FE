@@ -169,21 +169,21 @@ const providerMeta: Record<VibeCodeProvider, {
   chatgpt: {
     title: 'ChatGPT',
     eyebrow: 'Tài khoản AI',
-    description: 'Gói ChatGPT và tài khoản AI đồng bộ từ GenZ Shop, nhận credential tự động sau thanh toán.',
+    description: 'Gói ChatGPT và tài khoản AI Premium, nhận credential tự động sau thanh toán.',
     icon: ChatGptBrandIcon,
     accent: 'from-emerald-400 via-teal-500 to-cyan-500',
   },
   kiro: {
     title: 'Kiro',
     eyebrow: 'Kiro Pro',
-    description: 'Gói Kiro Pro đồng bộ từ GenZ Shop, giữ kho và giá API mới nhất.',
+    description: 'Gói Kiro Pro tự động, giữ kho và giá mới nhất.',
     icon: GenericBrandIcon,
     accent: 'from-fuchsia-500 via-violet-500 to-blue-500',
   },
   other: {
     title: 'Khác',
-    eyebrow: 'GenZ Shop',
-    description: 'Các gói AI Premium khác được đồng bộ tự động từ GenZ Shop.',
+    eyebrow: 'AI Premium',
+    description: 'Các gói AI Premium khác được cập nhật tự động.',
     icon: GenericBrandIcon,
     accent: 'from-slate-500 via-blue-500 to-cyan-500',
   },
@@ -255,9 +255,18 @@ function statusClass(status: string) {
   return 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:border-amber-400/25 dark:text-amber-300';
 }
 
+function packageHasExplicitUnitAmount(pack: VibeCodePackage) {
+  const text = `${pack.title || ''} ${pack.description || ''}`.toLowerCase();
+  return /(\d+(?:[.,]\d+)?)\s*(?:\$|usd|credit|request|ngày|day|tháng|month)\b/i.test(text);
+}
+
 function formatAmount(pack: VibeCodePackage) {
   const amount = toNumber(pack.unit_amount, 0);
-  if (pack.provider === 'codex') return `${new Intl.NumberFormat('vi-VN').format(amount)}$`;
+  if (amount <= 0) return null;
+  if (pack.provider === 'codex') {
+    if (amount <= 1 && !packageHasExplicitUnitAmount(pack)) return null;
+    return `${new Intl.NumberFormat('vi-VN').format(amount)}$`;
+  }
   if (pack.provider === 'claude') {
     const suffix = String(pack.unit_label || 'Credit').trim();
     return `${new Intl.NumberFormat('vi-VN').format(amount)}$ ${suffix}`;
@@ -515,11 +524,11 @@ export function VibeCodePage() {
         <PageHero
           eyebrow="Vibe Code"
           title="Vibe Code"
-          description="Bảng giá tài khoản AI Premium đồng bộ từ GenZ Shop. Thanh toán xong hệ thống tự cấp credential và lưu đơn để admin đối chiếu."
+          description="Bảng giá tài khoản AI Premium tự động. Thanh toán xong hệ thống tự cấp credential và lưu đơn để admin đối chiếu."
           stats={[
             { label: 'Cursor AI', value: `${grouped.cursor.length} gói`, hint: 'Request và Pro', tone: 'blue' },
             { label: 'Claude', value: `${grouped.claude.length} gói`, hint: 'Credit và Pro tháng', tone: 'amber' },
-            { label: 'GenZ Shop', value: `${packages.length} gói`, hint: 'Đồng bộ API', tone: 'emerald' },
+            { label: 'AI Premium', value: `${packages.length} gói`, hint: 'Cập nhật tự động', tone: 'emerald' },
           ]}
         />
 
@@ -544,7 +553,7 @@ export function VibeCodePage() {
               <SectionHeader
                 eyebrow="Mã vừa mua"
                 title="Credential"
-                description="Credential sẽ hiện ngay khi GenZ Shop cấp hàng thành công. Mã đơn vẫn dùng để admin đối chiếu."
+                description="Credential sẽ hiện ngay khi hệ thống cấp hàng thành công. Mã đơn vẫn dùng để admin đối chiếu."
               />
               {lastOrder ? (
                 <div className="mt-5 space-y-4">
@@ -651,7 +660,12 @@ export function VibeCodePage() {
                     <div className="min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Gói đang chọn</div>
                       <div className="mt-2 break-words text-xl font-black text-slate-950 dark:text-white">{confirmPackage.title}</div>
-                      <div className="mt-1 text-sm font-bold text-cyan-700 dark:text-cyan-200">{formatAmount(confirmPackage)}</div>
+                      {(() => {
+                        const amountLabel = formatAmount(confirmPackage);
+                        return amountLabel ? (
+                          <div className="mt-1 text-sm font-bold text-cyan-700 dark:text-cyan-200">{amountLabel}</div>
+                        ) : null;
+                      })()}
                     </div>
                     <div className="rounded-[0.9rem] border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-right">
                       <div className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-300">Số tiền trừ</div>
@@ -731,11 +745,13 @@ function ProviderPricing({
         </div>
       ) : packages.length > 0 ? (
         <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
-          {packages.map((pack, index) => (
-            <article
-              key={pack.id}
-              className="group relative min-w-0 overflow-hidden rounded-[1.35rem] border border-brand-blue/16 bg-[linear-gradient(145deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_50%,rgba(224,242,254,0.88)_100%)] p-5 text-slate-950 shadow-[0_28px_78px_-50px_rgba(37,99,235,0.42)] transition-all hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_34px_90px_-54px_rgba(14,165,233,0.5)] dark:border-brand-blue/20 dark:bg-[linear-gradient(145deg,rgba(8,22,46,0.98)_0%,rgba(9,34,63,0.94)_48%,rgba(6,53,63,0.86)_100%)] dark:text-white dark:shadow-[0_28px_78px_-42px_rgba(14,165,233,0.55)] dark:hover:border-cyan-300/35 dark:hover:shadow-[0_34px_90px_-44px_rgba(20,184,166,0.58)]"
-            >
+          {packages.map((pack, index) => {
+            const amountLabel = formatAmount(pack);
+            return (
+              <article
+                key={pack.id}
+                className="group relative min-w-0 overflow-hidden rounded-[1.35rem] border border-brand-blue/16 bg-[linear-gradient(145deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_50%,rgba(224,242,254,0.88)_100%)] p-5 text-slate-950 shadow-[0_28px_78px_-50px_rgba(37,99,235,0.42)] transition-all hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_34px_90px_-54px_rgba(14,165,233,0.5)] dark:border-brand-blue/20 dark:bg-[linear-gradient(145deg,rgba(8,22,46,0.98)_0%,rgba(9,34,63,0.94)_48%,rgba(6,53,63,0.86)_100%)] dark:text-white dark:shadow-[0_28px_78px_-42px_rgba(14,165,233,0.55)] dark:hover:border-cyan-300/35 dark:hover:shadow-[0_34px_90px_-44px_rgba(20,184,166,0.58)]"
+              >
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(37,99,235,0.16),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(20,184,166,0.14),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.5),transparent_42%)] dark:bg-[radial-gradient(circle_at_18%_14%,rgba(37,99,235,0.28),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(20,184,166,0.22),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),transparent_40%)]" />
               <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-500/35 to-transparent dark:via-cyan-300/45" />
               {packageDiscount(pack, index) > 0 ? (
@@ -765,7 +781,9 @@ function ProviderPricing({
                 <h3 className="mt-5 min-h-[3.1rem] text-balance text-lg font-black leading-tight text-slate-950 dark:text-white">
                   {pack.title}
                 </h3>
-                <div className="mt-1 text-sm font-black text-slate-600 dark:text-cyan-100">{formatAmount(pack)}</div>
+                {amountLabel ? (
+                  <div className="mt-1 text-sm font-black text-slate-600 dark:text-cyan-100">{amountLabel}</div>
+                ) : null}
                 {typeof pack.stock_available === 'number' ? (
                   <div className="mt-2 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">
                     Kho còn {pack.stock_available}
@@ -822,7 +840,8 @@ function ProviderPricing({
                 Mua ngay
               </Button>
             </article>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <EmptyState title="Chưa có gói" description="Admin chưa bật gói cho mục này." icon={<Icon className="h-10 w-10" />} />

@@ -617,24 +617,11 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
               data-auth-panel={tab === 'login' ? 'active' : 'inactive'}
             >
               <div className="auth-stage-card">
-                <form className="auth-slider-form" onSubmit={handleLoginSubmit}>
-                  <span className="auth-slider-kicker auth-form-enter">
-                    <LayoutDashboard className="h-3.5 w-3.5" />
-                    Cổng đăng nhập hệ thống
-                  </span>
-                  <h1 className="auth-slider-title auth-form-enter">Đăng nhập vào trung tâm điều khiển</h1>
+                <form className="auth-slider-form auth-login-form" onSubmit={handleLoginSubmit}>
+                  <h1 className="auth-slider-title auth-form-enter">Đăng nhập</h1>
                   <p className="auth-slider-copy auth-form-enter">
-                    Quản lý số dư, đơn hàng, tài khoản và luồng sử dụng dịch vụ trong một nơi.
+                    Quản lý số dư, đơn hàng và toàn bộ dịch vụ trong một nơi.
                   </p>
-
-                  <div className="auth-signal-row auth-form-enter">
-                    {authSignals.map((item) => (
-                      <span key={item.label} className="auth-signal-chip" title={item.label}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="sr-only">{item.label}</span>
-                      </span>
-                    ))}
-                  </div>
 
                   {loginMessage ? (
                     <div
@@ -681,15 +668,20 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                     onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
                   />
 
-                  <label className="auth-remember-row auth-form-enter">
-                    <input
-                      type="checkbox"
-                      checked={loginForm.remember}
-                      onChange={(event) => setLoginForm((current) => ({ ...current, remember: event.target.checked }))}
-                      className="h-4 w-4 rounded border-slate-300 bg-white text-brand-blue focus:ring-brand-blue dark:border-white/10 dark:bg-white/5"
-                    />
-                    <span>Giữ đăng nhập trên thiết bị này</span>
-                  </label>
+                  <div className="auth-login-options auth-form-enter">
+                    <label className="auth-remember-row">
+                      <input
+                        type="checkbox"
+                        checked={loginForm.remember}
+                        onChange={(event) => setLoginForm((current) => ({ ...current, remember: event.target.checked }))}
+                        className="h-4 w-4 rounded border-slate-300 bg-white text-brand-blue focus:ring-brand-blue dark:border-white/10 dark:bg-white/5"
+                      />
+                      <span>Giữ đăng nhập trên thiết bị này</span>
+                    </label>
+                    <Link href="/auth/forgot-password" className="auth-inline-link auth-forgot-link">
+                      Quên mật khẩu?
+                    </Link>
+                  </div>
 
                   <FlipButton
                     type="submit"
@@ -698,19 +690,10 @@ export function AuthSliderPage({ initialTab = 'login' }: AuthSliderPageProps) {
                     className="auth-form-enter w-full"
                     stageClassName="w-full min-w-0"
                   >
-                    {loginLoading ? 'Đang đăng nhập...' : 'Vào hệ thống'}
+                    {loginLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                     <ArrowRight className="h-4 w-4" />
                   </FlipButton>
 
-                  <div className="auth-slider-links auth-form-enter">
-                    <Link href="/auth/forgot-password" className="ghost-button">
-                      <WalletCards className="h-4 w-4" />
-                      Quên mật khẩu
-                    </Link>
-                    <a href={SUPPORT_URL} target="_blank" rel="noreferrer" className="auth-inline-link">
-                      Cần hỗ trợ đăng nhập?
-                    </a>
-                  </div>
                 </form>
               </div>
             </div>

@@ -135,7 +135,7 @@ function normalizePackage(row: Record<string, unknown>): VibeCodePackageRow {
     title: String(row.title || ''),
     description: row.description == null ? null : String(row.description),
     unit_label: row.unit_label == null ? null : String(row.unit_label),
-    unit_amount: toNumber(row.unit_amount, 1),
+    unit_amount: toNumber(row.unit_amount, 0),
     source_price_vnd: toNumber(row.source_price_vnd, 0),
     sale_price_vnd: toNumber(row.sale_price_vnd, 0),
     margin_percent: toNumber(row.margin_percent, GENZSHOP_DEFAULT_MARGIN_PERCENT),
@@ -152,6 +152,15 @@ function normalizePackage(row: Record<string, unknown>): VibeCodePackageRow {
   };
 }
 
+function sanitizePublicVibeCodeText(value: unknown) {
+  return String(value || '')
+    .replace(/genz\s*shop/gi, 'hệ thống')
+    .replace(/genzshop\.vn/gi, 'hệ thống')
+    .replace(/\bgenz\b/gi, 'hệ thống')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function toPublicPackage(row: VibeCodePackageRow): PublicVibeCodePackage {
   const {
     vendor: _vendor,
@@ -163,7 +172,11 @@ function toPublicPackage(row: VibeCodePackageRow): PublicVibeCodePackage {
     sold_count: _soldCount,
     ...publicRow
   } = row;
-  return publicRow;
+  return {
+    ...publicRow,
+    title: sanitizePublicVibeCodeText(publicRow.title) || publicRow.title,
+    description: publicRow.description == null ? null : sanitizePublicVibeCodeText(publicRow.description),
+  };
 }
 
 function generateOrderCode() {
@@ -258,14 +271,32 @@ function calculateAutoSalePrice(sourcePrice: unknown, marginPercent: unknown) {
   return Math.round(source * (1 + margin / 100));
 }
 
+function productSearchText(product: GenzShopProduct, ...extra: unknown[]) {
+  return [
+    product.name,
+    product.description,
+    product.type,
+    product.walletPricingText,
+    ...extra,
+  ]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
+function isHiddenVibeCodeProduct(...values: unknown[]) {
+  const text = values.map((value) => String(value || '').trim()).filter(Boolean).join(' ');
+  return /\btest\s*api\b/i.test(text);
+}
+
 function productUnitAmount(product: GenzShopProduct) {
-  const name = String(product.name || '');
-  const match = name.match(/(\d+(?:[.,]\d+)?)\s*(?:\$|usd|request|ngày|day|tháng|month)/i);
-  return match ? toNumber(match[1], 1) : 1;
+  const text = productSearchText(product);
+  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(?:\$|usd|credit|request|ngày|day|tháng|month)\b/i);
+  return match ? toNumber(match[1], 0) : 0;
 }
 
 function productUnitLabel(product: GenzShopProduct) {
-  const name = String(product.name || '').toLowerCase();
+  const name = productSearchText(product).toLowerCase();
   if (name.includes('request')) return 'request';
   if (name.includes('credit') || name.includes('$') || name.includes('usd')) return 'Credit';
   if (name.includes('ngày') || name.includes('day')) return 'ngày';
@@ -282,6 +313,7 @@ function normalizeGenzProduct(product: GenzShopProduct, index: number, config: G
   const total = Math.max(0, Math.trunc(toNumber(product.stats?.total, available)));
   const sold = Math.max(0, Math.trunc(toNumber(product.stats?.sold, 0)));
   const title = String(product.name || productId).trim();
+  if (isHiddenVibeCodeProduct(productSearchText(product, productId), title, productId)) return null;
   const provider = normalizeProvider(product.type, title);
 
   return {
@@ -618,7 +650,10 @@ export async function listVibeCodePackages(options: { activeOnly?: boolean; publ
     `
   );
   const normalized = rows.map(normalizePackage);
-  return options.publicOnly ? normalized.map(toPublicPackage) : normalized;
+  const filtered = options.publicOnly
+    ? normalized.filter((item) => !isHiddenVibeCodeProduct(item.title, item.package_key, item.description, item.provider))
+    : normalized;
+  return options.publicOnly ? filtered.map(toPublicPackage) : filtered;
 }
 
 export async function listUserVibeCodeOrders(userId: number) {
@@ -641,6 +676,7 @@ export async function listUserVibeCodeOrders(userId: number) {
     package_id: Math.trunc(toNumber(row.package_id, 0)),
     unit_amount: toNumber(row.unit_amount, 0),
     sale_price_vnd: toNumber(row.sale_price_vnd, 0),
+    admin_note: row.admin_note == null ? null : sanitizePublicVibeCodeText(row.admin_note),
   }));
 }
 
@@ -735,6 +771,9 @@ export async function createVibeCodeOrder(userId: number, packageId: number) {
     );
     const selectedPackage = packageRows[0] ? normalizePackage(packageRows[0]) : null;
     if (!selectedPackage) {
+      throw new Error('Gói Vibe Code không tồn tại, đang tắt hoặc tạm hết hàng');
+    }
+    if (isHiddenVibeCodeProduct(selectedPackage.title, selectedPackage.package_key, selectedPackage.description)) {
       throw new Error('Gói Vibe Code không tồn tại, đang tắt hoặc tạm hết hàng');
     }
 

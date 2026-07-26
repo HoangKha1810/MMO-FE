@@ -366,7 +366,7 @@ export function LandingPage() {
       </nav>
 
       {/* ─── HERO SECTION ─── */}
-      <section className="relative flex min-h-[92vh] items-center justify-center overflow-hidden pt-24">
+      <section className="relative flex min-h-[92vh] items-center justify-center overflow-x-hidden pb-20 pt-24">
 
         {/* Background layers */}
         <div className="pointer-events-none absolute inset-0 hero-grid opacity-100" />
@@ -379,7 +379,7 @@ export function LandingPage() {
         {/* Radial mask */}
         <div className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_50%,transparent_90%)]" />
 
-        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-8 px-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)]">
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.64fr)] xl:gap-14">
           <div className="max-w-3xl space-y-8 text-left">
 
             {/* Badge */}
@@ -396,14 +396,14 @@ export function LandingPage() {
 
             {/* Heading */}
             <h1
-              className="animate-fade-in-up text-[clamp(42px,7vw,88px)] font-black uppercase leading-[1.05] text-slate-950 sm:leading-[1] dark:text-white"
+              className="animate-fade-in-up max-w-3xl text-[clamp(40px,6.2vw,78px)] font-black uppercase leading-[1.05] text-slate-950 sm:leading-[1] dark:text-white"
               style={{ animationDelay: '0.12s' }}
             >
-              <span className="block whitespace-nowrap">Nền tảng MMO</span>
-              <span className="block whitespace-nowrap pt-[0.12em] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))] sm:pt-[0.1em]">
+              <span className="block whitespace-normal sm:whitespace-nowrap">Nền tảng MMO</span>
+              <span className="block whitespace-normal pt-[0.12em] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))] sm:whitespace-nowrap sm:pt-[0.1em]">
                 uy tín hàng đầu
               </span>
-              <span className="block whitespace-nowrap bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))]">
+              <span className="block whitespace-normal bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent [filter:drop-shadow(0_0_40px_rgba(99,102,241,0.35))] sm:whitespace-nowrap">
                 Việt Nam
               </span>
             </h1>
@@ -457,7 +457,7 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="mmo-landing-preview animate-fade-in-up" style={{ animationDelay: '0.32s' }}>
+          <div className="mmo-landing-preview animate-fade-in-up w-full max-w-[35rem] justify-self-center xl:max-w-[32rem] xl:justify-self-end 2xl:max-w-[34rem]" style={{ animationDelay: '0.32s' }}>
             <div className="mmo-browser-dots"><span /><span /><span /></div>
             <div className="grid gap-3 md:grid-cols-[0.78fr_1.22fr]">
               <div className="space-y-3">
@@ -476,7 +476,7 @@ export function LandingPage() {
                   </div>
                   <div className="mmo-preview-balance">
                     <div className="mmo-eyebrow">Realtime dashboard</div>
-                    <div className="mt-2 break-words text-[clamp(1.45rem,3.2vw,2.35rem)] font-black uppercase leading-tight text-slate-950 dark:text-white">120tr</div>
+                    <div className="mt-2 whitespace-nowrap pr-1 text-[clamp(1.3rem,2.2vw,1.9rem)] font-black uppercase leading-tight text-slate-950 dark:text-white">120tr</div>
                     <div className="mt-1 text-xs font-bold text-emerald-400">+12.8% hôm nay</div>
                   </div>
                 </div>
