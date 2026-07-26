@@ -265,7 +265,8 @@ function formatAmount(pack: VibeCodePackage) {
   if (amount <= 0) return null;
   if (pack.provider === 'codex') {
     if (amount <= 1 && !packageHasExplicitUnitAmount(pack)) return null;
-    return `${new Intl.NumberFormat('vi-VN').format(amount)}$`;
+    const suffix = String(pack.unit_label || 'Credit').toLowerCase().includes('credit') ? ' Credit' : '';
+    return `${new Intl.NumberFormat('vi-VN').format(amount)}$${suffix}`;
   }
   if (pack.provider === 'claude') {
     const suffix = String(pack.unit_label || 'Credit').trim();
@@ -273,6 +274,9 @@ function formatAmount(pack: VibeCodePackage) {
   }
   if (pack.unit_label?.toLowerCase().includes('ngày')) {
     return `${new Intl.NumberFormat('vi-VN').format(amount)} ngày`;
+  }
+  if (pack.unit_label?.toLowerCase().includes('tháng') || pack.unit_label?.toLowerCase().includes('month')) {
+    return `${new Intl.NumberFormat('vi-VN').format(amount)} tháng`;
   }
   if (pack.unit_label?.toLowerCase().includes('gói')) {
     return `${new Intl.NumberFormat('vi-VN').format(Math.max(1, amount || 1))} gói`;
@@ -747,6 +751,8 @@ function ProviderPricing({
         <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
           {packages.map((pack, index) => {
             const amountLabel = formatAmount(pack);
+            const stock = typeof pack.stock_available === 'number' ? pack.stock_available : null;
+            const isPurchasable = pack.status === 'active' && (stock == null || stock > 0);
             return (
               <article
                 key={pack.id}
@@ -784,9 +790,16 @@ function ProviderPricing({
                 {amountLabel ? (
                   <div className="mt-1 text-sm font-black text-slate-600 dark:text-cyan-100">{amountLabel}</div>
                 ) : null}
-                {typeof pack.stock_available === 'number' ? (
-                  <div className="mt-2 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">
-                    Kho còn {pack.stock_available}
+                {stock !== null ? (
+                  <div
+                    className={cn(
+                      'mt-2 inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]',
+                      stock > 0
+                        ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-700 dark:text-emerald-200'
+                        : 'border-amber-400/25 bg-amber-400/10 text-amber-700 dark:text-amber-200'
+                    )}
+                  >
+                    {stock > 0 ? `Kho còn ${stock}` : 'Tạm hết kho'}
                   </div>
                 ) : null}
                 <div className="mt-4 font-mono text-2xl font-black text-emerald-600 dark:text-emerald-300">
@@ -831,13 +844,21 @@ function ProviderPricing({
               </div>
 
               <Button
-                className="relative mt-5 w-full rounded-[0.9rem] bg-[linear-gradient(135deg,#2563eb_0%,#0ea5e9_52%,#14b8a6_100%)] text-white shadow-[0_18px_42px_-24px_rgba(14,165,233,0.9)] hover:shadow-[0_24px_52px_-26px_rgba(20,184,166,0.95)]"
+                className={cn(
+                  'relative mt-5 w-full rounded-[0.9rem] text-white shadow-[0_18px_42px_-24px_rgba(14,165,233,0.9)] hover:shadow-[0_24px_52px_-26px_rgba(20,184,166,0.95)]',
+                  isPurchasable
+                    ? 'bg-[linear-gradient(135deg,#2563eb_0%,#0ea5e9_52%,#14b8a6_100%)]'
+                    : 'bg-slate-600/70'
+                )}
+                disabled={!isPurchasable}
                 loading={purchasingId === pack.id}
                 loadingText="Đang mua"
-                onClick={() => onBuy(pack)}
+                onClick={() => {
+                  if (isPurchasable) onBuy(pack);
+                }}
               >
-                <Sparkles className="h-4 w-4" />
-                Mua ngay
+                {isPurchasable ? <Sparkles className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                {isPurchasable ? 'Mua ngay' : 'Tạm hết hàng'}
               </Button>
             </article>
             );

@@ -115,13 +115,21 @@ class VibeCodeCheckoutError extends Error {
   }
 }
 
-function normalizeProvider(value: unknown, fallbackText = ''): VibeCodeProvider {
-  const raw = `${String(value || '')} ${fallbackText}`.toLowerCase();
-  if (raw.includes('codex')) return 'codex';
+function detectProvider(rawText: string): VibeCodeProvider | null {
+  const raw = rawText.toLowerCase();
+  if (/\b(chatgpt|gpt\s*plus|api\s*gpt|openai)\b/i.test(raw)) return 'chatgpt';
   if (raw.includes('claude') || raw.includes('anthropic')) return 'claude';
-  if (raw.includes('chatgpt') || raw.includes('openai') || raw.includes('gpt')) return 'chatgpt';
   if (raw.includes('kiro')) return 'kiro';
+  if (raw.includes('codex')) return 'codex';
   if (raw.includes('cursor')) return 'cursor';
+  return null;
+}
+
+function normalizeProvider(value: unknown, fallbackText = ''): VibeCodeProvider {
+  const fromContent = detectProvider(String(fallbackText || ''));
+  if (fromContent) return fromContent;
+  const fromProvider = detectProvider(String(value || ''));
+  if (fromProvider) return fromProvider;
   return 'other';
 }
 
@@ -337,7 +345,7 @@ function normalizeGenzProduct(product: GenzShopProduct, index: number, config: G
     vendorProductId: productId,
     title,
     description: String(product.description || '').trim() || `Gói ${title} đồng bộ từ API.`,
-    unitLabel: provider === 'codex' ? 'USD' : productUnitLabel(product),
+    unitLabel: provider === 'codex' ? 'Credit' : productUnitLabel(product),
     unitAmount: productUnitAmount(product, provider, sourcePrice),
     sourcePrice,
     salePrice: calculateAutoSalePrice(sourcePrice, config.defaultMarginPercent),
@@ -498,6 +506,20 @@ export async function syncGenzShopVibeCodeProducts() {
 
     await db.$executeRawUnsafe(
       `
+        UPDATE vibe_code_packages
+        SET status = 'inactive',
+            stock_available = 0,
+            updated_at = NOW()
+        WHERE vendor = 'genzshop'
+          AND package_key = ?
+          AND provider <> ?
+      `,
+      item.packageKey,
+      item.provider
+    );
+
+    await db.$executeRawUnsafe(
+      `
         INSERT INTO vibe_code_packages
           (vendor, vendor_product_id, provider, package_key, title, description, unit_label, unit_amount,
            source_price_vnd, sale_price_vnd, margin_percent, is_auto_price,
@@ -654,7 +676,9 @@ export async function listVibeCodePackages(options: { activeOnly?: boolean; publ
   await syncGenzShopVibeCodeProductsIfStale({ intervalHours: GENZSHOP_STALE_HOURS }).catch(() => undefined);
 
   const statusSql = options.activeOnly
-    ? "WHERE status = 'active' AND COALESCE(stock_available, 0) > 0"
+    ? options.publicOnly
+      ? "WHERE status <> 'inactive'"
+      : "WHERE status = 'active' AND COALESCE(stock_available, 0) > 0"
     : '';
   const rows = await db.$queryRawUnsafe<Record<string, unknown>[]>(
     `
