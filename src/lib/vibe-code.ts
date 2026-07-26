@@ -118,7 +118,7 @@ class VibeCodeCheckoutError extends Error {
 function normalizeProvider(value: unknown, fallbackText = ''): VibeCodeProvider {
   const raw = `${String(value || '')} ${fallbackText}`.toLowerCase();
   if (raw.includes('codex')) return 'codex';
-  if (raw.includes('claude')) return 'claude';
+  if (raw.includes('claude') || raw.includes('anthropic')) return 'claude';
   if (raw.includes('chatgpt') || raw.includes('openai') || raw.includes('gpt')) return 'chatgpt';
   if (raw.includes('kiro')) return 'kiro';
   if (raw.includes('cursor')) return 'cursor';
@@ -126,17 +126,24 @@ function normalizeProvider(value: unknown, fallbackText = ''): VibeCodeProvider 
 }
 
 function normalizePackage(row: Record<string, unknown>): VibeCodePackageRow {
+  const provider = normalizeProvider(row.provider, String(row.title || row.package_key || row.description || ''));
+  const sourcePrice = toNumber(row.source_price_vnd, 0);
+  const rawUnitAmount = toNumber(row.unit_amount, 0);
+  const unitAmount = provider === 'codex' && rawUnitAmount <= 1
+    ? sourcePriceToUsdAmount(sourcePrice) || rawUnitAmount
+    : rawUnitAmount;
+
   return {
     id: Math.trunc(toNumber(row.id, 0)),
     vendor: String(row.vendor || GENZSHOP_VENDOR),
     vendor_product_id: row.vendor_product_id == null ? null : String(row.vendor_product_id),
-    provider: normalizeProvider(row.provider, String(row.title || row.package_key || '')),
+    provider,
     package_key: String(row.package_key || ''),
     title: String(row.title || ''),
     description: row.description == null ? null : String(row.description),
     unit_label: row.unit_label == null ? null : String(row.unit_label),
-    unit_amount: toNumber(row.unit_amount, 0),
-    source_price_vnd: toNumber(row.source_price_vnd, 0),
+    unit_amount: unitAmount,
+    source_price_vnd: sourcePrice,
     sale_price_vnd: toNumber(row.sale_price_vnd, 0),
     margin_percent: toNumber(row.margin_percent, GENZSHOP_DEFAULT_MARGIN_PERCENT),
     is_auto_price: toNumber(row.is_auto_price, 1) !== 0,
@@ -271,6 +278,11 @@ function calculateAutoSalePrice(sourcePrice: unknown, marginPercent: unknown) {
   return Math.round(source * (1 + margin / 100));
 }
 
+function sourcePriceToUsdAmount(sourcePrice: unknown) {
+  const source = Math.max(0, Math.round(toNumber(sourcePrice, 0)));
+  return source > 0 ? Math.round(source / 1000) : 0;
+}
+
 function productSearchText(product: GenzShopProduct, ...extra: unknown[]) {
   return [
     product.name,
@@ -289,10 +301,13 @@ function isHiddenVibeCodeProduct(...values: unknown[]) {
   return /\btest\s*api\b/i.test(text);
 }
 
-function productUnitAmount(product: GenzShopProduct) {
+function productUnitAmount(product: GenzShopProduct, provider: VibeCodeProvider, sourcePrice: number) {
   const text = productSearchText(product);
   const match = text.match(/(\d+(?:[.,]\d+)?)\s*(?:\$|usd|credit|request|ngày|day|tháng|month)\b/i);
-  return match ? toNumber(match[1], 0) : 0;
+  const parsedAmount = match ? toNumber(match[1], 0) : 0;
+  if (parsedAmount > 0) return parsedAmount;
+  if (provider === 'codex') return sourcePriceToUsdAmount(sourcePrice);
+  return 0;
 }
 
 function productUnitLabel(product: GenzShopProduct) {
@@ -314,7 +329,7 @@ function normalizeGenzProduct(product: GenzShopProduct, index: number, config: G
   const sold = Math.max(0, Math.trunc(toNumber(product.stats?.sold, 0)));
   const title = String(product.name || productId).trim();
   if (isHiddenVibeCodeProduct(productSearchText(product, productId), title, productId)) return null;
-  const provider = normalizeProvider(product.type, title);
+  const provider = normalizeProvider(product.type, productSearchText(product, title, productId));
 
   return {
     provider,
@@ -322,8 +337,8 @@ function normalizeGenzProduct(product: GenzShopProduct, index: number, config: G
     vendorProductId: productId,
     title,
     description: String(product.description || '').trim() || `Gói ${title} đồng bộ từ API.`,
-    unitLabel: productUnitLabel(product),
-    unitAmount: productUnitAmount(product),
+    unitLabel: provider === 'codex' ? 'USD' : productUnitLabel(product),
+    unitAmount: productUnitAmount(product, provider, sourcePrice),
     sourcePrice,
     salePrice: calculateAutoSalePrice(sourcePrice, config.defaultMarginPercent),
     marginPercent: config.defaultMarginPercent,
