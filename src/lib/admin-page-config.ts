@@ -29,6 +29,66 @@ export const vpsGpuAdminSections: AdminSectionConfig[] = [
       },
 ];
 
+export const vpsCloudAdminSections: AdminSectionConfig[] = [
+  {
+    resource: 'vps-catalog-items',
+    title: 'Bảng giá VPS Cloud',
+    description: 'Chỉnh giá bán, giá so sánh, cấu hình addon và trạng thái hiển thị của các gói VPS thường.',
+    columns: [
+      'id',
+      'sku',
+      'title',
+      'billing_cycle_code',
+      'sale_price',
+      'compare_price',
+      'addon_cpu',
+      'addon_ram',
+      'addon_disk',
+      'sort_order',
+      'is_active',
+      'is_featured',
+      'updated_at',
+    ],
+    editableFields: [
+      'title',
+      'short_description',
+      'description',
+      'sale_price',
+      'compare_price',
+      'addon_cpu',
+      'addon_ram',
+      'addon_disk',
+      'badge_text',
+      'hero_gradient_from',
+      'hero_gradient_to',
+      'sort_order',
+      'is_active',
+      'is_featured',
+    ],
+    createFields: [
+      'sku',
+      'title',
+      'slug',
+      'short_description',
+      'description',
+      'vncloud_product_id',
+      'vncloud_os_id',
+      'billing_cycle_code',
+      'sale_price',
+      'compare_price',
+      'addon_cpu',
+      'addon_ram',
+      'addon_disk',
+      'badge_text',
+      'hero_gradient_from',
+      'hero_gradient_to',
+      'sort_order',
+      'is_active',
+      'is_featured',
+    ],
+  },
+];
+
 export const adminPageSections: Record<string, AdminSectionConfig[]> = {
   users: [
     {
@@ -94,6 +154,7 @@ export const adminPageSections: Record<string, AdminSectionConfig[]> = {
       editableFields: ['name', 'custom_price', 'status', 'is_deleted', 'is_auto_margin', 'margin_percent', 'name_color', 'description', 'server_info'],
       statusOptions: ['active', 'inactive'],
       actions: [
+        { key: 'reload-submetavip-auto-margin', label: 'Reload SubMetaVip + Margin 80%' },
         { key: 'sync-api-price', label: 'Đồng bộ giá API' },
         { key: 'bulk-delete', label: 'Ẩn/Xóa đã chọn', tone: 'danger' },
       ],

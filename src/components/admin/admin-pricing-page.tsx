@@ -176,7 +176,7 @@ export function AdminPricingPage() {
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [savingRow, setSavingRow] = useState('');
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [bulkPercent, setBulkPercent] = useState('60');
+  const [bulkPercent, setBulkPercent] = useState('80');
   const [bulkValue, setBulkValue] = useState('');
   const [targetFieldKey, setTargetFieldKey] = useState('');
   const [bulkScope, setBulkScope] = useState<BulkScope>('filtered');
@@ -600,7 +600,7 @@ export function AdminPricingPage() {
               onChange={(event) => setBulkPercent(event.target.value)}
               type="number"
               step="0.01"
-              placeholder="+60"
+              placeholder="+80"
             />
             <Button type="button" variant="outline" size="sm" onClick={() => void runBulk('bulk-percent')} loading={bulkLoading}>
               <Sparkles className="h-4 w-4" />

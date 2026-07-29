@@ -75,7 +75,14 @@ interface SmmMarginDialogState {
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-const GLOBAL_ACTION_KEYS = new Set(['sync', 'sync-api-price', 'sync-kenhgiare', 'sync-vibe-code', 'check-new-deposits']);
+const GLOBAL_ACTION_KEYS = new Set([
+  'sync',
+  'sync-api-price',
+  'reload-submetavip-auto-margin',
+  'sync-kenhgiare',
+  'sync-vibe-code',
+  'check-new-deposits',
+]);
 const LONG_TEXT_FIELD_TOKENS = ['description', 'content', 'message', 'payload', 'note', 'reason', 'key'];
 const LEGACY_COMMUNITY_LINKS = [
   { label: 'Nhóm Zalo', href: 'https://zalo.me/g/nqxe5e0xxuxjtkbwncnf' },
@@ -141,6 +148,7 @@ const SECTION_TITLE_LABELS: Record<string, string> = {
   'Interface settings': 'Cài đặt giao diện',
   'VPS GPU AI pricing': 'Nâng giá VPS GPU',
   'VPS GPU provider costs': 'Giá vốn nguồn GPU',
+  'Bảng giá VPS Cloud': 'Bảng giá VPS Cloud',
   'Cấu hình Kênh Giá Rẻ': 'Cấu hình Kênh Giá Rẻ',
   'Bảng kênh TikTok': 'Bảng kênh TikTok',
   'Đơn Kênh TikTok': 'Đơn Kênh TikTok',
@@ -163,6 +171,7 @@ const ACTION_TEXT_LABELS: Record<string, string> = {
 const ACTION_KEY_LABELS: Record<string, string> = {
   sync: 'Đồng bộ',
   'sync-api-price': 'Đồng bộ giá API',
+  'reload-submetavip-auto-margin': 'Reload SubMetaVip + 80%',
   'sync-kenhgiare': 'Refresh kênh',
   'sync-vibe-code': 'Đồng bộ GenZ',
   'check-new-deposits': 'Rà pending',
@@ -199,7 +208,9 @@ const COLUMN_LABELS: Record<string, string> = {
   quantity: 'Số lượng',
   stock: 'Kho',
   title: 'Tiêu đề / Sản phẩm',
+  sku: 'Mã SKU',
   description: 'Mô tả',
+  short_description: 'Mô tả ngắn',
   content: 'Nội dung',
   message: 'Nội dung',
   name: 'Tên',
@@ -222,6 +233,18 @@ const COLUMN_LABELS: Record<string, string> = {
   service_key: 'Mã dịch vụ',
   provider: 'Nguồn',
   vendor: 'Nguồn',
+  vncloud_product_id: 'VNCLOUD Product ID',
+  vncloud_os_id: 'VNCLOUD OS ID',
+  billing_cycle_code: 'Chu kỳ thanh toán',
+  sale_price: 'Giá bán',
+  compare_price: 'Giá so sánh',
+  addon_cpu: 'CPU cộng thêm',
+  addon_ram: 'RAM cộng thêm',
+  addon_disk: 'Disk cộng thêm',
+  badge_text: 'Nhãn gói',
+  hero_gradient_from: 'Màu gradient từ',
+  hero_gradient_to: 'Màu gradient đến',
+  is_featured: 'Nổi bật',
   vendor_product_id: 'Mã GenZ',
   package_key: 'Mã gói',
   package_id: 'Gói ID',
@@ -381,6 +404,27 @@ const COLUMN_LABELS: Record<string, string> = {
   api_response_json: 'Phản hồi API',
 };
 const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
+  'vps-catalog-items': {
+    sku: 'Mã SKU',
+    title: 'Tên gói VPS',
+    short_description: 'Mô tả ngắn',
+    description: 'Mô tả chi tiết',
+    vncloud_product_id: 'Product ID VNCloud',
+    vncloud_os_id: 'OS ID VNCloud',
+    billing_cycle_code: 'Chu kỳ',
+    sale_price: 'Giá bán web',
+    compare_price: 'Giá gạch',
+    addon_cpu: 'CPU cộng thêm',
+    addon_ram: 'RAM cộng thêm',
+    addon_disk: 'Disk cộng thêm',
+    badge_text: 'Badge',
+    hero_gradient_from: 'Gradient từ',
+    hero_gradient_to: 'Gradient đến',
+    sort_order: 'Thứ tự',
+    is_active: 'Hiển thị',
+    is_featured: 'Nổi bật',
+    updated_at: 'Cập nhật lúc',
+  },
   'vibe-code-packages': {
     vendor_product_id: 'Mã sản phẩm GenZ',
     source_price_vnd: 'Giá API từ GenZ',
@@ -1662,7 +1706,10 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     setSaving(true);
     try {
       const actionPayload: Record<string, unknown> = { action, id, ids: actionIds };
-      if (section.resource === 'smm-services' && (action === 'sync' || action === 'sync-api-price')) {
+      if (
+        section.resource === 'smm-services' &&
+        (action === 'sync' || action === 'sync-api-price' || action === 'reload-submetavip-auto-margin')
+      ) {
         actionPayload.provider_id = providerFilter || undefined;
       }
 
@@ -1742,7 +1789,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
     const rowMargin = row?.margin_percent;
     const defaultPercent = rowMargin !== null && rowMargin !== undefined && String(rowMargin).trim() !== ''
       ? String(rowMargin)
-      : '30';
+      : '80';
     setSmmMarginDialog({ scope, row, percent: defaultPercent });
   }
 
@@ -3442,7 +3489,7 @@ function AdminTableSection({ section }: { section: AdminSectionConfig }) {
                       ...current,
                       percent: event.target.value.replace(/[^\d.]/g, ''),
                     } : current)}
-                    placeholder="30"
+                    placeholder="80"
                     className="h-12 w-full rounded-[1rem] border border-white/10 bg-[#101b33] px-4 pr-10 text-sm font-black text-white outline-none placeholder:text-slate-600"
                   />
                   <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-500">%</span>

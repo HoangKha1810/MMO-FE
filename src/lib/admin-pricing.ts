@@ -113,7 +113,7 @@ const pricingModuleConfigs: PricingModuleConfig[] = [
         editable: true,
         primary: true,
         selectExpression: `COALESCE(NULLIF(\`custom_price\`, 0), ROUND(COALESCE(\`rate\`, 0) * ${DEFAULT_SMM_PRICE_MULTIPLIER}, 4))`,
-        hint: 'Giá bán mặc định = giá gốc SubMetaVip + 60%. Lưu vào custom_price để sync provider không ghi đè.',
+        hint: 'Giá bán mặc định = giá gốc SubMetaVip + 80%. Lưu vào custom_price để sync provider không ghi đè.',
       },
       {
         key: 'rate',

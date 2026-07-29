@@ -1,5 +1,5 @@
-export const DEFAULT_SMM_PRICE_MULTIPLIER = 1.6;
-export const DEFAULT_SMM_MARGIN_PERCENT = 60;
+export const DEFAULT_SMM_PRICE_MULTIPLIER = 1.8;
+export const DEFAULT_SMM_MARGIN_PERCENT = 80;
 export const MAX_SMM_PRICE_DECIMAL_15_4 = 99999999999.9999;
 
 function roundSmmPrice(value: number) {

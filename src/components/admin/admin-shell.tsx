@@ -128,6 +128,7 @@ const adminNavSections: NavSection[] = [
     items: [
       { href: '/admin/vps-proxy-monitor', label: 'Giám sát VPS + Proxy', icon: Server, accent: 'emerald' },
       { href: '/admin/proxy', label: 'Cấu hình Proxy Cloud', icon: Cloud },
+      { href: '/admin/vps-pricing', label: 'Chỉnh giá VPS Cloud', icon: Percent, accent: 'blue' },
       { href: '/admin/vps-gpu-costs', label: 'Giá vốn VPS GPU', icon: Cpu, accent: 'blue' },
     ],
   },

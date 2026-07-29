@@ -154,6 +154,49 @@ export const adminResourceConfig: Record<string, ResourceConfig> = {
     defaultOrder: commonOrder,
     updateFields: ['status', 'reason', 'is_refunded', 'refund_amount', 'start_count', 'remains'],
   },
+  'vps-catalog-items': {
+    table: 'vps_catalog_items',
+    title: 'Bảng giá VPS Cloud',
+    searchFields: ['sku', 'title', 'slug', 'short_description', 'billing_cycle_code', 'badge_text'],
+    rawOrder: 'is_active DESC, sort_order ASC, id DESC',
+    createFields: [
+      'sku',
+      'title',
+      'slug',
+      'short_description',
+      'description',
+      'vncloud_product_id',
+      'vncloud_os_id',
+      'billing_cycle_code',
+      'sale_price',
+      'compare_price',
+      'addon_cpu',
+      'addon_ram',
+      'addon_disk',
+      'badge_text',
+      'hero_gradient_from',
+      'hero_gradient_to',
+      'sort_order',
+      'is_active',
+      'is_featured',
+    ],
+    updateFields: [
+      'title',
+      'short_description',
+      'description',
+      'sale_price',
+      'compare_price',
+      'addon_cpu',
+      'addon_ram',
+      'addon_disk',
+      'badge_text',
+      'hero_gradient_from',
+      'hero_gradient_to',
+      'sort_order',
+      'is_active',
+      'is_featured',
+    ],
+  },
   providers: {
     delegate: 'api_providers',
     title: 'API providers',
@@ -3560,6 +3603,37 @@ export async function runAdminAction(resource: string, input: Record<string, unk
 
   if (resource === 'smm-services' && action === 'set-margin-percent') {
     return setSmmServicesMarginPercent(input, ids, adminId, req);
+  }
+
+  if (resource === 'smm-services' && action === 'reload-submetavip-auto-margin') {
+    const { syncSmmApiPricesFromProvider } = await import('@/lib/smm-provider');
+    const requestedProviderId = Math.max(0, Math.trunc(toNumber(input.provider_id, 0)));
+    const syncResult = await syncSmmApiPricesFromProvider(requestedProviderId || undefined);
+    const providerId = requestedProviderId || Math.max(0, Math.trunc(toNumber(syncResult.providerId, 0)));
+    const marginResult = await setSmmServicesMarginPercent(
+      {
+        scope: providerId ? 'provider' : 'all',
+        percent: 80,
+        provider_id: providerId || undefined,
+        provider_name: undefined,
+      },
+      [],
+      adminId,
+      req
+    );
+    const affected = toNumber((marginResult as Record<string, unknown>).affected, 0);
+    await logAdminAction({
+      adminId,
+      action: 'reload smm submetavip auto margin',
+      target: `${syncResult.providerName} / ${syncResult.fetched} fetched / ${affected} repriced at 80%`,
+      req,
+    });
+    return {
+      success: true,
+      data: normalizeValue({ sync: syncResult, margin: marginResult, auto_margin_percent: 80 }),
+      count: syncResult.fetched,
+      affected,
+    };
   }
 
   const moderationAction = action.replace(/^bulk-/, '');
