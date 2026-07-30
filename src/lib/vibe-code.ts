@@ -47,6 +47,14 @@ type GenzShopProduct = {
   description?: unknown;
   type?: unknown;
   image?: unknown;
+  available?: unknown;
+  total?: unknown;
+  sold?: unknown;
+  stock?: unknown;
+  stock_available?: unknown;
+  stockAvailable?: unknown;
+  stockTotal?: unknown;
+  soldCount?: unknown;
   walletPricing?: unknown;
   walletPricingText?: unknown;
   stats?: {
@@ -291,6 +299,79 @@ function sourcePriceToUsdAmount(sourcePrice: unknown) {
   return source > 0 ? Math.round(source / 1000) : 0;
 }
 
+function parseLocalizedNumber(value: unknown, fallback = 0) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+  if (typeof value === 'bigint') return Number(value);
+
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+
+  const compact = raw.replace(/\s+/g, '');
+  let normalized = compact;
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(compact)) {
+    normalized = compact.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(compact)) {
+    normalized = compact.replace(/,/g, '');
+  } else {
+    normalized = compact.replace(',', '.');
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseStockValue(value: unknown) {
+  if (value == null) return null;
+  if (typeof value === 'boolean') return value ? 999 : 0;
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return Math.max(0, Math.trunc(toNumber(value, 0)));
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (/(hết|out\s*of\s*stock|sold\s*out|unavailable|không\s*còn|tam\s*het|tạm\s*hết)/i.test(lower)) return 0;
+  const numberMatch = raw.match(/\d[\d.,]*/);
+  if (numberMatch) return Math.max(0, Math.trunc(parseLocalizedNumber(numberMatch[0], 0)));
+  if (/(còn|available|in\s*stock|active|true|yes|mở|mo\s*ban|đang\s*bán|dang\s*ban)/i.test(lower)) return 999;
+  return null;
+}
+
+function firstParsedStock(values: unknown[]) {
+  for (const value of values) {
+    const parsed = parseStockValue(value);
+    if (parsed != null) return parsed;
+  }
+  return 0;
+}
+
+function productAvailable(product: GenzShopProduct) {
+  return firstParsedStock([
+    product.available,
+    product.stock_available,
+    product.stockAvailable,
+    product.stock,
+    product.stats?.available,
+  ]);
+}
+
+function productStockTotal(product: GenzShopProduct, available: number) {
+  const total = firstParsedStock([
+    product.total,
+    product.stockTotal,
+    product.stats?.total,
+  ]);
+  return Math.max(available, total);
+}
+
+function productSoldCount(product: GenzShopProduct) {
+  return firstParsedStock([
+    product.sold,
+    product.soldCount,
+    product.stats?.sold,
+  ]);
+}
+
 function productSearchText(product: GenzShopProduct, ...extra: unknown[]) {
   return [
     product.name,
@@ -309,18 +390,28 @@ function isHiddenVibeCodeProduct(...values: unknown[]) {
   return /\btest\s*api\b/i.test(text);
 }
 
-function productUnitAmount(product: GenzShopProduct, provider: VibeCodeProvider, sourcePrice: number) {
+function productUnitMatches(product: GenzShopProduct) {
   const text = productSearchText(product);
-  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(?:\$|usd|credit|request|ngày|day|tháng|month)\b/i);
-  const parsedAmount = match ? toNumber(match[1], 0) : 0;
+  return Array.from(text.matchAll(/(\d[\d.,]*)\s*(\$|usd|credit|request|requests|req|ngày|day|days|tháng|month|months)(?=$|\s|[.,;:/)\]-])/gi));
+}
+
+function productUnitAmount(product: GenzShopProduct, provider: VibeCodeProvider, sourcePrice: number) {
+  const matches = productUnitMatches(product);
+  const preferred = matches.find((match) => {
+    const unit = String(match[2] || '').toLowerCase();
+    if (provider === 'cursor') return /request|req/.test(unit);
+    if (provider === 'codex' || provider === 'claude' || provider === 'kiro') return unit === '$' || unit === 'usd' || unit === 'credit';
+    return true;
+  }) || matches[0];
+  const parsedAmount = preferred ? parseLocalizedNumber(preferred[1], 0) : 0;
   if (parsedAmount > 0) return parsedAmount;
-  if (provider === 'codex') return sourcePriceToUsdAmount(sourcePrice);
+  if (provider === 'codex' || provider === 'claude') return sourcePriceToUsdAmount(sourcePrice);
   return 0;
 }
 
 function productUnitLabel(product: GenzShopProduct) {
   const name = productSearchText(product).toLowerCase();
-  if (name.includes('request')) return 'request';
+  if (/(request|requests|req)\b/.test(name)) return 'request';
   if (name.includes('credit') || name.includes('$') || name.includes('usd')) return 'Credit';
   if (name.includes('ngày') || name.includes('day')) return 'ngày';
   if (name.includes('tháng') || name.includes('month')) return 'tháng';
@@ -332,9 +423,9 @@ function normalizeGenzProduct(product: GenzShopProduct, index: number, config: G
   if (!productId) return null;
 
   const sourcePrice = Math.max(0, Math.round(toNumber(product.walletPricing, 0)));
-  const available = Math.max(0, Math.trunc(toNumber(product.stats?.available, 0)));
-  const total = Math.max(0, Math.trunc(toNumber(product.stats?.total, available)));
-  const sold = Math.max(0, Math.trunc(toNumber(product.stats?.sold, 0)));
+  const available = productAvailable(product);
+  const total = productStockTotal(product, available);
+  const sold = productSoldCount(product);
   const title = String(product.name || productId).trim();
   if (isHiddenVibeCodeProduct(productSearchText(product, productId), title, productId)) return null;
   const provider = normalizeProvider(product.type, productSearchText(product, title, productId));

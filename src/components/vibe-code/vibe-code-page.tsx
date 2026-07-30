@@ -257,28 +257,33 @@ function statusClass(status: string) {
 
 function packageHasExplicitUnitAmount(pack: VibeCodePackage) {
   const text = `${pack.title || ''} ${pack.description || ''}`.toLowerCase();
-  return /(\d+(?:[.,]\d+)?)\s*(?:\$|usd|credit|request|ngày|day|tháng|month)\b/i.test(text);
+  return /(\d[\d.,]*)\s*(?:\$|usd|credit|request|requests|req|ngày|day|days|tháng|month|months)(?=$|\s|[.,;:/)\]-])/i.test(text);
 }
 
 function formatAmount(pack: VibeCodePackage) {
   const amount = toNumber(pack.unit_amount, 0);
   if (amount <= 0) return null;
+  const unitLabel = String(pack.unit_label || '').trim();
+  const normalizedLabel = unitLabel.toLowerCase();
   if (pack.provider === 'codex') {
     if (amount <= 1 && !packageHasExplicitUnitAmount(pack)) return null;
-    const suffix = String(pack.unit_label || 'Credit').toLowerCase().includes('credit') ? ' Credit' : '';
+    const suffix = normalizedLabel.includes('credit') || !unitLabel ? ' Credit' : '';
     return `${new Intl.NumberFormat('vi-VN').format(amount)}$${suffix}`;
   }
   if (pack.provider === 'claude') {
-    const suffix = String(pack.unit_label || 'Credit').trim();
+    const suffix = unitLabel || 'Credit';
     return `${new Intl.NumberFormat('vi-VN').format(amount)}$ ${suffix}`;
   }
-  if (pack.unit_label?.toLowerCase().includes('ngày')) {
+  if (normalizedLabel.includes('credit')) {
+    return `${new Intl.NumberFormat('vi-VN').format(amount)} Credit`;
+  }
+  if (normalizedLabel.includes('ngày')) {
     return `${new Intl.NumberFormat('vi-VN').format(amount)} ngày`;
   }
-  if (pack.unit_label?.toLowerCase().includes('tháng') || pack.unit_label?.toLowerCase().includes('month')) {
+  if (normalizedLabel.includes('tháng') || normalizedLabel.includes('month')) {
     return `${new Intl.NumberFormat('vi-VN').format(amount)} tháng`;
   }
-  if (pack.unit_label?.toLowerCase().includes('gói')) {
+  if (normalizedLabel.includes('gói')) {
     return `${new Intl.NumberFormat('vi-VN').format(Math.max(1, amount || 1))} gói`;
   }
   return `${new Intl.NumberFormat('vi-VN').format(amount)} request`;
